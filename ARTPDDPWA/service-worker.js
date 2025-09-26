@@ -1,8 +1,9 @@
-﻿const CACHE_NAME = "buscador-cache-v1";
+﻿const CACHE_NAME = "buscador-cache-v2";
 const FILES_TO_CACHE = [
   "/",
-  "/index.html",
+ "./index.html",
   "/manifest.json",
+  "/productos.html",
   "/html5-qrcode.min.js",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
@@ -30,3 +31,4 @@ self.addEventListener("fetch", e => {
     caches.match(e.request).then(resp => resp || fetch(e.request))
   );
 });
+
