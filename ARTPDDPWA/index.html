@@ -25,7 +25,15 @@
       border: none; border-radius: 6px; cursor: pointer;
     }
     button:hover { background: #004a99; }
-    #lector { margin-top: 15px; width: 300px; margin-left: auto; margin-right: auto; display: none; }
+    #lector {
+  width: 100%;
+  max-width: 400px;
+  height: 300px;
+  margin: auto;
+  background: #000;
+  display: none;
+}
+
     .resultados { margin-top: 20px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto; }
     .producto {
       border: 2px solid #333; border-radius: 8px; padding: 12px; margin: 10px 0;
@@ -269,21 +277,22 @@ async function buscarLocal(termino) {
     // ===============================
     // 📷 ESCÁNER DE CÓDIGO
     // ===============================
-    window.iniciarEscaneo = function() {
-      divLector.style.display = "block";
-      const lector = new Html5Qrcode("lector");
-      lector.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        codigo => {
-          input.value = codigo;
-          lector.stop();
-          divLector.style.display = "none";
-          buscarLocal(codigo).then(r => { resultados = r; mostrarResultados(); });
-        },
-        error => { console.log("Escaneo fallido:", error); }
-      ).catch(err => { console.error("Error al abrir cámara:", err); });
-    }
+window.iniciarEscaneo = function() {
+  divLector.style.display = "block"; // mostrar el div con cámara
+  const lector = new Html5Qrcode("lector");
+  lector.start(
+    { facingMode: "environment" },  // cámara trasera
+    { fps: 10, qrbox: 250 },
+    codigo => {
+      input.value = codigo;
+      lector.stop().then(() => {
+        divLector.style.display = "none"; // ocultar después de leer
+      });
+      buscarLocal(codigo).then(r => { resultados = r; mostrarResultados(); });
+    },
+    error => { console.log("Escaneo fallido:", error); }
+  ).catch(err => { console.error("Error al abrir cámara:", err); });
+};
 
     // 🔹 Al iniciar, sincroniza
     await syncProductos();
@@ -313,5 +322,6 @@ actualizarEstadoConexion();
 </body>
 
 </html>
+
 
 
