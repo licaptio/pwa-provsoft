@@ -41,6 +41,10 @@
 <body>
   <h1>🔎 BUSCADOR DE ARTÍCULOS</h1>
   <h2>PROVEEDORA DE DULCES Y DESECHABLES</h2>
+<div id="estadoConexion" 
+     style="display:none; background:#ffcc00; color:#222; padding:10px; margin:10px auto; border-radius:6px; max-width:400px; font-size:14px; font-weight:bold;">
+  ⚠️ Estás offline — usando datos locales de IndexedDB
+</div>
 
   <input type="text" id="buscador" placeholder="Escribe código o nombre...">
   <button onclick="iniciarEscaneo()">📷 Escanear Código</button>
@@ -275,8 +279,25 @@ if ("serviceWorker" in navigator) {
     .then(() => console.log("✅ Service Worker registrado"))
     .catch(err => console.error("SW error:", err));
 }
+// Mostrar mensaje cuando no hay internet
+function actualizarEstadoConexion() {
+  const divEstado = document.getElementById("estadoConexion");
+  if (!navigator.onLine) {
+    divEstado.style.display = "block";
+  } else {
+    divEstado.style.display = "none";
+  }
+}
+
+// Detectar cambios de conexión
+window.addEventListener("online", actualizarEstadoConexion);
+window.addEventListener("offline", actualizarEstadoConexion);
+
+// Ejecutar al inicio
+actualizarEstadoConexion();
 
   </script>
 </body>
 
 </html>
+
