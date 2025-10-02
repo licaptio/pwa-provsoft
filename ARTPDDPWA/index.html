@@ -150,41 +150,54 @@
       });
     }
 
-    // ===============================
-    // 🔄 Sincronización
-    // ===============================
-    async function syncProductos() {
-      try {
-        const lastSync = await getMeta("lastSync");
-        const ahora = Date.now();
-        const unDia = 24 * 60 * 60 * 1000;
+// ===============================
+// 🔄 Sincronización controlada
+// ===============================
+async function syncProductos() {
+  try {
+    const ahora = new Date();
+    const hora = ahora.getHours();
+    const minutos = ahora.getMinutes();
+    const lastUpdate = await getMeta("lastUpdate");
 
-        if (lastSync && (ahora - lastSync) < unDia) {
-          console.log("📦 Usando catálogo local (IndexedDB)");
-          return;
-        }
+    // Convertimos lastUpdate a fecha JS
+    let ultimaFecha = lastUpdate ? new Date(lastUpdate) : null;
 
-        console.log("⬇️ Intentando descargar catálogo de Firestore...");
-        const q = query(collection(db, "productos"), where("activo", "==", true));
-        const snap = await getDocs(q);
+    // Reglas de actualización: solo a las 7am o 9pm
+    const debeActualizar =
+      (!ultimaFecha) || // nunca se ha actualizado
+      (
+        (hora === 7 && minutos < 15) ||  // de 7:00 a 7:15 am
+        (hora === 21 && minutos < 15)    // de 9:00 a 9:15 pm
+      );
 
-        if (snap.empty) throw new Error("No se pudo descargar catálogo");
-
-        const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        await saveProductos(lista);
-        await saveMeta("lastSync", ahora);
-        console.log("✅ Catálogo actualizado en IndexedDB");
-      } catch (err) {
-        console.warn("⚠️ Error al sincronizar con Firestore:", err.message);
-
-        const productosLocales = await getAllProductos();
-        if (productosLocales.length > 0) {
-          console.log("📦 Usando catálogo local en modo offline");
-        } else {
-          alert("❌ No hay internet y tampoco hay catálogo local.\nConéctate al menos una vez para bajar datos.");
-        }
-      }
+    if (!debeActualizar) {
+      console.log("📦 Usando catálogo local (IndexedDB). No es hora de actualización.");
+      return;
     }
+
+    console.log("⬇️ Descargando catálogo activo de Firestore...");
+    const q = query(collection(db, "productos"), where("activo", "==", true));
+    const snap = await getDocs(q);
+
+    if (snap.empty) throw new Error("No se pudo descargar catálogo");
+
+    const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    await saveProductos(lista);
+    await saveMeta("lastUpdate", ahora.toISOString());
+    console.log(`✅ Catálogo actualizado con ${lista.length} productos a las ${ahora.toLocaleString()}`);
+  } catch (err) {
+    console.warn("⚠️ Error al sincronizar con Firestore:", err.message);
+
+    const productosLocales = await getAllProductos();
+    if (productosLocales.length > 0) {
+      console.log("📦 Usando catálogo local en modo offline");
+    } else {
+      alert("❌ No hay internet y tampoco hay catálogo local.\nConéctate al menos una vez para bajar datos.");
+    }
+  }
+}
+
 
     // ===============================
     // 🔎 Buscar en IndexedDB
@@ -300,4 +313,5 @@ actualizarEstadoConexion();
 </body>
 
 </html>
+
 
