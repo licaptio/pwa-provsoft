@@ -47,6 +47,28 @@
     .precio-publico { font-weight: bold; color: #1a7c1a; }
     .precio-medio { color: #004080; }
     .precio-mayoreo { color: #b36b00; }
+  /* 🔹 Quitar la sombra gris del escáner */
+#lector video {
+  object-fit: cover;   /* para que la cámara ocupe todo el cuadro */
+}
+
+#lector > div {
+  background: transparent !important; /* elimina la máscara gris */
+}
+
+/* 🔹 Personalizar la mira blanca */
+#lector .qr-shaded-region {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* 🔹 Si quieres marcos más finos */
+#lector .qr-shaded-region > div {
+  border: 4px solid white !important;
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(255,255,255,0.8);
+}
+
   </style>
 </head>
 <body>
@@ -331,6 +353,7 @@ actualizarEstadoConexion();
 </body>
 
 </html>
+
 
 
 
