@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cortes de Ruta – ProvSoft</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, query, where, getDocs, Timestamp, addDoc, doc, setDoc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // 🧩 Config Firebase
+    const firebaseConfig = { /* mismo config del POS */ };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // ⚙️ Recuperar usuario actual
+    const usuario = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
+
+    async function generarCorte() {
+      if (!usuario?.rutaId) {
+        alert("Falta sesión de usuario.");
+        return;
+      }
+
+      const base = new Date();
+      const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 0, 0);
+      const fin = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 23, 59, 59);
+
+      const ventasRef = collection(db, "rutas_venta", usuario.rutaId, "ventas");
+      const qv = query(
+        ventasRef,
+        where("fecha", ">=", Timestamp.fromDate(inicio)),
+        where("fecha", "<=", Timestamp.fromDate(fin)),
+        where("atendio", "==", usuario.nombre)
+      );
+      const snap = await getDocs(qv);
+
+      if (snap.empty) {
+        alert("No hay ventas para el día.");
+        return;
+      }
+
+      let total = 0;
+      snap.forEach(d => total += d.data().total || 0);
+
+      // ejemplo simple
+      const corte = {
+        fecha: serverTimestamp(),
+        rutaId: usuario.rutaId,
+        usuarioId: usuario.id,
+        vendedor: usuario.nombre,
+        total
+      };
+      await addDoc(collection(db, "rutas_venta", usuario.rutaId, "cortes"), corte);
+      alert(`Corte generado para ${usuario.nombre}\nTotal: $${total.toFixed(2)}`);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("btnGenerarCorte").onclick = generarCorte;
+    });
+  </script>
+</head>
+<body style="font-family:Arial; text-align:center; margin-top:40px;">
+  <h2>📊 Corte del Día</h2>
+  <button id="btnGenerarCorte" style="padding:10px 20px; font-size:18px;">Generar Corte</button>
+</body>
+</html>
