@@ -347,148 +347,6 @@ import {
       req.onerror   = () => reject(req.error);
     });
   }
-// Generador de folios para cortes por usuario
-async function getNextFolioCorte(db, rutaId, usuarioId){
-  const ref = doc(db, "consecutivos_cortes", `${rutaId}_${usuarioId}`);
-  const folio = await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-    if (!snap.exists()) {
-      tx.set(ref, { valor: 1, actualizado: serverTimestamp() });
-      return 1;
-    }
-    const actual = Number(snap.data().valor || 0) + 1;
-    tx.update(ref, { valor: actual, actualizado: serverTimestamp() });
-    return actual;
-  });
-  return `C-${usuarioId}-${String(folio).padStart(4,"0")}`;
-}
-
-async function corteDelDia(){
-  if(!USUARIO_LOGUEADO){alert("No logueado");return;}
-
-  // 📅 Leer fecha elegida o usar hoy
-  const inputFecha = document.getElementById("fechaCorte");
-  const fechaTxt = inputFecha?.value;
-  const base = fechaTxt ? new Date(fechaTxt) : new Date();
-
-  const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 0, 0);
-  const fin    = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 23, 59, 59);
-
-const ventasRef = collection(db,"rutas_venta",rutaId,"ventas");
-const qv = query(
-  ventasRef,
-  where("fecha",">=",Timestamp.fromDate(inicio)),
-  where("fecha","<=",Timestamp.fromDate(fin)),
-  where("atendio","==",USUARIO_LOGUEADO.nombre)
-);
-const snap = await getDocs(qv);
-
-if(snap.empty){
-  alert("No hay ventas para esa fecha.");
-  return;
-}
-
-let subtotal = 0, ivaTotal = 0, iepsTotal = 0, total = 0, count = 0;
-snap.forEach(d=>{
-  const v = d.data();
-  subtotal += v.subtotal || 0;
-  total    += v.total || 0;
-  count++;
-
-  // Si la venta tiene desglose por producto
-  if (Array.isArray(v.detalle)) {
-    v.detalle.forEach(it=>{
-      const imp = it.cantidad * it.precio_unit;
-      let base = imp, iva = 0, ieps = 0;
-
-      if (it.iepsTasa>0 && it.ivaTasa>0){
-        base = imp / (1 + it.iepsTasa + it.ivaTasa*(1+it.iepsTasa));
-        ieps = base * it.iepsTasa;
-        iva  = (base + ieps) * it.ivaTasa;
-      } else if (it.iepsTasa>0){
-        base = imp / (1 + it.iepsTasa);
-        ieps = base * it.iepsTasa;
-      } else if (it.ivaTasa>0){
-        base = imp / (1 + it.ivaTasa);
-        iva = base * it.ivaTasa;
-      }
-      ivaTotal  += iva;
-      iepsTotal += ieps;
-    });
-  }
-});
-
-const impuestos = ivaTotal + iepsTotal;
-
-  // Folio
-  const folioCorte = await getNextFolioCorte(db, rutaId, USUARIO_LOGUEADO.id);
-
-  // Guardar en Firestore
-const corte = {
-  folio: folioCorte,
-  fecha: serverTimestamp(),
-  fecha_txt: base.toLocaleString(),  // ✅ usa la fecha seleccionada o actual
-  rutaId,
-  usuarioId: USUARIO_LOGUEADO.id,
-  vendedor: USUARIO_LOGUEADO.nombre,
-  ventas: count,
-  subtotal: +subtotal.toFixed(2),
-  impuestos: +impuestos.toFixed(2),
-  total: +total.toFixed(2)
-};
-
-  try {
-    const refCortes = collection(db,"rutas_venta",rutaId,"cortes");
-    await addDoc(refCortes, corte);
-    console.log("✅ Corte guardado:", folioCorte);
-
-    // Enviar reporte a Telegram
-    await enviarReporteTelegram(folioCorte, count, subtotal, impuestos, total);
-  
-    // 🔹 Marcar todas las ventas del día como cortadas
-    for (const d of snap.docs) {
-      const refVenta = doc(db, "rutas_venta", rutaId, "ventas", d.id);
-      await setDoc(refVenta, { cortada: true }, { merge: true });
-    }
-  } catch(err) {
-    console.error("❌ Error guardando corte:", err);
-  }
-
-// Imprimir ticket de corte (estilo uniforme)
-const ticketArea = document.getElementById('ticketArea');
-const t = document.getElementById('ticket');
-t.innerHTML = ""; // ✅ Limpia ticket previo
-t.innerHTML = `
-  <div class="t-header">
-    <img src="logo_proveedora.webp" alt="Logo" style="max-width:120px; height:auto; margin-bottom:4px;">
-  </div>
-  <div class="t-header">📊 CORTE DEL DÍA</div>
-  <div class="t-header">${base.toLocaleDateString()}</div>
-  <hr>
-  <div class="t-row"><span>Folio</span><span>${folioCorte}</span></div>
-  <div class="t-row"><span>Vendedor</span><span>${USUARIO_LOGUEADO.nombre}</span></div>
-  <div class="t-row"><span>Ventas</span><span>${count}</span></div>
-  <hr>
-  <div class="t-row"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
-  <div class="t-row"><span>IVA</span><span>$${ivaTotal.toFixed(2)}</span></div>
-  <div class="t-row"><span>IEPS</span><span>$${iepsTotal.toFixed(2)}</span></div>
-  <div class="t-row" style="font-weight:700;"><span>Total</span><span>$${total.toFixed(2)}</span></div>
-  <hr>
-  <div class="t-thanks">Fin de corte</div>
-`;
-
-
-
-  ticketArea.style.top="0"; ticketArea.style.left="0";
-  window.print();
-  ticketArea.style.top="-9999px"; ticketArea.style.left="-9999px";
-
-  // ✅ Mensaje visual de confirmación
-  mostrarToast("✅ Corte realizado y enviado correctamente");
-}
-
-
-
   async function borrarVentaPendiente(folio) {
     const db = await openLocalDB();
     return new Promise((resolve, reject) => {
@@ -883,61 +741,13 @@ function imprimirTicketEstilado(){
   document.getElementById('btnCobrar').onclick=abrirCobro;
   document.getElementById('btnCancelarCobro').onclick=cerrarCobro;
   document.getElementById('btnConfirmarCobro').onclick=confirmarCobro;
-    // 🔹 Botón que abre la app de cortes
-  const btnCorte = document.getElementById("btnCorte");
-  btnCorte.addEventListener("click", () => {
-    // guarda el usuario actual en LocalStorage para que la otra app lo use
-    localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
-
-    // abre la app de cortes en nueva pestaña o pantalla
-    window.open("corte.html", "_blank"); // o cambia la URL si ya tienes el módulo en otro dominio
-  });
-
-
-  // ==== Telegram ====
-async function enviarReporteTelegram(folio, ventas, subtotal, impuestos, total){
-  try{
-    const token  = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const chatId = "6617988297";
-    const mensaje =
-`📊 CORTE DEL DÍA
-🧾 Folio: ${folio}
-👤 Vendedor: ${USUARIO_LOGUEADO.nombre}
-🛒 Ventas: ${ventas}
-💵 Subtotal: $${subtotal.toFixed(2)}
-💰 Impuestos: $${impuestos.toFixed(2)}
-✅ Total: $${total.toFixed(2)}`;
-
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:chatId,text:mensaje})
-    });
-  }catch(e){
-    console.error("Error enviando a Telegram:",e);
-  }
-}
-  // === CORTE DEL DÍA CON MODAL ===
-document.addEventListener("DOMContentLoaded", () => {
-  const btnCorte = document.getElementById("btnCorte");
-  const modalCorte = document.getElementById("modalCorte");
-  const btnCancelarCorte = document.getElementById("btnCancelarCorte");
-  const btnConfirmarCorte = document.getElementById("btnConfirmarCorte");
-
-  btnCorte.addEventListener("click", () => {
-    modalCorte.style.display = "flex";
-    document.getElementById("fechaCorte").value = ""; // limpia selección
-  });
-
-  btnCancelarCorte.addEventListener("click", () => {
-    modalCorte.style.display = "none";
-  });
-
-  btnConfirmarCorte.addEventListener("click", () => {
-    modalCorte.style.display = "none";
-    corteDelDia(); // usa la fecha seleccionada
-  });
+// 🔹 Botón que abre la app de cortes
+const btnCorte = document.getElementById("btnCorte");
+btnCorte.addEventListener("click", () => {
+  localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+  window.open("corte.html", "_blank");
 });
+
 
     // === CÁMARA / ESCÁNER ===
   const btnCam = document.getElementById("btnCam");
@@ -1135,15 +945,6 @@ function mostrarToast(mensaje){
       <div class="t-thanks" style="text-align:center; margin-top:8px; font-size:12px;">¡Gracias por su compra!</div>
     </div>
   </div>
-  <!-- 🔹 Modal Corte por Día -->
-<div id="modalCorte" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1400; align-items:center; justify-content:center;">
-  <div style="background:#fff; padding:20px; border-radius:14px; width:300px; box-shadow:0 8px 30px rgba(0,0,0,.25); text-align:center;">
-    <h3 style="margin-bottom:10px;">Seleccionar fecha de corte</h3>
-    <input type="date" id="fechaCorte" style="padding:8px; border-radius:8px; border:1px solid #ccc; width:100%; margin-bottom:14px;">
-    <div style="display:flex; gap:10px; justify-content:center;">
-      <button id="btnCancelarCorte" class="btn" style="background:#aaa;">Cancelar</button>
-      <button id="btnConfirmarCorte" class="btn" style="background:linear-gradient(180deg,#1e8e3e,#146329);">Hacer Corte</button>
-    </div>
   </div>
 </div>
 <script>
