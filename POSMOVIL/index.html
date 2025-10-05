@@ -1009,11 +1009,17 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
       console.log("🚪 Cerrando sesión...");
+      
+      // 🧹 Borrar sesión y cachés del usuario
       localStorage.removeItem("usuario_ruta");
-      // 🔹 Ocultar POS y mostrar login
+      localStorage.removeItem("catalogo_cache");
+      localStorage.removeItem("catalogo_fecha");
+
+      // 🔹 Ocultar POS y mostrar login limpio
       document.getElementById("posApp").style.display = "none";
       document.getElementById("loginScreen").style.display = "flex";
-     // 🧹 Limpiar campos de login
+
+      // 🔹 Limpiar campos y mensaje
       document.getElementById("loginUsuario").value = "";
       document.getElementById("loginPassword").value = "";
       document.getElementById("loginMsg").textContent = "";
@@ -1023,6 +1029,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
+
 
 </body>
 </html>
