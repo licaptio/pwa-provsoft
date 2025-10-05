@@ -528,20 +528,49 @@ t.innerHTML = `
   }
   window.addEventListener('online', ()=> { sincronizarVentasPendientes(); });
 
-  // ==== Catálogo ====
-  async function cargarCatalogoDesdeFirestore(){
-    catalogo=[]; codeIndex.clear();
-    const prodSnap=await getDocs(collection(db,'productos'));
-    prodSnap.forEach(d=>{
-      const x=d.data(); if(x.activo===false)return;
-      const prod={id:d.id, nombre:x.concepto||'SIN NOMBRE',
-        codigo:(x.codigoBarra||'').toString(),
-        precioPublico:Number(x.precioPublico||0),
-        ivaTasa:Number(x.ivaTasa||0),
-        iepsTasa:Number(x.iepsTasa||0)};
-      catalogo.push(prod); if(prod.codigo)codeIndex.set(prod.codigo.trim(),prod.id);
+// ==== Catálogo con caché diario ====
+async function cargarCatalogoDesdeFirestore(){
+  try {
+    const cache = localStorage.getItem("catalogo_cache");
+    const hoy = new Date().toDateString();
+    const fechaCache = localStorage.getItem("catalogo_fecha");
+
+    if (cache && fechaCache === hoy) {
+      catalogo = JSON.parse(cache);
+      catalogo.forEach(p => {
+        if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
+      });
+      console.log("📦 Catálogo cargado desde cache local");
+      return;
+    }
+
+    console.log("🔄 Descargando catálogo de Firestore...");
+    const prodSnap = await getDocs(collection(db, 'productos'));
+    catalogo = [];
+    codeIndex.clear();
+
+    prodSnap.forEach(d => {
+      const x = d.data();
+      if (x.activo === false) return;
+      const prod = {
+        id: d.id,
+        nombre: x.concepto || 'SIN NOMBRE',
+        codigo: (x.codigoBarra || '').toString(),
+        precioPublico: Number(x.precioPublico || 0),
+        ivaTasa: Number(x.ivaTasa || 0),
+        iepsTasa: Number(x.iepsTasa || 0)
+      };
+      catalogo.push(prod);
+      if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
     });
+
+    localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
+    localStorage.setItem("catalogo_fecha", hoy);
+    console.log("✅ Catálogo guardado en cache local");
+  } catch (err) {
+    console.error("❌ Error cargando catálogo:", err);
   }
+}
 
 // ==== Autocompletado de Clientes ====
 async function buscarClientesFirestore(texto){
@@ -1086,6 +1115,13 @@ function mostrarToast(mensaje){
     </div>
   </div>
 </div>
+<script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+      .then(() => console.log("✅ Service Worker registrado"))
+      .catch(err => console.error("❌ Error SW:", err));
+    }
+  </script>
 </body>
 </html>
 
