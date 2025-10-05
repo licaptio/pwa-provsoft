@@ -1,0 +1,12 @@
+{
+  "name": "ProvSoft POS",
+  "short_name": "ProvPOS",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#00416A",
+  "theme_color": "#0c6cbd",
+  "icons": [
+    { "src": "logo_proveedora.webp", "sizes": "192x192", "type": "image/webp" },
+    { "src": "logo_proveedora.webp", "sizes": "512x512", "type": "image/webp" }
+  ]
+}
