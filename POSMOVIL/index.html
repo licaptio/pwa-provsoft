@@ -201,10 +201,18 @@
 
 <!-- 📦 POS -->
 <div id="posApp" style="display:none;">
-  <header>
-    <span>POS – Ruta de Venta</span>
-    <img src="logo_proveedora.webp" alt="Logo">
-  </header>
+<header>
+  <span>POS – Ruta de Venta</span>
+  <img src="logo_proveedora.webp" alt="Logo">
+  <button id="btnLogout" 
+          style="position:absolute; right:10px; top:10px; 
+                 background:#c0392b; color:white; border:none; 
+                 padding:6px 10px; border-radius:8px; 
+                 font-size:14px; font-weight:600; cursor:pointer;">
+    🚪 Salir
+  </button>
+</header>
+
 
   <main class="wrap">
     <section class="controls">
@@ -277,6 +285,11 @@ import {
   };
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
+import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+enableIndexedDbPersistence(db).catch(err => {
+  console.warn("⚠️ Firestore offline persistence desactivado:", err);
+});
 
   // ==== Variables globales ====
   let USUARIO_LOGUEADO = null;
@@ -319,6 +332,9 @@ import {
       await cargarCatalogoDesdeFirestore();
       render();
       await sincronizarVentasPendientes();
+      // 🔹 Guardar sesión en localStorage
+localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+
     }catch(e){ msg.textContent="Error de conexión"; console.error(e);}
   }
   $("#btnLogin").onclick=loginUsuario;
@@ -945,7 +961,34 @@ function mostrarToast(mensaje){
       <div class="t-thanks" style="text-align:center; margin-top:8px; font-size:12px;">¡Gracias por su compra!</div>
     </div>
 </div>
+<!-- 🔹 Restaurar sesión si ya había un usuario guardado -->
 <script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const u = localStorage.getItem("usuario_ruta");
+  if (u) {
+    try {
+      USUARIO_LOGUEADO = JSON.parse(u);
+      rutaId = USUARIO_LOGUEADO.rutaId;
+      $("#loginScreen").style.display = "none";
+      $("#posApp").style.display = "block";
+      await cargarCatalogoDesdeFirestore();
+      render();
+      await sincronizarVentasPendientes();
+      console.log("✅ Sesión restaurada:", USUARIO_LOGUEADO.usuario);
+    } catch (err) {
+      console.error("❌ Error restaurando sesión:", err);
+    }
+  }
+});
+</script>
+<script>
+  $("#btnLogout").addEventListener("click", () => {
+    localStorage.removeItem("usuario_ruta");
+    location.reload(); // vuelve a la pantalla de Login
+  });
+</script>
+
+  <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
       .then(() => console.log("✅ Service Worker registrado"))
