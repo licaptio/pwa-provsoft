@@ -1013,6 +1013,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // 🔹 Ocultar POS y mostrar login
       document.getElementById("posApp").style.display = "none";
       document.getElementById("loginScreen").style.display = "flex";
+     // 🧹 Limpiar campos de login
+      document.getElementById("loginUsuario").value = "";
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginMsg").textContent = "";
     });
   } else {
     console.warn("⚠️ No se encontró el botón Salir en el DOM.");
