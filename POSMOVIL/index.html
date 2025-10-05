@@ -401,16 +401,18 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
     }
   }
   window.addEventListener('online', ()=> { sincronizarVentasPendientes(); });
-  // ✅ Sincronización en background (registrar tarea)
+// 🔁 Registrar sincronización cuando el SW esté listo
 navigator.serviceWorker.ready.then(reg => {
   if ('sync' in reg) {
     reg.sync.register('sync-ventas-pendientes');
+    console.log("📡 Sincronización en background registrada");
   }
 });
 
-// ✅ Escuchar mensajes del service worker
+// 📨 Escuchar mensajes del SW
 navigator.serviceWorker.addEventListener('message', e => {
   if (e.data.action === 'sincronizar') {
+    console.log("📨 Mensaje recibido desde SW: sincronizar");
     sincronizarVentasPendientes();
   }
 });
