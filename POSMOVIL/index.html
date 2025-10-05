@@ -1023,6 +1023,8 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("loginUsuario").value = "";
       document.getElementById("loginPassword").value = "";
       document.getElementById("loginMsg").textContent = "";
+      mostrarToast("Sesión cerrada correctamente ✅");
+
     });
   } else {
     console.warn("⚠️ No se encontró el botón Salir en el DOM.");
