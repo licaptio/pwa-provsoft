@@ -401,6 +401,19 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
     }
   }
   window.addEventListener('online', ()=> { sincronizarVentasPendientes(); });
+  // ✅ Sincronización en background (registrar tarea)
+navigator.serviceWorker.ready.then(reg => {
+  if ('sync' in reg) {
+    reg.sync.register('sync-ventas-pendientes');
+  }
+});
+
+// ✅ Escuchar mensajes del service worker
+navigator.serviceWorker.addEventListener('message', e => {
+  if (e.data.action === 'sincronizar') {
+    sincronizarVentasPendientes();
+  }
+});
 
 // ==== Catálogo con caché diario ====
 async function cargarCatalogoDesdeFirestore(){
