@@ -250,7 +250,7 @@
 
 <section class="actions">
   <button class="btn" id="btnCobrar">Cobrar</button>
-  <button class="btn" id="btnCorte">CorteXDia</button>
+  <button class="btn" id="btnCorte">Corte del Día</button>
   <button class="btn" id="btnReimprimir" style="background:linear-gradient(180deg,#6b7280,#374151);">
     Reimprimir
   </button>
@@ -572,9 +572,20 @@ async function cargarCatalogoDesdeFirestore(){
   }
 }
 
-// ==== Autocompletado de Clientes ====
+// ==== Autocompletado de Clientes con caché ====
+const cacheClientes = new Map();
+
 async function buscarClientesFirestore(texto){
-  if(!texto || texto.length < 2) return [];  // solo busca si hay 2+ letras
+  // ⚡️ evita consultas innecesarias
+  if(!texto || texto.length < 2) return [];
+
+  // ✅ si ya lo tenemos en memoria, devolver directo
+  if(cacheClientes.has(texto)){
+    console.log("📋 Clientes cargados desde cache:", texto);
+    return cacheClientes.get(texto);
+  }
+
+  console.log("🔍 Consultando clientes en Firestore:", texto);
   const ref = collection(db,"clientes");
   const q = query(
     ref,
@@ -582,22 +593,32 @@ async function buscarClientesFirestore(texto){
     where("nombre","<",texto + "\uf8ff"),
     limit(10)
   );
-  const snap = await getDocs(q);
-  const lista = [];
-  snap.forEach(d=>{
-    const c = d.data();
-    if(c.activo===false) return;
-    lista.push({
-      id:d.id,
-      nombre:c.nombre||"",
-      catalogo:c.catalogo||"",
-      rfc:c.rfc||"",
-      uso_cfdi:c.uso_cfdi||"",
-      ocupa_factura: !!c.ocupa_factura
+
+  try {
+    const snap = await getDocs(q);
+    const lista = [];
+    snap.forEach(d=>{
+      const c = d.data();
+      if(c.activo===false) return;
+      lista.push({
+        id:d.id,
+        nombre:c.nombre||"",
+        catalogo:c.catalogo||"",
+        rfc:c.rfc||"",
+        uso_cfdi:c.uso_cfdi||"",
+        ocupa_factura: !!c.ocupa_factura
+      });
     });
-  });
-  return lista;
+
+    // 🧠 guarda en memoria local para reusos rápidos
+    cacheClientes.set(texto, lista);
+    return lista;
+  } catch(err){
+    console.error("❌ Error buscando clientes:", err);
+    return [];
+  }
 }
+
 
   let clienteSeleccionado=null;
  elCliente.addEventListener("change", async ()=>{
@@ -862,6 +883,16 @@ function imprimirTicketEstilado(){
   document.getElementById('btnCobrar').onclick=abrirCobro;
   document.getElementById('btnCancelarCobro').onclick=cerrarCobro;
   document.getElementById('btnConfirmarCobro').onclick=confirmarCobro;
+    // 🔹 Botón que abre la app de cortes
+  const btnCorte = document.getElementById("btnCorte");
+  btnCorte.addEventListener("click", () => {
+    // guarda el usuario actual en LocalStorage para que la otra app lo use
+    localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+
+    // abre la app de cortes en nueva pestaña o pantalla
+    window.open("corte.html", "_blank"); // o cambia la URL si ya tienes el módulo en otro dominio
+  });
+
 
   // ==== Telegram ====
 async function enviarReporteTelegram(folio, ventas, subtotal, impuestos, total){
