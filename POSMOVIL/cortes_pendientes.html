@@ -88,11 +88,12 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, updateDoc, doc, addDoc, serverTimestamp } 
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+  getFirestore, collection, getDocs, query, where, updateDoc, doc, addDoc, serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
-
+  // 🔹 Configuración Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
     authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -113,63 +114,58 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let corteActual = null;
 
-  // 🔹 Carga rutas desde usuarios_ruta
+  // 🔹 Cargar rutas únicas desde rutas_venta
   async function cargarRutas() {
-    const snap = await getDocs(collection(db, "usuarios_ruta"));
-    if (snap.empty) {
+    const snap = await getDocs(collection(db, "rutas_venta"));
+    const rutas = new Map();
+
+    snap.forEach(d => {
+      const v = d.data();
+      if (v.rutaId) {
+        rutas.set(v.rutaId, v.atendio || v.usuarioNombre || "Desconocido");
+      }
+    });
+
+    if (rutas.size === 0) {
       const opt = document.createElement("option");
       opt.value = "AdministradorGeneral";
       opt.textContent = "GERARDO RIOS QUEZADA – AdministradorGeneral";
       selectRuta.appendChild(opt);
     } else {
-      snap.forEach(docu => {
-        const u = docu.data();
-        if (u.rutaId) {
-          const opt = document.createElement("option");
-          opt.value = u.rutaId;
-          opt.textContent = `${u.nombre || u.usuario} – ${u.rutaId}`;
-          selectRuta.appendChild(opt);
-        }
+      rutas.forEach((nombre, id) => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = `${nombre} – ${id}`;
+        selectRuta.appendChild(opt);
       });
     }
   }
 
-  // 🔹 Cargar ventas pendientes
+  // 🔹 Cargar pendientes del día filtrando por rutaId
   async function cargarPendientes(rutaId) {
     tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
 
-    const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
-    const hoy = new Date(); 
-    const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+    const snap = await getDocs(qVentas);
+    const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const ventasDeHoy = ventasSnap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(v => {
-        const txt = v.fecha_txt || "";
-        const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-        if (!match) return false;
-        const [_, diaV, mesV, anioV] = match.map(Number);
-        return diaV === d && mesV === m && anioV === a && !v.cortado;
-      });
-
-    tbody.innerHTML = "";
-    if (ventasDeHoy.length === 0) {
+    if (ventas.length === 0) {
       tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes</td></tr>";
       return;
     }
 
-    const totalHoy = ventasDeHoy.reduce((acc, v) => acc + (v.total || 0), 0);
-    const ultimaVenta = ventasDeHoy.sort((a, b) => b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
+    const totalHoy = ventas.reduce((acc, v) => acc + (v.total || 0), 0);
+    const ultimaVenta = ventas.sort((a, b) => (b.fecha_txt || '').localeCompare(a.fecha_txt || ''))[0]?.fecha_txt || "—";
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${rutaId}</td>
-      <td>${rutaId}</td>
-      <td>$${totalHoy.toFixed(2)}</td>
-      <td>${ultimaVenta}</td>
-      <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
+    tbody.innerHTML = `
+      <tr>
+        <td>${ventas[0].atendio || "—"}</td>
+        <td>${rutaId}</td>
+        <td>$${totalHoy.toFixed(2)}</td>
+        <td>${ultimaVenta}</td>
+        <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
+      </tr>
     `;
-    tbody.appendChild(tr);
   }
 
   // 🔹 Evento: cambio en el selector
@@ -203,22 +199,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     btnConfirmar.disabled = true;
     btnConfirmar.textContent = "Cortando...";
 
-    const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
-    const snap = await getDocs(ventasRef);
-    const hoy = new Date(); 
-    const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+    // Marcar ventas como cortadas
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+    const snap = await getDocs(qVentas);
 
     for (const docu of snap.docs) {
-      const v = docu.data();
-      const txt = v.fecha_txt || "";
-      const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if (!match) continue;
-      const [_, diaV, mesV, anioV] = match.map(Number);
-      if (diaV === d && mesV === m && anioV === a) {
-        await updateDoc(doc(db, "rutas_venta", rutaId, "ventas", docu.id), { cortado: true });
-      }
+      await updateDoc(doc(db, "rutas_venta", docu.id), { cortado: true });
     }
 
+    // Registrar corte global
     await addDoc(collection(db, "cortes_globales"), {
       rutaId,
       fecha: serverTimestamp(),
@@ -241,20 +230,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     contenido.innerHTML = "Generando resumen...";
     modal.style.display = "flex";
 
-    const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
-    const hoy = new Date();
-    const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
-    const ventasDeHoy = ventasSnap.docs.map(d=>({id:d.id,...d.data()})).filter(v=>{
-      const txt = v.fecha_txt || "";
-      const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-      if (!match) return false;
-      const [_, diaV, mesV, anioV] = match.map(Number);
-      return diaV === d && mesV === m && anioV === a && !v.cortado;
-    });
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+    const snap = await getDocs(qVentas);
+    const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     const porMetodo = {}, porDepto = {};
     let totalDia = 0;
-    for (const v of ventasDeHoy) {
+    for (const v of ventas) {
       totalDia += v.total || 0;
       const metodo = v.metodo_pago || "otro";
       porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
@@ -265,9 +247,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    const totalTickets = ventasDeHoy.length;
+    const totalTickets = ventas.length;
     const totalEfectivo = porMetodo.efectivo || 0;
-    const totalCredito  = porMetodo.credito || porMetodo.tarjeta || 0;
+    const totalCredito  = porMetodo.tarjeta || 0;
     corteActual.resumen = { totalDia, porMetodo, porDepto, totalTickets, totalEfectivo, totalCredito };
 
     let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
