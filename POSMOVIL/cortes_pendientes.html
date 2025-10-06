@@ -12,7 +12,15 @@
       padding: 20px;
       color: #222;
     }
-    h1 { color: #00416A; text-align:center; margin-bottom:20px; }
+    h1 { color: #00416A; text-align:center; margin-bottom:10px; }
+    select {
+      display:block;
+      margin:0 auto 20px auto;
+      padding:8px 12px;
+      border-radius:6px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
     table {
       width: 100%; border-collapse: collapse; background:#fff;
       border-radius: 10px; overflow:hidden;
@@ -47,6 +55,10 @@
 <body>
 
 <h1>Cortes Pendientes</h1>
+<select id="selectRuta">
+  <option value="">Selecciona una ruta...</option>
+</select>
+
 <table id="tablaCortes">
   <thead>
     <tr>
@@ -57,7 +69,9 @@
       <th>Acción</th>
     </tr>
   </thead>
-  <tbody id="tbodyCortes"></tbody>
+  <tbody id="tbodyCortes">
+    <tr><td colspan="5" style="text-align:center;">Selecciona una ruta para ver pendientes</td></tr>
+  </tbody>
 </table>
 
 <!-- Modal resumen antes de confirmar corte -->
@@ -88,6 +102,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const selectRuta = document.getElementById("selectRuta");
 const tbody = document.getElementById("tbodyCortes");
 const modal = document.getElementById("modalResumen");
 const contenido = document.getElementById("resumenContenido");
@@ -96,46 +111,65 @@ const btnConfirmar = document.getElementById("btnConfirmar");
 
 let corteActual = null;
 
-// 🔹 Carga rutas y muestra las que tienen ventas pendientes
-async function cargarPendientes() {
-  tbody.innerHTML = "<tr><td colspan='5'>Buscando rutas...</td></tr>";
+// 🔹 Carga rutas desde usuarios_ruta
+async function cargarRutas() {
+  const snap = await getDocs(collection(db, "usuarios_ruta"));
+  snap.forEach(docu => {
+    const u = docu.data();
+    if (u.rutaId) {
+      const opt = document.createElement("option");
+      opt.value = u.rutaId;
+      opt.textContent = `${u.nombre || u.usuario} – ${u.rutaId}`;
+      selectRuta.appendChild(opt);
+    }
+  });
+}
 
-  const rutasSnap = await getDocs(collection(db, "rutas_venta"));
+// 🔹 Cargar ventas pendientes de la ruta seleccionada
+async function cargarPendientes(rutaId) {
+  tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
+
+  const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
   const hoy = new Date(); 
   const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
 
+  const ventasDeHoy = ventasSnap.docs.map(d=>({ id:d.id, ...d.data() })).filter(v=>{
+    const txt = v.fecha_txt || "";
+    const p = txt.split(/[ ,/]+/);
+    if (p.length < 3) return false;
+    const [diaV, mesV, anioV] = p.map(Number);
+    return diaV === d && mesV === m && anioV === a && !v.cortado;
+  });
+
   tbody.innerHTML = "";
-  for (const ruta of rutasSnap.docs) {
-    const rutaId = ruta.id;
-    const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
-    const ventasDeHoy = ventasSnap.docs.map(d=>({ id:d.id, ...d.data() })).filter(v=>{
-      const txt = v.fecha_txt || "";
-      const p = txt.split(/[ ,/]+/);
-      if (p.length < 3) return false;
-      const [diaV, mesV, anioV] = p.map(Number);
-      return diaV === d && mesV === m && anioV === a && !v.cortado;
-    });
-
-    if (ventasDeHoy.length === 0) continue; // Mostrar solo si hay pendientes
-
-    const totalHoy = ventasDeHoy.reduce((acc,v)=>acc+(v.total||0),0);
-    const ultimaVenta = ventasDeHoy.sort((a,b)=>b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${rutaId}</td>
-      <td>${rutaId}</td>
-      <td>$${totalHoy.toFixed(2)}</td>
-      <td>${ultimaVenta}</td>
-      <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
-    `;
-    tbody.appendChild(tr);
+  if (ventasDeHoy.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes para esta ruta</td></tr>";
+    return;
   }
 
-  if (!tbody.innerHTML.trim()) {
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>Sin cortes pendientes hoy</td></tr>";
-  }
+  const totalHoy = ventasDeHoy.reduce((acc,v)=>acc+(v.total||0),0);
+  const ultimaVenta = ventasDeHoy.sort((a,b)=>b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
+
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td>${rutaId}</td>
+    <td>${rutaId}</td>
+    <td>$${totalHoy.toFixed(2)}</td>
+    <td>${ultimaVenta}</td>
+    <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
+  `;
+  tbody.appendChild(tr);
 }
+
+// 🔹 Evento: cambio en el selector
+selectRuta.addEventListener("change", (e) => {
+  const rutaId = e.target.value;
+  if (!rutaId) {
+    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>Selecciona una ruta</td></tr>";
+    return;
+  }
+  cargarPendientes(rutaId);
+});
 
 // 🔹 Al hacer clic en “Hacer Corte”
 tbody.addEventListener("click", async (e) => {
@@ -187,7 +221,8 @@ btnConfirmar.onclick = async () => {
 
   alert("✅ Corte realizado y reporte generado");
   modal.style.display = "none";
-  cargarPendientes();
+  selectRuta.value = "";
+  tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
 };
 
 // 🔹 Mostrar resumen antes de confirmar
@@ -219,27 +254,28 @@ async function mostrarResumenCorte(rutaId) {
     }
   }
 
-const totalTickets = ventasDeHoy.length;
-const totalEfectivo = porMetodo.efectivo || 0;
-const totalCredito  = porMetodo.credito || porMetodo.tarjeta || 0;
-corteActual.resumen = { totalDia, porMetodo, porDepto, totalTickets, totalEfectivo, totalCredito };
+  const totalTickets = ventasDeHoy.length;
+  const totalEfectivo = porMetodo.efectivo || 0;
+  const totalCredito  = porMetodo.credito || porMetodo.tarjeta || 0;
+  corteActual.resumen = { totalDia, porMetodo, porDepto, totalTickets, totalEfectivo, totalCredito };
 
   let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
+  html += `<p>Tickets: ${totalTickets}</p>`;
   html += "<h4>Por Departamento</h4><table><tbody>";
   for (const [dep, val] of Object.entries(porDepto)) {
-    html += `<tr><td>${dep}</td><td style="text-align:right;">$${val.toFixed(2)}</td></tr>`;
+    html += `<tr><td>${dep}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
   }
   html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
   for (const [met, val] of Object.entries(porMetodo)) {
-    html += `<tr><td>${met}</td><td style="text-align:right;">$${val.toFixed(2)}</td></tr>`;
+    html += `<tr><td>${met}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
   }
   html += "</tbody></table>";
 
   contenido.innerHTML = html;
 }
 
-cargarPendientes();
-
+// Inicia todo
+cargarRutas();
 </script>
 </body>
 </html>
