@@ -116,83 +116,98 @@
   </div>
 
   <button class="btn-print" id="btnPrint">🖨️ Imprimir Corte</button>
+
   <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs } 
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+      getFirestore, collection, getDocs, query, where 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-    authDomain: "inventariopv-643f1.firebaseapp.com",
-    projectId: "inventariopv-643f1",
-    storageBucket: "inventariopv-643f1.appspot.com",
-    messagingSenderId: "96242533231",
-    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-  };
+    // 🔹 Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.appspot.com",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    // 🔹 Obtener parámetros de la URL
+    const params = new URLSearchParams(location.search);
+    const rutaId = params.get("rutaId");
+    const usuario = params.get("usuario");
 
-  const params = new URLSearchParams(location.search);
-  const rutaId = params.get("rutaId");
-  const usuario = params.get("usuario");
+    document.getElementById("ruta").textContent = rutaId || "—";
+    document.getElementById("usuario").textContent = usuario || "—";
+    document.getElementById("fecha").textContent = new Date().toLocaleString();
 
-  document.getElementById("ruta").textContent = rutaId || "—";
-  document.getElementById("usuario").textContent = usuario || "—";
-  document.getElementById("fecha").textContent = new Date().toLocaleString();
+    // 🔹 Función para cargar datos del corte
+    async function cargarCorte() {
+      const ventasRef = collection(db, "rutas_venta");
+      const q = query(ventasRef, where("rutaId", "==", rutaId), where("cortado", "==", true));
+      const snap = await getDocs(q);
+      const ventas = snap.docs.map(d => d.data());
 
-  async function cargarCorte() {
-    const cortesRef = collection(db, "cortes_globales");
-    const snap = await getDocs(cortesRef);
-    const cortes = snap.docs.map(d => d.data());
+      if (ventas.length === 0) {
+        alert("No hay ventas cortadas para esta ruta.");
+        return;
+      }
 
-    // Filtra por rutaId
-    const corteRuta = cortes.find(c => c.rutaId === rutaId);
+      const porDepto = {};
+      const porPago = { efectivo: 0, credito: 0, otro: 0 };
+      let total = 0;
 
-    if (!corteRuta) {
-      alert("No se encontró corte para esta ruta.");
-      return;
+      for (const v of ventas) {
+        // 🔸 Clasificar por departamento dentro de 'detalle'
+        if (Array.isArray(v.detalle)) {
+          for (const det of v.detalle) {
+            const dep = det.departamento || "GENERAL";
+            porDepto[dep] = (porDepto[dep] || 0) + (det.importe || 0);
+          }
+        } else {
+          porDepto["GENERAL"] = (porDepto["GENERAL"] || 0) + (v.total || 0);
+        }
+
+        // 🔸 Clasificar por método de pago
+        const metodo = (v.metodo_pago || "otro").toLowerCase();
+        if (porPago[metodo] !== undefined) porPago[metodo] += v.total || 0;
+        else porPago.otro += v.total || 0;
+
+        total += v.total || 0;
+      }
+
+      // 🔹 Llenar tablas
+      const tbodyDeptos = document.querySelector("#tablaDepartamentos tbody");
+      tbodyDeptos.innerHTML = "";
+      Object.entries(porDepto).forEach(([dep, val]) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${dep}</td><td>$${val.toFixed(2)}</td>`;
+        tbodyDeptos.appendChild(tr);
+      });
+
+      const tbodyPagos = document.querySelector("#tablaPagos tbody");
+      tbodyPagos.innerHTML = "";
+      Object.entries(porPago).forEach(([metodo, val]) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${metodo.toUpperCase()}</td><td>$${val.toFixed(2)}</td>`;
+        tbodyPagos.appendChild(tr);
+      });
+
+      document.getElementById("numTickets").textContent = ventas.length;
+      document.getElementById("totalGeneral").textContent = "$" + total.toFixed(2);
     }
 
-    const resumen = corteRuta.resumen || {};
-    const porDepto = resumen.porDepto || {};
-    const porMetodo = resumen.porMetodo || {};
+    // 🔹 Cargar datos al abrir
+    cargarCorte();
 
-    document.getElementById("usuario").textContent = corteRuta.realizado_por || "—";
-    document.getElementById("fecha").textContent = 
-      corteRuta.fecha ? new Date(corteRuta.fecha).toLocaleString() : "—";
-
-    // Llenar tabla por departamento
-    const tbodyDeptos = document.querySelector("#tablaDepartamentos tbody");
-    tbodyDeptos.innerHTML = "";
-    Object.entries(porDepto).forEach(([dep, val]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${dep}</td><td>$${val.toFixed(2)}</td>`;
-      tbodyDeptos.appendChild(tr);
+    // 🔹 Imprimir con datos actualizados
+    document.getElementById("btnPrint").addEventListener("click", async () => {
+      await cargarCorte();
+      setTimeout(() => window.print(), 800);
     });
-
-    // Llenar tabla por método de pago
-    const tbodyPagos = document.querySelector("#tablaPagos tbody");
-    tbodyPagos.innerHTML = "";
-    Object.entries(porMetodo).forEach(([metodo, val]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${metodo.toUpperCase()}</td><td>$${val.toFixed(2)}</td>`;
-      tbodyPagos.appendChild(tr);
-    });
-
-    document.getElementById("numTickets").textContent = resumen.totalTickets || 0;
-    document.getElementById("totalGeneral").textContent = 
-      "$" + (resumen.totalDia || 0).toFixed(2);
-  }
-
-  // Cargar datos al abrir
-  cargarCorte();
-
-  // Imprimir con datos actualizados
-  document.getElementById("btnPrint").addEventListener("click", async () => {
-    await cargarCorte();
-    setTimeout(() => window.print(), 800);
-  });
-</script>
+  </script>
 </body>
 </html>
