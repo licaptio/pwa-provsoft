@@ -416,6 +416,51 @@ navigator.serviceWorker.addEventListener('message', e => {
     sincronizarVentasPendientes();
   }
 });
+// ==== Validación de corte diario ====
+// Bloquea la venta si no existe corte del día anterior
+async function checkCortePendiente() {
+  try {
+    const hoy = new Date();
+    const ayer = new Date(hoy);
+    ayer.setDate(hoy.getDate() - 1);
+    const fechaAyer = ayer.toISOString().split("T")[0]; // yyyy-mm-dd
+
+    console.log("🔎 Verificando corte del día:", fechaAyer);
+
+    const cortesRef = collection(db, "rutas_venta", rutaId, "cortes");
+    const q = query(cortesRef, where("fecha", "==", fechaAyer));
+    const snap = await getDocs(q);
+
+    const btnCobrar = document.getElementById("btnCobrar");
+    const msg = document.createElement("div");
+    msg.id = "msgCortePendiente";
+    msg.style.color = "red";
+    msg.style.fontWeight = "700";
+    msg.style.textAlign = "center";
+    msg.style.marginTop = "10px";
+
+    if (snap.empty) {
+      btnCobrar.disabled = true;
+      btnCobrar.style.opacity = "0.4";
+      msg.textContent = "⚠️ No se ha realizado el corte del día anterior.";
+      if (!document.getElementById("msgCortePendiente"))
+        btnCobrar.parentElement.appendChild(msg);
+      console.warn("🚫 Corte pendiente. Bloqueando ventas.");
+      mostrarToast("Corte pendiente, bloqueando ventas ⚠️");
+      return false;
+    } else {
+      btnCobrar.disabled = false;
+      btnCobrar.style.opacity = "1";
+      if (document.getElementById("msgCortePendiente"))
+        document.getElementById("msgCortePendiente").remove();
+      console.log("✅ Corte del día anterior detectado. Ventas habilitadas.");
+      return true;
+    }
+  } catch (err) {
+    console.error("❌ Error al verificar corte pendiente:", err);
+    return true; // Por seguridad, no bloquea si falla la conexión
+  }
+}
 
 // ==== Catálogo con caché diario ====
 async function cargarCatalogoDesdeFirestore(){
@@ -989,6 +1034,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       await cargarCatalogoDesdeFirestore();
       render();
       await sincronizarVentasPendientes();
+      await checkCortePendiente();
       console.log("✅ Sesión restaurada:", USUARIO_LOGUEADO.usuario);
     } catch (err) {
       console.error("❌ Error restaurando sesión:", err);
