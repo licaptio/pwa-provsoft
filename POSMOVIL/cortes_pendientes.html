@@ -1,201 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cortes Pendientes – PROVSOFT</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      color: #222;
+    }
+    h1 { color: #00416A; text-align:center; margin-bottom:10px; }
+    select {
+      display:block;
+      margin:0 auto 20px auto;
+      padding:8px 12px;
+      border-radius:6px;
+      border:1px solid #ccc;
+      font-size:14px;
+    }
+    table {
+      width: 100%; border-collapse: collapse; background:#fff;
+      border-radius: 10px; overflow:hidden;
+      box-shadow: 0 3px 8px rgba(0,0,0,.1);
+    }
+    th, td {
+      padding: 10px 12px; border-bottom: 1px solid #ddd;
+      text-align: left; font-size: 14px;
+    }
+    th { background: #00416A; color: #fff; }
+    tr:hover { background: #f1f5f9; }
+    button {
+      padding: 6px 10px; border:none; border-radius:6px; cursor:pointer;
+      background:#0c6cbd; color:white; font-weight:600;
+    }
+    button[disabled] { background:#999; cursor:not-allowed; }
+    /* Modal */
+    #modalResumen {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.55);
+      align-items:center; justify-content:center; z-index:2000;
+    }
+    .modal-card {
+      background:#fff; border-radius:12px; width:min(500px,95vw);
+      padding:20px; box-shadow:0 8px 25px rgba(0,0,0,.3);
+    }
+    .modal-card h2 { margin-top:0; color:#00416A; }
+    .modal-card table { width:100%; margin-top:10px; }
+    .modal-card td, .modal-card th { border-bottom:1px solid #ddd; padding:6px; }
+    .modal-actions { margin-top:15px; text-align:right; }
+  </style>
+</head>
+<body>
+
+<h1>Cortes Pendientes</h1>
+<select id="selectRuta">
+  <option value="">Selecciona una ruta...</option>
+</select>
+
+<table id="tablaCortes">
+  <thead>
+    <tr>
+      <th>Usuario</th>
+      <th>Ruta</th>
+      <th>Total Día</th>
+      <th>Última Venta</th>
+      <th>Acción</th>
+    </tr>
+  </thead>
+  <tbody id="tbodyCortes">
+    <tr><td colspan="5" style="text-align:center;">Selecciona una ruta para ver pendientes</td></tr>
+  </tbody>
+</table>
+
+<!-- Modal resumen antes de confirmar corte -->
+<div id="modalResumen">
+  <div class="modal-card">
+    <h2>Resumen de Corte</h2>
+    <div id="resumenContenido">Cargando...</div>
+    <div class="modal-actions">
+      <button id="btnCancelar">Cancelar</button>
+      <button id="btnConfirmar" style="background:#1e8e3e;">Confirmar Corte</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, collection, getDocs, updateDoc, doc, addDoc, serverTimestamp } 
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.appspot.com",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+document.addEventListener("DOMContentLoaded", async () => {
 
-const selectRuta = document.getElementById("selectRuta");
-const tbody = document.getElementById("tbodyCortes");
-const modal = document.getElementById("modalResumen");
-const contenido = document.getElementById("resumenContenido");
-const btnCancelar = document.getElementById("btnCancelar");
-const btnConfirmar = document.getElementById("btnConfirmar");
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-let corteActual = null;
+  const selectRuta = document.getElementById("selectRuta");
+  const tbody = document.getElementById("tbodyCortes");
+  const modal = document.getElementById("modalResumen");
+  const contenido = document.getElementById("resumenContenido");
+  const btnCancelar = document.getElementById("btnCancelar");
+  const btnConfirmar = document.getElementById("btnConfirmar");
 
-// 🔹 Carga rutas desde usuarios_ruta
-async function cargarRutas() {
-  const snap = await getDocs(collection(db, "usuarios_ruta"));
-  if (snap.empty) {
-    // Si no tienes usuarios_ruta, añadimos manualmente tus rutas actuales
-    const opt = document.createElement("option");
-    opt.value = "AdministradorGeneral";
-    opt.textContent = "GERARDO RIOS QUEZADA – AdministradorGeneral";
-    selectRuta.appendChild(opt);
-  } else {
-    snap.forEach(docu => {
-      const u = docu.data();
-      if (u.rutaId) {
-        const opt = document.createElement("option");
-        opt.value = u.rutaId;
-        opt.textContent = `${u.nombre || u.usuario} – ${u.rutaId}`;
-        selectRuta.appendChild(opt);
-      }
-    });
+  let corteActual = null;
+
+  // 🔹 Carga rutas desde usuarios_ruta
+  async function cargarRutas() {
+    const snap = await getDocs(collection(db, "usuarios_ruta"));
+    if (snap.empty) {
+      const opt = document.createElement("option");
+      opt.value = "AdministradorGeneral";
+      opt.textContent = "GERARDO RIOS QUEZADA – AdministradorGeneral";
+      selectRuta.appendChild(opt);
+    } else {
+      snap.forEach(docu => {
+        const u = docu.data();
+        if (u.rutaId) {
+          const opt = document.createElement("option");
+          opt.value = u.rutaId;
+          opt.textContent = `${u.nombre || u.usuario} – ${u.rutaId}`;
+          selectRuta.appendChild(opt);
+        }
+      });
+    }
   }
-}
 
-// 🔹 Cargar ventas pendientes de la ruta seleccionada
-async function cargarPendientes(rutaId) {
-  tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
+  // 🔹 Cargar ventas pendientes
+  async function cargarPendientes(rutaId) {
+    tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
 
-  const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
-  const hoy = new Date(); 
-  const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+    const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
+    const hoy = new Date(); 
+    const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
 
-  const ventasDeHoy = ventasSnap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(v => {
+    const ventasDeHoy = ventasSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(v => {
+        const txt = v.fecha_txt || "";
+        const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (!match) return false;
+        const [_, diaV, mesV, anioV] = match.map(Number);
+        return diaV === d && mesV === m && anioV === a && !v.cortado;
+      });
+
+    tbody.innerHTML = "";
+    if (ventasDeHoy.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes</td></tr>";
+      return;
+    }
+
+    const totalHoy = ventasDeHoy.reduce((acc, v) => acc + (v.total || 0), 0);
+    const ultimaVenta = ventasDeHoy.sort((a, b) => b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${rutaId}</td>
+      <td>${rutaId}</td>
+      <td>$${totalHoy.toFixed(2)}</td>
+      <td>${ultimaVenta}</td>
+      <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // 🔹 Evento: cambio en el selector
+  selectRuta.addEventListener("change", (e) => {
+    const rutaId = e.target.value;
+    if (!rutaId) {
+      tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>Selecciona una ruta</td></tr>";
+      return;
+    }
+    cargarPendientes(rutaId);
+  });
+
+  // 🔹 Al hacer clic en “Hacer Corte”
+  tbody.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-ruta]");
+    if (!btn) return;
+    const rutaId = btn.getAttribute("data-ruta");
+    corteActual = { rutaId, btn };
+    await mostrarResumenCorte(rutaId);
+  });
+
+  btnCancelar.onclick = () => {
+    modal.style.display = "none";
+    corteActual = null;
+  };
+
+  // 🔹 Confirmar corte
+  btnConfirmar.onclick = async () => {
+    if (!corteActual) return;
+    const { rutaId, resumen } = corteActual;
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = "Cortando...";
+
+    const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
+    const snap = await getDocs(ventasRef);
+    const hoy = new Date(); 
+    const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+
+    for (const docu of snap.docs) {
+      const v = docu.data();
       const txt = v.fecha_txt || "";
-      // Detectar día, mes y año con regex más flexible
+      const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if (!match) continue;
+      const [_, diaV, mesV, anioV] = match.map(Number);
+      if (diaV === d && mesV === m && anioV === a) {
+        await updateDoc(doc(db, "rutas_venta", rutaId, "ventas", docu.id), { cortado: true });
+      }
+    }
+
+    await addDoc(collection(db, "cortes_globales"), {
+      rutaId,
+      fecha: serverTimestamp(),
+      resumen: resumen || {},
+      realizado_por: "Administrador"
+    });
+
+    const usuario = encodeURIComponent("Administrador");
+    const url = `corte_reporte.html?rutaId=${encodeURIComponent(rutaId)}&usuario=${usuario}`;
+    window.open(url, "_blank");
+
+    alert("✅ Corte realizado y reporte generado");
+    modal.style.display = "none";
+    selectRuta.value = "";
+    tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
+  };
+
+  // 🔹 Mostrar resumen antes de confirmar
+  async function mostrarResumenCorte(rutaId) {
+    contenido.innerHTML = "Generando resumen...";
+    modal.style.display = "flex";
+
+    const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
+    const hoy = new Date();
+    const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+    const ventasDeHoy = ventasSnap.docs.map(d=>({id:d.id,...d.data()})).filter(v=>{
+      const txt = v.fecha_txt || "";
       const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
       if (!match) return false;
       const [_, diaV, mesV, anioV] = match.map(Number);
       return diaV === d && mesV === m && anioV === a && !v.cortado;
     });
 
-  tbody.innerHTML = "";
-  if (ventasDeHoy.length === 0) {
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes para esta ruta</td></tr>";
-    return;
-  }
+    const porMetodo = {}, porDepto = {};
+    let totalDia = 0;
+    for (const v of ventasDeHoy) {
+      totalDia += v.total || 0;
+      const metodo = v.metodo_pago || "otro";
+      porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
 
-  const totalHoy = ventasDeHoy.reduce((acc, v) => acc + (v.total || 0), 0);
-  const ultimaVenta = ventasDeHoy.sort((a, b) => b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
-
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${rutaId}</td>
-    <td>${rutaId}</td>
-    <td>$${totalHoy.toFixed(2)}</td>
-    <td>${ultimaVenta}</td>
-    <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
-  `;
-  tbody.appendChild(tr);
-}
-
-// 🔹 Evento: cambio en el selector
-selectRuta.addEventListener("change", (e) => {
-  const rutaId = e.target.value;
-  if (!rutaId) {
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>Selecciona una ruta</td></tr>";
-    return;
-  }
-  cargarPendientes(rutaId);
-});
-
-// 🔹 Al hacer clic en “Hacer Corte”
-tbody.addEventListener("click", async (e) => {
-  const btn = e.target.closest("button[data-ruta]");
-  if (!btn) return;
-  const rutaId = btn.getAttribute("data-ruta");
-  corteActual = { rutaId, btn };
-  await mostrarResumenCorte(rutaId);
-});
-
-btnCancelar.onclick = () => {
-  modal.style.display = "none";
-  corteActual = null;
-};
-
-// 🔹 Confirmar corte
-btnConfirmar.onclick = async () => {
-  if (!corteActual) return;
-  const { rutaId, resumen } = corteActual;
-  btnConfirmar.disabled = true;
-  btnConfirmar.textContent = "Cortando...";
-
-  const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
-  const snap = await getDocs(ventasRef);
-  const hoy = new Date(); 
-  const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
-
-  for (const docu of snap.docs) {
-    const v = docu.data();
-    const txt = v.fecha_txt || "";
-    const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (!match) continue;
-    const [_, diaV, mesV, anioV] = match.map(Number);
-    if (diaV === d && mesV === m && anioV === a) {
-      await updateDoc(doc(db, "rutas_venta", rutaId, "ventas", docu.id), { cortado: true });
+      for (const det of (v.detalle || [])) {
+        const dep = det.departamento || "General";
+        porDepto[dep] = (porDepto[dep] || 0) + (det.importe || 0);
+      }
     }
-  }
 
-  await addDoc(collection(db, "cortes_globales"), {
-    rutaId,
-    fecha: serverTimestamp(),
-    resumen: resumen || {},
-    realizado_por: "Administrador"
-  });
+    const totalTickets = ventasDeHoy.length;
+    const totalEfectivo = porMetodo.efectivo || 0;
+    const totalCredito  = porMetodo.credito || porMetodo.tarjeta || 0;
+    corteActual.resumen = { totalDia, porMetodo, porDepto, totalTickets, totalEfectivo, totalCredito };
 
-  const usuario = encodeURIComponent("Administrador");
-  const url = `corte_reporte.html?rutaId=${encodeURIComponent(rutaId)}&usuario=${usuario}`;
-  window.open(url, "_blank");
-
-  alert("✅ Corte realizado y reporte generado");
-  modal.style.display = "none";
-  selectRuta.value = "";
-  tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
-};
-
-// 🔹 Mostrar resumen antes de confirmar
-async function mostrarResumenCorte(rutaId) {
-  contenido.innerHTML = "Generando resumen...";
-  modal.style.display = "flex";
-
-  const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
-  const hoy = new Date();
-  const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
-  const ventasDeHoy = ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(v => {
-    const txt = v.fecha_txt || "";
-    const match = txt.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-    if (!match) return false;
-    const [_, diaV, mesV, anioV] = match.map(Number);
-    return diaV === d && mesV === m && anioV === a && !v.cortado;
-  });
-
-  const porMetodo = {}, porDepto = {};
-  let totalDia = 0;
-  for (const v of ventasDeHoy) {
-    totalDia += v.total || 0;
-    const metodo = v.metodo_pago || "otro";
-    porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
-
-    for (const det of (v.detalle || [])) {
-      const dep = det.departamento || "General";
-      porDepto[dep] = (porDepto[dep] || 0) + (det.importe || 0);
+    let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
+    html += `<p>Tickets: ${totalTickets}</p>`;
+    html += "<h4>Por Departamento</h4><table><tbody>";
+    for (const [dep, val] of Object.entries(porDepto)) {
+      html += `<tr><td>${dep}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
     }
+    html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
+    for (const [met, val] of Object.entries(porMetodo)) {
+      html += `<tr><td>${met}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
+    }
+    html += "</tbody></table>";
+
+    contenido.innerHTML = html;
   }
 
-  const totalTickets = ventasDeHoy.length;
-  const totalEfectivo = porMetodo.efectivo || 0;
-  const totalCredito  = porMetodo.credito || porMetodo.tarjeta || 0;
-  corteActual.resumen = { totalDia, porMetodo, porDepto, totalTickets, totalEfectivo, totalCredito };
-
-  let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
-  html += `<p>Tickets: ${totalTickets}</p>`;
-  html += "<h4>Por Departamento</h4><table><tbody>";
-  for (const [dep, val] of Object.entries(porDepto)) {
-    html += `<tr><td>${dep}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
-  }
-  html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
-  for (const [met, val] of Object.entries(porMetodo)) {
-    html += `<tr><td>${met}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
-  }
-  html += "</tbody></table>";
-
-  contenido.innerHTML = html;
-}
-
-cargarRutas();
+  // 🔹 Inicia todo
+  cargarRutas();
+});
 </script>
+</body>
+</html>
