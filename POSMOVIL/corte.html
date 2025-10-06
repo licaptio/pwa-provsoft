@@ -1,69 +1,158 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Cortes de Ruta – ProvSoft</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, query, where, getDocs, Timestamp, addDoc, doc, setDoc, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    // 🧩 Config Firebase
-    const firebaseConfig = { /* mismo config del POS */ };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // ⚙️ Recuperar usuario actual
-    const usuario = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
-
-    async function generarCorte() {
-      if (!usuario?.rutaId) {
-        alert("Falta sesión de usuario.");
-        return;
-      }
-
-      const base = new Date();
-      const inicio = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 0, 0, 0);
-      const fin = new Date(base.getFullYear(), base.getMonth(), base.getDate(), 23, 59, 59);
-
-      const ventasRef = collection(db, "rutas_venta", usuario.rutaId, "ventas");
-      const qv = query(
-        ventasRef,
-        where("fecha", ">=", Timestamp.fromDate(inicio)),
-        where("fecha", "<=", Timestamp.fromDate(fin)),
-        where("atendio", "==", usuario.nombre)
-      );
-      const snap = await getDocs(qv);
-
-      if (snap.empty) {
-        alert("No hay ventas para el día.");
-        return;
-      }
-
-      let total = 0;
-      snap.forEach(d => total += d.data().total || 0);
-
-      // ejemplo simple
-      const corte = {
-        fecha: serverTimestamp(),
-        rutaId: usuario.rutaId,
-        usuarioId: usuario.id,
-        vendedor: usuario.nombre,
-        total
-      };
-      await addDoc(collection(db, "rutas_venta", usuario.rutaId, "cortes"), corte);
-      alert(`Corte generado para ${usuario.nombre}\nTotal: $${total.toFixed(2)}`);
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Corte Diario – Ruta</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <style>
+    body{
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to bottom right,#00416A,#0c6cbd);
+      color:#fff; margin:0; padding:20px;
     }
-
-    window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("btnGenerarCorte").onclick = generarCorte;
-    });
-  </script>
+    h1{ text-align:center; }
+    .btn{
+      display:inline-block; background:#1e8e3e; color:#fff; border:none;
+      padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:600;
+      box-shadow:0 4px 10px rgba(0,0,0,.3);
+    }
+    .btn.danger{ background:#e74c3c; }
+    .tabla{
+      background:#fff; color:#000; border-radius:10px; padding:10px;
+      margin-top:15px; box-shadow:0 6px 18px rgba(0,0,0,.25);
+    }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    th,td{ padding:8px; border-bottom:1px solid #ddd; text-align:right; }
+    th:first-child, td:first-child{ text-align:left; }
+    .totales{ margin-top:15px; padding:10px; background:#003554; border-radius:8px; }
+    .totales div{ display:flex; justify-content:space-between; margin:6px 0; font-weight:600; }
+  </style>
 </head>
-<body style="font-family:Arial; text-align:center; margin-top:40px;">
-  <h2>📊 Corte del Día</h2>
-  <button id="btnGenerarCorte" style="padding:10px 20px; font-size:18px;">Generar Corte</button>
+<body>
+
+  <h1>📊 Corte del Día</h1>
+  <div id="infoUsuario" style="text-align:center; font-weight:600;"></div>
+  <div id="resumenVentas" class="tabla">Cargando datos...</div>
+
+  <div class="totales">
+    <div><span>Total Contado:</span><span id="tContado">$0.00</span></div>
+    <div><span>Total Crédito:</span><span id="tCredito">$0.00</span></div>
+    <div><span>Venta Total:</span><span id="tTotal">$0.00</span></div>
+    <div><span>Efectivo:</span><span id="tEfectivo">$0.00</span></div>
+  </div>
+
+  <div style="text-align:center; margin-top:20px;">
+    <button class="btn" id="btnCerrarCorte">✅ Cerrar Corte</button>
+    <button class="btn danger" onclick="window.close()">🚪 Salir</button>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const user = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
+  const rutaId = user.rutaId;
+
+  document.getElementById("infoUsuario").textContent = `Ruta: ${user.rutaId || "—"} | Usuario: ${user.usuario || "—"}`;
+
+  const hoy = new Date();
+  const fechaHoy = hoy.toISOString().split("T")[0]; // yyyy-mm-dd
+
+  async function generarResumen() {
+    const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
+    const q = query(ventasRef, where("fecha_txt", ">=", fechaHoy));
+    const snap = await getDocs(q);
+
+    const resumenPorDepto = {};
+    let totalContado = 0, totalCredito = 0, totalEfectivo = 0;
+
+    snap.forEach(d => {
+      const v = d.data();
+      const detalle = v.detalle || [];
+      const metodo = v.metodo_pago || "";
+      const esCredito = (metodo === "credito");
+      const totalVenta = Number(v.total || 0);
+
+      // 🔹 clasificar productos por su "departamento" (en el producto o nombre)
+      detalle.forEach(p => {
+        const depto = p.departamento || p.nombre.split(" ")[0] || "SIN_DEPTO";
+        if (!resumenPorDepto[depto]) resumenPorDepto[depto] = 0;
+        resumenPorDepto[depto] += p.importe || 0;
+      });
+
+      if (esCredito) totalCredito += totalVenta;
+      else totalContado += totalVenta;
+      if (metodo === "efectivo" || metodo === "mixto") totalEfectivo += Number(v.recibido || 0);
+    });
+
+    // 🧾 Render tabla
+    let html = "<table><thead><tr><th>Departamento</th><th>Importe</th></tr></thead><tbody>";
+    Object.entries(resumenPorDepto).forEach(([d, imp]) => {
+      html += `<tr><td>${d}</td><td>$${imp.toFixed(2)}</td></tr>`;
+    });
+    html += "</tbody></table>";
+    document.getElementById("resumenVentas").innerHTML = html;
+
+    document.getElementById("tContado").textContent = "$" + totalContado.toFixed(2);
+    document.getElementById("tCredito").textContent = "$" + totalCredito.toFixed(2);
+    document.getElementById("tTotal").textContent = "$" + (totalContado + totalCredito).toFixed(2);
+    document.getElementById("tEfectivo").textContent = "$" + totalEfectivo.toFixed(2);
+
+    return { resumenPorDepto, totalContado, totalCredito, totalEfectivo };
+  }
+
+  const btnCerrar = document.getElementById("btnCerrarCorte");
+  btnCerrar.addEventListener("click", async () => {
+    const datos = await generarResumen();
+    const cortesRef = collection(db, "rutas_venta", rutaId, "cortes");
+    await addDoc(cortesRef, {
+      fecha: fechaHoy,
+      creado: serverTimestamp(),
+      resumen: datos.resumenPorDepto,
+      totalContado: datos.totalContado,
+      totalCredito: datos.totalCredito,
+      totalEfectivo: datos.totalEfectivo,
+      totalVenta: datos.totalContado + datos.totalCredito,
+      usuario: user.usuario
+    });
+    // 🔸 Ahora marcamos todas las ventas del día como "cortadas"
+import { updateDoc, doc, getDocs, query, where, collection } 
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
+
+// 🔍 Solo las ventas del día actual
+const hoyISO = new Date().toISOString().split("T")[0]; // "2025-10-06"
+const qVentas = query(ventasRef, where("fecha_txt", ">=", hoyISO));
+
+const snapVentas = await getDocs(qVentas);
+
+for (const d of snapVentas.docs) {
+  const ref = doc(db, "rutas_venta", rutaId, "ventas", d.id);
+  await updateDoc(ref, { cortado: true });
+}
+
+console.log("✅ Ventas del día marcadas como cortadas.");
+
+    alert("✅ Corte guardado correctamente.");
+    window.close();
+  });
+
+  generarResumen();
+</script>
 </body>
 </html>
