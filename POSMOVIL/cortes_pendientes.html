@@ -135,8 +135,8 @@ async function cargarPendientes(rutaId) {
 
   const ventasDeHoy = ventasSnap.docs.map(d=>({ id:d.id, ...d.data() })).filter(v=>{
     const txt = v.fecha_txt || "";
-    const p = txt.split(/[ ,/]+/);
-    if (p.length < 3) return false;
+    const partes = txt.split(/[ ,/]+/);
+    if (partes.length < 3) return false;    
     const diaV = parseInt(p[0]);
     const mesV = parseInt(p[1]);
     const anioV = parseInt(p[2]);
