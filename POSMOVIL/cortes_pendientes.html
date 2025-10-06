@@ -137,7 +137,9 @@ async function cargarPendientes(rutaId) {
     const txt = v.fecha_txt || "";
     const p = txt.split(/[ ,/]+/);
     if (p.length < 3) return false;
-    const [diaV, mesV, anioV] = p.map(Number);
+    const diaV = parseInt(p[0]);
+    const mesV = parseInt(p[1]);
+    const anioV = parseInt(p[2]);
     return diaV === d && mesV === m && anioV === a && !v.cortado;
   });
 
