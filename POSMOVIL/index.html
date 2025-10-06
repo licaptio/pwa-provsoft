@@ -383,23 +383,32 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
     });
   }
 
-  async function sincronizarVentasPendientes() {
-    try {
-      const pendientes = await getVentasPendientes();
-      if (pendientes.length === 0) return;
-      for (const venta of pendientes) {
-        try {
-          const ref = collection(db, 'rutas_venta', rutaId, 'ventas');
-          await addDoc(ref, venta);
-          await borrarVentaPendiente(venta.folio);
-        } catch (err) {
-          console.error(`❌ Error al subir venta ${venta.folio}:`, err);
-        }
+async function sincronizarVentasPendientes() {
+  try {
+    const pendientes = await getVentasPendientes();
+    if (pendientes.length === 0) return;
+
+    for (const venta of pendientes) {
+      try {
+        venta.cortado = false;
+        venta.usuarioId = USUARIO_LOGUEADO?.id || "";
+        venta.usuarioNombre = USUARIO_LOGUEADO?.nombre || "";
+        venta.rutaId = rutaId || "";
+
+        const ref = collection(db, "rutas_venta");
+        await addDoc(ref, venta);
+        await borrarVentaPendiente(venta.folio);
+
+        console.log(`✅ Venta pendiente subida: ${venta.folio}`);
+      } catch (err) {
+        console.error(`❌ Error al subir venta ${venta.folio}:`, err);
       }
-    } catch (err) {
-      console.error("Error al sincronizar ventas pendientes:", err);
     }
+  } catch (err) {
+    console.error("Error al sincronizar ventas pendientes:", err);
   }
+}
+
   window.addEventListener('online', ()=> { sincronizarVentasPendientes(); });
 // 🔁 Registrar sincronización cuando el SW esté listo
 navigator.serviceWorker.ready.then(reg => {
@@ -690,18 +699,21 @@ function calcularTotalesConImpuestosIncluidos(){
     return `RV-${String(folio).padStart(6,'0')}`;
   }
 
-// ==== Guardar venta en Firestore (versión unificada) ====
+// ==== Guardar venta en Firestore (colección unificada) ====
 async function guardarVentaEnFirestore(venta) {
   try {
     const ventaLimpia = structuredClone(venta);
     ventaLimpia.fecha = serverTimestamp();
-    ventaLimpia.cortado = false; // 🔹 Importante para cortes pendientes
+    ventaLimpia.cortado = false; // 🔹 importante para saber si ya entró en corte
+    ventaLimpia.usuarioId = USUARIO_LOGUEADO?.id || "";
+    ventaLimpia.usuarioNombre = USUARIO_LOGUEADO?.nombre || "";
+    ventaLimpia.rutaId = rutaId || "";
 
-    // 👉 ahora todas las ventas se guardan directamente en "rutas_venta"
+    // 👇 ahora todas las ventas van a la colección raíz "rutas_venta"
     const ref = collection(db, "rutas_venta");
     const docRef = await addDoc(ref, ventaLimpia);
 
-    console.log("✅ Venta registrada en rutas_venta:", docRef.id);
+    console.log("✅ Venta registrada globalmente en rutas_venta:", docRef.id);
     return docRef.id;
   } catch (err) {
     console.error("❌ Error guardando venta en Firestore:", err);
@@ -709,6 +721,7 @@ async function guardarVentaEnFirestore(venta) {
     return null;
   }
 }
+
 
 
   async function confirmarCobro(){
