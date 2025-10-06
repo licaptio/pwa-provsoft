@@ -690,20 +690,26 @@ function calcularTotalesConImpuestosIncluidos(){
     return `RV-${String(folio).padStart(6,'0')}`;
   }
 
-  // ==== Guardar venta ====
-  async function guardarVentaEnFirestore(venta) {
-    try {
-      const ventaLimpia = structuredClone(venta);
-      ventaLimpia.fecha = serverTimestamp();
-      const ref = collection(db, "rutas_venta", rutaId, "ventas");
-      const docRef = await addDoc(ref, ventaLimpia);
-      return docRef.id;
-    } catch (err) {
-      console.error("❌ Error guardando venta en Firestore:", err);
-      await guardarVentaOffline(venta);
-      return null;
-    }
+// ==== Guardar venta en Firestore (versión unificada) ====
+async function guardarVentaEnFirestore(venta) {
+  try {
+    const ventaLimpia = structuredClone(venta);
+    ventaLimpia.fecha = serverTimestamp();
+    ventaLimpia.cortado = false; // 🔹 Importante para cortes pendientes
+
+    // 👉 ahora todas las ventas se guardan directamente en "rutas_venta"
+    const ref = collection(db, "rutas_venta");
+    const docRef = await addDoc(ref, ventaLimpia);
+
+    console.log("✅ Venta registrada en rutas_venta:", docRef.id);
+    return docRef.id;
+  } catch (err) {
+    console.error("❌ Error guardando venta en Firestore:", err);
+    await guardarVentaOffline(venta);
+    return null;
   }
+}
+
 
   async function confirmarCobro(){
     try {
@@ -717,16 +723,32 @@ function calcularTotalesConImpuestosIncluidos(){
       const folio     = await getNextFolio(db);
       const fecha     = new Date();
       const fechaTxt  = fecha.toLocaleString();
-      const venta = {
-        folio, rutaId, fecha: serverTimestamp(), fecha_txt: fechaTxt,
-        cliente: clienteTxt, cliente_info: clienteSeleccionado || null,
-        atendio: USUARIO_LOGUEADO?.nombre||'',
-        metodo_pago: metodo,
-        recibido: (metodo==='efectivo'||metodo==='mixto') ? recibido : 0,
-        cambio:   (metodo==='efectivo'||metodo==='mixto') ? cambio   : 0,
-        subtotal, impuestos, total, notas,
-        detalle: carrito.map(it=>({id: it.id,nombre: it.nombre,cantidad: it.cantidad,precio_unit: it.precioUnit,importe: it.importe}))
-      };
+const venta = {
+  folio, 
+  rutaId,
+  usuario: USUARIO_LOGUEADO?.usuario || '',
+  atendio: USUARIO_LOGUEADO?.nombre || '',
+  fecha: serverTimestamp(),
+  fecha_txt: fechaTxt,
+  cliente: clienteTxt,
+  cliente_info: clienteSeleccionado || null,
+  metodo_pago: metodo,
+  recibido,
+  cambio,
+  subtotal,
+  impuestos,
+  total,
+  notas,
+  cortado: false,
+  detalle: carrito.map(it => ({
+    id: it.id,
+    nombre: it.nombre,
+    cantidad: it.cantidad,
+    precio_unit: it.precioUnit,
+    importe: it.importe
+  }))
+};
+
       const docId = await guardarVentaEnFirestore(venta);
       rellenarTicket({...venta,fecha:fecha}); imprimirTicketEstilado();
       carrito=[]; render(); cerrarCobro();
