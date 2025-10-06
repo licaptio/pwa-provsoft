@@ -151,31 +151,43 @@ btnCancelar.onclick = ()=>{ modal.style.display='none'; corteActual=null; };
 btnConfirmar.onclick = async ()=>{
   if(!corteActual) return;
   const {rutaId, resumen} = corteActual;
-  btnConfirmar.disabled=true;
-  btnConfirmar.textContent="Cortando...";
+  btnConfirmar.disabled = true;
+  btnConfirmar.textContent = "Cortando...";
 
-  const ventasSnap = await getDocs(collection(db,"rutas_venta",rutaId,"ventas"));
-  const hoy = new Date(); const d=hoy.getDate(),m=hoy.getMonth()+1,a=hoy.getFullYear();
-  for(const docu of ventasSnap.docs){
-    const v=docu.data(); const txt=v.fecha_txt||""; const p=txt.split(/[ ,/]+/);
-    if(p.length<3)continue;
-    const [diaV,mesV,anioV]=p.map(Number);
-    if(diaV===d && mesV===m && anioV===a){
-      await updateDoc(doc(db,"rutas_venta",rutaId,"ventas",docu.id),{ cortado:true });
+  const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
+  const hoy = new Date(); 
+  const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
+
+  // 🔸 Marca las ventas de hoy como cortadas
+  for (const docu of ventasSnap.docs) {
+    const v = docu.data();
+    const txt = v.fecha_txt || "";
+    const p = txt.split(/[ ,/]+/);
+    if (p.length < 3) continue;
+    const [diaV, mesV, anioV] = p.map(Number);
+    if (diaV === d && mesV === m && anioV === a) {
+      await updateDoc(doc(db, "rutas_venta", rutaId, "ventas", docu.id), { cortado: true });
     }
   }
 
-  await addDoc(collection(db,"cortes_globales"),{
+  // 🔸 Crea registro en Firestore
+  await addDoc(collection(db, "cortes_globales"), {
     rutaId,
-    fecha:serverTimestamp(),
+    fecha: serverTimestamp(),
     resumen: resumen || {},
-    realizado_por:"Administrador"
+    realizado_por: "Administrador"
   });
 
-  alert("✅ Corte realizado correctamente");
-  modal.style.display='none';
+  // 🔸 Abre el reporte en nueva pestaña
+  const usuario = encodeURIComponent("Administrador");
+  const url = `corte_reporte.html?rutaId=${encodeURIComponent(rutaId)}&usuario=${usuario}`;
+  window.open(url, "_blank");
+
+  alert("✅ Corte realizado y reporte generado");
+  modal.style.display = "none";
   cargarPendientes();
 };
+
 
 async function mostrarResumenCorte(rutaId){
   contenido.innerHTML="Generando resumen...";
