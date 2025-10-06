@@ -115,8 +115,7 @@
     </div>
   </div>
 
-  <button class="btn-print" onclick="window.print()">🖨️ Imprimir Corte</button>
-
+  <button class="btn-print" id="btnPrint">🖨️ Imprimir Corte</button>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs } 
@@ -183,6 +182,12 @@
     }
 
     cargarCorte();
+    
+    document.getElementById("btnPrint").addEventListener("click", async () => {
+  await cargarCorte(); // asegura datos actualizados
+  setTimeout(() => window.print(), 800); // espera a que se rendericen
+});
+
   </script>
 </body>
 </html>
