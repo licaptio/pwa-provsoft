@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cortes Pendientes – PROVSOFT</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      color: #222;
+    }
+    h1 { color: #00416A; text-align:center; }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 20px;
+      background: #fff; border-radius: 10px; overflow:hidden;
+      box-shadow: 0 3px 8px rgba(0,0,0,.1);
+    }
+    th, td {
+      padding: 10px 12px; border-bottom: 1px solid #ddd;
+      text-align: left; font-size: 14px;
+    }
+    th { background: #00416A; color: #fff; }
+    tr:hover { background: #f1f5f9; }
+    button {
+      padding: 6px 10px; border:none; border-radius:6px; cursor:pointer;
+      background:#0c6cbd; color:white; font-weight:600;
+    }
+    button[disabled] { background:#999; cursor:not-allowed; }
+  </style>
+</head>
+<body>
+
+<h1>Cortes Pendientes</h1>
+<table id="tablaCortes">
+  <thead>
+    <tr>
+      <th>Usuario</th>
+      <th>Ruta</th>
+      <th>Total Día</th>
+      <th>Última Venta</th>
+      <th>Estatus</th>
+      <th>Acción</th>
+    </tr>
+  </thead>
+  <tbody id="tbodyCortes"></tbody>
+</table>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where, addDoc, updateDoc, doc, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const tbody = document.getElementById("tbodyCortes");
+
+async function cargarPendientes() {
+  tbody.innerHTML = "<tr><td colspan='6'>Cargando...</td></tr>";
+  const usuariosSnap = await getDocs(collection(db, "usuarios_ruta"));
+  const hoyISO = new Date().toISOString().split("T")[0];
+
+  tbody.innerHTML = "";
+  for (const u of usuariosSnap.docs) {
+    const user = u.data();
+    const rutaId = user.rutaId;
+    const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
+    const ventasSnap = await getDocs(ventasRef);
+
+    const ventasDeHoy = ventasSnap.docs
+      .map(d => ({ id:d.id, ...d.data() }))
+      .filter(v => (v.fecha_txt || "").startsWith(hoyISO));
+
+    const totalHoy = ventasDeHoy.reduce((acc,v)=>acc+(v.total||0),0);
+    const ultimaVenta = ventasDeHoy.sort((a,b)=>b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
+
+    const tieneCorte = ventasDeHoy.every(v=>v.cortado===true);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${user.nombre || user.usuario}</td>
+      <td>${rutaId}</td>
+      <td>$${totalHoy.toFixed(2)}</td>
+      <td>${ultimaVenta}</td>
+      <td style="color:${tieneCorte?'green':'red'}; font-weight:600;">
+        ${tieneCorte ? 'Cortado' : 'Pendiente'}
+      </td>
+      <td>
+        <button ${tieneCorte?'disabled':''} data-ruta="${rutaId}">
+          ${tieneCorte?'✔️ Hecho':'📊 Hacer corte'}
+        </button>
+      </td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+tbody.addEventListener("click", async (e)=>{
+  const btn = e.target.closest("button[data-ruta]");
+  if(!btn) return;
+  const rutaId = btn.getAttribute("data-ruta");
+  btn.disabled = true;
+  btn.textContent = "Cortando...";
+
+  // 🔸 Marca las ventas del día como cortadas
+  const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
+  const snapVentas = await getDocs(ventasRef);
+  const hoyISO = new Date().toISOString().split("T")[0];
+  for(const d of snapVentas.docs){
+    const v = d.data();
+    if((v.fecha_txt||"").startsWith(hoyISO)){
+      const ref = doc(db, "rutas_venta", rutaId, "ventas", d.id);
+      await updateDoc(ref, { cortado: true });
+    }
+  }
+
+  // 🔸 Crea registro del corte en la colección global
+  await addDoc(collection(db,"cortes_globales"),{
+    rutaId, fecha: serverTimestamp(), realizado_por:"Administrador"
+  });
+
+  btn.textContent = "✔️ Hecho";
+});
+
+cargarPendientes();
+</script>
+</body>
+</html>
