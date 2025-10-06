@@ -74,8 +74,8 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs, query, where, updateDoc, doc, addDoc, serverTimestamp } 
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, getDocs, updateDoc, doc, addDoc, serverTimestamp } 
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -96,35 +96,34 @@ const btnConfirmar = document.getElementById("btnConfirmar");
 
 let corteActual = null;
 
+// 🔹 Carga rutas y muestra las que tienen ventas pendientes
 async function cargarPendientes() {
-  tbody.innerHTML = "<tr><td colspan='5'>Cargando...</td></tr>";
-  const usuariosSnap = await getDocs(collection(db, "usuarios_ruta"));
-  const hoy = new Date(); const d = hoy.getDate(), m = hoy.getMonth()+1, a = hoy.getFullYear();
+  tbody.innerHTML = "<tr><td colspan='5'>Buscando rutas...</td></tr>";
+
+  const rutasSnap = await getDocs(collection(db, "rutas_venta"));
+  const hoy = new Date(); 
+  const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
 
   tbody.innerHTML = "";
-  for (const u of usuariosSnap.docs) {
-    const user = u.data();
-    const rutaId = user.rutaId;
-    if (!rutaId) continue;
-
+  for (const ruta of rutasSnap.docs) {
+    const rutaId = ruta.id;
     const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
-    const ventasDeHoy = ventasSnap.docs
-      .map(d => ({ id:d.id, ...d.data() }))
-      .filter(v=>{
-        const txt=v.fecha_txt||""; const p=txt.split(/[ ,/]+/);
-        if(p.length<3)return false;
-        const [diaV,mesV,anioV]=p.map(Number);
-        return diaV===d && mesV===m && anioV===a && !v.cortado;
-      });
+    const ventasDeHoy = ventasSnap.docs.map(d=>({ id:d.id, ...d.data() })).filter(v=>{
+      const txt = v.fecha_txt || "";
+      const p = txt.split(/[ ,/]+/);
+      if (p.length < 3) return false;
+      const [diaV, mesV, anioV] = p.map(Number);
+      return diaV === d && mesV === m && anioV === a && !v.cortado;
+    });
 
-    if (ventasDeHoy.length === 0) continue; // sólo usuarios con pendientes
+    if (ventasDeHoy.length === 0) continue; // Mostrar solo si hay pendientes
 
     const totalHoy = ventasDeHoy.reduce((acc,v)=>acc+(v.total||0),0);
     const ultimaVenta = ventasDeHoy.sort((a,b)=>b.fecha_txt.localeCompare(a.fecha_txt))[0]?.fecha_txt || "—";
 
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${user.nombre || user.usuario}</td>
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${rutaId}</td>
       <td>${rutaId}</td>
       <td>$${totalHoy.toFixed(2)}</td>
       <td>${ultimaVenta}</td>
@@ -138,28 +137,33 @@ async function cargarPendientes() {
   }
 }
 
-tbody.addEventListener("click", async (e)=>{
+// 🔹 Al hacer clic en “Hacer Corte”
+tbody.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-ruta]");
-  if(!btn) return;
+  if (!btn) return;
   const rutaId = btn.getAttribute("data-ruta");
   corteActual = { rutaId, btn };
   await mostrarResumenCorte(rutaId);
 });
 
-btnCancelar.onclick = ()=>{ modal.style.display='none'; corteActual=null; };
+btnCancelar.onclick = () => {
+  modal.style.display = "none";
+  corteActual = null;
+};
 
-btnConfirmar.onclick = async ()=>{
-  if(!corteActual) return;
-  const {rutaId, resumen} = corteActual;
+// 🔹 Confirmar corte
+btnConfirmar.onclick = async () => {
+  if (!corteActual) return;
+  const { rutaId, resumen } = corteActual;
   btnConfirmar.disabled = true;
   btnConfirmar.textContent = "Cortando...";
 
-  const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
+  const ventasRef = collection(db, "rutas_venta", rutaId, "ventas");
+  const snap = await getDocs(ventasRef);
   const hoy = new Date(); 
   const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
 
-  // 🔸 Marca las ventas de hoy como cortadas
-  for (const docu of ventasSnap.docs) {
+  for (const docu of snap.docs) {
     const v = docu.data();
     const txt = v.fecha_txt || "";
     const p = txt.split(/[ ,/]+/);
@@ -170,7 +174,6 @@ btnConfirmar.onclick = async ()=>{
     }
   }
 
-  // 🔸 Crea registro en Firestore
   await addDoc(collection(db, "cortes_globales"), {
     rutaId,
     fecha: serverTimestamp(),
@@ -178,7 +181,6 @@ btnConfirmar.onclick = async ()=>{
     realizado_por: "Administrador"
   });
 
-  // 🔸 Abre el reporte en nueva pestaña
   const usuario = encodeURIComponent("Administrador");
   const url = `corte_reporte.html?rutaId=${encodeURIComponent(rutaId)}&usuario=${usuario}`;
   window.open(url, "_blank");
@@ -188,51 +190,56 @@ btnConfirmar.onclick = async ()=>{
   cargarPendientes();
 };
 
+// 🔹 Mostrar resumen antes de confirmar
+async function mostrarResumenCorte(rutaId) {
+  contenido.innerHTML = "Generando resumen...";
+  modal.style.display = "flex";
 
-async function mostrarResumenCorte(rutaId){
-  contenido.innerHTML="Generando resumen...";
-  modal.style.display='flex';
-
-  const ventasSnap = await getDocs(collection(db,"rutas_venta",rutaId,"ventas"));
-  const hoy = new Date(); const d=hoy.getDate(),m=hoy.getMonth()+1,a=hoy.getFullYear();
+  const ventasSnap = await getDocs(collection(db, "rutas_venta", rutaId, "ventas"));
+  const hoy = new Date();
+  const d = hoy.getDate(), m = hoy.getMonth() + 1, a = hoy.getFullYear();
   const ventasDeHoy = ventasSnap.docs.map(d=>({id:d.id,...d.data()})).filter(v=>{
-    const txt=v.fecha_txt||""; const p=txt.split(/[ ,/]+/);
-    if(p.length<3)return false;
-    const [diaV,mesV,anioV]=p.map(Number);
-    return diaV===d && mesV===m && anioV===a && !v.cortado;
+    const txt = v.fecha_txt || "";
+    const p = txt.split(/[ ,/]+/);
+    if (p.length < 3) return false;
+    const [diaV, mesV, anioV] = p.map(Number);
+    return diaV === d && mesV === m && anioV === a && !v.cortado;
   });
 
-  // 🧮 Totales
-  const porMetodo={}, porDepto={};
-  let totalDia=0;
-  for(const v of ventasDeHoy){
-    totalDia+=v.total||0;
-    const metodo=v.metodo_pago||"otro";
-    porMetodo[metodo]=(porMetodo[metodo]||0)+(v.total||0);
+  const porMetodo = {}, porDepto = {};
+  let totalDia = 0;
+  for (const v of ventasDeHoy) {
+    totalDia += v.total || 0;
+    const metodo = v.metodo_pago || "otro";
+    porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
 
-    for(const det of (v.detalle||[])){
-      const dep=det.departamento||"General";
-      porDepto[dep]=(porDepto[dep]||0)+det.importe;
+    for (const det of (v.detalle || [])) {
+      const dep = det.departamento || "General";
+      porDepto[dep] = (porDepto[dep] || 0) + (det.importe || 0);
     }
   }
 
-  corteActual.resumen={ totalDia, porMetodo, porDepto };
+const totalTickets = ventasDeHoy.length;
+const totalEfectivo = porMetodo.efectivo || 0;
+const totalCredito  = porMetodo.credito || porMetodo.tarjeta || 0;
+corteActual.resumen = { totalDia, porMetodo, porDepto, totalTickets, totalEfectivo, totalCredito };
 
-  let html=`<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
-  html+="<h4>Por Departamento</h4><table><tbody>";
-  for(const [dep,val] of Object.entries(porDepto)){
-    html+=`<tr><td>${dep}</td><td style="text-align:right;">$${val.toFixed(2)}</td></tr>`;
+  let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
+  html += "<h4>Por Departamento</h4><table><tbody>";
+  for (const [dep, val] of Object.entries(porDepto)) {
+    html += `<tr><td>${dep}</td><td style="text-align:right;">$${val.toFixed(2)}</td></tr>`;
   }
-  html+="</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
-  for(const [met,val] of Object.entries(porMetodo)){
-    html+=`<tr><td>${met}</td><td style="text-align:right;">$${val.toFixed(2)}</td></tr>`;
+  html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
+  for (const [met, val] of Object.entries(porMetodo)) {
+    html += `<tr><td>${met}</td><td style="text-align:right;">$${val.toFixed(2)}</td></tr>`;
   }
-  html+="</tbody></table>";
+  html += "</tbody></table>";
 
-  contenido.innerHTML=html;
+  contenido.innerHTML = html;
 }
 
 cargarPendientes();
+
 </script>
 </body>
 </html>
