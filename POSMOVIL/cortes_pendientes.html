@@ -135,11 +135,12 @@ async function cargarPendientes(rutaId) {
 
   const ventasDeHoy = ventasSnap.docs.map(d=>({ id:d.id, ...d.data() })).filter(v=>{
     const txt = v.fecha_txt || "";
-    const partes = txt.split(/[ ,/]+/);
-    if (partes.length < 3) return false;    
-    const diaV = parseInt(p[0]);
-    const mesV = parseInt(p[1]);
-    const anioV = parseInt(p[2]);
+const partes = txt.split(/[ ,/]+/);
+if (partes.length < 3) return false;
+const diaV = parseInt(partes[0]);
+const mesV = parseInt(partes[1]);
+const anioV = parseInt(partes[2]);
+
     return diaV === d && mesV === m && anioV === a && !v.cortado;
   });
 
