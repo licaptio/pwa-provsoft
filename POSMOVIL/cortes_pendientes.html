@@ -50,8 +50,17 @@
     .modal-card td, .modal-card th { border-bottom:1px solid #ddd; padding:6px; }
     .modal-actions { margin-top:15px; text-align:right; }
   </style>
+<!-- 🌍 Librerías para mapa y captura de imagen -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
-<body>
+<!-- Contenedor oculto para generar el mapa del día -->
+<div id="mapaCorte" style="width:600px; height:400px; display:none;"></div>
+
+  <body>
 
 <h1>Cortes Pendientes</h1>
 <select id="selectRuta">
@@ -178,31 +187,64 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   btnCancelar.onclick = () => (modal.style.display = "none");
 
-  btnConfirmar.onclick = async () => {
-    if (!corteActual) return;
-    const { rutaId, resumen } = corteActual;
-    btnConfirmar.disabled = true;
-    btnConfirmar.textContent = "Cortando...";
+btnConfirmar.onclick = async () => {
+  if (!corteActual) return;
+  const { rutaId, resumen } = corteActual;
+  btnConfirmar.disabled = true;
+  btnConfirmar.textContent = "Cortando...";
 
-    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
-    const snap = await getDocs(qVentas);
-    for (const d of snap.docs) await updateDoc(doc(db, "rutas_venta", d.id), { cortado: true });
+  // 🔹 Marcar ventas como cortadas
+  const qVentas = query(
+    collection(db, "rutas_venta"),
+    where("rutaId", "==", rutaId),
+    where("cortado", "==", false)
+  );
+  const snap = await getDocs(qVentas);
+  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  for (const d of snap.docs) await updateDoc(doc(db, "rutas_venta", d.id), { cortado: true });
 
-    const corteRef = await addDoc(collection(db, "cortes_globales"), {
-      rutaId,
-      fecha: serverTimestamp(),
-      resumen,
-      realizado_por: "Administrador"
-    });
+  // 🔹 Guardar resumen en Firestore
+  const corteRef = await addDoc(collection(db, "cortes_globales"), {
+    rutaId,
+    fecha: serverTimestamp(),
+    resumen,
+    realizado_por: "Administrador"
+  });
 
-    const url = `reporte_corte.html?corteId=${corteRef.id}`;
-    window.open(url, "_blank");
+  // 🔹 Crear PDF con jsPDF
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`REPORTE DE CORTE – ${rutaId}`, 10, 15);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 25);
+  pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 35);
+  pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 45);
 
-    alert("✅ Corte realizado y reporte generado correctamente");
-    modal.style.display = "none";
-    selectRuta.value = "";
-    tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
-  };
+  // 🧩 Insertar mapa del día
+  try {
+    const imgMapa = await generarImagenMapa(ventas);
+    if (imgMapa) {
+      pdf.addPage();
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("📍 RUTA DE VENTAS DEL DÍA", 10, 20);
+      pdf.addImage(imgMapa, "PNG", 10, 30, 180, 120);
+      pdf.setFontSize(10);
+      pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
+    }
+  } catch (err) {
+    console.error("⚠️ Error generando mapa:", err);
+  }
+
+  // 💾 Guardar PDF local
+  pdf.save(`Corte_${rutaId}.pdf`);
+
+  alert("✅ Corte realizado y PDF generado con mapa de ruta.");
+  modal.style.display = "none";
+  selectRuta.value = "";
+  tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
+};
 
   async function mostrarResumenCorte(rutaId) {
     contenido.innerHTML = "Generando resumen...";
@@ -250,6 +292,56 @@ document.addEventListener("DOMContentLoaded", async () => {
   await cargarDepartamentos();
   await cargarRutas();
 });
+// === 🗺️ Generar imagen del mapa de ventas del día ===
+async function generarImagenMapa(ventas) {
+  // Mostrar el contenedor oculto temporalmente
+  const divMapa = document.getElementById("mapaCorte");
+  divMapa.style.display = "block";
+
+  // Crear mapa Leaflet
+  const map = L.map(divMapa).setView([25.509, -99.568], 13); // posición base (Linares)
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+  }).addTo(map);
+
+  // 📍 Agregar pines por cada venta y recolectar coordenadas
+  const puntos = [];
+  for (const v of ventas) {
+    if (!v.ubicacion?.lat || !v.ubicacion?.lon) continue;
+
+    const lat = v.ubicacion.lat;
+    const lon = v.ubicacion.lon;
+    const total = (v.total || 0).toFixed(2);
+    const cliente = v.cliente || "Mostrador";
+
+    const marker = L.marker([lat, lon]).addTo(map);
+    marker.bindPopup(`<b>${cliente}</b><br>💰 $${total}`);
+
+    puntos.push([lat, lon]);
+  }
+
+  // 📏 Dibujar línea azul entre las ubicaciones (ruta del día)
+  if (puntos.length > 1) {
+    const ruta = L.polyline(puntos, { color: "#0c6cbd", weight: 4 }).addTo(map);
+    map.fitBounds(ruta.getBounds(), { padding: [30, 30] });
+  } else if (puntos.length === 1) {
+    map.setView(puntos[0], 15);
+  }
+
+  // Esperar a que el mapa se renderice correctamente
+  await new Promise(r => setTimeout(r, 1200));
+
+  // Capturar mapa como imagen PNG
+  const dataUrl = await domtoimage.toPng(divMapa, { quality: 0.95 });
+
+  // Limpiar recursos y ocultar el contenedor
+  map.remove();
+  divMapa.style.display = "none";
+
+  console.log("🗺️ Mapa de ventas generado como imagen PNG");
+  return dataUrl;
+}
+
 </script>
 </body>
 </html>
