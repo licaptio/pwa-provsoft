@@ -78,46 +78,64 @@
     }
 @media print {
   @page {
-    margin-top: 0;
-    margin-bottom: 0;
+    size: 80mm auto;  /* fuerza el ancho del rollo */
+    margin: 0;        /* elimina todo margen */
   }
-  body {
+
+  html, body {
     margin: 0;
     padding: 0;
+    background: #fff;
   }
-  body * { visibility: hidden; }
+
+  body * {
+    visibility: hidden;
+  }
+
   #ticketArea, #ticketArea * {
     visibility: visible;
   }
+
+  /* Centra el ticket sin añadir espacio arriba */
   #ticketArea {
-    display: block !important;
-    position: relative;
+    display: flex !important;
+    justify-content: center;
+    align-items: flex-start;
+    background: #fff;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Ajuste exacto para rollo térmico */
+  #ticket {
+    width: 80mm;          /* Cambia a 58mm si tu rollo es chico */
+    font-size: 12px;
+    line-height: 1.25;
+    font-family: monospace;
     background: #fff;
     margin: 0;
     padding: 0;
+    transform: translateY(-2mm); /* 🔹 Empuja el ticket un poco hacia arriba */
   }
-  #ticket {
-    width: 80mm;
-    font-size: 12px;
-    line-height: 1.2;
-    font-family: monospace;
-    margin: 0;
-    padding-top: 0;
-  }
+
   #ticket img {
-    max-width: 120px;
+    max-width: 100px;
     margin-bottom: 5px;
   }
+
   #ticket hr {
     border: none;
     border-top: 1px dashed #000;
     margin: 3px 0;
   }
+
   #ticket p, #ticket div, #ticket span {
     margin: 0;
     padding: 0;
   }
 }
+
+
   </style>
 </head>
 <body>
@@ -172,9 +190,17 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, getDocs, query, where, orderBy, limit
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+   import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // 🔹 Configuración Firebase
     const firebaseConfig = {
