@@ -378,14 +378,10 @@ async function generarImagenMapa(ventas) {
     attributionControl: false
   }).setView([25.5, -99.56], 12);
 
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png", {
-    subdomains: "abcd",
-    maxZoom: 19
-  }).addTo(map);
-
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png", {
-    subdomains: "abcd",
-    maxZoom: 19
+  // Usamos un tile libre sin CORS
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    crossOrigin: true
   }).addTo(map);
 
   const puntos = [];
@@ -395,15 +391,12 @@ async function generarImagenMapa(ventas) {
     const { lat, lon } = v.ubicacion;
     const total = (v.total || 0).toFixed(2);
     const cliente = v.cliente || "Mostrador";
-
-    const marker = L.circleMarker([lat, lon], {
+    L.circleMarker([lat, lon], {
       radius: 6,
       color: "#00416A",
       fillColor: "#0c6cbd",
       fillOpacity: 0.8
-    }).addTo(map);
-
-    marker.bindTooltip(`${cliente} – $${total}`, { permanent: false });
+    }).addTo(map).bindTooltip(`${cliente} – $${total}`, { permanent: false });
     puntos.push([lat, lon]);
   }
 
@@ -414,18 +407,13 @@ async function generarImagenMapa(ventas) {
     map.setView(puntos[0], 14);
   }
 
-  map.invalidateSize();
-  await new Promise(r => setTimeout(r, 3000));
+  await new Promise(r => setTimeout(r, 2500));
+  let dataUrl;
 
-  let dataUrl = null;
   try {
-    dataUrl = await domtoimage.toPng(divMapa, {
-      quality: 0.95,
-      bgcolor: "#ffffff",
-      cacheBust: true
-    });
-  } catch (e) {
-    console.warn("⚠️ No se pudo capturar mapa, generando imagen vacía:", e);
+    dataUrl = await domtoimage.toPng(divMapa, { quality: 0.95, bgcolor: "#fff" });
+  } catch (err) {
+    console.warn("⚠️ No se pudo capturar el mapa (CORS), usando fondo vacío.");
     const canvas = document.createElement("canvas");
     canvas.width = 600; canvas.height = 400;
     const ctx = canvas.getContext("2d");
@@ -437,6 +425,8 @@ async function generarImagenMapa(ventas) {
 
   map.remove();
   divMapa.style.display = "none";
+  return dataUrl;
+}
 
   console.log("🗺️ Mapa generado correctamente con", puntos.length, "puntos.");
   return dataUrl;
