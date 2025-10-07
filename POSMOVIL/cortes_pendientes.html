@@ -353,11 +353,16 @@ async function generarImagenMapa(ventas) {
     attributionControl: false
   }).setView([25.5, -99.56], 12);
 
-// Capa base con calles y colonias (Carto Light)
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
+// Carto Positron: más blanco y con mejor contraste
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png", {
   subdomains: "abcd",
-  maxZoom: 19,
-  attribution: "© OpenStreetMap & CARTO"
+  maxZoom: 19
+}).addTo(map);
+
+// Agregamos capa de etiquetas por separado (opcional)
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png", {
+  subdomains: "abcd",
+  maxZoom: 19
 }).addTo(map);
 
   const puntos = [];
