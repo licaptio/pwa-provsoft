@@ -208,14 +208,35 @@ btnConfirmar.onclick = async () => {
   const snap = await getDocs(qVentas);
   const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   for (const d of snap.docs) await updateDoc(doc(db, "rutas_venta", d.id), { cortado: true });
+// 🔹 Construir ventas_incluidas con los datos clave de cada venta
+const ventas_incluidas = ventas.map(v => ({
+  idVenta: v.folio || v.id,
+  total: v.total || 0,
+  cliente: v.cliente || "PUBLICO EN GENERAL",
+  metodo_pago: v.metodo_pago || "efectivo",
+  fecha_txt: v.fecha_txt || "",
+  ubicacion: v.ubicacion || null,
+  resumen_deptos: (() => {
+    const porDepto = {};
+    for (const det of (v.detalle || [])) {
+      const depId = det.departamento_id?.toString() || "0";
+      const depInfo = mapaDepartamentos[depId] || { nombre: "SIN DEPTO" };
+      const nombre = depInfo.nombre;
+      const importe = det.importe || (det.precioVenta * det.cantidad) || 0;
+      porDepto[nombre] = (porDepto[nombre] || 0) + importe;
+    }
+    return porDepto;
+  })()
+}));
 
-  // 🔹 Guardar resumen en Firestore
-  const corteRef = await addDoc(collection(db, "cortes_globales"), {
-    rutaId,
-    fecha: serverTimestamp(),
-    resumen,
-    realizado_por: "Administrador"
-  });
+// 🔹 Guardar resumen + detalle completo en Firestore
+const corteRef = await addDoc(collection(db, "cortes_globales"), {
+  rutaId,
+  fecha: serverTimestamp(),
+  realizado_por: "Administrador",
+  resumen,
+  ventas_incluidas
+});
 
   // 🔹 Crear PDF con jsPDF
   const { jsPDF } = window.jspdf;
