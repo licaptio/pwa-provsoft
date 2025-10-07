@@ -184,6 +184,11 @@
   size: 80mm auto;   /* ancho fijo 80mm, alto automático */
   margin: 0;         /* sin márgenes */
 }
+/* 🔒 Desactivar pull-to-refresh en móviles Android/Chrome */
+body {
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
+}
 
   </style>
 </head>
