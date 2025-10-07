@@ -821,6 +821,14 @@ try {
   });
   ubicacion.lat = pos.coords.latitude;
   ubicacion.lon = pos.coords.longitude;
+  try {
+  const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`);
+  const data = await resp.json();
+  ubicacion.direccion = data.display_name || null;
+} catch (e) {
+  console.warn("No se pudo obtener dirección:", e.message);
+}
+
   ubicacion.precision = pos.coords.accuracy;
   console.log("📍 Ubicación capturada:", ubicacion);
 } catch (err) {
