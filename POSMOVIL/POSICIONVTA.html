@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="theme-color" content="#0c6cbd">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporte de Cortes – PROVSOFT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    body{
+      font-family:'Poppins',sans-serif;
+      background:#f5f7fa;
+      color:#222;
+      margin:0;
+      padding:0;
+    }
+    header{
+      background:linear-gradient(to right,#00416A,#0c6cbd);
+      color:#fff;
+      padding:15px;
+      text-align:center;
+    }
+    main{padding:15px;}
+    h1{margin:0;font-size:22px;}
+    .filtros{
+      display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:15px;
+    }
+    input,button{
+      padding:8px 10px;border-radius:8px;border:1px solid #ccc;font-family:inherit;font-size:14px;
+    }
+    button{
+      background:#0c6cbd;color:white;border:none;cursor:pointer;
+    }
+    #map{height:420px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.1);margin-bottom:20px;}
+    table{
+      width:100%;border-collapse:collapse;background:white;box-shadow:0 2px 6px rgba(0,0,0,.1);
+    }
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;}
+    th{background:#00416A;color:white;}
+    tr:hover{background:#f0f4ff;}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reporte de Cortes – PROVSOFT</h1>
+  </header>
+  <main>
+    <div class="filtros">
+      <label>Fecha: <input type="date" id="fecha"></label>
+      <button id="consultar">Consultar Cortes</button>
+    </div>
+
+    <div id="map"></div>
+
+    <table>
+      <thead>
+        <tr><th>Usuario</th><th>Fecha</th><th>Total</th><th>Pago</th><th>Dirección</th></tr>
+      </thead>
+      <tbody id="tabla"></tbody>
+    </table>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js" type="module"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js" type="module"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, orderBy } 
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Mapa inicial (Linares)
+    const map = L.map('map').setView([24.857, -99.57], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:18,
+      attribution:'© OpenStreetMap'
+    }).addTo(map);
+
+    let markers = [];
+
+    async function consultarVentasCortadas() {
+      // limpiar mapa y tabla
+      markers.forEach(m=>map.removeLayer(m));
+      markers = [];
+      document.getElementById('tabla').innerHTML = '';
+
+      const fechaSel = document.getElementById('fecha').value;
+      if(!fechaSel){ alert("Selecciona una fecha de corte."); return; }
+
+      const ref = collection(db, "rutas_venta");
+      const q = query(ref, where("cortado", "==", true), orderBy("fecha"));
+      const snapshot = await getDocs(q);
+
+      const ventas = [];
+      snapshot.forEach(doc=>{
+        const data = doc.data();
+        const fechaVenta = data.fecha.toDate();
+        const fechaTxt = fechaVenta.toISOString().split('T')[0];
+        if (fechaTxt === fechaSel) ventas.push(data);
+      });
+
+      if (ventas.length===0){
+        alert("No hay ventas cortadas en esa fecha.");
+        return;
+      }
+
+      // Llenar mapa y tabla
+      ventas.forEach(v=>{
+        if(v.ubicacion?.lat && v.ubicacion?.lon){
+          const m = L.marker([v.ubicacion.lat,v.ubicacion.lon]).addTo(map);
+          m.bindPopup(`
+            <b>${v.usuario}</b><br>
+            ${v.fecha_txt}<br>
+            <b>$${v.total.toLocaleString('es-MX')}</b><br>
+            ${v.metodo_pago}
+          `);
+          markers.push(m);
+        }
+
+        const row = `<tr>
+          <td>${v.usuario}</td>
+          <td>${v.fecha_txt}</td>
+          <td>$${v.total.toLocaleString('es-MX')}</td>
+          <td>${v.metodo_pago}</td>
+          <td>${v.ubicacion?.direccion || ''}</td>
+        </tr>`;
+        document.getElementById('tabla').insertAdjacentHTML('beforeend', row);
+      });
+
+      // centrar mapa en la primera venta
+      const primera = ventas.find(v=>v.ubicacion?.lat);
+      if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
+    }
+
+    document.getElementById('consultar').addEventListener('click', consultarVentasCortadas);
+  </script>
+</body>
+</html>
