@@ -227,18 +227,21 @@ btnConfirmar.onclick = async () => {
   pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 35);
   pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 45);
 
-  // 🧩 Insertar mapa del día
-  try {
-    const imgMapa = await generarImagenMapa(ventas);
-    if (imgMapa) {
-      pdf.addPage();
-      pdf.setFontSize(14);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("📍 RUTA DE VENTAS DEL DÍA", 10, 20);
-      pdf.addImage(imgMapa, "PNG", 10, 30, 180, 120);
-      pdf.setFontSize(10);
-      pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
-    }
+// 🧩 Insertar mapa del día
+try {
+  const imgMapa = await generarImagenMapa(ventas);
+  if (imgMapa) {
+    pdf.addPage();
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("📍 RUTA DE VENTAS DEL DÍA", 10, 20);
+    pdf.addImage(imgMapa, "PNG", 10, 30, 180, 120);
+    pdf.setFontSize(10);
+    pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
+  }
+} catch (err) {
+  console.error("⚠️ Error generando mapa:", err);
+}
 // 🧩 Insertar gráfica de departamentos en PDF
 try {
   const imgGrafica = await generarImagenGraficaDeptos(resumen.porDepto);
@@ -257,7 +260,9 @@ try {
 }
   
   // 💾 Guardar PDF local
-  pdf.save(`Corte_${rutaId}.pdf`);
+  const fecha = new Date().toISOString().slice(0,10);
+pdf.save(`Corte_${rutaId}_${fecha}.pdf`);
+
 
   alert("✅ Corte realizado y PDF generado con mapa de ruta.");
   modal.style.display = "none";
