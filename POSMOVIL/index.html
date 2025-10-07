@@ -1023,15 +1023,16 @@ function imprimirTicketEstilado(){
   btnReimprimir.addEventListener('click', abrirReimp);
   btnCerrarReimp.addEventListener('click', cerrarReimp);
 
-  async function buscarTickets(){
-    listaTickets.innerHTML="Buscando...";
-    const ventasRef=collection(db,'rutas_venta',rutaId,'ventas');
-    let qv=query(ventasRef, orderBy('fecha','desc'));
-    const snap=await getDocs(qv);
-    _tickets=[];
-    snap.forEach(s=>{ const v=s.data(); _tickets.push({id:s.id,...v}); });
-    renderListaTickets();
-  }
+async function buscarTickets(){
+  listaTickets.innerHTML="Buscando...";
+  const ventasRef = collection(db, "rutas_venta");
+  const qv = query(ventasRef, where("rutaId", "==", rutaId), orderBy("fecha", "desc"), limit(50));
+  const snap = await getDocs(qv);
+  _tickets = [];
+  snap.forEach(s => { const v = s.data(); _tickets.push({ id: s.id, ...v }); });
+  renderListaTickets();
+}
+
 
   function renderListaTickets(){
     listaTickets.innerHTML="";
