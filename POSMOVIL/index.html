@@ -4,7 +4,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0c6cbd">
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, inifunction calcularTotalesConImpuestosIncluidos() {tial-scale=1, viewport-fit=cover"/>
   <title>POS – Ruta de Venta</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
@@ -661,13 +661,11 @@ async function buscarClientesFirestore(texto){
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
 
-  // 🔹 Cada producto del carrito
   carrito.forEach(it => {
     const imp = it.cantidad * it.precioUnit;
-    let base = imp;
-    let iva = 0, ieps = 0;
+    let base = imp, iva = 0, ieps = 0;
 
-    // 🧠 Tasas desde el departamento (convertidas a fracción)
+    // 🧠 Tasas desde departamento o producto, convertidas a fracción
     const depId = it.departamento_id?.toString() || "0";
     const depInfo = departamentos[depId] || { iva: 0, ieps: 0 };
     const ivaTasa = Number(depInfo.iva || it.ivaTasa || 0) / 100;
@@ -685,14 +683,14 @@ function calcularTotalesConImpuestosIncluidos() {
       base = imp / (1 + ivaTasa);
       iva = base * ivaTasa;
     } else {
-      base = imp; // exento
+      base = imp;
     }
 
-    // 📊 Guardar desglose por producto
+    // 🧮 Guardar desglose fiscal por producto
     it._desglose = {
       base: +base.toFixed(2),
-      ieps: +ieps.toFixed(2),
       iva: +iva.toFixed(2),
+      ieps: +ieps.toFixed(2),
       total: +imp.toFixed(2),
       ivaTasa: +(ivaTasa * 100),
       iepsTasa: +(iepsTasa * 100)
@@ -706,7 +704,6 @@ function calcularTotalesConImpuestosIncluidos() {
 
   const impuestos = totalIva + totalIeps;
 
-  // 📦 Resultado global
   return {
     subtotal: +subtotal.toFixed(2),
     impuestos: +impuestos.toFixed(2),
