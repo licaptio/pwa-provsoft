@@ -471,8 +471,8 @@ async function generarImagenGraficaDeptos(porDepto) {
 }
 // === 📨 Enviar PDF del corte a Telegram ===
 async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
-  const TELEGRAM_TOKEN = "TU_TOKEN_AQUI";  // <-- cámbialo
-  const CHAT_ID = "TU_CHAT_ID_AQUI";      // <-- cámbialo
+  const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q"; // tu token
+  const CHAT_ID   = "6617988297"; // tu chat_id
 
   const formData = new FormData();
   formData.append("chat_id", CHAT_ID);
