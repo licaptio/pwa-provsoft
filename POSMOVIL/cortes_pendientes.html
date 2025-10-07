@@ -287,6 +287,20 @@ try {
 pdf.setFontSize(10);
 pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
 
+// === 📊 HOJA 3: GRÁFICA POR DEPARTAMENTO ===
+pdf.addPage();
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(14);
+pdf.text("📊 DISTRIBUCIÓN POR DEPARTAMENTO", 10, 20);
+try {
+  const imgGraf = await generarImagenGraficaDeptos(resumen.porDepto);
+  if (imgGraf) pdf.addImage(imgGraf, "PNG", 10, 30, 180, 120);
+} catch (err) {
+  console.error("⚠️ Error generando gráfica:", err);
+}
+pdf.setFontSize(10);
+pdf.text("Gráfica generada automáticamente por PROVSOFT POS", 10, 160);
+  
 // 💾 Guardar PDF local
 const fecha = new Date().toISOString().slice(0,10);
 const nombreArchivo = `Corte_${rutaId}_${fecha}.pdf`;
@@ -410,11 +424,22 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png
   // Capturar imagen
   let dataUrl = null;
   try {
-    dataUrl = await domtoimage.toPng(divMapa, {
-      quality: 0.98,
-      bgcolor: "#ffffff"
-    });
-  } catch (e) {
+try {
+  dataUrl = await domtoimage.toPng(divMapa, {
+    quality: 0.95,
+    bgcolor: "#ffffff",
+    cacheBust: true
+  });
+} catch (e) {
+  console.warn("⚠️ No se pudo capturar mapa, generando imagen vacía:", e);
+  const canvas = document.createElement("canvas");
+  canvas.width = 600; canvas.height = 400;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,600,400);
+  ctx.fillStyle = "#333";
+  ctx.fillText("MAPA NO DISPONIBLE", 200, 200);
+  dataUrl = canvas.toDataURL("image/png");
+}
     console.error("⚠️ Error al capturar mapa:", e);
   }
 
