@@ -411,6 +411,19 @@ async function obtenerUbicacionActualRapida() {
     try {
       mostrarToast("Activando geolocalización 📡");
       await obtenerUbicacionInicial();
+      // 🔹 Forzar permiso de GPS desde login
+if ("permissions" in navigator) {
+  try {
+    const perm = await navigator.permissions.query({ name: "geolocation" });
+    console.log("🔒 Permiso de geolocalización:", perm.state);
+    if (perm.state === "denied") {
+      alert("Activa permisos de ubicación en ajustes o navegador para registrar la venta con GPS.");
+    }
+  } catch (e) {
+    console.warn("No se pudo verificar permisos de ubicación:", e.message);
+  }
+}
+
       console.log("✅ Ubicación tras login:", window.UBICACION_ACTUAL);
     } catch (e) {
       console.warn("⚠️ No se pudo obtener ubicación tras login:", e.message);
