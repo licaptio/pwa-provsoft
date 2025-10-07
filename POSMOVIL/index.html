@@ -666,12 +666,13 @@ function calcularTotalesConImpuestosIncluidos() {
     let base = imp;
     let iva = 0, ieps = 0;
 
-    // 🧠 Si el producto tiene departamento, toma las tasas desde allí
+    // 🧠 Obtener tasas del departamento (conversión a porcentaje)
     const depId = it.departamento_id?.toString() || "0";
     const depInfo = departamentos[depId] || { iva: 0, ieps: 0 };
-    const ivaTasa = Number(depInfo.iva || it.ivaTasa || 0);
-    const iepsTasa = Number(depInfo.ieps || it.iepsTasa || 0);
+    const ivaTasa = Number(depInfo.iva || it.ivaTasa || 0) / 100;
+    const iepsTasa = Number(depInfo.ieps || it.iepsTasa || 0) / 100;
 
+    // 🧾 Si el precio ya incluye impuestos, desglosar correctamente
     if (iepsTasa > 0 && ivaTasa > 0) {
       base = imp / (1 + iepsTasa + ivaTasa * (1 + iepsTasa));
       ieps = base * iepsTasa;
@@ -682,6 +683,8 @@ function calcularTotalesConImpuestosIncluidos() {
     } else if (ivaTasa > 0) {
       base = imp / (1 + ivaTasa);
       iva = base * ivaTasa;
+    } else {
+      base = imp; // producto exento
     }
 
     subtotal += base;
