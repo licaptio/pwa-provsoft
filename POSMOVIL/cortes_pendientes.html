@@ -233,84 +233,125 @@ document.addEventListener("DOMContentLoaded", async () => {
     contenido.innerHTML = html;
   }
 
-  // === Generar PDF tamaño carta ===
-  async function generarPDFyEnviar(resumen, rutaId) {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ format: "letter", unit: "mm" });
+// === Generar PDF tamaño carta ===
+async function generarPDFyEnviar(resumen, rutaId) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ format: "letter", unit: "mm" });
 
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.text(`CORTE DE RUTA – ${rutaId}`, 10, 15);
+  // Encabezado
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text(`CORTE DE RUTA – ${rutaId}`, 10, 15);
 
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 22);
-    pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 28);
-    pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 34);
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 22);
+  pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 28);
+  pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 34);
 
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Métodos de Pago:", 10, 42);
-    pdf.setFont("helvetica", "normal");
-    let y = 48;
-    for (const [met, val] of Object.entries(resumen.porMetodo)) {
-      pdf.text(`${met}: $${val.toFixed(2)}`, 12, y); y += 5;
-    }
-
-    y += 3; pdf.setFont("helvetica", "bold"); pdf.text("Totales por Departamento:", 10, y);
-    pdf.setFont("helvetica", "normal"); y += 5;
-    for (const [dep, val] of Object.entries(resumen.porDepto)) {
-      pdf.text(`${dep}: $${val.toFixed(2)}`, 12, y); y += 4;
-    }
-
-    // 🥧 Generar gráfica a la derecha
-    try {
-      const imgGraf = await generarImagenGraficaDeptos(resumen.porDepto);
-      if (imgGraf) pdf.addImage(imgGraf, "PNG", 110, 45, 90, 90);
-    } catch (e) { console.error("Error gráfica:", e); }
-
-    pdf.setFontSize(8);
-    pdf.text("Reporte generado automáticamente por PROVSOFT POS", 10, 275);
-
-    const fecha = new Date().toISOString().slice(0,10);
-    const nombreArchivo = `Corte_${rutaId}_${fecha}.pdf`;
-    const pdfBlob = pdf.output("blob");
-
-    await enviarPDFaTelegram(pdfBlob, nombreArchivo, 
-      `📦 *Corte generado*\nRuta: ${rutaId}\nTotal: $${resumen.totalDia.toFixed(2)}\nTickets: ${resumen.totalTickets}\nFecha: ${new Date().toLocaleString()}`);
+  // Métodos de pago
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Métodos de Pago:", 10, 42);
+  pdf.setFont("helvetica", "normal");
+  let y = 48;
+  for (const [met, val] of Object.entries(resumen.porMetodo)) {
+    pdf.text(`${met}: $${val.toFixed(2)}`, 12, y);
+    y += 5;
   }
 
-  async function generarImagenGraficaDeptos(porDepto) {
-    const divGrafica = document.getElementById("graficaDeptos");
-    const canvas = document.getElementById("canvasDeptos");
-    divGrafica.style.display = "block";
-    const ctx = canvas.getContext("2d");
-    const etiquetas = Object.keys(porDepto);
-    const valores = Object.values(porDepto);
-    const chart = new Chart(ctx, {
-      type: "pie",
-      data: { labels: etiquetas, datasets: [{ data: valores }] },
-      options: { plugins: { legend: { position: "right" } }, animation: false }
-    });
-    await new Promise(r => setTimeout(r, 1000));
-    const dataUrl = await domtoimage.toPng(divGrafica, { quality: 0.95, bgcolor: "#fff" });
-    chart.destroy(); divGrafica.style.display = "none";
-    return dataUrl;
+  // Departamentos
+  y += 3;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Totales por Departamento:", 10, y);
+  pdf.setFont("helvetica", "normal");
+  y += 5;
+  for (const [dep, val] of Object.entries(resumen.porDepto)) {
+    pdf.text(`${dep}: $${val.toFixed(2)}`, 12, y);
+    y += 4;
   }
 
-  async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
-    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT_ID   = "6617988297";
-    const formData = new FormData();
-    formData.append("chat_id", CHAT_ID);
-    formData.append("caption", resumenTexto);
-    formData.append("document", pdfBlob, nombreArchivo);
-    try {
-      const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: "POST", body: formData });
-      console.log("📤 Telegram:", await resp.json());
-    } catch (err) { console.error("Error Telegram:", err); }
+  // 🥧 Gráfica a la derecha
+  try {
+    const imgGraf = await generarImagenGraficaDeptos(resumen.porDepto);
+    if (imgGraf) pdf.addImage(imgGraf, "PNG", 110, 45, 90, 90);
+  } catch (e) {
+    console.error("Error gráfica:", e);
   }
 
-  await cargarDepartamentos();
+  pdf.setFontSize(8);
+  pdf.text("Reporte generado automáticamente por PROVSOFT POS", 10, 275);
+
+  const fecha = new Date().toISOString().slice(0, 10);
+  const nombreArchivo = `Corte_${rutaId}_${fecha}.pdf`;
+
+  // 🔹 Crear blob y URL temporal
+  const pdfBlob = pdf.output("blob");
+  const pdfUrl = URL.createObjectURL(pdfBlob);
+
+  // ✅ 1. Mostrar PDF en nueva pestaña para imprimir o ver
+  window.open(pdfUrl, "_blank");
+
+  // ✅ 2. Descargar automáticamente el PDF
+  const a = document.createElement("a");
+  a.href = pdfUrl;
+  a.download = nombreArchivo;
+  a.click();
+
+  // ✅ 3. Enviar también por Telegram
+  await enviarPDFaTelegram(
+    pdfBlob,
+    nombreArchivo,
+    `📦 *Corte generado*\nRuta: ${rutaId}\nTotal: $${resumen.totalDia.toFixed(
+      2
+    )}\nTickets: ${resumen.totalTickets}\nFecha: ${new Date().toLocaleString()}`
+  );
+
+  // Limpieza
+  URL.revokeObjectURL(pdfUrl);
+}
+
+// === Generar gráfica por departamento ===
+async function generarImagenGraficaDeptos(porDepto) {
+  const divGrafica = document.getElementById("graficaDeptos");
+  const canvas = document.getElementById("canvasDeptos");
+  divGrafica.style.display = "block";
+  const ctx = canvas.getContext("2d");
+  const etiquetas = Object.keys(porDepto);
+  const valores = Object.values(porDepto);
+  const chart = new Chart(ctx, {
+    type: "pie",
+    data: { labels: etiquetas, datasets: [{ data: valores }] },
+    options: { plugins: { legend: { position: "right" } }, animation: false },
+  });
+  await new Promise((r) => setTimeout(r, 1000));
+  const dataUrl = await domtoimage.toPng(divGrafica, {
+    quality: 0.95,
+    bgcolor: "#fff",
+  });
+  chart.destroy();
+  divGrafica.style.display = "none";
+  return dataUrl;
+}
+
+// === Enviar PDF a Telegram ===
+async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
+  const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+  const CHAT_ID = "6617988297";
+  const formData = new FormData();
+  formData.append("chat_id", CHAT_ID);
+  formData.append("caption", resumenTexto);
+  formData.append("document", pdfBlob, nombreArchivo);
+  try {
+    const resp = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
+      { method: "POST", body: formData }
+    );
+    console.log("📤 Telegram:", await resp.json());
+  } catch (err) {
+    console.error("Error Telegram:", err);
+  }
+}
+
   await cargarRutas();
 });
 </script>
