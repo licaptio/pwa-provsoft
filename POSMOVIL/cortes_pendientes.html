@@ -60,7 +60,9 @@
 <body>
 
   <!-- Contenedores ocultos para capturar imágenes -->
-  <div id="mapaCorte" style="width:600px; height:400px; display:none;"></div>
+  <div id="mapaCorte"
+     style="width:600px;height:400px;position:absolute;left:-9999px;top:0;">
+</div>
   <div id="graficaDeptos" style="width:600px; height:400px; display:none;">
     <canvas id="canvasDeptos" width="600" height="400"></canvas>
   </div>
@@ -381,12 +383,17 @@ async function generarImagenMapa(ventas) {
   }
 
   // Esperar para asegurar renderizado (clave)
-  await new Promise(r => setTimeout(r, 1800));
+  await new Promise(r => setTimeout(r, 3000));
 
   // Capturar solo si hay puntos
   let dataUrl = null;
   if (puntos.length > 0) {
-    dataUrl = await domtoimage.toPng(divMapa, { quality: 0.97 });
+    dataUrl = await domtoimage.toPng(divMapa, {
+  bgcolor: "#ffffff",
+  quality: 0.97,
+  style: { transform: "scale(1)", transformOrigin: "top left" }
+});
+
   } else {
     console.warn("⚠️ No hay puntos de ubicación para dibujar mapa.");
   }
