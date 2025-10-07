@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reimpresión de Cortes – PROVSOFT</title>
+  <script type="module">
+    // --- FIREBASE CONFIG --- (reemplaza con tu config)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // --- FUNCIÓN PRINCIPAL ---
+    async function cargarCortes() {
+      const lista = document.getElementById("lista");
+      lista.innerHTML = "<p>Cargando cortes...</p>";
+
+      const q = query(collection(db, "cortes_globales"), orderBy("fecha", "desc"));
+      const snap = await getDocs(q);
+      lista.innerHTML = "";
+
+      snap.forEach(doc => {
+        const data = doc.data();
+        const resumen = data.resumen || {};
+        const porMetodo = resumen.porMetodo || {};
+        const porDepto = resumen.porDepto || {};
+
+        const div = document.createElement("div");
+        div.className = "corte-card";
+        div.innerHTML = `
+          <h3>${new Date(data.fecha.seconds * 1000).toLocaleString()}</h3>
+          <p><b>Ruta:</b> ${resumen.rutaId || '—'}<br>
+          <b>Realizado por:</b> ${data.realizado_por}<br>
+          <b>Total Día:</b> ${resumen.totalDia?.toFixed(2)}<br>
+          <b>Efectivo:</b> ${porMetodo.efectivo?.toFixed(2)}<br>
+          <b>Crédito:</b> ${porMetodo.totalCredito?.toFixed(2)}<br>
+          <b>Total Tickets:</b> ${resumen.totalTickets}</p>
+          <button onclick="imprimir('${doc.id}')">🖨️ Reimprimir</button>
+        `;
+        lista.appendChild(div);
+      });
+    }
+
+    // --- REIMPRESIÓN ---
+    window.imprimir = async function(id) {
+      const docRef = await getDocs(collection(db, "cortes_globales"));
+      const found = docRef.docs.find(d => d.id === id);
+      if (!found) return alert("No se encontró el corte.");
+
+      const data = found.data();
+      const resumen = data.resumen || {};
+      const porMetodo = resumen.porMetodo || {};
+
+      const ventana = window.open("", "_blank");
+      ventana.document.write(`
+        <html>
+          <head><title>Reimpresión de Corte</title></head>
+          <body>
+            <h2>Corte Global</h2>
+            <p><b>Fecha:</b> ${new Date(data.fecha.seconds * 1000).toLocaleString()}<br>
+            <b>Ruta:</b> ${resumen.rutaId || ''}<br>
+            <b>Realizado por:</b> ${data.realizado_por}</p>
+            <hr>
+            <p><b>Total Día:</b> ${resumen.totalDia?.toFixed(2)}</p>
+            <p><b>Efectivo:</b> ${porMetodo.efectivo?.toFixed(2)}</p>
+            <p><b>Crédito:</b> ${porMetodo.totalCredito?.toFixed(2)}</p>
+            <p><b>Total Tickets:</b> ${resumen.totalTickets}</p>
+            <script>window.print();<\/script>
+          </body>
+        </html>
+      `);
+      ventana.document.close();
+    }
+
+    window.onload = cargarCortes;
+  </script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f7f9fb;
+      margin: 0; padding: 20px;
+      color: #222;
+    }
+    h1 { text-align:center; color:#00416A; }
+    .corte-card {
+      background:#fff;
+      margin:10px auto; padding:15px;
+      max-width:400px;
+      border-radius:12px;
+      box-shadow:0 3px 8px rgba(0,0,0,.1);
+    }
+    button {
+      background:#0c6cbd; color:white;
+      border:none; border-radius:8px;
+      padding:8px 16px; cursor:pointer;
+      transition:.2s;
+    }
+    button:hover { background:#094f83; }
+  </style>
+</head>
+<body>
+  <h1>🧾 Reimpresión de Cortes</h1>
+  <div id="lista"></div>
+</body>
+</html>
