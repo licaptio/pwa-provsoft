@@ -303,6 +303,45 @@ window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: nu
   let rutaId = null;
 let carrito = [];
 let clientes = [];
+// 🌍 Obtener ubicación inicial (solo al abrir la app)
+async function obtenerUbicacionInicial() {
+  if (!("geolocation" in navigator)) {
+    console.warn("⚠️ Este dispositivo no soporta geolocalización.");
+    mostrarToast("Geolocalización no soportada ⚠️");
+    return;
+  }
+
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve(p),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+
+    window.UBICACION_ACTUAL.lat = pos.coords.latitude;
+    window.UBICACION_ACTUAL.lon = pos.coords.longitude;
+    window.UBICACION_ACTUAL.precision = pos.coords.accuracy;
+
+    try {
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+      );
+      const data = await resp.json();
+      window.UBICACION_ACTUAL.direccion = data.display_name || null;
+    } catch (err) {
+      console.warn("No se pudo obtener dirección:", err.message);
+    }
+
+    console.log("📍 Ubicación inicial obtenida:", window.UBICACION_ACTUAL);
+    mostrarToast("GPS activado 📡");
+  } catch (err) {
+    console.warn("⚠️ No se pudo obtener ubicación inicial:", err.message);
+    mostrarToast("Ubicación no disponible ⚠️");
+  }
+}
+  
 // 📡 Obtener ubicación exacta en cada venta
 async function obtenerUbicacionActualRapida() {
   if (!("geolocation" in navigator)) {
@@ -364,7 +403,7 @@ async function obtenerUbicacionActualRapida() {
       const data=snap.docs[0].data();
       USUARIO_LOGUEADO={id:snap.docs[0].id,...data};
       rutaId = data.rutaId; // ruta depende del usuario
-      $("#loginScreen").style.display="none"; $("#posApp").style.display="block";
+      $("#loginScreen").style.display="none";
       $("#posApp").style.display="block";
       // 🌍 Forzar activación de GPS justo después del login
     try {
@@ -391,48 +430,7 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
   $("#btnLogin").onclick=loginUsuario;
 // 🔹 Restaurar sesión si ya había un usuario guardado
 document.addEventListener("DOMContentLoaded", async () => {
-let carrito = [];
-let clientes = [];
-// 🌍 Obtener ubicación inicial (solo al abrir la app)
-async function obtenerUbicacionInicial() {
-  if (!("geolocation" in navigator)) {
-    console.warn("⚠️ Este dispositivo no soporta geolocalización.");
-    mostrarToast("Geolocalización no soportada ⚠️");
-    return;
-  }
-
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve(p),
-        (err) => reject(err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    });
-
-    window.UBICACION_ACTUAL.lat = pos.coords.latitude;
-    window.UBICACION_ACTUAL.lon = pos.coords.longitude;
-    window.UBICACION_ACTUAL.precision = pos.coords.accuracy;
-
-    // 🌐 Dirección legible (opcional, sin bloquear flujo)
-    try {
-      const resp = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
-      );
-      const data = await resp.json();
-      window.UBICACION_ACTUAL.direccion = data.display_name || null;
-    } catch (err) {
-      console.warn("No se pudo obtener dirección:", err.message);
-    }
-
-    console.log("📍 Ubicación inicial obtenida:", window.UBICACION_ACTUAL);
-    mostrarToast("GPS activado 📡");
-  } catch (err) {
-    console.warn("⚠️ No se pudo obtener ubicación inicial:", err.message);
-    mostrarToast("Ubicación no disponible ⚠️");
-  }
-}
-
+  
   // 🛰️ Pedir ubicación apenas carga la app
   await obtenerUbicacionInicial();
 
