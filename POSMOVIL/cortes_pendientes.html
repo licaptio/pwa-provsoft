@@ -312,8 +312,9 @@ await enviarPDFaTelegram(
       }
     }
 
-    const totalTickets = ventas.length;
-    corteActual.resumen = { totalDia, totalTickets, porMetodo, porDepto };
+  const nombreCorte = ventas[0]?.usuarioNombre || ventas[0]?.atendio || ventas[0]?.usuario || "Desconocido";
+corteActual.resumen = { totalDia, totalTickets, porMetodo, porDepto, nombreCorte };
+
 
     let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
     html += `<p>Tickets: ${totalTickets}</p>`;
