@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reimpresión de Tickets – Ruta de Venta</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(to right, #00416A, #E4E5E6);
+      color: #111;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    header h1 {
+      color: #fff;
+      font-size: 20px;
+    }
+    header img {
+      height: 60px;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+      max-width: 800px;
+      margin: auto;
+    }
+    .filters {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+    }
+    button {
+      background: #0c6cbd;
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #094d85;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      font-size: 14px;
+    }
+    th {
+      background: #00416A;
+      color: #fff;
+    }
+    tr:nth-child(even) {
+      background: #f7f9fb;
+    }
+    #ticketArea {
+      display: none;
+    }
+    @media print {
+      body * { visibility: hidden; }
+      #ticketArea, #ticketArea * {
+        visibility: visible;
+      }
+      #ticketArea {
+        display: block !important;
+        position: relative;
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Reimpresión de Tickets</h1>
+    <img src="logo_proveedora.webp" alt="Logo La Proveedora" />
+  </header>
+
+  <div class="card">
+    <div class="filters">
+      <input id="buscarFolio" type="text" placeholder="Buscar por folio o cliente..." />
+      <button id="btnBuscar">Buscar</button>
+      <button id="btnTodos" style="background:#1e8e3e;">Ver Todos</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Folio</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Total</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody id="tablaTickets"></tbody>
+    </table>
+  </div>
+
+  <!-- Ticket imprimible -->
+  <div id="ticketArea">
+    <div id="ticket" style="width:80mm;margin:auto;">
+      <div style="text-align:center;">
+        <img src="logo_proveedora.webp" style="max-width:120px;">
+        <h3>La Proveedora</h3>
+        <p>Ruta de Venta</p>
+        <hr>
+        <p id="tFolio"></p>
+        <p id="tFecha"></p>
+        <p id="tCliente"></p>
+        <hr>
+        <div id="tLineas"></div>
+        <hr>
+        <p><b>Total:</b> <span id="tTotal"></span></p>
+        <p><b>Método:</b> <span id="tMetodo"></span></p>
+        <p><b>Vendedor:</b> <span id="tAtendio"></span></p>
+        <p id="tNotas"></p>
+        <hr>
+        <p>¡Gracias por su compra!</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, getDocs, query, where, orderBy, limit
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // 🔹 Configuración Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.appspot.com",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tbody = document.getElementById("tablaTickets");
+    const inputBuscar = document.getElementById("buscarFolio");
+    const btnBuscar = document.getElementById("btnBuscar");
+    const btnTodos = document.getElementById("btnTodos");
+
+    async function cargarTickets(filtro = "") {
+      tbody.innerHTML = "<tr><td colspan='5'>Cargando...</td></tr>";
+
+      const ref = collection(db, "rutas_venta");
+      let q = query(ref, orderBy("fecha", "desc"), limit(50));
+      const snap = await getDocs(q);
+
+      let data = [];
+      snap.forEach(d => {
+        const v = d.data();
+        data.push({ id: d.id, ...v });
+      });
+
+      if (filtro) {
+        const texto = filtro.toLowerCase();
+        data = data.filter(v =>
+          v.folio?.toLowerCase().includes(texto) ||
+          v.cliente?.toLowerCase().includes(texto)
+        );
+      }
+
+      if (data.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='5'>Sin resultados</td></tr>";
+        return;
+      }
+
+      tbody.innerHTML = "";
+      data.forEach(v => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${v.folio}</td>
+          <td>${v.fecha_txt || ""}</td>
+          <td>${v.cliente || "Mostrador"}</td>
+          <td>$${(v.total || 0).toFixed(2)}</td>
+          <td><button data-id="${v.id}" style="background:#00416A;color:#fff;">🖨️ Reimprimir</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    btnBuscar.onclick = () => cargarTickets(inputBuscar.value.trim());
+    btnTodos.onclick = () => cargarTickets();
+
+    tbody.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-id]");
+      if (!btn) return;
+      const id = btn.getAttribute("data-id");
+      const fila = btn.closest("tr");
+      const folio = fila.children[0].textContent;
+      const fecha = fila.children[1].textContent;
+      const cliente = fila.children[2].textContent;
+      const total = fila.children[3].textContent;
+
+      // 🔹 Llenar ticket imprimible
+      document.getElementById("tFolio").textContent = `Folio: ${folio}`;
+      document.getElementById("tFecha").textContent = fecha;
+      document.getElementById("tCliente").textContent = `Cliente: ${cliente}`;
+      document.getElementById("tTotal").textContent = total;
+      document.getElementById("tMetodo").textContent = "—";
+      document.getElementById("tAtendio").textContent = "";
+      document.getElementById("tNotas").textContent = "";
+      document.getElementById("tLineas").innerHTML = "";
+
+      window.print();
+    });
+
+    cargarTickets(); // primera carga
+  </script>
+</body>
+</html>
