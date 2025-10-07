@@ -207,17 +207,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       await updateDoc(doc(db, "rutas_venta", docu.id), { cortado: true });
     }
 
-    // Registrar corte global
-    await addDoc(collection(db, "cortes_globales"), {
-      rutaId,
-      fecha: serverTimestamp(),
-      resumen: resumen || {},
-      realizado_por: "Administrador"
-    });
+// Registrar corte global y obtener ID
+const corteRef = await addDoc(collection(db, "cortes_globales"), {
+  rutaId,
+  fecha: serverTimestamp(),
+  resumen: resumen || {},
+  realizado_por: "Administrador"
+});
 
-    const usuario = encodeURIComponent("Administrador");
-    const url = `corte_reporte.html?rutaId=${encodeURIComponent(rutaId)}&usuario=${usuario}`;
-    window.open(url, "_blank");
+// Abrir el nuevo reporte con corteId
+const corteId = corteRef.id;
+const url = `reporte_corte.html?corteId=${corteId}`;
+window.open(url, "_blank");
+
 
     alert("✅ Corte realizado y reporte generado");
     modal.style.display = "none";
