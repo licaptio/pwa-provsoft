@@ -378,7 +378,7 @@ async function generarImagenMapa(ventas) {
     attributionControl: false
   }).setView([25.5, -99.56], 12);
 
-  // Usamos un tile libre sin CORS
+  // 🔹 Usamos mapa libre sin CORS
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     crossOrigin: true
@@ -425,13 +425,10 @@ async function generarImagenMapa(ventas) {
 
   map.remove();
   divMapa.style.display = "none";
-  return dataUrl;
-}
 
   console.log("🗺️ Mapa generado correctamente con", puntos.length, "puntos.");
   return dataUrl;
 }
-
 // === 📊 Generar imagen de gráfica por departamento ===
 async function generarImagenGraficaDeptos(porDepto) {
   const divGrafica = document.getElementById("graficaDeptos");
