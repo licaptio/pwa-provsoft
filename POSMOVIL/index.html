@@ -468,8 +468,8 @@ async function checkCortePendiente() {
 
     console.log("🔎 Verificando corte del día:", fechaAyer);
 
-    const cortesRef = collection(db, "rutas_venta", rutaId, "cortes");
-    const q = query(cortesRef, where("fecha", "==", fechaAyer));
+const cortesRef = collection(db, "cortes_globales");
+const q = query(cortesRef, where("rutaId", "==", rutaId));
     const snap = await getDocs(q);
 
     const btnCobrar = document.getElementById("btnCobrar");
@@ -1118,19 +1118,24 @@ btnCorte.addEventListener("click", () => {
 function mostrarToast(mensaje){
   const toast = document.createElement("div");
   toast.textContent = mensaje;
-  toast.style.position = "fixed";
-  toast.style.bottom = "20px";
-  toast.style.left = "50%";
-  toast.style.transform = "translateX(-50%)";
-  toast.style.background = "rgba(0,128,0,0.9)";
-  toast.style.color = "#fff";
-  toast.style.padding = "12px 20px";
-  toast.style.borderRadius = "10px";
-  toast.style.fontWeight = "600";
-  toast.style.zIndex = "3000";
-  toast.style.boxShadow = "0 3px 12px rgba(0,0,0,0.3)";
+  Object.assign(toast.style, {
+    position: "fixed",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "rgba(0,128,0,0.9)",
+    color: "#fff",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    fontWeight: "600",
+    zIndex: "3000",
+    boxShadow: "0 3px 12px rgba(0,0,0,0.3)",
+    opacity: "1",
+    transition: "opacity 0.5s ease"
+  });
   document.body.appendChild(toast);
-  setTimeout(()=>toast.remove(), 3000);
+  setTimeout(()=>toast.style.opacity="0",2500);
+  setTimeout(()=>toast.remove(),3000);
 }
 </script>
     <!-- 🔹 Modal de Cobro -->
