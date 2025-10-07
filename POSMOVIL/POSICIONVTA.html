@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="theme-color" content="#0c6cbd">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reporte de Cortes – PROVSOFT</title>
+  <title>Reporte de Ventas Cortadas – PROVSOFT</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
@@ -26,7 +26,7 @@
     .filtros{
       display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:15px;
     }
-    input,button{
+    input,select,button{
       padding:8px 10px;border-radius:8px;border:1px solid #ccc;font-family:inherit;font-size:14px;
     }
     button{
@@ -43,10 +43,13 @@
 </head>
 <body>
   <header>
-    <h1>Reporte de Cortes – PROVSOFT</h1>
+    <h1>Ventas Cortadas por Usuario – PROVSOFT</h1>
   </header>
   <main>
     <div class="filtros">
+      <label>Usuario: 
+        <select id="usuario"></select>
+      </label>
       <label>Fecha: <input type="date" id="fecha"></label>
       <button id="consultar">Consultar Cortes</button>
     </div>
@@ -55,7 +58,7 @@
 
     <table>
       <thead>
-        <tr><th>Usuario</th><th>Fecha</th><th>Total</th><th>Pago</th><th>Dirección</th></tr>
+        <tr><th>Usuario</th><th>Hora</th><th>Total</th><th>Pago</th><th>Dirección</th></tr>
       </thead>
       <tbody id="tabla"></tbody>
     </table>
@@ -82,7 +85,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Mapa inicial (Linares)
     const map = L.map('map').setView([24.857, -99.57], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:18,
@@ -91,47 +93,66 @@
 
     let markers = [];
 
+    // Cargar lista de usuarios con ventas cortadas
+    async function cargarUsuarios() {
+      const ref = collection(db, "rutas_venta");
+      const q = query(ref, where("cortado", "==", true));
+      const snapshot = await getDocs(q);
+      const usuarios = new Set();
+      snapshot.forEach(doc=>{
+        const data = doc.data();
+        if(data.usuarioNombre) usuarios.add(data.usuarioNombre);
+      });
+      const sel = document.getElementById('usuario');
+      sel.innerHTML = '<option value="">-- Selecciona --</option>';
+      [...usuarios].sort().forEach(u=>{
+        sel.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+    }
+    cargarUsuarios();
+
+    // Consultar ventas cortadas del usuario y fecha
     async function consultarVentasCortadas() {
-      // limpiar mapa y tabla
       markers.forEach(m=>map.removeLayer(m));
       markers = [];
       document.getElementById('tabla').innerHTML = '';
 
+      const usuarioSel = document.getElementById('usuario').value;
       const fechaSel = document.getElementById('fecha').value;
-      if(!fechaSel){ alert("Selecciona una fecha de corte."); return; }
+
+      if(!usuarioSel || !fechaSel){ alert("Selecciona usuario y fecha."); return; }
 
       const ref = collection(db, "rutas_venta");
-      const q = query(ref, where("cortado", "==", true), orderBy("fecha"));
+      const q = query(ref, where("usuarioNombre","==",usuarioSel), where("cortado","==",true), orderBy("fecha"));
       const snapshot = await getDocs(q);
 
       const ventas = [];
       snapshot.forEach(doc=>{
         const data = doc.data();
-        const fechaVenta = data.fecha.toDate();
-        const fechaTxt = fechaVenta.toISOString().split('T')[0];
-        if (fechaTxt === fechaSel) ventas.push(data);
+        const fechaVenta = data.fecha.toDate().toISOString().split("T")[0];
+        if (fechaVenta === fechaSel) ventas.push(data);
       });
 
-      if (ventas.length===0){
-        alert("No hay ventas cortadas en esa fecha.");
+      if (ventas.length === 0){
+        alert("No hay ventas cortadas de ese usuario en esa fecha.");
         return;
       }
 
-      // Llenar mapa y tabla
       ventas.forEach(v=>{
         if(v.ubicacion?.lat && v.ubicacion?.lon){
-          const m = L.marker([v.ubicacion.lat,v.ubicacion.lon]).addTo(map);
-          m.bindPopup(`
-            <b>${v.usuario}</b><br>
+          const marker = L.marker([v.ubicacion.lat,v.ubicacion.lon]).addTo(map);
+          marker.bindPopup(`
+            <b>${v.usuarioNombre}</b><br>
             ${v.fecha_txt}<br>
             <b>$${v.total.toLocaleString('es-MX')}</b><br>
-            ${v.metodo_pago}
+            ${v.metodo_pago}<br>
+            ${v.ubicacion?.direccion || ''}
           `);
-          markers.push(m);
+          markers.push(marker);
         }
 
         const row = `<tr>
-          <td>${v.usuario}</td>
+          <td>${v.usuarioNombre}</td>
           <td>${v.fecha_txt}</td>
           <td>$${v.total.toLocaleString('es-MX')}</td>
           <td>${v.metodo_pago}</td>
@@ -140,7 +161,6 @@
         document.getElementById('tabla').insertAdjacentHTML('beforeend', row);
       });
 
-      // centrar mapa en la primera venta
       const primera = ventas.find(v=>v.ubicacion?.lat);
       if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
     }
