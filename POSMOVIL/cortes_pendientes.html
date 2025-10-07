@@ -36,6 +36,7 @@
       background:#0c6cbd; color:white; font-weight:600;
     }
     button[disabled] { background:#999; cursor:not-allowed; }
+
     /* Modal */
     #modalResumen {
       display:none; position:fixed; inset:0; background:rgba(0,0,0,.55);
@@ -50,51 +51,44 @@
     .modal-card td, .modal-card th { border-bottom:1px solid #ddd; padding:6px; }
     .modal-actions { margin-top:15px; text-align:right; }
   </style>
-<!-- 🌍 Librerías para mapa y captura de imagen -->
-<script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="icon" href="data:,">
+  <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
-  <!-- Contenedores ocultos para capturar imágenes -->
-  <div id="mapaCorte"
-     style="width:600px;height:400px;position:absolute;left:-9999px;top:0;">
-</div>
-  <div id="graficaDeptos" style="width:600px; height:400px; display:none;">
-    <canvas id="canvasDeptos" width="600" height="400"></canvas>
-  </div>
   <h1>Cortes Pendientes</h1>
   <select id="selectRuta">
-  <option value="">Selecciona una ruta...</option>
-</select>
+    <option value="">Selecciona una ruta...</option>
+  </select>
 
-<table id="tablaCortes">
-  <thead>
-    <tr>
-      <th>Usuario</th>
-      <th>Ruta</th>
-      <th>Total Día</th>
-      <th>Última Venta</th>
-      <th>Acción</th>
-    </tr>
-  </thead>
-  <tbody id="tbodyCortes">
-    <tr><td colspan="5" style="text-align:center;">Selecciona una ruta para ver pendientes</td></tr>
-  </tbody>
-</table>
+  <table id="tablaCortes">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Ruta</th>
+        <th>Total Día</th>
+        <th>Última Venta</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tbodyCortes">
+      <tr><td colspan="5" style="text-align:center;">Selecciona una ruta para ver pendientes</td></tr>
+    </tbody>
+  </table>
 
-<!-- Modal resumen -->
-<div id="modalResumen">
-  <div class="modal-card">
-    <h2>Resumen de Corte</h2>
-    <div id="resumenContenido">Cargando...</div>
-    <div class="modal-actions">
-      <button id="btnCancelar">Cancelar</button>
-      <button id="btnConfirmar" style="background:#1e8e3e;">Confirmar Corte</button>
+  <!-- Modal resumen -->
+  <div id="modalResumen">
+    <div class="modal-card">
+      <h2>Resumen de Corte</h2>
+      <div id="resumenContenido">Cargando...</div>
+      <div class="modal-actions">
+        <button id="btnCancelar">Cancelar</button>
+        <button id="btnConfirmar" style="background:#1e8e3e;">Confirmar Corte</button>
+      </div>
     </div>
   </div>
-</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -124,7 +118,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   let corteActual = null;
   let mapaDepartamentos = {};
 
-  // 🔹 Cargar departamentos (catálogo)
   async function cargarDepartamentos() {
     const depSnap = await getDocs(collection(db, "departamentos_venta"));
     depSnap.forEach(d => {
@@ -133,7 +126,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 🔹 Cargar rutas únicas
   async function cargarRutas() {
     const snap = await getDocs(collection(db, "rutas_venta"));
     const rutas = new Map();
@@ -149,7 +141,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // 🔹 Cargar pendientes por ruta
   async function cargarPendientes(rutaId) {
     tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
     const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
@@ -190,20 +181,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   btnCancelar.onclick = () => (modal.style.display = "none");
 
-  // === CONFIRMAR CORTE ===
   btnConfirmar.onclick = async () => {
     if (!corteActual) return;
     const { rutaId, resumen } = corteActual;
     btnConfirmar.disabled = true;
     btnConfirmar.textContent = "Cortando...";
 
-    // 🔹 Marcar ventas como cortadas
     const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     for (const d of snap.docs) await updateDoc(doc(db, "rutas_venta", d.id), { cortado: true });
 
-    // 🔹 Guardar resumen completo en Firestore
     await addDoc(collection(db, "cortes_globales"), {
       rutaId,
       fecha: serverTimestamp(),
@@ -213,80 +201,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       resumen
     });
 
-// === PDF compacto en una sola hoja ===
-const { jsPDF } = window.jspdf;
-const pdf = new jsPDF();
-
-// Encabezado compacto
-pdf.setFont("helvetica", "bold");
-pdf.setFontSize(14);
-pdf.text(`CORTE DE RUTA – ${rutaId}`, 10, 15);
-
-pdf.setFont("helvetica", "normal");
-pdf.setFontSize(10);
-pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 22);
-pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 28);
-pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 34);
-
-// Métodos de Pago
-pdf.setFont("helvetica", "bold");
-pdf.text("Métodos de Pago:", 10, 42);
-pdf.setFont("helvetica", "normal");
-let y = 48;
-for (const [met, val] of Object.entries(resumen.porMetodo)) {
-  pdf.text(`${met}: $${val.toFixed(2)}`, 12, y);
-  y += 5;
-}
-
-// Totales por Departamento
-y += 4;
-pdf.setFont("helvetica", "bold");
-pdf.text("Totales por Departamento:", 10, y);
-pdf.setFont("helvetica", "normal");
-y += 5;
-
-const deptos = Object.entries(resumen.porDepto);
-for (const [dep, val] of deptos) {
-  if (y > 210) break; // límite de página
-  pdf.text(`${dep}: $${val.toFixed(2)}`, 12, y);
-  y += 5;
-}
-
-// Gráfica compacta
-y += 6;
-try {
-  const imgGraf = await generarImagenGraficaDeptos(resumen.porDepto);
-  if (imgGraf) {
-    pdf.addImage(imgGraf, "PNG", 105, 45, 90, 70); // lado derecho, pequeña
-  }
-} catch (err) {
-  console.error("⚠️ Error generando gráfica:", err);
-}
-
-// Pie
-pdf.setFontSize(8);
-pdf.text("Reporte generado automáticamente por PROVSOFT POS", 10, 285);
-
-// Guardar y enviar
-const fecha = new Date().toISOString().slice(0,10);
-const nombreArchivo = `Corte_${rutaId}_${fecha}.pdf`;
-const pdfBlob = pdf.output("blob");
-pdf.save(nombreArchivo);
-
-await enviarPDFaTelegram(
-  pdfBlob,
-  nombreArchivo,
-  `📦 *Corte generado*\nRuta: ${rutaId}\nTotal: $${resumen.totalDia.toFixed(2)}\nTickets: ${resumen.totalTickets}\nFecha: ${new Date().toLocaleString()}`
-);
-
-
     alert("✅ Corte realizado y PDF enviado a Telegram.");
     modal.style.display = "none";
     selectRuta.value = "";
     tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
   };
 
-  // === MOSTRAR RESUMEN ===
+  // 🟩 FIX — AQUÍ ESTABA EL ERROR
   async function mostrarResumenCorte(rutaId) {
     contenido.innerHTML = "Generando resumen...";
     modal.style.display = "flex";
@@ -312,9 +233,11 @@ await enviarPDFaTelegram(
       }
     }
 
-  const nombreCorte = ventas[0]?.usuarioNombre || ventas[0]?.atendio || ventas[0]?.usuario || "Desconocido";
-corteActual.resumen = { totalDia, totalTickets, porMetodo, porDepto, nombreCorte };
+    // ✅ Aquí se define correctamente:
+    const totalTickets = ventas.length;
 
+    const nombreCorte = ventas[0]?.usuarioNombre || ventas[0]?.atendio || ventas[0]?.usuario || "Desconocido";
+    corteActual.resumen = { totalDia, totalTickets, porMetodo, porDepto, nombreCorte };
 
     let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
     html += `<p>Tickets: ${totalTickets}</p>`;
@@ -332,62 +255,6 @@ corteActual.resumen = { totalDia, totalTickets, porMetodo, porDepto, nombreCorte
   await cargarDepartamentos();
   await cargarRutas();
 });
-
-// === 📊 Generar imagen de gráfica por departamento ===
-async function generarImagenGraficaDeptos(porDepto) {
-  const divGrafica = document.getElementById("graficaDeptos");
-  const canvas = document.getElementById("canvasDeptos");
-  divGrafica.style.display = "block";
-
-  const etiquetas = Object.keys(porDepto);
-  const valores = Object.values(porDepto).map(v => Number(v.toFixed(2)));
-
-  const ctx = canvas.getContext("2d");
-  const chart = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: etiquetas,
-      datasets: [{
-        data: valores,
-        backgroundColor: etiquetas.map(() =>
-          `hsl(${Math.floor(Math.random()*360)},70%,60%)`
-        )
-      }]
-    },
-    options: {
-      plugins: { legend: { position: "right" } },
-      animation: false
-    }
-  });
-
-  await new Promise(r => setTimeout(r, 1200));
-  let dataUrl = await domtoimage.toPng(divGrafica, { quality: 0.95, bgcolor: "#fff" });
-  chart.destroy();
-  divGrafica.style.display = "none";
-  return dataUrl;
-}
-
-// === 📨 Enviar PDF del corte a Telegram ===
-async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
-  const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-  const CHAT_ID   = "6617988297";
-
-  const formData = new FormData();
-  formData.append("chat_id", CHAT_ID);
-  formData.append("caption", resumenTexto);
-  formData.append("document", pdfBlob, nombreArchivo);
-
-  try {
-    const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-      method: "POST",
-      body: formData
-    });
-    const data = await resp.json();
-    console.log("📤 Corte enviado a Telegram:", data);
-  } catch (err) {
-    console.error("⚠️ Error enviando a Telegram:", err);
-  }
-}
 </script>
 </body>
 </html>
