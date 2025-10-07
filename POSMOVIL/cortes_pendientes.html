@@ -192,47 +192,80 @@ document.addEventListener("DOMContentLoaded", async () => {
     tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
   };
 
-  async function mostrarResumenCorte(rutaId) {
-    contenido.innerHTML = "Generando resumen...";
-    modal.style.display = "flex";
+async function mostrarResumenCorte(rutaId) {
+  contenido.innerHTML = "Generando resumen...";
+  modal.style.display = "flex";
 
-    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
-    const snap = await getDocs(qVentas);
-    const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const qVentas = query(
+    collection(db, "rutas_venta"),
+    where("rutaId", "==", rutaId),
+    where("cortado", "==", false)
+  );
+  const snap = await getDocs(qVentas);
+  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const porMetodo = {}, porDepto = {};
-    let totalDia = 0;
+  const porMetodo = {};
+  const porDepto = {};
+  let totalDia = 0;
 
-    for (const v of ventas) {
-      totalDia += v.total || 0;
-      const metodo = v.metodo_pago || "otro";
-      porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
+  for (const v of ventas) {
+    totalDia += v.total || 0;
+    const metodo = v.metodo_pago?.toLowerCase() || "otro";
+    porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
 
-      for (const det of (v.detalle || [])) {
-        const depId = det.departamento_id?.toString() || "0";
-        const depInfo = mapaDepartamentos[depId] || { nombre: "SIN DEPARTAMENTO" };
-        const depNombre = depInfo.nombre;
-        const importe = det.importe || (det.precioVenta * det.cantidad) || 0;
-        porDepto[depNombre] = (porDepto[depNombre] || 0) + importe;
-      }
+    // 🔹 Clasificación por departamento desde el detalle
+    for (const det of (v.detalle || [])) {
+      const depNombre =
+        det.departamento_info?.nombre?.toUpperCase() || "SIN DEPARTAMENTO";
+      const importe =
+        det.importe ||
+        (det.precio_unit && det.cantidad
+          ? det.precio_unit * det.cantidad
+          : 0);
+      porDepto[depNombre] = (porDepto[depNombre] || 0) + importe;
     }
-
-    const totalTickets = ventas.length;
-    const nombreCorte = ventas[0]?.usuarioNombre || ventas[0]?.atendio || ventas[0]?.usuario || "Desconocido";
-    corteActual.resumen = { totalDia, totalTickets, porMetodo, porDepto, nombreCorte };
-
-    let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
-    html += `<p>Tickets: ${totalTickets}</p>`;
-    html += "<h4>Por Departamento</h4><table><tbody>";
-    for (const [dep, val] of Object.entries(porDepto))
-      html += `<tr><td>${dep}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
-    html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
-    for (const [met, val] of Object.entries(porMetodo))
-      html += `<tr><td>${met}</td><td style='text-align:right;'>$${val.toFixed(2)}</td></tr>`;
-    html += "</tbody></table>";
-    contenido.innerHTML = html;
   }
 
+  // 🔹 Ordenar de mayor a menor
+  const ordenDeptos = Object.entries(porDepto)
+    .sort((a, b) => b[1] - a[1])
+    .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+  const ordenMetodos = Object.entries(porMetodo)
+    .sort((a, b) => b[1] - a[1])
+    .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+
+  const totalTickets = ventas.length;
+  const nombreCorte =
+    ventas[0]?.usuarioNombre ||
+    ventas[0]?.atendio ||
+    ventas[0]?.usuario ||
+    "Desconocido";
+
+  corteActual.resumen = {
+    totalDia,
+    totalTickets,
+    porMetodo: ordenMetodos,
+    porDepto: ordenDeptos,
+    nombreCorte,
+  };
+
+  // 🔹 Generar tabla resumen
+  let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
+  html += `<p>Tickets: ${totalTickets}</p>`;
+  html += "<h4>Por Departamento</h4><table><tbody>";
+  for (const [dep, val] of Object.entries(ordenDeptos))
+    html += `<tr><td>${dep}</td><td style='text-align:right;'>$${val.toFixed(
+      2
+    )}</td></tr>`;
+  html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
+  for (const [met, val] of Object.entries(ordenMetodos))
+    html += `<tr><td>${met}</td><td style='text-align:right;'>$${val.toFixed(
+      2
+    )}</td></tr>`;
+  html += "</tbody></table>";
+
+  contenido.innerHTML = html;
+}
 // === Generar PDF tamaño carta ===
 async function generarPDFyEnviar(resumen, rutaId) {
   const { jsPDF } = window.jspdf;
