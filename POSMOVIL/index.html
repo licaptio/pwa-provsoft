@@ -294,10 +294,63 @@ enableIndexedDbPersistence(db).catch(err => {
 
   // ==== Variables globales ====
   window.USUARIO_LOGUEADO = null;
-let rutaId = null;
+window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: null };
+  let rutaId = null;
 let carrito = [];
 let clientes = [];
-  let catalogo         = [];
+// 📡 Obtener ubicación exacta en cada venta
+async function obtenerUbicacionActualRapida() {
+  if (!("geolocation" in navigator)) {
+    console.warn("⚠️ Este dispositivo no soporta geolocalización.");
+    return { lat: null, lon: null, precision: null };
+  }
+
+  try {
+    const pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve(p),
+        (err) => reject(err),
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+      );
+    });
+
+    console.log("📍 Ubicación puntual capturada:", pos.coords.latitude, pos.coords.longitude);
+
+    return {
+      lat: pos.coords.latitude,
+      lon: pos.coords.longitude,
+      precision: pos.coords.accuracy
+    };
+  } catch (err) {
+    console.warn("⚠️ No se pudo obtener ubicación puntual:", err.message);
+    return { lat: null, lon: null, precision: null };
+  }
+}
+
+    window.UBICACION_ACTUAL.lat = pos.coords.latitude;
+    window.UBICACION_ACTUAL.lon = pos.coords.longitude;
+    window.UBICACION_ACTUAL.precision = pos.coords.accuracy;
+
+    // 🌍 Obtener dirección legible (opcional)
+    try {
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+      );
+      const data = await resp.json();
+      window.UBICACION_ACTUAL.direccion = data.display_name || null;
+    } catch (e) {
+      console.warn("No se pudo obtener dirección:", e.message);
+    }
+
+    console.log("📍 Ubicación inicial guardada:", window.UBICACION_ACTUAL);
+    mostrarToast("Ubicación activada 📡");
+  } catch (err) {
+    console.warn("⚠️ No se pudo obtener ubicación inicial:", err.message);
+    mostrarToast("Ubicación no disponible ⚠️");
+  }
+}
+
+  
   const codeIndex      = new Map();
   const $ = (s)=>document.querySelector(s);
 
@@ -343,6 +396,9 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
   $("#btnLogin").onclick=loginUsuario;
 // 🔹 Restaurar sesión si ya había un usuario guardado
 document.addEventListener("DOMContentLoaded", async () => {
+  // 🛰️ Pedir ubicación apenas carga la app
+  await obtenerUbicacionInicial();
+
   const u = localStorage.getItem("usuario_ruta");
   if (!u) return; // no hay sesión previa
 
@@ -808,31 +864,14 @@ async function guardarVentaEnFirestore(venta) {
       const folio     = await getNextFolio(db);
       const fecha     = new Date();
       const fechaTxt  = fecha.toLocaleString();
-// 🛰️ Intentar capturar ubicación GPS antes de guardar
-let ubicacion = { lat: null, lon: null, precision: null };
-
+// 🛰️ Capturar ubicación actual justo al confirmar la venta
+const ubicacion = await obtenerUbicacionActualRapida();
 try {
-  const pos = await new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (p) => resolve(p),
-      (err) => reject(err),
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-  });
-  ubicacion.lat = pos.coords.latitude;
-  ubicacion.lon = pos.coords.longitude;
-  try {
   const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`);
   const data = await resp.json();
   ubicacion.direccion = data.display_name || null;
-} catch (e) {
-  console.warn("No se pudo obtener dirección:", e.message);
-}
-
-  ubicacion.precision = pos.coords.accuracy;
-  console.log("📍 Ubicación capturada:", ubicacion);
-} catch (err) {
-  console.warn("⚠️ No se pudo obtener la ubicación:", err.message);
+} catch(e) {
+  ubicacion.direccion = null;
 }
 
 const venta = {
