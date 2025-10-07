@@ -353,10 +353,12 @@ async function generarImagenMapa(ventas) {
     attributionControl: false
   }).setView([25.5, -99.56], 12);
 
-  // Capa base ligera (OpenStreetMap)
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19
-  }).addTo(map);
+// Capa base con calles y colonias (Carto Light)
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", {
+  subdomains: "abcd",
+  maxZoom: 19,
+  attribution: "© OpenStreetMap & CARTO"
+}).addTo(map);
 
   const puntos = [];
 
