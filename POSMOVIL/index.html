@@ -382,19 +382,6 @@ async function obtenerUbicacionActualRapida() {
     render();
     await sincronizarVentasPendientes();
 
-    // 🔹 Guardar sesión en localStorage
-    localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
-
-  }catch(e){ 
-    msg.textContent="Error de conexión"; 
-    console.error(e);
-  }
-}
-      
-      await cargarCatalogoDesdeFirestore();
-      await cargarDepartamentos(); // 👈 NUEVA LÍNEA
-      render();
-      await sincronizarVentasPendientes();
       
       // 🔹 Guardar sesión en localStorage
 localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
