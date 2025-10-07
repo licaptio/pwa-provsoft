@@ -480,7 +480,7 @@ async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
   formData.append("document", pdfBlob, nombreArchivo);
 
   try {
-    const resp = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument`, {
+    const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
       method: "POST",
       body: formData
     });
