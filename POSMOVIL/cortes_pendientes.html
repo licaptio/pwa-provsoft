@@ -289,7 +289,19 @@ pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
 
 // 💾 Guardar PDF local
 const fecha = new Date().toISOString().slice(0,10);
-pdf.save(`Corte_${rutaId}_${fecha}.pdf`);
+const nombreArchivo = `Corte_${rutaId}_${fecha}.pdf`;
+const pdfBlob = pdf.output("blob");
+
+// 💾 Guarda localmente (si quieres)
+pdf.save(nombreArchivo);
+
+// 📨 Enviar a Telegram
+await enviarPDFaTelegram(
+  pdfBlob,
+  nombreArchivo,
+  `📦 *Corte generado*\nRuta: ${rutaId}\nTotal: $${resumen.totalDia.toFixed(2)}\nTickets: ${resumen.totalTickets}\nFecha: ${new Date().toLocaleString()}`
+);
+
 
   alert("✅ Corte realizado y PDF generado con mapa de ruta.");
   modal.style.display = "none";
@@ -456,6 +468,27 @@ async function generarImagenGraficaDeptos(porDepto) {
 
   console.log("📊 Gráfica de departamentos generada como imagen PNG");
   return dataUrl;
+}
+// === 📨 Enviar PDF del corte a Telegram ===
+async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
+  const TELEGRAM_TOKEN = "TU_TOKEN_AQUI";  // <-- cámbialo
+  const CHAT_ID = "TU_CHAT_ID_AQUI";      // <-- cámbialo
+
+  const formData = new FormData();
+  formData.append("chat_id", CHAT_ID);
+  formData.append("caption", resumenTexto);
+  formData.append("document", pdfBlob, nombreArchivo);
+
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendDocument`, {
+      method: "POST",
+      body: formData
+    });
+    const data = await resp.json();
+    console.log("📤 Corte enviado a Telegram:", data);
+  } catch (err) {
+    console.error("⚠️ Error enviando a Telegram:", err);
+  }
 }
 
 </script>
