@@ -76,19 +76,48 @@
     #ticketArea {
       display: none;
     }
-    @media print {
-      body * { visibility: hidden; }
-      #ticketArea, #ticketArea * {
-        visibility: visible;
-      }
-      #ticketArea {
-        display: block !important;
-        position: relative;
-        background: #fff;
-        margin: 0;
-        padding: 0;
-      }
-    }
+@media print {
+  @page {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  body * { visibility: hidden; }
+  #ticketArea, #ticketArea * {
+    visibility: visible;
+  }
+  #ticketArea {
+    display: block !important;
+    position: relative;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  #ticket {
+    width: 80mm;
+    font-size: 12px;
+    line-height: 1.2;
+    font-family: monospace;
+    margin: 0;
+    padding-top: 0;
+  }
+  #ticket img {
+    max-width: 120px;
+    margin-bottom: 5px;
+  }
+  #ticket hr {
+    border: none;
+    border-top: 1px dashed #000;
+    margin: 3px 0;
+  }
+  #ticket p, #ticket div, #ticket span {
+    margin: 0;
+    padding: 0;
+  }
+}
   </style>
 </head>
 <body>
@@ -207,28 +236,55 @@
     btnBuscar.onclick = () => cargarTickets(inputBuscar.value.trim());
     btnTodos.onclick = () => cargarTickets();
 
-    tbody.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-id]");
-      if (!btn) return;
-      const id = btn.getAttribute("data-id");
-      const fila = btn.closest("tr");
-      const folio = fila.children[0].textContent;
-      const fecha = fila.children[1].textContent;
-      const cliente = fila.children[2].textContent;
-      const total = fila.children[3].textContent;
+tbody.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-id]");
+  if (!btn) return;
+  const id = btn.getAttribute("data-id");
 
-      // 🔹 Llenar ticket imprimible
-      document.getElementById("tFolio").textContent = `Folio: ${folio}`;
-      document.getElementById("tFecha").textContent = fecha;
-      document.getElementById("tCliente").textContent = `Cliente: ${cliente}`;
-      document.getElementById("tTotal").textContent = total;
-      document.getElementById("tMetodo").textContent = "—";
-      document.getElementById("tAtendio").textContent = "";
-      document.getElementById("tNotas").textContent = "";
-      document.getElementById("tLineas").innerHTML = "";
+  // 🔍 Obtener venta completa desde Firestore
+  const ref = doc(db, "rutas_venta", id);
+  const snap = await getDoc(ref);
 
-      window.print();
+  if (!snap.exists()) {
+    alert("No se encontró la venta seleccionada.");
+    return;
+  }
+
+  const venta = snap.data();
+
+  // 🧾 Llenar ticket con la información real
+  document.getElementById("tFolio").textContent = `Folio: ${venta.folio || ""}`;
+  document.getElementById("tFecha").textContent = venta.fecha_txt || "";
+  document.getElementById("tCliente").textContent = `Cliente: ${venta.cliente || "Mostrador"}`;
+  document.getElementById("tTotal").textContent = `$${(venta.total || 0).toFixed(2)}`;
+  document.getElementById("tMetodo").textContent = venta.metodo_pago || "—";
+  document.getElementById("tAtendio").textContent = venta.atendio || "";
+  document.getElementById("tNotas").textContent = venta.notas || "";
+  
+  const cont = document.getElementById("tLineas");
+  cont.innerHTML = "";
+
+  // 🧩 Mostrar los productos vendidos
+  if (venta.detalle && venta.detalle.length > 0) {
+    venta.detalle.forEach(it => {
+      const div = document.createElement("div");
+      div.style.display = "flex";
+      div.style.justifyContent = "space-between";
+      div.style.fontSize = "12px";
+      div.style.marginBottom = "3px";
+      div.innerHTML = `
+        <span>${it.cantidad.toFixed(2)} × ${it.nombre}</span>
+        <span>$${it.importe.toFixed(2)}</span>
+      `;
+      cont.appendChild(div);
     });
+  } else {
+    cont.innerHTML = "<em>Sin productos registrados</em>";
+  }
+
+  // 🖨️ Imprimir ticket
+  window.print();
+});
 
     cargarTickets(); // primera carga
   </script>
