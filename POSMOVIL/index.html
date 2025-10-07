@@ -791,7 +791,7 @@ detalle: carrito.map(it => {
     departamento_info: depInfo
   };
 })
-
+};
       const docId = await guardarVentaEnFirestore(venta);
       rellenarTicket({...venta,fecha:fecha}); imprimirTicketEstilado();
       carrito=[]; render(); cerrarCobro();
