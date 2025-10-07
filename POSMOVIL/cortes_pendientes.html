@@ -237,52 +237,57 @@ const corteRef = await addDoc(collection(db, "cortes_globales"), {
   ventas_incluidas
 });
 
-  // 🔹 Crear PDF con jsPDF
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
-  pdf.setFont("helvetica", "bold");
-  pdf.text(`REPORTE DE CORTE – ${rutaId}`, 10, 15);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 25);
-  pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 35);
-  pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 45);
+// 🔹 Crear PDF con jsPDF
+const { jsPDF } = window.jspdf;
+const pdf = new jsPDF();
 
-// 🧩 Insertar mapa del día
+// === 🧾 HOJA 1: RESUMEN + DETALLE ===
+pdf.setFont("helvetica", "bold");
+pdf.text(`REPORTE DE CORTE – ${rutaId}`, 10, 15);
+pdf.setFont("helvetica", "normal");
+pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 25);
+pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 35);
+pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 43);
+
+// 🔹 Desglose por departamento
+pdf.setFont("helvetica", "bold");
+pdf.text("Por Departamento:", 10, 55);
+pdf.setFont("helvetica", "normal");
+let y = 63;
+for (const [dep, val] of Object.entries(resumen.porDepto)) {
+  if (y > 260) break; // Evita desbordar
+  pdf.text(`${dep}: $${val.toFixed(2)}`, 12, y);
+  y += 7;
+}
+
+// 🔹 Métodos de pago
+y += 8;
+pdf.setFont("helvetica", "bold");
+pdf.text("Por Método de Pago:", 10, y);
+pdf.setFont("helvetica", "normal");
+y += 8;
+for (const [met, val] of Object.entries(resumen.porMetodo)) {
+  pdf.text(`${met}: $${val.toFixed(2)}`, 12, y);
+  y += 7;
+}
+
+// === 🗺️ HOJA 2: MAPA DE RUTA ===
+pdf.addPage();
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(14);
+pdf.text("📍 RUTA DE VENTAS DEL DÍA", 10, 20);
 try {
   const imgMapa = await generarImagenMapa(ventas);
-  if (imgMapa) {
-    pdf.addPage();
-    pdf.setFontSize(14);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("📍 RUTA DE VENTAS DEL DÍA", 10, 20);
-    pdf.addImage(imgMapa, "PNG", 10, 30, 180, 120);
-    pdf.setFontSize(10);
-    pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
-  }
+  if (imgMapa) pdf.addImage(imgMapa, "PNG", 10, 30, 180, 120);
 } catch (err) {
   console.error("⚠️ Error generando mapa:", err);
 }
-// 🧩 Insertar gráfica de departamentos en PDF
-try {
-  const imgGrafica = await generarImagenGraficaDeptos(resumen.porDepto);
-  if (imgGrafica) {
-    pdf.addPage();
-    pdf.setFontSize(14);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("📊 DISTRIBUCIÓN POR DEPARTAMENTO", 10, 20);
-    pdf.addImage(imgGrafica, "PNG", 10, 30, 180, 120);
-    pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.text("Gráfica generada automáticamente por PROVSOFT POS", 10, 160);
-  }
-} catch (err) {
-  console.error("⚠️ Error generando gráfica:", err);
-}
-  
-  // 💾 Guardar PDF local
-  const fecha = new Date().toISOString().slice(0,10);
-pdf.save(`Corte_${rutaId}_${fecha}.pdf`);
+pdf.setFontSize(10);
+pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
 
+// 💾 Guardar PDF local
+const fecha = new Date().toISOString().slice(0,10);
+pdf.save(`Corte_${rutaId}_${fecha}.pdf`);
 
   alert("✅ Corte realizado y PDF generado con mapa de ruta.");
   modal.style.display = "none";
