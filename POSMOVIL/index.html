@@ -291,6 +291,7 @@ import {
   };
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
+  const $ = (s)=>document.querySelector(s); // <--- muévela aquí
 import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 enableIndexedDbPersistence(db).catch(err => {
@@ -373,7 +374,7 @@ async function obtenerUbicacionActualRapida() {
 
   
   const codeIndex      = new Map();
-  const $ = (s)=>document.querySelector(s);
+  
 
   const elCliente=$('#cliente'), elBuscador=$('#buscador'), elCant=$('#cantidadInput');
   elCliente.addEventListener("input", async ()=>{
