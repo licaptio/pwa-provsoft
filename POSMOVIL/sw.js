@@ -1,106 +1,61 @@
-// =========================
-// 📦 CONFIGURACIÓN BÁSICA
-// =========================
-const CACHE_NAME = "pos-ruta-cache-v1";
-const URLS_TO_CACHE = [
-  "/", 
-  "index.html",
-  "logo_proveedora.webp",
-  "manifest.json",
-  "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
-  "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+const CACHE_NAME = "provpos-v2"; // cambia versión si actualizas
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./logo_proveedora.webp",
+  "./manifest.json"
 ];
 
-// =========================
-// 🧱 INSTALACIÓN
-// =========================
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(URLS_TO_CACHE))
-  );
-  console.log("✅ Service Worker instalado");
+// 📦 Instalar y cachear archivos base
+self.addEventListener("install", e => {
+  console.log("📦 Instalando Service Worker...");
+  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
+  self.skipWaiting();
 });
 
-// =========================
-// ♻️ ACTIVACIÓN
-// =========================
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((names) =>
+// 🚀 Activar SW
+self.addEventListener("activate", e => {
+  console.log("🚀 Activando Service Worker...");
+  e.waitUntil(
+    caches.keys().then(keys =>
       Promise.all(
-        names.map((n) => {
-          if (n !== CACHE_NAME) return caches.delete(n);
-        })
+        keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null))
       )
     )
   );
-  console.log("🔁 Service Worker activado");
+  return self.clients.claim();
 });
 
-// =========================
-// 🌐 INTERCEPTAR PETICIONES
-// =========================
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((resp) => {
-      return (
-        resp ||
-        fetch(event.request).catch(() =>
-          new Response("Offline", { status: 503, statusText: "Offline" })
-        )
-      );
-    })
+// 🌐 Interceptar peticiones y servir desde cache primero
+self.addEventListener("fetch", e => {
+  const req = e.request;
+  if (req.method !== "GET") return;
+
+  e.respondWith(
+    caches.match(req).then(res =>
+      res ||
+      fetch(req).then(resp => {
+        // No cachear llamadas a Firebase
+        if (req.url.startsWith("http") && !req.url.includes("firebase")) {
+          const clone = resp.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        }
+        return resp;
+      }).catch(() => caches.match("./index.html"))
+    )
   );
 });
 
-// =========================
-// 🔁 SINCRONIZACIÓN BACKGROUND
-// =========================
-self.addEventListener("sync", (event) => {
+// 🔁 Sincronización en background
+self.addEventListener("sync", event => {
   if (event.tag === "sync-ventas-pendientes") {
+    console.log("🔁 Iniciando sincronización en background...");
     event.waitUntil(
-      (async () => {
-        console.log("📡 Intentando sincronizar ventas pendientes...");
-        self.clients.matchAll().then((clients) => {
-          clients.forEach((client) =>
-            client.postMessage({ action: "sincronizar" })
-          );
-        });
-      })()
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client =>
+          client.postMessage({ action: "sincronizar" })
+        );
+      })
     );
   }
 });
-
-// =========================
-// ✉️ ESCUCHAR MENSAJES
-// =========================
-self.addEventListener("message", async (event) => {
-  if (event.data?.action === "enviarTelegram") {
-    await enviarTelegram(event.data.mensaje);
-  }
-});
-
-// =========================
-// 🚀 FUNCIÓN: Enviar a Telegram
-// =========================
-async function enviarTelegram(mensaje) {
-  try {
-    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT_ID = "6617988297";
-
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: mensaje,
-        parse_mode: "Markdown",
-      }),
-    });
-
-    console.log("✅ Mensaje enviado a Telegram desde SW");
-  } catch (err) {
-    console.error("❌ Error al enviar mensaje desde SW:", err);
-  }
-}
