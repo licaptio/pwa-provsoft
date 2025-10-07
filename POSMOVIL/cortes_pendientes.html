@@ -373,23 +373,20 @@ async function generarImagenMapa(ventas) {
   const divMapa = document.getElementById("mapaCorte");
   divMapa.style.display = "block";
 
-  // Inicializa el mapa
   const map = L.map(divMapa, {
     zoomControl: false,
     attributionControl: false
   }).setView([25.5, -99.56], 12);
 
-// Carto Positron: más blanco y con mejor contraste
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png", {
-  subdomains: "abcd",
-  maxZoom: 19
-}).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png", {
+    subdomains: "abcd",
+    maxZoom: 19
+  }).addTo(map);
 
-// Agregamos capa de etiquetas por separado (opcional)
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png", {
-  subdomains: "abcd",
-  maxZoom: 19
-}).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png", {
+    subdomains: "abcd",
+    maxZoom: 19
+  }).addTo(map);
 
   const puntos = [];
 
@@ -417,30 +414,25 @@ L.tileLayer("https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png
     map.setView(puntos[0], 14);
   }
 
-  // Forzar render completo del mapa
   map.invalidateSize();
   await new Promise(r => setTimeout(r, 3000));
 
-  // Capturar imagen
   let dataUrl = null;
   try {
-try {
-  dataUrl = await domtoimage.toPng(divMapa, {
-    quality: 0.95,
-    bgcolor: "#ffffff",
-    cacheBust: true
-  });
-} catch (e) {
-  console.warn("⚠️ No se pudo capturar mapa, generando imagen vacía:", e);
-  const canvas = document.createElement("canvas");
-  canvas.width = 600; canvas.height = 400;
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,600,400);
-  ctx.fillStyle = "#333";
-  ctx.fillText("MAPA NO DISPONIBLE", 200, 200);
-  dataUrl = canvas.toDataURL("image/png");
-}
-    console.error("⚠️ Error al capturar mapa:", e);
+    dataUrl = await domtoimage.toPng(divMapa, {
+      quality: 0.95,
+      bgcolor: "#ffffff",
+      cacheBust: true
+    });
+  } catch (e) {
+    console.warn("⚠️ No se pudo capturar mapa, generando imagen vacía:", e);
+    const canvas = document.createElement("canvas");
+    canvas.width = 600; canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 600, 400);
+    ctx.fillStyle = "#333";
+    ctx.fillText("MAPA NO DISPONIBLE", 200, 200);
+    dataUrl = canvas.toDataURL("image/png");
   }
 
   map.remove();
@@ -459,7 +451,6 @@ async function generarImagenGraficaDeptos(porDepto) {
   const etiquetas = Object.keys(porDepto);
   const valores = Object.values(porDepto).map(v => Number(v.toFixed(2)));
 
-  // Crear gráfica de pastel con Chart.js
   const ctx = canvas.getContext("2d");
   const chart = new Chart(ctx, {
     type: "pie",
@@ -480,13 +471,20 @@ async function generarImagenGraficaDeptos(porDepto) {
           text: "Distribución por Departamento",
           font: { size: 16 }
         }
-      }
+      },
+      animation: false
     }
   });
 
-  // Esperar renderizado y exportar imagen
-  await new Promise(r => setTimeout(r, 1200));
-  const dataUrl = await domtoimage.toPng(divGrafica, { quality: 0.95 });
+  await new Promise(r => setTimeout(r, 1500)); // espera a renderizar
+  chart.resize(); // fuerza layout completo
+
+  let dataUrl;
+  try {
+    dataUrl = await domtoimage.toPng(divGrafica, { quality: 0.95, bgcolor: "#fff" });
+  } catch (err) {
+    console.warn("⚠️ No se pudo generar imagen de gráfica:", err);
+  }
 
   chart.destroy();
   divGrafica.style.display = "none";
