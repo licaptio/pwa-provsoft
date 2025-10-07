@@ -778,6 +778,25 @@ async function guardarVentaEnFirestore(venta) {
       const folio     = await getNextFolio(db);
       const fecha     = new Date();
       const fechaTxt  = fecha.toLocaleString();
+// 🛰️ Intentar capturar ubicación GPS antes de guardar
+let ubicacion = { lat: null, lon: null, precision: null };
+
+try {
+  const pos = await new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve(p),
+      (err) => reject(err),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  });
+  ubicacion.lat = pos.coords.latitude;
+  ubicacion.lon = pos.coords.longitude;
+  ubicacion.precision = pos.coords.accuracy;
+  console.log("📍 Ubicación capturada:", ubicacion);
+} catch (err) {
+  console.warn("⚠️ No se pudo obtener la ubicación:", err.message);
+}
+
 const venta = {
   folio, 
   rutaId,
@@ -795,19 +814,20 @@ const venta = {
   total,
   notas,
   cortado: false,
-detalle: carrito.map(it => {
-  const depId = it.departamento_id?.toString() || "0";
-  const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
-  return {
-    id: it.id,
-    nombre: it.nombre,
-    cantidad: it.cantidad,
-    precio_unit: it.precioUnit,
-    importe: it.importe,
-    departamento_id: depId,
-    departamento_info: depInfo
-  };
-})
+  ubicacion, // 👈 aquí se guarda lat/lon/precision
+  detalle: carrito.map(it => {
+    const depId = it.departamento_id?.toString() || "0";
+    const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
+    return {
+      id: it.id,
+      nombre: it.nombre,
+      cantidad: it.cantidad,
+      precio_unit: it.precioUnit,
+      importe: it.importe,
+      departamento_id: depId,
+      departamento_info: depInfo
+    };
+  })
 };
       const docId = await guardarVentaEnFirestore(venta);
       rellenarTicket({...venta,fecha:fecha}); imprimirTicketEstilado();
