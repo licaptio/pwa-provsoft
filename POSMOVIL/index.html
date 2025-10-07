@@ -859,6 +859,9 @@ const venta = {
     };
   })
 };
+// ✅ Primero guardar la venta en Firestore para no perderla si falla el bot
+await guardarVentaEnFirestore(venta);
+
 // 🛰️ Enviar notificación a Telegram con PDF adjunto
 try {
   const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q"; // tu token
