@@ -1031,7 +1031,7 @@ if (ubicacion.lat && ubicacion.lon) {
 🌎 *Coordenadas:* ${venta.ubicacion?.lat?.toFixed(5) || "—"}, ${venta.ubicacion?.lon?.toFixed(5) || "—"}
 💰 *Total:* $${venta.total.toFixed(2)}
 🧑‍🤝‍🧑 *Cliente:* ${venta.cliente || "Mostrador"}
-📌 [Ver en mapa](${mapUrl})
+📌 [Ver en mapa](${mapUrl})  
 `.trim();
 
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
