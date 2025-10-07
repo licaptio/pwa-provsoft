@@ -583,8 +583,7 @@ const q = query(cortesRef, where("rutaId", "==", rutaId));
   }
 }
 
-// ==== Catálogo con caché diario ====
-async function cargarCatalogoDesdeFirestore(){
+async function cargarCatalogoDesdeFirestore() {
   try {
     const cache = localStorage.getItem("catalogo_cache");
     const hoy = new Date().toDateString();
@@ -599,30 +598,34 @@ async function cargarCatalogoDesdeFirestore(){
       return;
     }
 
-    console.log("🔄 Descargando catálogo de Firestore...");
-    const prodSnap = await getDocs(collection(db, 'productos'));
+    console.log("🔄 Descargando catálogo activo desde Firestore...");
+
+    // 🔹 Usa filtro en servidor para traer solo productos activos
+    const ref = collection(db, "productos");
+    const q = query(ref, where("activo", "==", true));
+    const prodSnap = await getDocs(q);
+
     catalogo = [];
     codeIndex.clear();
 
     prodSnap.forEach(d => {
       const x = d.data();
-      if (x.activo === false) return;
-const prod = {
-  id: d.id,
-  nombre: x.concepto || 'SIN NOMBRE',
-  codigo: (x.codigoBarra || '').toString(),
-  precioPublico: Number(x.precioPublico || 0),
-  ivaTasa: Number(x.ivaTasa || 0),
-  iepsTasa: Number(x.iepsTasa || 0),
-  departamento_id: x.departamento_id || null  // 👈 mantén solo este
-};
+      const prod = {
+        id: d.id,
+        nombre: x.concepto || "SIN NOMBRE",
+        codigo: (x.codigoBarra || "").toString(),
+        precioPublico: Number(x.precioPublico || 0),
+        ivaTasa: Number(x.ivaTasa || 0),
+        iepsTasa: Number(x.iepsTasa || 0),
+        departamento_id: x.departamento_id || null
+      };
       catalogo.push(prod);
       if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
     });
 
     localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
     localStorage.setItem("catalogo_fecha", hoy);
-    console.log("✅ Catálogo guardado en cache local");
+    console.log(`✅ Catálogo guardado en cache local (${catalogo.length} productos activos)`);
   } catch (err) {
     console.error("❌ Error cargando catálogo:", err);
   }
