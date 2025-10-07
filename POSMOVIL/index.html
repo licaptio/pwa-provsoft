@@ -327,29 +327,6 @@ async function obtenerUbicacionActualRapida() {
   }
 }
 
-    window.UBICACION_ACTUAL.lat = pos.coords.latitude;
-    window.UBICACION_ACTUAL.lon = pos.coords.longitude;
-    window.UBICACION_ACTUAL.precision = pos.coords.accuracy;
-
-    // 🌍 Obtener dirección legible (opcional)
-    try {
-      const resp = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
-      );
-      const data = await resp.json();
-      window.UBICACION_ACTUAL.direccion = data.display_name || null;
-    } catch (e) {
-      console.warn("No se pudo obtener dirección:", e.message);
-    }
-
-    console.log("📍 Ubicación inicial guardada:", window.UBICACION_ACTUAL);
-    mostrarToast("Ubicación activada 📡");
-  } catch (err) {
-    console.warn("⚠️ No se pudo obtener ubicación inicial:", err.message);
-    mostrarToast("Ubicación no disponible ⚠️");
-  }
-}
-
   
   const codeIndex      = new Map();
   const $ = (s)=>document.querySelector(s);
