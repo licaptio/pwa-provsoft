@@ -56,20 +56,16 @@
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  
-
 </head>
-<!-- Contenedor oculto para generar el mapa del día -->
-<div id="mapaCorte" style="width:600px; height:400px; display:none;"></div>
-<div id="graficaDeptos" style="width:600px; height:400px; display:none;">
-  <canvas id="canvasDeptos" width="600" height="400"></canvas>
-</div>
+<body>
 
-
-  <body>
-
-<h1>Cortes Pendientes</h1>
-<select id="selectRuta">
+  <!-- Contenedores ocultos para capturar imágenes -->
+  <div id="mapaCorte" style="width:600px; height:400px; display:none;"></div>
+  <div id="graficaDeptos" style="width:600px; height:400px; display:none;">
+    <canvas id="canvasDeptos" width="600" height="400"></canvas>
+  </div>
+  <h1>Cortes Pendientes</h1>
+  <select id="selectRuta">
   <option value="">Selecciona una ruta...</option>
 </select>
 
@@ -233,7 +229,10 @@ const ventas_incluidas = ventas.map(v => ({
 const corteRef = await addDoc(collection(db, "cortes_globales"), {
   rutaId,
   fecha: serverTimestamp(),
+  creado_en: new Date().toISOString(),
   realizado_por: "Administrador",
+  version: "1.0.3",
+  total_registros: ventas_incluidas.length,
   resumen,
   ventas_incluidas
 });
@@ -373,19 +372,6 @@ async function generarImagenMapa(ventas) {
   }
 
   await new Promise(r => setTimeout(r, 1000));
-  const dataUrl = await domtoimage.toPng(divMapa, { quality: 0.95 });
-
-  map.remove();
-  divMapa.style.display = "none";
-
-  console.log("🗺️ Mapa de ventas convertido correctamente a imagen local");
-  return dataUrl;
-}
-
-  // Esperar a que el mapa se renderice correctamente
-  await new Promise(r => setTimeout(r, 1200));
-
-  // Capturar mapa como imagen PNG
   const dataUrl = await domtoimage.toPng(divMapa, { quality: 0.95 });
 
   // Limpiar recursos y ocultar el contenedor
