@@ -658,25 +658,30 @@ async function buscarClientesFirestore(texto){
       prodSeleccionado=null; elBuscador.value=''; elCant.value='1'; elBuscador.focus();
     }
   });
-  // ==== Totales ====
-function calcularTotalesConImpuestosIncluidos(){
+function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, impuestos = 0, total = 0;
-  carrito.forEach(it=>{
+
+  carrito.forEach(it => {
     const imp = it.cantidad * it.precioUnit;
     let base = imp;
     let iva = 0, ieps = 0;
 
-    if(it.iepsTasa>0 && it.ivaTasa>0){
-      // ambos impuestos incluidos
-      base = imp / (1 + it.iepsTasa + it.ivaTasa * (1 + it.iepsTasa));
-      ieps = base * it.iepsTasa;
-      iva = (base + ieps) * it.ivaTasa;
-    }else if(it.iepsTasa>0){
-      base = imp / (1 + it.iepsTasa);
-      ieps = base * it.iepsTasa;
-    }else if(it.ivaTasa>0){
-      base = imp / (1 + it.ivaTasa);
-      iva = base * it.ivaTasa;
+    // 🧠 Si el producto tiene departamento, toma las tasas desde allí
+    const depId = it.departamento_id?.toString() || "0";
+    const depInfo = departamentos[depId] || { iva: 0, ieps: 0 };
+    const ivaTasa = Number(depInfo.iva || it.ivaTasa || 0);
+    const iepsTasa = Number(depInfo.ieps || it.iepsTasa || 0);
+
+    if (iepsTasa > 0 && ivaTasa > 0) {
+      base = imp / (1 + iepsTasa + ivaTasa * (1 + iepsTasa));
+      ieps = base * iepsTasa;
+      iva = (base + ieps) * ivaTasa;
+    } else if (iepsTasa > 0) {
+      base = imp / (1 + iepsTasa);
+      ieps = base * iepsTasa;
+    } else if (ivaTasa > 0) {
+      base = imp / (1 + ivaTasa);
+      iva = base * ivaTasa;
     }
 
     subtotal += base;
@@ -685,9 +690,9 @@ function calcularTotalesConImpuestosIncluidos(){
   });
 
   return {
-    subtotal:+subtotal.toFixed(2),
-    impuestos:+impuestos.toFixed(2),
-    total:+total.toFixed(2)
+    subtotal: +subtotal.toFixed(2),
+    impuestos: +impuestos.toFixed(2),
+    total: +total.toFixed(2)
   };
 }
 
