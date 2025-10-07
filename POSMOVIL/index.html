@@ -4,7 +4,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0c6cbd">
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, inifunction calcularTotalesConImpuestosIncluidos() {tial-scale=1, viewport-fit=cover"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>POS – Ruta de Venta</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
@@ -293,10 +293,10 @@ enableIndexedDbPersistence(db).catch(err => {
 });
 
   // ==== Variables globales ====
-  let USUARIO_LOGUEADO = null;
-  let rutaId           = null;
-  let carrito          = [];
-  let clientes         = [];
+  window.USUARIO_LOGUEADO = null;
+let rutaId = null;
+let carrito = [];
+let clientes = [];
   let catalogo         = [];
   const codeIndex      = new Map();
   const $ = (s)=>document.querySelector(s);
@@ -341,6 +341,35 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
     }catch(e){ msg.textContent="Error de conexión"; console.error(e);}
   }
   $("#btnLogin").onclick=loginUsuario;
+// 🔹 Restaurar sesión si ya había un usuario guardado
+document.addEventListener("DOMContentLoaded", async () => {
+  const u = localStorage.getItem("usuario_ruta");
+  if (!u) return; // no hay sesión previa
+
+  try {
+    window.USUARIO_LOGUEADO = JSON.parse(u);
+    rutaId = window.USUARIO_LOGUEADO.rutaId;
+
+    console.log("🔁 Restaurando sesión previa de:", window.USUARIO_LOGUEADO.usuario);
+
+    // Mostrar interfaz POS y ocultar login
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("posApp").style.display = "block";
+
+    // Recargar catálogo y datos esenciales
+    await cargarCatalogoDesdeFirestore();
+    await cargarDepartamentos();
+    render();
+    await sincronizarVentasPendientes();
+    await checkCortePendiente();
+
+    console.log("✅ Sesión restaurada correctamente.");
+  } catch (err) {
+    console.error("❌ Error restaurando sesión:", err);
+    // Si algo falla, limpiar localStorage
+    localStorage.removeItem("usuario_ruta");
+  }
+});
 
   // ==== IndexedDB helper (ventas offline) ====
   function openLocalDB() {
@@ -1221,27 +1250,6 @@ function mostrarToast(mensaje){
       <div class="t-thanks" style="text-align:center; margin-top:8px; font-size:12px;">¡Gracias por su compra!</div>
     </div>
 </div>
-<!-- 🔹 Restaurar sesión si ya había un usuario guardado -->
-<script>
-document.addEventListener("DOMContentLoaded", async () => {
-  const u = localStorage.getItem("usuario_ruta");
-  if (u) {
-    try {
-      USUARIO_LOGUEADO = JSON.parse(u);
-      rutaId = USUARIO_LOGUEADO.rutaId;
-      $("#loginScreen").style.display = "none";
-      $("#posApp").style.display = "block";
-      await cargarCatalogoDesdeFirestore();
-      render();
-      await sincronizarVentasPendientes();
-      await checkCortePendiente();
-      console.log("✅ Sesión restaurada:", USUARIO_LOGUEADO.usuario);
-    } catch (err) {
-      console.error("❌ Error restaurando sesión:", err);
-    }
-  }
-});
-</script>
 <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
