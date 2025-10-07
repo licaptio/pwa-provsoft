@@ -907,16 +907,22 @@ async function confirmarCobro() {
     const fechaTxt = fecha.toLocaleString();
 
     // 🛰️ Capturar ubicación actual
-    const ubicacion = await obtenerUbicacionActualRapida();
-    try {
-      const resp = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`
-      );
-      const data = await resp.json();
-      ubicacion.direccion = data.display_name || "Sin dirección disponible";
-    } catch (e) {
-      ubicacion.direccion = "No se pudo obtener dirección";
-    }
+// 🛰️ Capturar ubicación actual
+const ubicacion = await obtenerUbicacionActualRapida();
+
+if (ubicacion.lat && ubicacion.lon) {
+  try {
+    const resp = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`
+    );
+    const data = await resp.json();
+    ubicacion.direccion = data.display_name || "Sin dirección disponible";
+  } catch (e) {
+    ubicacion.direccion = "No se pudo obtener dirección";
+  }
+} else {
+  ubicacion.direccion = "Sin coordenadas disponibles";
+}
 
     const venta = {
       folio,
