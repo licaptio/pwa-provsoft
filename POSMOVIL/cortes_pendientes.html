@@ -347,16 +347,19 @@ async function generarImagenMapa(ventas) {
   const divMapa = document.getElementById("mapaCorte");
   divMapa.style.display = "block";
 
-  // Crear mapa básico sin conexión
+  // Inicializa el mapa
   const map = L.map(divMapa, {
     zoomControl: false,
     attributionControl: false
-  }).setView([25.5, -99.56], 13);
+  }).setView([25.5, -99.56], 12);
 
-  // Fondo neutro (gris claro)
-  L.rectangle([[-90, -180], [90, 180]], { color: "#f1f1f1", weight: 0, fillOpacity: 1 }).addTo(map);
+  // Capa base ligera (OpenStreetMap)
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19
+  }).addTo(map);
 
   const puntos = [];
+
   for (const v of ventas) {
     if (!v.ubicacion?.lat || !v.ubicacion?.lon) continue;
     const { lat, lon } = v.ubicacion;
@@ -374,35 +377,30 @@ async function generarImagenMapa(ventas) {
     puntos.push([lat, lon]);
   }
 
-  // Dibujar la ruta si hay puntos
   if (puntos.length > 1) {
     const poly = L.polyline(puntos, { color: "#0c6cbd", weight: 3 }).addTo(map);
     map.fitBounds(poly.getBounds(), { padding: [40, 40] });
   } else if (puntos.length === 1) {
-    map.setView(puntos[0], 15);
+    map.setView(puntos[0], 14);
   }
 
-  // Esperar para asegurar renderizado (clave)
+  // Forzar render completo del mapa
+  map.invalidateSize();
   await new Promise(r => setTimeout(r, 3000));
 
-  // Capturar solo si hay puntos
+  // Capturar imagen
   let dataUrl = null;
-  if (puntos.length > 0) {
+  try {
     dataUrl = await domtoimage.toPng(divMapa, {
-  bgcolor: "#ffffff",
-  quality: 0.97,
-  style: { transform: "scale(1)", transformOrigin: "top left" }
-});
-
-  } else {
-    console.warn("⚠️ No hay puntos de ubicación para dibujar mapa.");
+      quality: 0.98,
+      bgcolor: "#ffffff"
+    });
+  } catch (e) {
+    console.error("⚠️ Error al capturar mapa:", e);
   }
 
-  // Destruir después de capturar (no antes)
-  setTimeout(() => {
-    map.remove();
-    divMapa.style.display = "none";
-  }, 500);
+  map.remove();
+  divMapa.style.display = "none";
 
   console.log("🗺️ Mapa generado correctamente con", puntos.length, "puntos.");
   return dataUrl;
