@@ -890,166 +890,180 @@ async function guardarVentaEnFirestore(venta) {
 
 
 
-  async function confirmarCobro(){
+async function confirmarCobro() {
+  try {
+    const { subtotal, impuestos, total } = calcularTotalesConImpuestosIncluidos();
+    const clienteTxt = elCliente.value || "Mostrador";
+    const metodo = metodoPago.value;
+    const recibido = parseFloat(montoRecibido.value || "0");
+    if ((metodo === "efectivo" || metodo === "mixto") && recibido < total) {
+      alert("Pago insuficiente");
+      return;
+    }
+    const cambio = Math.max(0, recibido - total);
+    const notas = (notasCobro.value || "").trim();
+    const folio = await getNextFolio(db);
+    const fecha = new Date();
+    const fechaTxt = fecha.toLocaleString();
+
+    // 🛰️ Capturar ubicación actual
+    const ubicacion = await obtenerUbicacionActualRapida();
     try {
-      const {subtotal,impuestos,total}=calcularTotalesConImpuestosIncluidos();
-      const clienteTxt=elCliente.value||'Mostrador';
-      const metodo=metodoPago.value;
-      const recibido=parseFloat(montoRecibido.value||'0');
-      if((metodo==='efectivo'||metodo==='mixto') && recibido<total){alert('Pago insuficiente'); return;}
-      const cambio=Math.max(0,recibido-total);
-      const notas=(notasCobro.value||'').trim();
-      const folio     = await getNextFolio(db);
-      const fecha     = new Date();
-      const fechaTxt  = fecha.toLocaleString();
-// 🛰️ Capturar ubicación actual justo al confirmar la venta
-const ubicacion = await obtenerUbicacionActualRapida();
-try {
-  const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`);
-  const data = await resp.json();
-  ubicacion.direccion = data.display_name || null;
-} catch(e) {
-  ubicacion.direccion = null;
-}
+      const resp = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`
+      );
+      const data = await resp.json();
+      ubicacion.direccion = data.display_name || "Sin dirección disponible";
+    } catch (e) {
+      ubicacion.direccion = "No se pudo obtener dirección";
+    }
 
-const venta = {
-  folio, 
-  rutaId,
-  usuario: USUARIO_LOGUEADO?.usuario || '',
-  atendio: USUARIO_LOGUEADO?.nombre || '',
-  fecha: serverTimestamp(),
-  fecha_txt: fechaTxt,
-  cliente: clienteTxt,
-  cliente_info: clienteSeleccionado || null,
-  metodo_pago: metodo,
-  recibido,
-  cambio,
-  subtotal,
-  impuestos,
-  total,
-  notas,
-  cortado: false,
-  ubicacion, // 👈 aquí se guarda lat/lon/precision
-  detalle: carrito.map(it => {
-    const depId = it.departamento_id?.toString() || "0";
-    const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
-    return {
-      id: it.id,
-      nombre: it.nombre,
-      cantidad: it.cantidad,
-      precio_unit: it.precioUnit,
-      importe: it.importe,
-      departamento_id: depId,
-      departamento_info: depInfo
+    const venta = {
+      folio,
+      rutaId,
+      usuario: USUARIO_LOGUEADO?.usuario || "",
+      atendio: USUARIO_LOGUEADO?.nombre || "",
+      fecha: serverTimestamp(),
+      fecha_txt: fechaTxt,
+      cliente: clienteTxt,
+      cliente_info: clienteSeleccionado || null,
+      metodo_pago: metodo,
+      recibido,
+      cambio,
+      subtotal,
+      impuestos,
+      total,
+      notas,
+      cortado: false,
+      ubicacion, // 🔹 guarda lat, lon, precision y dirección completa
+      detalle: carrito.map(it => {
+        const depId = it.departamento_id?.toString() || "0";
+        const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
+        return {
+          id: it.id,
+          nombre: it.nombre,
+          cantidad: it.cantidad,
+          precio_unit: it.precioUnit,
+          importe: it.importe,
+          departamento_id: depId,
+          departamento_info: depInfo
+        };
+      }),
     };
-  })
-};
-// ✅ Primero guardar la venta en Firestore para no perderla si falla el bot
-await guardarVentaEnFirestore(venta);
 
-// 🛰️ Enviar notificación a Telegram con PDF adjunto
-try {
-  const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q"; // tu token
-  const CHAT_ID   = "6617988297"; // tu chat_id
+    // 💾 Guardar venta en Firestore
+    await guardarVentaEnFirestore(venta);
 
-  // ---- Crear PDF con jsPDF ----
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
+    // 📤 Enviar a Telegram (mensaje + PDF)
+    try {
+      const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+      const CHAT_ID = "6617988297";
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(16);
-  pdf.text("La Proveedora - Ticket de Venta", 10, 15);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.text("La Proveedora - Ticket de Venta", 10, 15);
 
-  pdf.setFontSize(10);
-  pdf.setFont("helvetica", "normal");
-  pdf.text(`Folio: ${venta.folio}`, 10, 25);
-  pdf.text(`Fecha: ${venta.fecha_txt}`, 10, 30);
-  pdf.text(`Vendedor: ${venta.atendio}`, 10, 35);
-  pdf.text(`Ruta: ${venta.rutaId}`, 10, 40);
-  pdf.text(`Cliente: ${venta.cliente}`, 10, 45);
-  pdf.text(`Método de Pago: ${venta.metodo_pago}`, 10, 50);
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Folio: ${venta.folio}`, 10, 25);
+      pdf.text(`Fecha: ${venta.fecha_txt}`, 10, 30);
+      pdf.text(`Vendedor: ${venta.atendio}`, 10, 35);
+      pdf.text(`Ruta: ${venta.rutaId}`, 10, 40);
+      pdf.text(`Cliente: ${venta.cliente}`, 10, 45);
+      pdf.text(`Método de Pago: ${venta.metodo_pago}`, 10, 50);
 
-  pdf.line(10, 53, 200, 53);
+      pdf.line(10, 53, 200, 53);
+      let y = 60;
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Cant.   Producto                     Importe", 10, y);
+      pdf.setFont("helvetica", "normal");
+      y += 5;
 
-  let y = 60;
-  pdf.setFont("helvetica", "bold");
-  pdf.text("Cant.   Producto                     Importe", 10, y);
-  pdf.setFont("helvetica", "normal");
-  y += 5;
+      (venta.detalle || []).forEach(item => {
+        const desc = item.nombre.length > 25 ? item.nombre.slice(0, 25) + "…" : item.nombre;
+        pdf.text(`${item.cantidad.toFixed(2)}   ${desc}`, 10, y);
+        pdf.text(`$${item.importe.toFixed(2)}`, 160, y);
+        y += 5;
+        if (y > 270) {
+          pdf.addPage();
+          y = 20;
+        }
+      });
 
-  (venta.detalle || []).forEach(item => {
-    const desc = item.nombre.length > 25 ? item.nombre.slice(0, 25) + "…" : item.nombre;
-    pdf.text(`${item.cantidad.toFixed(2)}   ${desc}`, 10, y);
-    pdf.text(`$${item.importe.toFixed(2)}`, 160, y);
-    y += 5;
-    if (y > 270) { pdf.addPage(); y = 20; }
-  });
+      y += 5;
+      pdf.line(10, y, 200, y);
+      y += 6;
+      pdf.text(`Subtotal: $${venta.subtotal.toFixed(2)}`, 130, y);
+      y += 5;
+      pdf.text(`Impuestos: $${venta.impuestos.toFixed(2)}`, 130, y);
+      y += 5;
+      pdf.text(`Total: $${venta.total.toFixed(2)}`, 130, y);
 
-  y += 5;
-  pdf.line(10, y, 200, y);
-  y += 6;
-  pdf.text(`Subtotal: $${venta.subtotal.toFixed(2)}`, 130, y); y += 5;
-  pdf.text(`Impuestos: $${venta.impuestos.toFixed(2)}`, 130, y); y += 5;
-  pdf.text(`Total: $${venta.total.toFixed(2)}`, 130, y);
+      if (venta.ubicacion?.lat) {
+        y += 10;
+        pdf.setTextColor(0, 0, 255);
+        pdf.textWithLink("📍 Ver ubicación en mapa", 10, y, {
+          url: `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`,
+        });
+        pdf.setTextColor(0, 0, 0);
+      }
 
-  if (venta.ubicacion?.lat) {
-    y += 10;
-    pdf.setTextColor(0, 0, 255);
-    pdf.textWithLink("📍 Ver ubicación en mapa", 10, y, {
-      url: `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`,
-    });
-    pdf.setTextColor(0, 0, 0);
-  }
+      const pdfBlob = pdf.output("blob");
 
-  // Convertir PDF a blob
-  const pdfBlob = pdf.output("blob");
+      const mapUrl = venta.ubicacion?.lat
+        ? `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`
+        : "Sin ubicación";
 
-  // ---- Mensaje resumen ----
-  const mapUrl = venta.ubicacion?.lat
-    ? `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`
-    : "Sin ubicación";
-
-  const mensaje = `
+      // 🛰️ Mensaje Telegram con dirección incluida
+      const mensaje = `
 🧾 *Nueva Venta Registrada*
 👤 *Vendedor:* ${venta.atendio || "Desconocido"}
-📍 *Ruta:* ${venta.rutaId || "—"}
 🧮 *Folio:* ${venta.folio}
+📍 *Ubicación:* ${venta.ubicacion?.direccion || "Sin dirección"}
+🌎 *Coordenadas:* ${venta.ubicacion?.lat?.toFixed(5) || "—"}, ${venta.ubicacion?.lon?.toFixed(5) || "—"}
 💰 *Total:* $${venta.total.toFixed(2)}
 🧑‍🤝‍🧑 *Cliente:* ${venta.cliente || "Mostrador"}
-📌 [Ver ubicación](${mapUrl})
+📌 [Ver en mapa](${mapUrl})
 `.trim();
 
-  // Enviar primero el mensaje
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: mensaje,
-      parse_mode: "Markdown"
-    })
-  });
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: mensaje,
+          parse_mode: "Markdown",
+        }),
+      });
 
-  // Enviar luego el PDF
-  const formData = new FormData();
-  formData.append("chat_id", CHAT_ID);
-  formData.append("document", pdfBlob, `Ticket_${venta.folio}.pdf`);
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      formData.append("document", pdfBlob, `Ticket_${venta.folio}.pdf`);
 
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-    method: "POST",
-    body: formData
-  });
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+        method: "POST",
+        body: formData,
+      });
 
-  console.log("✅ Venta enviada con PDF a Telegram:", venta.folio);
-} catch (err) {
-  console.error("❌ Error al enviar venta a Telegram:", err);
-}
+      console.log("✅ Venta enviada a Telegram con PDF y geolocalización:", venta.folio);
+    } catch (err) {
+      console.error("❌ Error al enviar venta a Telegram:", err);
+    }
 
-      rellenarTicket({...venta,fecha:fecha}); imprimirTicketEstilado();
-      carrito=[]; render(); cerrarCobro();
-    } catch(err){ console.error("Error en confirmarCobro:", err); alert('Error guardando venta'); }
+    // 🧾 Ticket local e impresión
+    rellenarTicket({ ...venta, fecha: fecha });
+    imprimirTicketEstilado();
+
+    carrito = [];
+    render();
+    cerrarCobro();
+  } catch (err) {
+    console.error("Error en confirmarCobro:", err);
+    alert("Error guardando venta");
   }
-
+}
   // ==== Ticket ====
   function rellenarTicket(venta){
     document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
