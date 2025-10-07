@@ -365,6 +365,32 @@ async function obtenerUbicacionActualRapida() {
       USUARIO_LOGUEADO={id:snap.docs[0].id,...data};
       rutaId = data.rutaId; // ruta depende del usuario
       $("#loginScreen").style.display="none"; $("#posApp").style.display="block";
+      $("#posApp").style.display="block";
+      // 🌍 Forzar activación de GPS justo después del login
+    try {
+      mostrarToast("Activando geolocalización 📡");
+      await obtenerUbicacionInicial();
+      console.log("✅ Ubicación tras login:", window.UBICACION_ACTUAL);
+    } catch (e) {
+      console.warn("⚠️ No se pudo obtener ubicación tras login:", e.message);
+      mostrarToast("Activa permisos de ubicación ⚠️");
+    }
+
+    // 🔹 Cargar datos
+    await cargarCatalogoDesdeFirestore();
+    await cargarDepartamentos();
+    render();
+    await sincronizarVentasPendientes();
+
+    // 🔹 Guardar sesión en localStorage
+    localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+
+  }catch(e){ 
+    msg.textContent="Error de conexión"; 
+    console.error(e);
+  }
+}
+      
       await cargarCatalogoDesdeFirestore();
       await cargarDepartamentos(); // 👈 NUEVA LÍNEA
       render();
