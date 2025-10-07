@@ -55,10 +55,16 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  
 
 </head>
 <!-- Contenedor oculto para generar el mapa del día -->
 <div id="mapaCorte" style="width:600px; height:400px; display:none;"></div>
+<div id="graficaDeptos" style="width:600px; height:400px; display:none;">
+  <canvas id="canvasDeptos" width="600" height="400"></canvas>
+</div>
+
 
   <body>
 
@@ -233,10 +239,23 @@ btnConfirmar.onclick = async () => {
       pdf.setFontSize(10);
       pdf.text("Mapa generado automáticamente por PROVSOFT POS", 10, 160);
     }
-  } catch (err) {
-    console.error("⚠️ Error generando mapa:", err);
+// 🧩 Insertar gráfica de departamentos en PDF
+try {
+  const imgGrafica = await generarImagenGraficaDeptos(resumen.porDepto);
+  if (imgGrafica) {
+    pdf.addPage();
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("📊 DISTRIBUCIÓN POR DEPARTAMENTO", 10, 20);
+    pdf.addImage(imgGrafica, "PNG", 10, 30, 180, 120);
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Gráfica generada automáticamente por PROVSOFT POS", 10, 160);
   }
-
+} catch (err) {
+  console.error("⚠️ Error generando gráfica:", err);
+}
+  
   // 💾 Guardar PDF local
   pdf.save(`Corte_${rutaId}.pdf`);
 
@@ -339,6 +358,50 @@ async function generarImagenMapa(ventas) {
   divMapa.style.display = "none";
 
   console.log("🗺️ Mapa de ventas generado como imagen PNG");
+  return dataUrl;
+}
+// === 📊 Generar imagen de gráfica por departamento ===
+async function generarImagenGraficaDeptos(porDepto) {
+  const divGrafica = document.getElementById("graficaDeptos");
+  const canvas = document.getElementById("canvasDeptos");
+  divGrafica.style.display = "block";
+
+  const etiquetas = Object.keys(porDepto);
+  const valores = Object.values(porDepto).map(v => Number(v.toFixed(2)));
+
+  // Crear gráfica de pastel con Chart.js
+  const ctx = canvas.getContext("2d");
+  const chart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: etiquetas,
+      datasets: [{
+        data: valores,
+        backgroundColor: etiquetas.map(() =>
+          `hsl(${Math.floor(Math.random()*360)},70%,60%)`
+        )
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: "right" },
+        title: {
+          display: true,
+          text: "Distribución por Departamento",
+          font: { size: 16 }
+        }
+      }
+    }
+  });
+
+  // Esperar renderizado y exportar imagen
+  await new Promise(r => setTimeout(r, 1200));
+  const dataUrl = await domtoimage.toPng(divGrafica, { quality: 0.95 });
+
+  chart.destroy();
+  divGrafica.style.display = "none";
+
+  console.log("📊 Gráfica de departamentos generada como imagen PNG");
   return dataUrl;
 }
 
