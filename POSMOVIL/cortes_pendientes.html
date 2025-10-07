@@ -345,14 +345,14 @@ async function generarImagenMapa(ventas) {
   const divMapa = document.getElementById("mapaCorte");
   divMapa.style.display = "block";
 
-  // Crear un "mapa" vacío (fondo gris, sin tiles remotos)
+  // Crear mapa básico sin conexión
   const map = L.map(divMapa, {
     zoomControl: false,
     attributionControl: false
-  }).setView([25.509, -99.568], 13);
+  }).setView([25.5, -99.56], 13);
 
-  // Agregar fondo gris claro para simular mapa
-  L.rectangle([[-90,-180],[90,180]], { color: "#f1f1f1", weight: 0, fillOpacity: 1 }).addTo(map);
+  // Fondo neutro (gris claro)
+  L.rectangle([[-90, -180], [90, 180]], { color: "#f1f1f1", weight: 0, fillOpacity: 1 }).addTo(map);
 
   const puntos = [];
   for (const v of ventas) {
@@ -362,30 +362,45 @@ async function generarImagenMapa(ventas) {
     const cliente = v.cliente || "Mostrador";
 
     const marker = L.circleMarker([lat, lon], {
-      radius: 6, color: "#00416A", fillColor: "#0c6cbd", fillOpacity: 0.8
+      radius: 6,
+      color: "#00416A",
+      fillColor: "#0c6cbd",
+      fillOpacity: 0.8
     }).addTo(map);
+
     marker.bindTooltip(`${cliente} – $${total}`, { permanent: false });
     puntos.push([lat, lon]);
   }
 
-  // Dibujar ruta
+  // Dibujar la ruta si hay puntos
   if (puntos.length > 1) {
     const poly = L.polyline(puntos, { color: "#0c6cbd", weight: 3 }).addTo(map);
-    map.fitBounds(poly.getBounds());
+    map.fitBounds(poly.getBounds(), { padding: [40, 40] });
   } else if (puntos.length === 1) {
     map.setView(puntos[0], 15);
   }
 
-  await new Promise(r => setTimeout(r, 1000));
-  const dataUrl = await domtoimage.toPng(divMapa, { quality: 0.95 });
+  // Esperar para asegurar renderizado (clave)
+  await new Promise(r => setTimeout(r, 1800));
 
-  // Limpiar recursos y ocultar el contenedor
-  map.remove();
-  divMapa.style.display = "none";
+  // Capturar solo si hay puntos
+  let dataUrl = null;
+  if (puntos.length > 0) {
+    dataUrl = await domtoimage.toPng(divMapa, { quality: 0.97 });
+  } else {
+    console.warn("⚠️ No hay puntos de ubicación para dibujar mapa.");
+  }
 
-  console.log("🗺️ Mapa de ventas generado como imagen PNG");
+  // Destruir después de capturar (no antes)
+  setTimeout(() => {
+    map.remove();
+    divMapa.style.display = "none";
+  }, 500);
+
+  console.log("🗺️ Mapa generado correctamente con", puntos.length, "puntos.");
   return dataUrl;
 }
+
 // === 📊 Generar imagen de gráfica por departamento ===
 async function generarImagenGraficaDeptos(porDepto) {
   const divGrafica = document.getElementById("graficaDeptos");
