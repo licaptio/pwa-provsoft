@@ -266,6 +266,7 @@
 
   </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -829,7 +830,104 @@ const venta = {
     };
   })
 };
-      const docId = await guardarVentaEnFirestore(venta);
+// 🛰️ Enviar notificación a Telegram con PDF adjunto
+try {
+  const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q"; // tu token
+  const CHAT_ID   = "6617988297"; // tu chat_id
+
+  // ---- Crear PDF con jsPDF ----
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.text("La Proveedora - Ticket de Venta", 10, 15);
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(`Folio: ${venta.folio}`, 10, 25);
+  pdf.text(`Fecha: ${venta.fecha_txt}`, 10, 30);
+  pdf.text(`Vendedor: ${venta.atendio}`, 10, 35);
+  pdf.text(`Ruta: ${venta.rutaId}`, 10, 40);
+  pdf.text(`Cliente: ${venta.cliente}`, 10, 45);
+  pdf.text(`Método de Pago: ${venta.metodo_pago}`, 10, 50);
+
+  pdf.line(10, 53, 200, 53);
+
+  let y = 60;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Cant.   Producto                     Importe", 10, y);
+  pdf.setFont("helvetica", "normal");
+  y += 5;
+
+  (venta.detalle || []).forEach(item => {
+    const desc = item.nombre.length > 25 ? item.nombre.slice(0, 25) + "…" : item.nombre;
+    pdf.text(`${item.cantidad.toFixed(2)}   ${desc}`, 10, y);
+    pdf.text(`$${item.importe.toFixed(2)}`, 160, y);
+    y += 5;
+    if (y > 270) { pdf.addPage(); y = 20; }
+  });
+
+  y += 5;
+  pdf.line(10, y, 200, y);
+  y += 6;
+  pdf.text(`Subtotal: $${venta.subtotal.toFixed(2)}`, 130, y); y += 5;
+  pdf.text(`Impuestos: $${venta.impuestos.toFixed(2)}`, 130, y); y += 5;
+  pdf.text(`Total: $${venta.total.toFixed(2)}`, 130, y);
+
+  if (venta.ubicacion?.lat) {
+    y += 10;
+    pdf.setTextColor(0, 0, 255);
+    pdf.textWithLink("📍 Ver ubicación en mapa", 10, y, {
+      url: `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`,
+    });
+    pdf.setTextColor(0, 0, 0);
+  }
+
+  // Convertir PDF a blob
+  const pdfBlob = pdf.output("blob");
+
+  // ---- Mensaje resumen ----
+  const mapUrl = venta.ubicacion?.lat
+    ? `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`
+    : "Sin ubicación";
+
+  const mensaje = `
+🧾 *Nueva Venta Registrada*
+👤 *Vendedor:* ${venta.atendio || "Desconocido"}
+📍 *Ruta:* ${venta.rutaId || "—"}
+🧮 *Folio:* ${venta.folio}
+💰 *Total:* $${venta.total.toFixed(2)}
+🧑‍🤝‍🧑 *Cliente:* ${venta.cliente || "Mostrador"}
+📌 [Ver ubicación](${mapUrl})
+`.trim();
+
+  // Enviar primero el mensaje
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: mensaje,
+      parse_mode: "Markdown"
+    })
+  });
+
+  // Enviar luego el PDF
+  const formData = new FormData();
+  formData.append("chat_id", CHAT_ID);
+  formData.append("document", pdfBlob, `Ticket_${venta.folio}.pdf`);
+
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+    method: "POST",
+    body: formData
+  });
+
+  console.log("✅ Venta enviada con PDF a Telegram:", venta.folio);
+} catch (err) {
+  console.error("❌ Error al enviar venta a Telegram:", err);
+}
+
       rellenarTicket({...venta,fecha:fecha}); imprimirTicketEstilado();
       carrito=[]; render(); cerrarCobro();
     } catch(err){ console.error("Error en confirmarCobro:", err); alert('Error guardando venta'); }
