@@ -304,6 +304,7 @@ window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: nu
   let rutaId = null;
 let carrito = [];
 let clientes = [];
+let catalogo = [];
 // 🌍 Obtener ubicación inicial (solo al abrir la app)
 async function obtenerUbicacionInicial() {
   if (!("geolocation" in navigator)) {
