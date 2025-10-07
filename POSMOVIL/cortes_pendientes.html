@@ -316,41 +316,50 @@ pdf.save(`Corte_${rutaId}_${fecha}.pdf`);
   await cargarDepartamentos();
   await cargarRutas();
 });
-// === 🗺️ Generar imagen del mapa de ventas del día ===
 async function generarImagenMapa(ventas) {
-  // Mostrar el contenedor oculto temporalmente
   const divMapa = document.getElementById("mapaCorte");
   divMapa.style.display = "block";
 
-  // Crear mapa Leaflet
-  const map = L.map(divMapa).setView([25.509, -99.568], 13); // posición base (Linares)
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: "© OpenStreetMap contributors",
-  }).addTo(map);
+  // Crear un "mapa" vacío (fondo gris, sin tiles remotos)
+  const map = L.map(divMapa, {
+    zoomControl: false,
+    attributionControl: false
+  }).setView([25.509, -99.568], 13);
 
-  // 📍 Agregar pines por cada venta y recolectar coordenadas
+  // Agregar fondo gris claro para simular mapa
+  L.rectangle([[-90,-180],[90,180]], { color: "#f1f1f1", weight: 0, fillOpacity: 1 }).addTo(map);
+
   const puntos = [];
   for (const v of ventas) {
     if (!v.ubicacion?.lat || !v.ubicacion?.lon) continue;
-
-    const lat = v.ubicacion.lat;
-    const lon = v.ubicacion.lon;
+    const { lat, lon } = v.ubicacion;
     const total = (v.total || 0).toFixed(2);
     const cliente = v.cliente || "Mostrador";
 
-    const marker = L.marker([lat, lon]).addTo(map);
-    marker.bindPopup(`<b>${cliente}</b><br>💰 $${total}`);
-
+    const marker = L.circleMarker([lat, lon], {
+      radius: 6, color: "#00416A", fillColor: "#0c6cbd", fillOpacity: 0.8
+    }).addTo(map);
+    marker.bindTooltip(`${cliente} – $${total}`, { permanent: false });
     puntos.push([lat, lon]);
   }
 
-  // 📏 Dibujar línea azul entre las ubicaciones (ruta del día)
+  // Dibujar ruta
   if (puntos.length > 1) {
-    const ruta = L.polyline(puntos, { color: "#0c6cbd", weight: 4 }).addTo(map);
-    map.fitBounds(ruta.getBounds(), { padding: [30, 30] });
+    const poly = L.polyline(puntos, { color: "#0c6cbd", weight: 3 }).addTo(map);
+    map.fitBounds(poly.getBounds());
   } else if (puntos.length === 1) {
     map.setView(puntos[0], 15);
   }
+
+  await new Promise(r => setTimeout(r, 1000));
+  const dataUrl = await domtoimage.toPng(divMapa, { quality: 0.95 });
+
+  map.remove();
+  divMapa.style.display = "none";
+
+  console.log("🗺️ Mapa de ventas convertido correctamente a imagen local");
+  return dataUrl;
+}
 
   // Esperar a que el mapa se renderice correctamente
   await new Promise(r => setTimeout(r, 1200));
