@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Panel de Ventas – Rutas Venta</title>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { 
-      getFirestore, collection, getDocs, doc, deleteDoc 
+    import {
+      getFirestore, collection, getDocs, doc, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // ---- CONFIG FIREBASE ----
@@ -23,26 +23,52 @@
     const db = getFirestore(app);
     const rutasRef = collection(db, "rutas_venta");
 
-    // ---- CARGAR TODAS LAS VENTAS ----
+    // ---- FORMATEADORES ----
+    const formatDate = (ts) => {
+      if (!ts || !ts.seconds) return "Sin fecha";
+      const d = new Date(ts.seconds * 1000);
+      return d.toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" });
+    };
+
+    const formatMoney = (n) =>
+      n !== undefined ? `$${Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2 })}` : "-";
+
+    // ---- CARGAR VENTAS ----
     async function cargarVentas() {
       const contenedor = document.getElementById("cards");
       contenedor.innerHTML = `<p style="text-align:center;color:#555;">Cargando ventas...</p>`;
       const snapshot = await getDocs(rutasRef);
-      contenedor.innerHTML = "";
+      let ventas = [];
+
       snapshot.forEach(docu => {
+        const data = docu.data();
+        ventas.push({ id: docu.id, ...data });
+      });
+
+      // Ordenar por fecha (descendente)
+      ventas.sort((a, b) => (b.fecha?.seconds || 0) - (a.fecha?.seconds || 0));
+
+      contenedor.innerHTML = "";
+      ventas.forEach(v => {
         const card = document.createElement("div");
         card.className = "card";
-        const datos = JSON.stringify(docu.data(), null, 2);
         card.innerHTML = `
           <div class="card-header">
-            <input type="checkbox" class="chk" value="${docu.id}">
-            <span class="doc-id">${docu.id}</span>
+            <input type="checkbox" class="chk" value="${v.id}">
+            <span class="doc-id">${v.id}</span>
           </div>
-          <pre>${datos}</pre>
+          <div class="card-body">
+            <h3>${v.cliente || "SIN CLIENTE"}</h3>
+            <p><strong>Fecha:</strong> ${formatDate(v.fecha)}</p>
+            <p><strong>Ruta:</strong> ${v.rutaId || "–"} | <strong>Atendió:</strong> ${v.atendio || v.usuario || "–"}</p>
+            <p><strong>Forma de pago:</strong> ${v.metodo_pago || "–"}</p>
+            <p><strong>Subtotal:</strong> ${formatMoney(v.subtotal)} | <strong>Impuestos:</strong> ${formatMoney(v.impuestos)} | <strong>Total:</strong> ${formatMoney(v.total || v.recibido)}</p>
+            <p><strong>Corteado:</strong> ${v.corteado ? "✅ Sí" : "❌ No"}</p>
+          </div>
         `;
         contenedor.appendChild(card);
       });
-      document.getElementById("total").innerText = snapshot.size;
+      document.getElementById("total").innerText = ventas.length;
     }
 
     // ---- ELIMINAR SELECCIONADOS ----
@@ -70,36 +96,45 @@
 
   <style>
     body {
-      font-family: "Poppins", Arial, sans-serif;
-      background: #f0f4f9;
+      font-family: 'Poppins', Arial, sans-serif;
+      background: #eef2f7;
       margin: 0;
       padding: 0;
     }
+
     header {
       background: linear-gradient(90deg, #00416A, #0c6cbd);
-      color: white;
+      color: #fff;
       padding: 1.2rem 2rem;
       text-align: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
     }
-    header h1 { margin: 0; font-weight: 600; }
+
+    header h1 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
     main {
       padding: 20px;
-      max-width: 1200px;
+      max-width: 1300px;
       margin: auto;
     }
+
     .info-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 10px;
       margin-bottom: 20px;
     }
+
     .info-bar span {
       color: #333;
-      font-weight: 500;
+      font-size: 16px;
     }
+
     button {
       background: #c62828;
       color: white;
@@ -109,36 +144,37 @@
       font-size: 15px;
       cursor: pointer;
       transition: background 0.3s;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
     }
-    button:hover { background: #8e0000; }
 
-    /* GRID DE TARJETAS */
+    button:hover {
+      background: #8e0000;
+    }
+
     #cards {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
       gap: 16px;
     }
 
     .card {
       background: white;
-      border-radius: 14px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-      padding: 12px;
-      transition: transform 0.2s, box-shadow 0.2s;
-      display: flex;
-      flex-direction: column;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 14px 18px;
+      transition: all 0.2s ease;
     }
 
     .card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 20px rgba(0,0,0,0.18);
+      transform: translateY(-4px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
     }
 
     .card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .card-header input[type="checkbox"] {
@@ -147,7 +183,7 @@
     }
 
     .doc-id {
-      font-size: 13px;
+      font-size: 12px;
       color: #0c6cbd;
       font-weight: 600;
       word-break: break-all;
@@ -155,21 +191,21 @@
       flex: 1;
     }
 
-    pre {
-      background: #f8f9fa;
-      border-radius: 8px;
-      padding: 8px;
-      font-family: monospace;
-      font-size: 13px;
-      color: #222;
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow-x: auto;
+    .card-body h3 {
+      margin: 0 0 6px;
+      color: #00416A;
+      font-size: 17px;
+    }
+
+    .card-body p {
+      margin: 3px 0;
+      font-size: 14px;
+      color: #333;
     }
 
     footer {
       text-align: center;
-      padding: 20px;
+      padding: 15px;
       font-size: 13px;
       color: #777;
     }
