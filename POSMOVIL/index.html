@@ -342,10 +342,11 @@ let catalogo = [];
       rutaId = data.rutaId; // ruta depende del usuario
       $("#loginScreen").style.display="none";
       $("#posApp").style.display="block";
-      // 🌍 Forzar activación de GPS justo después del login
-    try {
-      mostrarToast("Activando geolocalización 📡");
-      await obtenerUbicacionInicial();
+// 🌍 Forzar activación de GPS justo después del login
+try {
+  mostrarToast("Activando geolocalización 📡");
+  window.UBICACION_ACTUAL = await obtenerUbicacionRobusta();
+
       // 🔹 Forzar permiso de GPS desde login
 if ("permissions" in navigator) {
   try {
@@ -380,9 +381,8 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
   $("#btnLogin").onclick=loginUsuario;
 // 🔹 Restaurar sesión si ya había un usuario guardado
 document.addEventListener("DOMContentLoaded", async () => {
-  
   // 🛰️ Pedir ubicación apenas carga la app
-  await obtenerUbicacionInicial();
+  window.UBICACION_ACTUAL = await obtenerUbicacionRobusta();
 
   const u = localStorage.getItem("usuario_ruta");
   if (!u) return; // no hay sesión previa
@@ -856,22 +856,15 @@ async function confirmarCobro() {
     const fecha = new Date();
     const fechaTxt = fecha.toLocaleString();
 
-    // 🛰️ Capturar ubicación actual
-// 🛰️ Capturar ubicación actual
-const ubicacion = await obtenerUbicacionActualRapida();
+// 🛰️ Capturar ubicación robusta (GPS + IP + precisión)
+const ubicacion = await obtenerUbicacionRobusta();
 
 if (ubicacion.lat && ubicacion.lon) {
-  try {
-    const resp = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${ubicacion.lat}&lon=${ubicacion.lon}&format=json`
-    );
-    const data = await resp.json();
-    ubicacion.direccion = data.display_name || "Sin dirección disponible";
-  } catch (e) {
-    ubicacion.direccion = "No se pudo obtener dirección";
-  }
+  console.log("📍 Ubicación obtenida para venta:", ubicacion);
+  mostrarToast(`📡 Ubicación lista (${ubicacion.precision || '?'}m)`);
 } else {
-  ubicacion.direccion = "Sin coordenadas disponibles";
+  console.warn("⚠️ No se pudo obtener coordenadas para esta venta");
+  mostrarToast("⚠️ Sin señal GPS, venta guardada sin coordenadas");
 }
 
     const venta = {
