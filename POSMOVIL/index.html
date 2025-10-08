@@ -509,8 +509,16 @@ async function checkCortePendiente() {
 
     console.log("🔎 Verificando corte del día:", fechaAyer);
 
-const cortesRef = collection(db, "cortes_globales");
-const q = query(cortesRef, where("rutaId", "==", rutaId));
+   
+// 🧠 Verificar si ya se hizo check hoy
+const ultimaVerificacion = localStorage.getItem("ultima_verif_corte");
+const hoyStr = new Date().toISOString().split("T")[0];
+if (ultimaVerificacion === hoyStr) {
+  console.log("✅ Corte ya verificado hoy, saltando revisión Firestore");
+  return true;
+}
+    const cortesRef = collection(db, "cortes_globales");
+    const q = query(cortesRef, where("rutaId", "==", rutaId));
     const snap = await getDocs(q);
 
     const btnCobrar = document.getElementById("btnCobrar");
@@ -529,6 +537,8 @@ const q = query(cortesRef, where("rutaId", "==", rutaId));
         btnCobrar.parentElement.appendChild(msg);
       console.warn("🚫 Corte pendiente. Bloqueando ventas.");
       mostrarToast("Corte pendiente, bloqueando ventas ⚠️");
+        // 🔹 Guardar verificación del día (aunque esté pendiente)
+      localStorage.setItem("ultima_verif_corte", hoyStr);
       return false;
     } else {
       btnCobrar.disabled = false;
@@ -536,6 +546,8 @@ const q = query(cortesRef, where("rutaId", "==", rutaId));
       if (document.getElementById("msgCortePendiente"))
         document.getElementById("msgCortePendiente").remove();
       console.log("✅ Corte del día anterior detectado. Ventas habilitadas.");
+       // 🔹 Guardar verificación exitosa del día
+      localStorage.setItem("ultima_verif_corte", hoyStr);
       return true;
     }
   } catch (err) {
