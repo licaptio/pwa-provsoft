@@ -293,6 +293,8 @@ import {
   const db  = getFirestore(app);
   const $ = (s)=>document.querySelector(s); // <--- muévela aquí
 import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// === GEOLOCALIZACIÓN ROBUSTA ===
+import { obtenerUbicacionRobusta } from './geoHelper.js';
 
 enableIndexedDbPersistence(db).catch(err => {
   console.warn("⚠️ Firestore offline persistence desactivado:", err);
@@ -305,73 +307,6 @@ window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: nu
 let carrito = [];
 let clientes = [];
 let catalogo = [];
-// 🌍 Obtener ubicación inicial (solo al abrir la app)
-async function obtenerUbicacionInicial() {
-  if (!("geolocation" in navigator)) {
-    console.warn("⚠️ Este dispositivo no soporta geolocalización.");
-    mostrarToast("Geolocalización no soportada ⚠️");
-    return;
-  }
-
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve(p),
-        (err) => reject(err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    });
-
-    window.UBICACION_ACTUAL.lat = pos.coords.latitude;
-    window.UBICACION_ACTUAL.lon = pos.coords.longitude;
-    window.UBICACION_ACTUAL.precision = pos.coords.accuracy;
-
-    try {
-      const resp = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
-      );
-      const data = await resp.json();
-      window.UBICACION_ACTUAL.direccion = data.display_name || null;
-    } catch (err) {
-      console.warn("No se pudo obtener dirección:", err.message);
-    }
-
-    console.log("📍 Ubicación inicial obtenida:", window.UBICACION_ACTUAL);
-    mostrarToast("GPS activado 📡");
-  } catch (err) {
-    console.warn("⚠️ No se pudo obtener ubicación inicial:", err.message);
-    mostrarToast("Ubicación no disponible ⚠️");
-  }
-}
-  
-// 📡 Obtener ubicación exacta en cada venta
-async function obtenerUbicacionActualRapida() {
-  if (!("geolocation" in navigator)) {
-    console.warn("⚠️ Este dispositivo no soporta geolocalización.");
-    return { lat: null, lon: null, precision: null };
-  }
-
-  try {
-    const pos = await new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve(p),
-        (err) => reject(err),
-        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
-      );
-    });
-
-    console.log("📍 Ubicación puntual capturada:", pos.coords.latitude, pos.coords.longitude);
-
-    return {
-      lat: pos.coords.latitude,
-      lon: pos.coords.longitude,
-      precision: pos.coords.accuracy
-    };
-  } catch (err) {
-    console.warn("⚠️ No se pudo obtener ubicación puntual:", err.message);
-    return { lat: null, lon: null, precision: null };
-  }
-}
 
   
   const codeIndex      = new Map();
