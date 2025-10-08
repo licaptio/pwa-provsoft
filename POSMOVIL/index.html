@@ -870,6 +870,14 @@ let bloqueandoCobro = false;
 
 async function confirmarCobro() {
   try {
+    // 🚫 Evitar doble clic en Confirmar
+if (bloqueandoCobro) {
+  console.warn("⏳ Cobro en proceso, espera...");
+  mostrarToast("⏳ Espera, procesando venta...");
+  return;
+}
+bloqueandoCobro = true;
+
     const { subtotal, impuestos, total } = calcularTotalesConImpuestosIncluidos();
     const clienteTxt = elCliente.value || "Mostrador";
     const metodo = metodoPago.value;
@@ -1036,11 +1044,14 @@ if (ubicacion.lat && ubicacion.lon) {
     carrito = [];
     render();
     cerrarCobro();
-  } catch (err) {
+} catch (err) {
     console.error("Error en confirmarCobro:", err);
     alert("Error guardando venta");
+  } finally {
+    bloqueandoCobro = false; // ✅ siempre libera al final
   }
 }
+  
   // ==== Ticket ====
   function rellenarTicket(venta){
     document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
