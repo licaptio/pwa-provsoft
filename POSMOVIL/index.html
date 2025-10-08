@@ -1102,7 +1102,8 @@ async function buscarTickets(){
   listaTickets.addEventListener('click',async(e)=>{
     const btn=e.target.closest('button[data-id]'); if(!btn)return;
     const id=btn.getAttribute('data-id');
-    const ref=doc(db,'rutas_venta',rutaId,'ventas',id); const snap=await getDoc(ref);
+    const ref = doc(db, "rutas_venta", id);
+    const snap=await getDoc(ref);
     if(snap.exists()){ rellenarTicket(snap.data()); imprimirTicketEstilado(); cerrarReimp(); }
   });
 
