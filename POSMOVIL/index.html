@@ -380,7 +380,23 @@ localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
   }
   $("#btnLogin").onclick=loginUsuario;
 // 🔹 Restaurar sesión si ya había un usuario guardado
-document.addEventListener("DOMContentLoaded", async () => {
+// 🚫 Evitar refrescar por error (F5 o gesture en móviles)
+window.addEventListener("keydown", (e) => {
+  if ((e.key === "F5" || (e.ctrlKey && e.key === "r")) && e.target.tagName !== "INPUT") {
+    e.preventDefault();
+    mostrarToast("Recarga deshabilitada durante venta ⚠️");
+  }
+});
+
+window.addEventListener("beforeunload", (e) => {
+  // Previene recargas o cierres involuntarios
+  e.preventDefault();
+  e.returnValue = "";
+  mostrarToast("⚠️ Salida bloqueada, guarda corte antes de cerrar");
+  return "";
+});
+
+  document.addEventListener("DOMContentLoaded", async () => {
   // 🛰️ Pedir ubicación apenas carga la app
   window.UBICACION_ACTUAL = await obtenerUbicacionRobusta();
 
