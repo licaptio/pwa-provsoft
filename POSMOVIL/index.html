@@ -878,6 +878,25 @@ if (bloqueandoCobro) {
 }
 bloqueandoCobro = true;
 
+// 🕓 Mostrar overlay de procesamiento
+const overlay = document.createElement("div");
+overlay.id = "overlayProcesando";
+overlay.textContent = "Procesando venta, por favor espera...";
+Object.assign(overlay.style, {
+  position: "fixed",
+  inset: "0",
+  background: "rgba(0,0,0,0.65)",
+  color: "#fff",
+  fontSize: "20px",
+  fontWeight: "700",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: "9999",
+});
+document.body.appendChild(overlay);
+
+  
     const { subtotal, impuestos, total } = calcularTotalesConImpuestosIncluidos();
     const clienteTxt = elCliente.value || "Mostrador";
     const metodo = metodoPago.value;
@@ -1049,6 +1068,10 @@ if (ubicacion.lat && ubicacion.lon) {
     alert("Error guardando venta");
   } finally {
     bloqueandoCobro = false; // ✅ siempre libera al final
+    // ✅ Ocultar overlay al terminar
+const ov = document.getElementById("overlayProcesando");
+if (ov) ov.remove();
+
   }
 }
   
