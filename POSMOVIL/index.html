@@ -865,8 +865,8 @@ async function guardarVentaEnFirestore(venta) {
     return null;
   }
 }
-
-
+// 🧠 Bandera global para evitar doble cobro
+let bloqueandoCobro = false;
 
 async function confirmarCobro() {
   try {
