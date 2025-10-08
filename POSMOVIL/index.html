@@ -528,7 +528,7 @@ async function checkCortePendiente() {
    
 // 🧠 Verificar si ya se hizo check hoy
 const ultimaVerificacion = localStorage.getItem("ultima_verif_corte");
-const hoyStr = new Date().toISOString().split("T")[0];
+const hoyStr = hoy.toISOString().split("T")[0];
 if (ultimaVerificacion === hoyStr) {
   console.log("✅ Corte ya verificado hoy, saltando revisión Firestore");
   return true;
