@@ -307,6 +307,7 @@ window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: nu
 let carrito = [];
 let clientes = [];
 let catalogo = [];
+const money = (n)=>'$'+(Number(n)||0).toFixed(2);
 
   
   const codeIndex      = new Map();
@@ -695,7 +696,9 @@ async function buscarClientesFirestore(texto){
     return [];
   }
 }
-
+const elCliente = document.getElementById("cliente");
+const elBuscador = document.getElementById("buscador");
+const elCant = document.getElementById("cantidadInput");
 
   let clienteSeleccionado=null;
  elCliente.addEventListener("change", async ()=>{
