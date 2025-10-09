@@ -1443,35 +1443,32 @@ async function fijarClientePublico() {
       <div class="t-thanks" style="text-align:center; margin-top:8px; font-size:12px;">¡Gracias por su compra!</div>
     </div>
 </div>
+<script type="module" src="./main.js"></script>
+
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js")
-    .then(() => console.log("✅ Service Worker registrado correctamente"))
-    .catch(err => console.error("❌ Error al registrar SW:", err));
+  .then(reg => console.log("✅ SW registrado:", reg.scope))
+  .catch(err => console.error("❌ Error registrando SW:", err));
 }
-</script>
 
-  document.addEventListener("DOMContentLoaded", () => {
+// 🔹 Evento DOMContentLoaded — cierre de sesión limpio
+document.addEventListener("DOMContentLoaded", () => {
   const btnLogout = document.getElementById("btnLogout");
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
       console.log("🚪 Cerrando sesión...");
-      
-      // 🧹 Borrar sesión y cachés del usuario
+      // 🧹 Limpiar sesión y caches
       localStorage.removeItem("usuario_ruta");
       localStorage.removeItem("catalogo_cache");
       localStorage.removeItem("catalogo_fecha");
-
-      // 🔹 Ocultar POS y mostrar login limpio
+      // 🔹 Restaurar UI
       document.getElementById("posApp").style.display = "none";
       document.getElementById("loginScreen").style.display = "flex";
-
-      // 🔹 Limpiar campos y mensaje
       document.getElementById("loginUsuario").value = "";
       document.getElementById("loginPassword").value = "";
       document.getElementById("loginMsg").textContent = "";
       mostrarToast("Sesión cerrada correctamente ✅");
-
     });
   } else {
     console.warn("⚠️ No se encontró el botón Salir en el DOM.");
@@ -1480,4 +1477,3 @@ if ("serviceWorker" in navigator) {
 </script>
 </body>
 </html>
-
