@@ -525,27 +525,35 @@ navigator.serviceWorker.addEventListener('message', e => {
     sincronizarVentasPendientes();
   }
 });
-// ==== Validación de corte diario ====
-// Bloquea la venta si no existe corte del día anterior
+// ==== Validación de corte diario (ajustada) ====
 async function checkCortePendiente() {
   try {
     const hoy = new Date();
+    const fechaHoy = hoy.toISOString().split("T")[0];
+
+    // ⚙️ Si aún no termina el día (antes de las 23:59), no bloquear
+    const horaActual = hoy.getHours();
+    if (horaActual < 23) {
+      console.log("⏰ Día en curso, no se requiere corte todavía.");
+      return true; // se permite vender
+    }
+
+    // 🔙 Verificar el corte del día anterior
     const ayer = new Date(hoy);
     ayer.setDate(hoy.getDate() - 1);
-    const fechaAyer = ayer.toISOString().split("T")[0]; // yyyy-mm-dd
+    const fechaAyer = ayer.toISOString().split("T")[0];
 
-    console.log("🔎 Verificando corte del día:", fechaAyer);
+    console.log("🔎 Verificando corte del día anterior:", fechaAyer);
 
-   
-// 🧠 Verificar si ya se hizo check hoy
-const ultimaVerificacion = localStorage.getItem("ultima_verif_corte");
-const hoyStr = hoy.toISOString().split("T")[0];
-if (ultimaVerificacion === hoyStr) {
-  console.log("✅ Corte ya verificado hoy, saltando revisión Firestore");
-  return true;
-}
+    // 🧠 Verificar si ya se revisó hoy
+    const ultimaVerificacion = localStorage.getItem("ultima_verif_corte");
+    if (ultimaVerificacion === fechaHoy) {
+      console.log("✅ Corte ya verificado hoy, saltando revisión Firestore");
+      return true;
+    }
+
     const cortesRef = collection(db, "cortes_globales");
-    const q = query(cortesRef, where("rutaId", "==", rutaId));
+    const q = query(cortesRef, where("rutaId", "==", rutaId), where("fecha", "==", fechaAyer));
     const snap = await getDocs(q);
 
     const btnCobrar = document.getElementById("btnCobrar");
@@ -557,32 +565,33 @@ if (ultimaVerificacion === hoyStr) {
     msg.style.marginTop = "10px";
 
     if (snap.empty) {
+      // 🚫 No se hizo corte del día anterior
       btnCobrar.disabled = true;
       btnCobrar.style.opacity = "0.4";
       msg.textContent = "⚠️ No se ha realizado el corte del día anterior.";
       if (!document.getElementById("msgCortePendiente"))
         btnCobrar.parentElement.appendChild(msg);
       console.warn("🚫 Corte pendiente. Bloqueando ventas.");
+
       mostrarToast("Corte pendiente, bloqueando ventas ⚠️");
-        // 🔹 Guardar verificación del día (aunque esté pendiente)
-      localStorage.setItem("ultima_verif_corte", hoyStr);
+      localStorage.setItem("ultima_verif_corte", fechaHoy);
       return false;
     } else {
+      // ✅ Corte del día anterior detectado
       btnCobrar.disabled = false;
       btnCobrar.style.opacity = "1";
       if (document.getElementById("msgCortePendiente"))
         document.getElementById("msgCortePendiente").remove();
       console.log("✅ Corte del día anterior detectado. Ventas habilitadas.");
-       // 🔹 Guardar verificación exitosa del día
-      localStorage.setItem("ultima_verif_corte", hoyStr);
+
+      localStorage.setItem("ultima_verif_corte", fechaHoy);
       return true;
     }
   } catch (err) {
     console.error("❌ Error al verificar corte pendiente:", err);
-    return true; // Por seguridad, no bloquea si falla la conexión
+    return true; // no bloquea si falla conexión
   }
 }
-
 async function cargarCatalogoDesdeFirestore() {
   try {
     const cache = localStorage.getItem("catalogo_cache");
