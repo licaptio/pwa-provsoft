@@ -1,11 +1,11 @@
 const CACHE_NAME = "provpos-v3";
 const ASSETS = [
-  "/POSMOVIL/",
-  "/POSMOVIL/index.html",
-  "/POSMOVIL/manifest.json",
-  "/POSMOVIL/logo_proveedora.webp",
-  "/POSMOVIL/icons/icon-192x192.png",
-  "/POSMOVIL/icons/icon-512x512.png"
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./logo_proveedora.webp",
+  "./icons/icon-192x192.png",
+  "./icons/icon-512x512.png"
 ];
 
 // 📦 Instalar y cachear los archivos base
