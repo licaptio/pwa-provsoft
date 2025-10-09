@@ -1,6 +1,6 @@
 const CACHE_NAME = "provpos-v3";
 const ASSETS = [
-  "./",
+    "./",
   "./index.html",
   "./manifest.json",
   "./logo_proveedora.webp",
