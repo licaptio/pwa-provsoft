@@ -1,4 +1,4 @@
-const CACHE_NAME = "provpos-v2";
+const CACHE_NAME = "provpos-v3";
 const ASSETS = [
   "/",
   "/index.html",
@@ -11,21 +11,22 @@ const ASSETS = [
 // 📦 Instalar y cachear archivos base
 self.addEventListener("install", e => {
   console.log("📦 Instalando Service Worker...");
-  e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));
-  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-// 🚀 Activar SW
+// 🚀 Activar SW y limpiar versiones viejas
 self.addEventListener("activate", e => {
   console.log("🚀 Activando Service Worker...");
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null))
-      )
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
-  return self.clients.claim();
+  self.clients.claim();
 });
 
 // 🌐 Interceptar peticiones y servir desde cache primero
@@ -34,17 +35,19 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
 
   e.respondWith(
-    caches.match(req).then(res =>
-      res ||
-      fetch(req).then(resp => {
-        // No cachear llamadas a Firebase
-        if (req.url.startsWith("http") && !req.url.includes("firebase")) {
-          const clone = resp.clone();
-          caches.open(CACHE_NAME).then(c => c.put(req, clone));
-        }
-        return resp;
-      }).catch(() => caches.match("./index.html"))
-    )
+    caches.match(req).then(res => {
+      if (res) return res;
+      return fetch(req)
+        .then(resp => {
+          // Evita cachear peticiones dinámicas (Firebase, APIs, etc.)
+          if (req.url.startsWith("http") && !req.url.includes("firebase")) {
+            const clone = resp.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
+          return resp;
+        })
+        .catch(() => caches.match("/index.html")); // ✅ FIX absoluto
+    })
   );
 });
 
