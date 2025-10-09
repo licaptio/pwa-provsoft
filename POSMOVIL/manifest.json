@@ -16,19 +16,17 @@
     { "src": "icons/icon-128x128.png", "sizes": "128x128", "type": "image/png" },
     { "src": "icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
-  ]
-}
-
+  ],
   "shortcuts": [
     {
       "name": "Nueva Venta",
       "short_name": "Venta",
-      "url": "/POSMOVIL/index.html"
+      "url": "/pwa-provsoft/POSMOVIL/index.html"
     },
     {
       "name": "Corte del Día",
       "short_name": "Corte",
-      "url": "/POSMOVIL/corte.html"
+      "url": "/pwa-provsoft/POSMOVIL/corte.html"
     }
   ]
 }
