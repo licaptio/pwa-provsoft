@@ -1,6 +1,6 @@
 {
-  "name": "PROVSOFT POS – Ruta de Venta",
-  "short_name": "POS Ruta",
+  "name": "Ruta de Venta PDD",
+  "short_name": "Ruta PDD",
   "description": "Sistema de punto de venta offline con sincronización automática para rutas de venta.",
   "start_url": "./index.html",
   "display": "standalone",
