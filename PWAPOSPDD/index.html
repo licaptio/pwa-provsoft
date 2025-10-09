@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>POS – Ruta de Venta</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --azul:#00416A; --resalte:#0c6cbd; --ok:#1e8e3e; --bg-grad:linear-gradient(to right,#00416A,#E4E5E6);
+      --card: rgba(255,255,255,.9); --muted:rgba(0,0,0,.55); --shadow:0 6px 18px rgba(0,0,0,.18);
+      --radius:14px; --radius-sm:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:'Poppins',system-ui,Arial; color:#111; background:var(--bg-grad);
+      display:flex; flex-direction:column; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent;
+    }
+
+    header{
+      position:sticky; top:0; z-index:50;
+      background:rgba(0,0,0,.6);
+      color:#fff;
+      padding:10px 14px;
+      display:flex; justify-content:center; align-items:center; gap:8px;
+      font-weight:700; font-size:18px;
+      backdrop-filter:saturate(120%) blur(4px);
+      height:50px;
+    }
+    header img{ height:75px; object-fit:contain; }
+
+    .wrap{flex:1; padding:12px; display:flex; flex-direction:column; gap:12px; max-width:720px; margin:0 auto}
+
+    .controls{ display:flex; flex-direction:column; gap:10px; }
+    .field{
+      display:flex; gap:8px; background:rgba(255,255,255,.12); padding:10px; border-radius:var(--radius-sm);
+      align-items:center; backdrop-filter:blur(2px);
+    }
+    .field label{min-width:78px; color:#fff; font-size:13px}
+    .field input{ flex:1; padding:10px 12px; border:none; border-radius:8px; font-size:15px; background:#fff; outline:none; }
+
+    .searchbox{ position:relative; z-index:300; }
+    .search-results{
+      position:absolute; left:90px; right:10px; top:calc(100% + 6px);
+      background:#fff; border-radius:12px; box-shadow:var(--shadow);
+      max-height:260px; overflow:auto; display:none; z-index:310;
+    }
+    .result-item{ padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:8px }
+    .result-item small{ color:var(--muted) }
+    .result-item:hover{ background:#f2f4f7 }
+
+    .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+
+    .table-wrap{ max-height:260px; overflow:auto; }
+    table{ width:100%; border-collapse:collapse; table-layout:fixed; }
+    thead th{ background:var(--azul); color:#fff; padding:10px; font-size:13px; position:sticky; top:0; z-index:100; }
+    thead th:nth-child(1){ width:55%; text-align:left; }
+    thead th:nth-child(2){ width:15%; text-align:center; }
+    thead th:nth-child(3){ width:20%; text-align:right; }
+    thead th:nth-child(4){ width:10%; text-align:center; }
+    td.del-col{ text-align:center; }
+    td.del-col .del{
+      background:#e74c3c; color:#fff; border:none; border-radius:50%;
+      width:22px; height:22px; font-size:14px; line-height:20px; cursor:pointer;
+    }
+    td.del-col .del:hover{ background:#c0392b; }
+
+    .totals{ display:flex; flex-direction:column; gap:6px; padding:12px 14px; background:#fff; }
+    .row{ display:flex; justify-content:space-between; align-items:center; font-size:15px }
+    .row.muted{ color:var(--muted) }
+    .row.big{ font-weight:700; font-size:18px }
+
+    .actions {
+  padding: 6px 0 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+.actions .btn {
+  flex: 1;                     /* mismo tamaño */
+  font-size: 14px;             /* texto más compacto */
+  padding: 12px 6px;
+}
+    .btn{
+      width:100%; border:none; padding:14px; border-radius:12px; font-size:18px; font-weight:700; color:#fff;
+      background:linear-gradient(180deg,var(--resalte),#094d85); box-shadow:var(--shadow); cursor:pointer;
+    }
+    .btn:active{ transform:translateY(1px) }
+    #btnCorte{ background:linear-gradient(180deg,#1e8e3e,#146329); margin-top:10px; }
+
+    /* Login */
+    #loginScreen{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#00416A;color:#fff}
+    #loginScreen input{padding:10px;border-radius:8px;margin:5px;border:none}
+    #loginMsg{color:#fbb;border-radius:8px;margin-top:8px}
+
+    .searchbox{ position:relative; }
+    .cam-btn{
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      border:none; padding:8px 10px; border-radius:10px; cursor:pointer;
+      background:#0c6cbd; color:#fff; font-size:16px;
+    }
+    .cam-btn:active{ transform:translateY(-49%); }
+#loginLogo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 20px;
+  animation: spinY 10s linear infinite;
+  transform-style: preserve-3d;
+}
+
+@keyframes spinY {
+  from { transform: rotateY(0deg); }
+  to   { transform: rotateY(360deg); }
+}   
+    /* ==== Estilos de impresión del ticket ==== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #ticketArea, #ticketArea * {
+    visibility: visible;
+  }
+  #ticketArea {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Ticket estilo recibo térmico */
+#ticket {
+  width: 80mm;
+  min-width: 80mm;
+  max-width: 80mm;
+  margin: 0;
+  padding: 0 2mm;
+}
+
+  #ticket .t-header {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+
+  #ticket .t-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin: 3px 0;
+    font-weight: 600;
+  }
+
+  #ticket .t-totals {
+    margin-top: 6px;
+    font-weight: 700;
+  }
+
+  #ticket .t-thanks {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  #ticket hr {
+    border: none;
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+    opacity: 0.9;
+  }
+
+  /* Quita botones o colores web */
+  button, .btn, header, .actions, #loginScreen {
+    display: none !important;
+  }
+}
+    @page {
+  size: 80mm auto;   /* ancho fijo 80mm, alto automático */
+  margin: 0;         /* sin márgenes */
+}
+/* 🔒 Desactivar pull-to-refresh en móviles Android/Chrome */
+body {
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
+}
+
+  </style>
+</head>
+<body>
+
+<!-- 🔑 LOGIN -->
+<div id="loginScreen">
+   <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
+  <h2>Acceso Ruta de Venta</h2>
+  <input id="loginUsuario" type="text" placeholder="Usuario"/>
+  <input id="loginPassword" type="password" placeholder="Contraseña"/>
+  <button id="btnLogin" class="btn">Entrar</button>
+  <div id="loginMsg"></div>
+</div>
+
+<!-- 📦 POS -->
+<div id="posApp" style="display:none;">
+<header>
+  <span>POS – Ruta de Venta</span>
+  <img src="logo_proveedora.webp" alt="Logo">
+  <button id="btnLogout" 
+          style="position:absolute; right:10px; top:10px; 
+                 background:#c0392b; color:white; border:none; 
+                 padding:6px 10px; border-radius:8px; 
+                 font-size:14px; font-weight:600; cursor:pointer;">
+    🚪 Salir
+  </button>
+</header>
+
+
+  <main class="wrap">
+    <section class="controls">
+      <div class="field">
+        <label>Cliente</label>
+        <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+        <datalist id="clientesList"></datalist>
+      </div>
+
+      <div class="field searchbox">
+        <label>Buscar</label>
+        <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+        <button id="btnCam" class="cam-btn" type="button">📷</button>
+        <div id="resultados" class="search-results"></div>
+      </div>
+
+      <div class="field">
+        <label>Cantidad</label>
+        <input id="cantidadInput" type="number" step="0.01" min="0.01" value="1">
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Cant.</th>
+              <th>Importe</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="totals">
+        <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+        <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+        <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+      </div>
+    </section>
+
+<section class="actions">
+  <button class="btn" id="btnCobrar">Cobrar</button>
+  <button class="btn" id="btnCorte">Corte del Día</button>
+  <button class="btn" id="btnReimprimir" style="background:linear-gradient(180deg,#6b7280,#374151);">
+    Reimprimir
+  </button>
+</section>
+
+  </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, setDoc, serverTimestamp, runTransaction, doc,
+  getDocs, getDoc, query, where, orderBy, Timestamp, limit   // 👈 agrega limit aquí
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+  // ==== Configuración Firebase ====
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  const $ = (s)=>document.querySelector(s); // <--- muévela aquí
+import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// === GEOLOCALIZACIÓN ROBUSTA ===
+import { obtenerUbicacionRobusta } from './geoHelper.js';
+
+enableIndexedDbPersistence(db).catch(err => {
+  console.warn("⚠️ Firestore offline persistence desactivado:", err);
+});
+
+  // ==== Variables globales ====
+  window.USUARIO_LOGUEADO = null;
+window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: null };
+  let rutaId = null;
+let carrito = [];
+let clientes = [];
+let catalogo = [];
+
+  
+  const codeIndex      = new Map();
+  
+
+/* 🔒 [PROVSOFT CONFIG] — Búsqueda dinámica de clientes
+   Desactivado temporalmente porque sólo se usa "PÚBLICO EN GENERAL".
+   Cuando se habiliten más clientes, quitar este comentario.
+   ---------------------------------------------------------
+   elCliente.addEventListener("input", async ()=>{
+     const texto = elCliente.value.trim();
+     const sugerencias = await buscarClientesFirestore(texto);
+     const dl=document.getElementById("clientesList");
+     dl.innerHTML="";
+     sugerencias.forEach(cli=>{
+       const opt=document.createElement("option");
+       opt.value = cli.nombre;
+       opt.label = cli.catalogo ? `${cli.nombre} (${cli.catalogo})` : cli.nombre;
+       dl.appendChild(opt);
+     });
+   });
+*/
+
+  const elResultados=$('#resultados'), elTbody=$('#tbody');
+  const lblSubtotal=$('#lblSubtotal'), lblTotal=$('#lblTotal'), lblImp=$('#lblImpuestos');
+
+  // ==== Login ====
+  async function loginUsuario(){
+    const u=$("#loginUsuario").value.trim(), p=$("#loginPassword").value.trim();
+    const msg=$("#loginMsg"); msg.textContent="Verificando...";
+    try{
+      const ref=collection(db,"usuarios_ruta");
+      const q=query(ref,where("usuario","==",u),where("password","==",p),where("activo","==",true));
+      const snap=await getDocs(q);
+      if(snap.empty){ msg.textContent="Usuario o contraseña incorrectos"; return;}
+      const data=snap.docs[0].data();
+      USUARIO_LOGUEADO={id:snap.docs[0].id,...data};
+      rutaId = data.rutaId; // ruta depende del usuario
+      $("#loginScreen").style.display="none";
+      $("#posApp").style.display="block";
+// 🌍 Forzar activación de GPS justo después del login
+try {
+  mostrarToast("Activando geolocalización 📡");
+  window.UBICACION_ACTUAL = await obtenerUbicacionRobusta();
+
+      // 🔹 Forzar permiso de GPS desde login
+if ("permissions" in navigator) {
+  try {
+    const perm = await navigator.permissions.query({ name: "geolocation" });
+    console.log("🔒 Permiso de geolocalización:", perm.state);
+    if (perm.state === "denied") {
+      alert("Activa permisos de ubicación en ajustes o navegador para registrar la venta con GPS.");
+    }
+  } catch (e) {
+    console.warn("No se pudo verificar permisos de ubicación:", e.message);
+  }
+}
+
+      console.log("✅ Ubicación tras login:", window.UBICACION_ACTUAL);
+    } catch (e) {
+      console.warn("⚠️ No se pudo obtener ubicación tras login:", e.message);
+      mostrarToast("Activa permisos de ubicación ⚠️");
+    }
+
+    // 🔹 Cargar datos
+    await cargarCatalogoDesdeFirestore();
+    await cargarDepartamentos();
+    render();
+    await sincronizarVentasPendientes();
+      await fijarClientePublico();
+
+      
+      // 🔹 Guardar sesión en localStorage
+localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+
+    }catch(e){ msg.textContent="Error de conexión"; console.error(e);}
+  }
+  $("#btnLogin").onclick=loginUsuario;
+// 🔹 Restaurar sesión si ya había un usuario guardado
+// 🚫 Evitar refrescar por error (F5 o gesture en móviles)
+window.addEventListener("keydown", (e) => {
+  if ((e.key === "F5" || (e.ctrlKey && e.key === "r")) && e.target.tagName !== "INPUT") {
+    e.preventDefault();
+    mostrarToast("Recarga deshabilitada durante venta ⚠️");
+  }
+});
+
+window.addEventListener("beforeunload", (e) => {
+  // Previene recargas o cierres involuntarios
+  e.preventDefault();
+  e.returnValue = "";
+  mostrarToast("⚠️ Salida bloqueada, guarda corte antes de cerrar");
+  return "";
+});
+
+  document.addEventListener("DOMContentLoaded", async () => {
+  // 🛰️ Pedir ubicación apenas carga la app
+  window.UBICACION_ACTUAL = await obtenerUbicacionRobusta();
+    // 👤 Fijar cliente público desde el inicio
+  await fijarClientePublico();
+
+
+  const u = localStorage.getItem("usuario_ruta");
+  if (!u) return; // no hay sesión previa
+
+  try {
+    window.USUARIO_LOGUEADO = JSON.parse(u);
+    rutaId = window.USUARIO_LOGUEADO.rutaId;
+
+    console.log("🔁 Restaurando sesión previa de:", window.USUARIO_LOGUEADO.usuario);
+
+    // Mostrar interfaz POS y ocultar login
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("posApp").style.display = "block";
+
+    // Recargar catálogo y datos esenciales
+    await cargarCatalogoDesdeFirestore();
+    await cargarDepartamentos();
+    render();
+    await sincronizarVentasPendientes();
+    await checkCortePendiente();
+    await fijarClientePublico();
+
+    console.log("✅ Sesión restaurada correctamente.");
+  } catch (err) {
+    console.error("❌ Error restaurando sesión:", err);
+    // Si algo falla, limpiar localStorage
+    localStorage.removeItem("usuario_ruta");
+  }
+});
+
+  // ==== IndexedDB helper (ventas offline) ====
+  function openLocalDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('posDB', 1);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('ventasPendientes')) {
+          db.createObjectStore('ventasPendientes', { keyPath: 'folio' });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror  = () => reject(request.error);
+    });
+  }
+
+  async function getVentasPendientes() {
+    const db = await openLocalDB();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction('ventasPendientes', 'readonly');
+      const req = tx.objectStore('ventasPendientes').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => reject(req.error);
+    });
+  }
+  async function borrarVentaPendiente(folio) {
+    const db = await openLocalDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('ventasPendientes', 'readwrite');
+      tx.objectStore('ventasPendientes').delete(folio);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror    = () => reject(tx.error);
+    });
+  }
+
+  async function guardarVentaOffline(venta) {
+    const db = await openLocalDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('ventasPendientes', 'readwrite');
+      tx.objectStore('ventasPendientes').put(venta);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror    = () => reject(tx.error);
+    });
+  }
+
+async function sincronizarVentasPendientes() {
+  try {
+    const pendientes = await getVentasPendientes();
+    if (pendientes.length === 0) return;
+
+    for (const venta of pendientes) {
+      try {
+        venta.cortado = false;
+        venta.usuarioId = USUARIO_LOGUEADO?.id || "";
+        venta.usuarioNombre = USUARIO_LOGUEADO?.nombre || "";
+        venta.rutaId = rutaId || "";
+
+        const ref = collection(db, "rutas_venta");
+        await addDoc(ref, venta);
+        await borrarVentaPendiente(venta.folio);
+
+        console.log(`✅ Venta pendiente subida: ${venta.folio}`);
+      } catch (err) {
+        console.error(`❌ Error al subir venta ${venta.folio}:`, err);
+      }
+    }
+  } catch (err) {
+    console.error("Error al sincronizar ventas pendientes:", err);
+  }
+}
+
+  window.addEventListener('online', ()=> { sincronizarVentasPendientes(); });
+// 🔁 Registrar sincronización cuando el SW esté listo
+navigator.serviceWorker.ready.then(reg => {
+  if ('sync' in reg) {
+    reg.sync.register('sync-ventas-pendientes');
+    console.log("📡 Sincronización en background registrada");
+  }
+});
+
+// 📨 Escuchar mensajes del SW
+navigator.serviceWorker.addEventListener('message', e => {
+  if (e.data.action === 'sincronizar') {
+    console.log("📨 Mensaje recibido desde SW: sincronizar");
+    sincronizarVentasPendientes();
+  }
+});
+// ==== Validación de corte diario ====
+// Bloquea la venta si no existe corte del día anterior
+async function checkCortePendiente() {
+  try {
+    const hoy = new Date();
+    const ayer = new Date(hoy);
+    ayer.setDate(hoy.getDate() - 1);
+    const fechaAyer = ayer.toISOString().split("T")[0]; // yyyy-mm-dd
+
+    console.log("🔎 Verificando corte del día:", fechaAyer);
+
+   
+// 🧠 Verificar si ya se hizo check hoy
+const ultimaVerificacion = localStorage.getItem("ultima_verif_corte");
+const hoyStr = hoy.toISOString().split("T")[0];
+if (ultimaVerificacion === hoyStr) {
+  console.log("✅ Corte ya verificado hoy, saltando revisión Firestore");
+  return true;
+}
+    const cortesRef = collection(db, "cortes_globales");
+    const q = query(cortesRef, where("rutaId", "==", rutaId));
+    const snap = await getDocs(q);
+
+    const btnCobrar = document.getElementById("btnCobrar");
+    const msg = document.createElement("div");
+    msg.id = "msgCortePendiente";
+    msg.style.color = "red";
+    msg.style.fontWeight = "700";
+    msg.style.textAlign = "center";
+    msg.style.marginTop = "10px";
+
+    if (snap.empty) {
+      btnCobrar.disabled = true;
+      btnCobrar.style.opacity = "0.4";
+      msg.textContent = "⚠️ No se ha realizado el corte del día anterior.";
+      if (!document.getElementById("msgCortePendiente"))
+        btnCobrar.parentElement.appendChild(msg);
+      console.warn("🚫 Corte pendiente. Bloqueando ventas.");
+      mostrarToast("Corte pendiente, bloqueando ventas ⚠️");
+        // 🔹 Guardar verificación del día (aunque esté pendiente)
+      localStorage.setItem("ultima_verif_corte", hoyStr);
+      return false;
+    } else {
+      btnCobrar.disabled = false;
+      btnCobrar.style.opacity = "1";
+      if (document.getElementById("msgCortePendiente"))
+        document.getElementById("msgCortePendiente").remove();
+      console.log("✅ Corte del día anterior detectado. Ventas habilitadas.");
+       // 🔹 Guardar verificación exitosa del día
+      localStorage.setItem("ultima_verif_corte", hoyStr);
+      return true;
+    }
+  } catch (err) {
+    console.error("❌ Error al verificar corte pendiente:", err);
+    return true; // Por seguridad, no bloquea si falla la conexión
+  }
+}
+
+async function cargarCatalogoDesdeFirestore() {
+  try {
+    const cache = localStorage.getItem("catalogo_cache");
+    const hoy = new Date().toDateString();
+    const fechaCache = localStorage.getItem("catalogo_fecha");
+
+    if (cache && fechaCache === hoy) {
+      catalogo = JSON.parse(cache);
+      catalogo.forEach(p => {
+        if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
+      });
+      console.log("📦 Catálogo cargado desde cache local");
+      return;
+    }
+
+    console.log("🔄 Descargando catálogo activo desde Firestore...");
+
+    // 🔹 Usa filtro en servidor para traer solo productos activos
+    const ref = collection(db, "productos");
+    const q = query(ref, where("activo", "==", true));
+    const prodSnap = await getDocs(q);
+
+    catalogo = [];
+    codeIndex.clear();
+
+    prodSnap.forEach(d => {
+      const x = d.data();
+const prod = {
+  id: d.id,
+  nombre: x.concepto || "SIN NOMBRE",
+  codigo: (x.codigoBarra || "").toString(),
+  precioPublico: Number(x.precioPublico || 0),
+  costoUnit: Number(x.costo || 0), // 👈 nuevo campo
+  ivaTasa: Number(x.ivaTasa || 0),
+  iepsTasa: Number(x.iepsTasa || 0),
+  departamento_id: x.departamento_id || null
+};
+
+      catalogo.push(prod);
+      if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
+    });
+
+    localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
+    localStorage.setItem("catalogo_fecha", hoy);
+    console.log(`✅ Catálogo guardado en cache local (${catalogo.length} productos activos)`);
+  } catch (err) {
+    console.error("❌ Error cargando catálogo:", err);
+  }
+}
+
+let departamentos = {};
+
+async function cargarDepartamentos() {
+  const snap = await getDocs(collection(db, "departamentos_venta"));
+  snap.forEach(d => {
+    const data = d.data();
+    departamentos[d.id] = {
+      id: Number(data.id || d.id),
+      nombre: data.nombre || "SIN DEPARTAMENTO",
+      iva: Number(data.iva || 0),
+      ieps: Number(data.ieps || 0)
+    };
+  });
+  console.log("📂 Departamentos cargados:", Object.keys(departamentos).length);
+}
+
+
+// ==== Autocompletado de Clientes con caché ====
+const cacheClientes = new Map();
+
+async function buscarClientesFirestore(texto){
+  // ⚡️ evita consultas innecesarias
+  if(!texto || texto.length < 2) return [];
+
+  // ✅ si ya lo tenemos en memoria, devolver directo
+  if(cacheClientes.has(texto)){
+    console.log("📋 Clientes cargados desde cache:", texto);
+    return cacheClientes.get(texto);
+  }
+
+  console.log("🔍 Consultando clientes en Firestore:", texto);
+  const ref = collection(db,"clientes");
+  const q = query(
+    ref,
+    where("nombre",">=",texto),
+    where("nombre","<",texto + "\uf8ff"),
+    limit(10)
+  );
+
+  try {
+    const snap = await getDocs(q);
+    const lista = [];
+    snap.forEach(d=>{
+      const c = d.data();
+      if(c.activo===false) return;
+      lista.push({
+        id:d.id,
+        nombre:c.nombre||"",
+        catalogo:c.catalogo||"",
+        rfc:c.rfc||"",
+        uso_cfdi:c.uso_cfdi||"",
+        ocupa_factura: !!c.ocupa_factura
+      });
+    });
+
+    // 🧠 guarda en memoria local para reusos rápidos
+    cacheClientes.set(texto, lista);
+    return lista;
+  } catch(err){
+    console.error("❌ Error buscando clientes:", err);
+    return [];
+  }
+}
+
+
+  let clienteSeleccionado=null;
+ elCliente.addEventListener("change", async ()=>{
+  const texto = elCliente.value.trim();
+  const resultados = await buscarClientesFirestore(texto);
+  clienteSeleccionado = resultados.find(c=>c.nombre===texto) || null;
+});
+
+  // ==== Carrito ====
+  const money=(n)=>'$'+(Number(n)||0).toFixed(2);
+  function render(){
+    elTbody.innerHTML="";
+    carrito.forEach(it=>{
+      const tr=document.createElement("tr");
+      tr.innerHTML=`<td>${it.nombre}</td><td>${it.cantidad.toFixed(2)}</td><td>${money(it.importe)}</td>
+        <td class="del-col"><button class="del">✕</button></td>`;
+      tr.querySelector('.del').onclick=()=>delItem(it.id);
+      elTbody.appendChild(tr);
+    });
+    const {subtotal,impuestos,total}=calcularTotalesConImpuestosIncluidos();
+    lblSubtotal.textContent=money(subtotal);
+    lblImp.textContent=money(impuestos);
+    lblTotal.textContent=money(total);
+  }
+  function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+  function addProduct(prod,cantidad=1){
+    if(!prod)return;
+    const cant=Math.max(0.01,Number(cantidad)||1);
+    const precio=Number(prod.precioPublico||0);
+    const ex=carrito.find(x=>x.id===prod.id);
+    if(ex){ex.cantidad+=cant; ex.importe=ex.cantidad*precio;}
+    else{carrito.push({...prod,cantidad:cant,precioUnit:precio,importe:cant*precio});}
+    render();
+  }
+
+  // ==== Buscador ====
+  function buscarLocal(qraw){
+    const q=(qraw||"").trim(); if(!q)return[];
+    const idByCode=codeIndex.get(q);
+    if(idByCode){const p=catalogo.find(x=>x.id===idByCode); if(p)return[p];}
+    return catalogo.filter(p=>(p.nombre||"").toLowerCase().includes(q.toLowerCase()));
+  }
+  function pintarResultados(hits){
+    elResultados.innerHTML=""; if(hits.length===0){elResultados.style.display="none";return;}
+    elResultados.style.display="block";
+    hits.forEach(p=>{
+      const div=document.createElement("div");
+      div.className="result-item"; div.innerHTML=`<span>${p.nombre}</span><span><small>${p.codigo}</small> ${money(p.precioPublico)}</span>`;
+      div.onclick=()=>{prodSeleccionado=p; elBuscador.value=p.nombre; elResultados.style.display="none"; elCant.focus(); elCant.select();};
+      elResultados.appendChild(div);
+    });
+  }
+
+  let prodSeleccionado=null;
+  elBuscador.addEventListener('input',()=>pintarResultados(buscarLocal(elBuscador.value)));
+  elBuscador.addEventListener('keydown',(ev)=>{
+    if(ev.key==='Enter'){
+      const hits=buscarLocal(elBuscador.value.trim());
+      if(hits.length>=1){
+        prodSeleccionado=hits[0];
+        elResultados.style.display="none";
+        elBuscador.value=hits[0].nombre;
+        elCant.focus(); elCant.select();
+      }
+    }
+  });
+  elCant.addEventListener('keydown',(ev)=>{
+    if(ev.key==='Enter'){
+      if(!clienteSeleccionado){alert('Selecciona un cliente primero.');elCliente.focus();return;}
+      if(!prodSeleccionado){alert('Selecciona un producto.');elBuscador.focus();return;}
+      let cant=parseFloat(elCant.value||'');
+      if(isNaN(cant)||cant<=0){alert('Ingresa cantidad válida.');elCant.focus();return;}
+      addProduct(prodSeleccionado,cant);
+      prodSeleccionado=null; elBuscador.value=''; elCant.value='1'; elBuscador.focus();
+    }
+  });
+function calcularTotalesConImpuestosIncluidos() {
+  let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
+
+  carrito.forEach(it => {
+    const imp = it.cantidad * it.precioUnit;
+    let base = imp, iva = 0, ieps = 0;
+
+    // 🧠 Tasas desde departamento o producto, convertidas a fracción
+    const depId = it.departamento_id?.toString() || "0";
+    const depInfo = departamentos[depId] || { iva: 0, ieps: 0 };
+    const ivaTasa = Number(depInfo.iva || 0) / 100;
+    const iepsTasa = Number(depInfo.ieps || 0) / 100;
+
+    // 🧾 Desglose según impuestos incluidos
+    if (iepsTasa > 0 && ivaTasa > 0) {
+      base = imp / (1 + iepsTasa + ivaTasa * (1 + iepsTasa));
+      ieps = base * iepsTasa;
+      iva = (base + ieps) * ivaTasa;
+    } else if (iepsTasa > 0) {
+      base = imp / (1 + iepsTasa);
+      ieps = base * iepsTasa;
+    } else if (ivaTasa > 0) {
+      base = imp / (1 + ivaTasa);
+      iva = base * ivaTasa;
+    } else {
+      base = imp;
+    }
+
+    // 🧮 Guardar desglose fiscal por producto
+    it._desglose = {
+      base: +base.toFixed(2),
+      iva: +iva.toFixed(2),
+      ieps: +ieps.toFixed(2),
+      total: +imp.toFixed(2),
+      ivaTasa: +(ivaTasa * 100),
+      iepsTasa: +(iepsTasa * 100)
+    };
+
+    subtotal += base;
+    totalIva += iva;
+    totalIeps += ieps;
+    total += imp;
+  });
+
+  const impuestos = totalIva + totalIeps;
+
+  return {
+    subtotal: +subtotal.toFixed(2),
+    impuestos: +impuestos.toFixed(2),
+    total: +total.toFixed(2),
+    totalIva: +totalIva.toFixed(2),
+    totalIeps: +totalIeps.toFixed(2)
+  };
+}
+
+  // ==== Modal Cobro ====
+  const modalCobro=document.getElementById('modalCobro');
+  const cobroTotal=document.getElementById('cobroTotal');
+  const metodoPago=document.getElementById('metodoPago');
+  const bloqueEfectivo=document.getElementById('bloqueEfectivo');
+  const montoRecibido=document.getElementById('montoRecibido');
+  const montoCambio=document.getElementById('montoCambio');
+  const notasCobro=document.getElementById('notasCobro');
+
+  function abrirCobro(){
+    if(carrito.length===0){alert('Agrega productos primero');return;}
+    document.body.classList.add('modal-open');
+    const {total}=calcularTotalesConImpuestosIncluidos();
+    cobroTotal.textContent=money(total);
+    montoRecibido.value=''; montoCambio.textContent=money(0);
+    notasCobro.value=''; metodoPago.value='efectivo'; bloqueEfectivo.style.display='block';
+    modalCobro.style.display='flex';
+  }
+  function cerrarCobro(){modalCobro.style.display='none'; document.body.classList.remove('modal-open');}
+  metodoPago.addEventListener('change',()=>{const isCash=metodoPago.value==='efectivo'||metodoPago.value==='mixto'; bloqueEfectivo.style.display=isCash?'block':'none';});
+  montoRecibido.addEventListener('input',()=>{const {total}=calcularTotalesConImpuestosIncluidos(); const recibidoX=parseFloat(montoRecibido.value||'0'); const cambio=Math.max(0,recibidoX-total); montoCambio.textContent=money(cambio);});
+
+  async function getNextFolio(db){
+    const ref=doc(db,'consecutivos',rutaId);
+    const folio=await runTransaction(db,async(tx)=>{const snap=await tx.get(ref); if(!snap.exists()){tx.set(ref,{valor:1,actualizado:serverTimestamp()}); return 1;} const actual=Number(snap.data().valor||0)+1; tx.update(ref,{valor:actual,actualizado:serverTimestamp()}); return actual;});
+    return `RV-${String(folio).padStart(6,'0')}`;
+  }
+
+// ==== Guardar venta en Firestore (colección unificada) ====
+async function guardarVentaEnFirestore(venta) {
+  try {
+    const ventaLimpia = structuredClone(venta);
+    ventaLimpia.fecha = serverTimestamp();
+    ventaLimpia.cortado = false; // 🔹 importante para saber si ya entró en corte
+    ventaLimpia.usuarioId = USUARIO_LOGUEADO?.id || "";
+    ventaLimpia.usuarioNombre = USUARIO_LOGUEADO?.nombre || "";
+    ventaLimpia.rutaId = rutaId || "";
+
+    // 👇 ahora todas las ventas van a la colección raíz "rutas_venta"
+    const ref = collection(db, "rutas_venta");
+    const docRef = await addDoc(ref, ventaLimpia);
+
+    console.log("✅ Venta registrada globalmente en rutas_venta:", docRef.id);
+    return docRef.id;
+  } catch (err) {
+    console.error("❌ Error guardando venta en Firestore:", err);
+    await guardarVentaOffline(venta);
+    return null;
+  }
+}
+// 🧠 Bandera global para evitar doble cobro
+let bloqueandoCobro = false;
+
+async function confirmarCobro() {
+  try {
+    // 🚫 Evitar doble clic en Confirmar
+if (bloqueandoCobro) {
+  console.warn("⏳ Cobro en proceso, espera...");
+  mostrarToast("⏳ Espera, procesando venta...");
+  return;
+}
+bloqueandoCobro = true;
+
+// 🕓 Mostrar overlay de procesamiento
+const overlay = document.createElement("div");
+overlay.id = "overlayProcesando";
+overlay.textContent = "Procesando venta, por favor espera...";
+Object.assign(overlay.style, {
+  position: "fixed",
+  inset: "0",
+  background: "rgba(0,0,0,0.65)",
+  color: "#fff",
+  fontSize: "20px",
+  fontWeight: "700",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: "9999",
+});
+document.body.appendChild(overlay);
+
+  
+    const { subtotal, impuestos, total } = calcularTotalesConImpuestosIncluidos();
+    const clienteTxt = elCliente.value || "Mostrador";
+    const metodo = metodoPago.value;
+    const recibido = parseFloat(montoRecibido.value || "0");
+    if ((metodo === "efectivo" || metodo === "mixto") && recibido < total) {
+      alert("Pago insuficiente");
+      return;
+    }
+    const cambio = Math.max(0, recibido - total);
+    const notas = (notasCobro.value || "").trim();
+    const folio = await getNextFolio(db);
+    const fecha = new Date();
+    const fechaTxt = fecha.toLocaleString();
+
+// 🛰️ Capturar ubicación robusta (GPS + IP + precisión)
+const ubicacion = await obtenerUbicacionRobusta();
+
+if (ubicacion.lat && ubicacion.lon) {
+  console.log("📍 Ubicación obtenida para venta:", ubicacion);
+  mostrarToast(`📡 Ubicación lista (${ubicacion.precision || '?'}m)`);
+} else {
+  console.warn("⚠️ No se pudo obtener coordenadas para esta venta");
+  mostrarToast("⚠️ Sin señal GPS, venta guardada sin coordenadas");
+}
+
+const venta = {
+  folio,
+  rutaId,
+  usuario: USUARIO_LOGUEADO?.usuario || "",
+  atendio: USUARIO_LOGUEADO?.nombre || "",
+  fecha: serverTimestamp(),
+  fecha_txt: fechaTxt,
+  cliente: clienteTxt,
+  cliente_info: clienteSeleccionado || null,
+  metodo_pago: metodo,
+  recibido,
+  cambio,
+  notas,
+  cortado: false,
+  ubicacion, // 🔹 guarda lat, lon, precision y dirección completa
+
+  // 🧾 Desglose de productos vendidos
+  detalle: carrito.map(it => {
+    const depId = it.departamento_id?.toString() || "0";
+    const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
+    const costoUnit = Number(it.costoUnit || 0);
+    const costoTotal = costoUnit * it.cantidad;
+    const utilidad = it.importe - costoTotal;
+
+    return {
+      id: it.id,
+      nombre: it.nombre,
+      cantidad: it.cantidad,
+      precio_unit: it.precioUnit,
+      importe: it.importe,
+      costo_unit: costoUnit,
+      costo_total: +costoTotal.toFixed(2),
+      utilidad: +utilidad.toFixed(2),
+      departamento_id: depId,
+      departamento_info: depInfo
+    };
+  }),
+};
+
+// 💰 Calcular totales y márgenes generales
+const costoTotalVenta = venta.detalle.reduce((acc, d) => acc + d.costo_total, 0);
+const utilidadTotal = venta.detalle.reduce((acc, d) => acc + d.utilidad, 0);
+const margenPorcentaje = total > 0 ? ((utilidadTotal / total) * 100).toFixed(2) : 0;
+
+// 📊 Resumen financiero completo
+venta.resumen_financiero = {
+  subtotal,
+  impuestos,
+  total,
+  costo_total: +costoTotalVenta.toFixed(2),
+  utilidad_total: +utilidadTotal.toFixed(2),
+  margen_porcentaje: +margenPorcentaje
+};
+
+// 🔹 Copias rápidas para consultas directas
+venta.costo_total = venta.resumen_financiero.costo_total;
+venta.utilidad_total = venta.resumen_financiero.utilidad_total;
+venta.margen_porcentaje = venta.resumen_financiero.margen_porcentaje;
+
+
+    // 💾 Guardar venta en Firestore
+    await guardarVentaEnFirestore(venta);
+
+    // 📤 Enviar a Telegram (mensaje + PDF)
+    try {
+      const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+      const CHAT_ID = "6617988297";
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.text("La Proveedora - Ticket de Venta", 10, 15);
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Folio: ${venta.folio}`, 10, 25);
+      pdf.text(`Fecha: ${venta.fecha_txt}`, 10, 30);
+      pdf.text(`Vendedor: ${venta.atendio}`, 10, 35);
+      pdf.text(`Ruta: ${venta.rutaId}`, 10, 40);
+      pdf.text(`Cliente: ${venta.cliente}`, 10, 45);
+      pdf.text(`Método de Pago: ${venta.metodo_pago}`, 10, 50);
+
+      pdf.line(10, 53, 200, 53);
+      let y = 60;
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Cant.   Producto                     Importe", 10, y);
+      pdf.setFont("helvetica", "normal");
+      y += 5;
+
+      (venta.detalle || []).forEach(item => {
+        const desc = item.nombre.length > 25 ? item.nombre.slice(0, 25) + "…" : item.nombre;
+        pdf.text(`${item.cantidad.toFixed(2)}   ${desc}`, 10, y);
+        pdf.text(`$${item.importe.toFixed(2)}`, 160, y);
+        y += 5;
+        if (y > 270) {
+          pdf.addPage();
+          y = 20;
+        }
+      });
+
+      y += 5;
+      pdf.line(10, y, 200, y);
+      y += 6;
+      pdf.text(`Subtotal: $${venta.subtotal.toFixed(2)}`, 130, y);
+      y += 5;
+      pdf.text(`Impuestos: $${venta.impuestos.toFixed(2)}`, 130, y);
+      y += 5;
+      pdf.text(`Total: $${venta.total.toFixed(2)}`, 130, y);
+
+      if (venta.ubicacion?.lat) {
+        y += 10;
+        pdf.setTextColor(0, 0, 255);
+        pdf.textWithLink("📍 Ver ubicación en mapa", 10, y, {
+          url: `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`,
+        });
+        pdf.setTextColor(0, 0, 0);
+      }
+
+      const pdfBlob = pdf.output("blob");
+
+      const mapUrl = venta.ubicacion?.lat
+        ? `https://www.google.com/maps?q=${venta.ubicacion.lat},${venta.ubicacion.lon}`
+        : "Sin ubicación";
+
+      // 🛰️ Mensaje Telegram con dirección incluida
+      const mensaje = `
+🧾 *Nueva Venta Registrada*
+👤 *Vendedor:* ${venta.atendio || "Desconocido"}
+🧮 *Folio:* ${venta.folio}
+📍 *Ubicación:* ${venta.ubicacion?.direccion || "Sin dirección"}
+🌎 *Coordenadas:* ${venta.ubicacion?.lat?.toFixed(5) || "—"}, ${venta.ubicacion?.lon?.toFixed(5) || "—"}
+💰 *Total:* $${venta.total.toFixed(2)}
+🧑‍🤝‍🧑 *Cliente:* ${venta.cliente || "Mostrador"}
+📌 [Ver en mapa](${mapUrl})  
+`.trim();
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: mensaje,
+          parse_mode: "Markdown",
+        }),
+      });
+
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      formData.append("document", pdfBlob, `Ticket_${venta.folio}.pdf`);
+
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+        method: "POST",
+        body: formData,
+      });
+
+      console.log("✅ Venta enviada a Telegram con PDF y geolocalización:", venta.folio);
+    } catch (err) {
+      console.error("❌ Error al enviar venta a Telegram:", err);
+    }
+
+    // 🧾 Ticket local e impresión
+    rellenarTicket({ ...venta, fecha: fecha });
+    imprimirTicketEstilado();
+
+    carrito = [];
+    render();
+    cerrarCobro();
+} catch (err) {
+    console.error("Error en confirmarCobro:", err);
+    alert("Error guardando venta");
+  } finally {
+    bloqueandoCobro = false; // ✅ siempre libera al final
+    // ✅ Ocultar overlay al terminar
+const ov = document.getElementById("overlayProcesando");
+if (ov) ov.remove();
+
+  }
+}
+  
+  // ==== Ticket ====
+  function rellenarTicket(venta){
+    document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
+    document.getElementById('tFecha').textContent = venta.fecha_txt || '';
+    document.getElementById('tAtendio').textContent = venta.atendio || '';
+    document.getElementById('tCliente').textContent = `Cliente: ${venta.cliente||'Mostrador'}`;
+    const tLineas=document.getElementById('tLineas'); tLineas.innerHTML='';
+    (venta.detalle||[]).forEach(it=>{
+      const fila=document.createElement('div');
+      fila.className='t-row';
+      fila.innerHTML=`<span class="t-desc">${it.cantidad.toFixed(2)} ${it.nombre}</span><span class="t-imp">${money(it.importe)}</span>`;
+      tLineas.appendChild(fila);
+    });
+    document.getElementById('tSubtotal').textContent  = money(venta.subtotal||0);
+    document.getElementById('tImpuestos').textContent = money(venta.impuestos||0);
+    document.getElementById('tTotal').textContent     = money(venta.total||0);
+    document.getElementById('tMetodo').textContent=venta.metodo_pago||"—";
+    if(venta.metodo_pago==='efectivo'||venta.metodo_pago==='mixto'){
+      document.getElementById('tRecibidoRow').style.display='block';
+      document.getElementById('tRecibido').textContent=money(venta.recibido||0);
+      document.getElementById('tCambio').textContent=money(venta.cambio||0);
+    } else document.getElementById('tRecibidoRow').style.display='none';
+    document.getElementById('tNotas').textContent=venta.notas||'';
+  }
+
+function imprimirTicketEstilado(){
+  const ticket = document.getElementById('ticketArea');
+  ticket.style.display = "block";
+  window.print();
+  ticket.style.display = "none";
+}
+
+
+  // ==== Reimpresión ====
+  const modalReimp=document.getElementById('modalReimp');
+  const btnReimprimir=document.getElementById('btnReimprimir');
+  const btnCerrarReimp=document.getElementById('btnCerrarReimp');
+  const btnBuscarTickets=document.getElementById('btnBuscarTickets');
+  const filtroFolio=document.getElementById('filtroFolio');
+  const filtroFecha=document.getElementById('filtroFecha');
+  const listaTickets=document.getElementById('listaTickets');
+  const lblPagina=document.getElementById('lblPagina');
+  let _tickets=[],_pagina=1; const _porPag=10;
+
+  function abrirReimp(){ document.body.classList.add('modal-open'); modalReimp.style.display='flex'; _pagina=1; buscarTickets(); }
+  function cerrarReimp(){ modalReimp.style.display='none'; document.body.classList.remove('modal-open'); }
+
+  btnReimprimir.addEventListener('click', abrirReimp);
+  btnCerrarReimp.addEventListener('click', cerrarReimp);
+
+async function buscarTickets(){
+  listaTickets.innerHTML="Buscando...";
+  const ventasRef = collection(db, "rutas_venta");
+  const qv = query(ventasRef, where("rutaId", "==", rutaId), orderBy("fecha", "desc"), limit(50));
+  const snap = await getDocs(qv);
+  _tickets = [];
+  snap.forEach(s => { const v = s.data(); _tickets.push({ id: s.id, ...v }); });
+  renderListaTickets();
+}
+
+
+  function renderListaTickets(){
+    listaTickets.innerHTML="";
+    const ini=(_pagina-1)*_porPag, fin=ini+_porPag;
+    const page=_tickets.slice(ini,fin);
+    lblPagina.textContent=`${_pagina}/${Math.ceil(_tickets.length/_porPag)||1}`;
+    page.forEach(t=>{
+      const row=document.createElement('div');
+      row.innerHTML=`
+        <div><b>${t.folio}</b> – ${t.cliente||'Mostrador'} – ${money(t.total)}</div>
+        <button class="btn" data-id="${t.id}">Imprimir</button>`;
+      listaTickets.appendChild(row);
+    });
+  }
+  listaTickets.addEventListener('click',async(e)=>{
+    const btn=e.target.closest('button[data-id]'); if(!btn)return;
+    const id=btn.getAttribute('data-id');
+    const ref = doc(db, "rutas_venta", id);
+    const snap=await getDoc(ref);
+    if(snap.exists()){ rellenarTicket(snap.data()); imprimirTicketEstilado(); cerrarReimp(); }
+  });
+
+  // ==== Botones ====
+  document.getElementById('btnCobrar').onclick=abrirCobro;
+  document.getElementById('btnCancelarCobro').onclick=cerrarCobro;
+  document.getElementById('btnConfirmarCobro').onclick=confirmarCobro;
+// 🔹 Botón que abre la app de cortes
+const btnCorte = document.getElementById("btnCorte");
+btnCorte.addEventListener("click", () => {
+  localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+  window.open("corte.html", "_blank");
+});
+
+
+    // === CÁMARA / ESCÁNER ===
+  const btnCam = document.getElementById("btnCam");
+
+  btnCam.addEventListener("click", async () => {
+    try {
+      if (!("BarcodeDetector" in window)) {
+        alert("Tu navegador no soporta BarcodeDetector. Usa Chrome/Edge móvil.");
+        return;
+      }
+
+      const detector = new BarcodeDetector({ formats: ["code_128", "ean_13", "qr_code"] });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+
+      const video = document.createElement("video");
+      video.srcObject = stream;
+      video.setAttribute("playsinline", true);
+      video.play();
+
+      const preview = document.createElement("div");
+      preview.style.position = "fixed";
+      preview.style.inset = "0";
+      preview.style.background = "rgba(0,0,0,.7)";
+      preview.style.zIndex = "2000";
+      preview.style.display = "flex";
+      preview.style.alignItems = "center";
+      preview.style.justifyContent = "center";
+      preview.appendChild(video);
+      document.body.appendChild(preview);
+
+      const interval = setInterval(async () => {
+        try {
+          const barcodes = await detector.detect(video);
+          if (barcodes.length > 0) {
+            const codigo = barcodes[0].rawValue;
+            console.log("Código detectado:", codigo);
+            elBuscador.value = codigo;
+            preview.remove();
+            stream.getTracks().forEach(t => t.stop());
+            clearInterval(interval);
+            pintarResultados(buscarLocal(codigo));
+          }
+        } catch (err) { console.error(err); }
+      }, 500);
+    } catch (err) {
+      alert("No se pudo acceder a la cámara.");
+      console.error(err);
+    }
+  });
+  // ✅ Toast / mensaje flotante elegante
+function mostrarToast(mensaje){
+  const toast = document.createElement("div");
+  toast.textContent = mensaje;
+  Object.assign(toast.style, {
+    position: "fixed",
+    bottom: "20px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "rgba(0,128,0,0.9)",
+    color: "#fff",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    fontWeight: "600",
+    zIndex: "3000",
+    boxShadow: "0 3px 12px rgba(0,0,0,0.3)",
+    opacity: "1",
+    transition: "opacity 0.5s ease"
+  });
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.style.opacity="0",2500);
+  setTimeout(()=>toast.remove(),3000);
+}
+  // 🔹 Fijar automáticamente el cliente "PUBLICO EN GENERAL"
+async function fijarClientePublico() {
+  try {
+    const ref = collection(db, "clientes");
+    const q = query(ref, where("nombre", "==", "PUBLICO EN GENERAL"));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      const docu = snap.docs[0];
+      const c = docu.data();
+
+      clienteSeleccionado = {
+        id: docu.id,
+        nombre: c.nombre || "PUBLICO EN GENERAL",
+        catalogo: c.catalogo || "",
+        rfc: c.rfc || "",
+        uso_cfdi: c.uso_cfdi || "",
+        ocupa_factura: !!c.ocupa_factura
+      };
+
+      const elCliente = document.getElementById("cliente");
+      elCliente.value = clienteSeleccionado.nombre;
+      elCliente.readOnly = true;
+      elCliente.style.background = "#e5e7eb";
+      elCliente.style.color = "#555";
+
+      console.log("✅ Cliente fijo aplicado:", clienteSeleccionado.nombre);
+    } else {
+      console.warn("⚠️ No se encontró 'PUBLICO EN GENERAL' en clientes");
+    }
+  } catch (err) {
+    console.error("❌ Error fijando cliente público:", err);
+  }
+}
+</script>
+    <!-- 🔹 Modal de Cobro -->
+  <div id="modalCobro" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1200; align-items:center; justify-content:center;">
+    <div class="modal-card" style="width:min(420px,92vw); background:#fff; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); overflow:hidden;">
+      <div class="modal-h" style="padding:12px 16px; background:#0c6cbd; color:#fff; font-weight:700;">Cobro</div>
+      <div class="modal-b" style="padding:14px 16px; display:flex; flex-direction:column; gap:10px;">
+        <div class="row big" style="justify-content:space-between">
+          <span>Total a pagar:</span>
+          <span id="cobroTotal">$0.00</span>
+        </div>
+
+        <label for="metodoPago">Método de pago</label>
+        <select id="metodoPago">
+          <option value="efectivo">Efectivo</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="mixto">Mixto</option>
+        </select>
+
+        <div id="bloqueEfectivo">
+          <label for="montoRecibido">Monto recibido</label>
+          <input id="montoRecibido" type="number" step="0.01" min="0">
+          <div class="row" style="justify-content:space-between">
+            <span>Cambio:</span>
+            <span id="montoCambio">$0.00</span>
+          </div>
+        </div>
+
+        <label for="notasCobro">Notas</label>
+        <textarea id="notasCobro" rows="2" style="resize:none"></textarea>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <button class="btn" id="btnCancelarCobro" style="background:#aaa;">Cancelar</button>
+          <button class="btn" id="btnConfirmarCobro">Confirmar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔹 Modal Reimpresión de Tickets -->
+  <div id="modalReimp" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1300; align-items:center; justify-content:center;">
+    <div class="modal-card" style="width:min(720px,96vw); background:#fff; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); overflow:hidden;">
+      <div class="modal-h" style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:#0c6cbd; color:#fff; font-weight:700;">
+        <span>Reimprimir tickets</span>
+        <button id="btnCerrarReimp" class="btn" style="background:#aaa; width:auto; padding:8px 12px; font-size:14px;">Cerrar</button>
+      </div>
+      <div class="modal-b" style="padding:14px 16px; display:flex; flex-direction:column; gap:10px;">
+        <!-- Filtros -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="filtroFolio" type="text" placeholder="Buscar por folio o cliente..." style="flex:1; padding:10px; border-radius:10px; border:1px solid #e1e5ea;">
+          <input id="filtroFecha" type="date" style="padding:10px; border-radius:10px; border:1px solid #e1e5ea;">
+          <button id="btnBuscarTickets" class="btn" style="width:auto; padding:10px 12px; font-size:14px;">Buscar</button>
+        </div>
+
+        <!-- Lista -->
+        <div id="listaTickets" style="max-height:50vh; overflow:auto; border:1px solid #e5e7eb; border-radius:12px;">
+          <!-- Items renderizados por JS -->
+        </div>
+
+        <!-- Paginación simple -->
+        <div style="display:flex; gap:8px; justify-content:flex-end; align-items:center; margin-top:10px;">
+          <button id="btnPrevTickets" class="btn" style="width:auto; padding:8px 10px; font-size:14px; background:#64748b;">◀</button>
+          <span id="lblPagina" style="min-width:70px; text-align:center;">1</span>
+          <button id="btnNextTickets" class="btn" style="width:auto; padding:8px 10px; font-size:14px; background:#64748b;">▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    <!-- 🔹 Área Ticket Imprimible -->
+ <div id="ticketArea" style="display:none;">
+    <div id="ticket" class="ticket">  
+      <!-- Encabezado -->
+      <div class="t-header" style="text-align:center; margin:4px 0;">
+        <img src="logo_proveedora.webp" alt="Logo" style="max-width:140px; height:auto;">
+      </div>
+      <div class="t-header" style="text-align:center; font-weight:700;">La Proveedora</div>
+      <div class="t-header" style="text-align:center; font-weight:700;">Ruta de Venta</div>
+      <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+      <!-- Datos de empresa -->
+      <div class="t-header" style="text-align:center; font-size:12px;">MADERO 690 SUR, CENTRO</div>
+      <div class="t-header" style="text-align:center; font-size:12px;">LINARES, NUEVO LEÓN, 67700</div>
+      <div class="t-header" style="text-align:center; font-size:12px;">RFC: PDD-031204-KL5</div>
+      <div class="t-header" style="text-align:center; font-size:12px;">TEL: (821) 2121805</div>
+      <div class="t-header" style="text-align:center; font-size:12px;">RÉGIMEN GENERAL DE LEY</div>
+      <div class="t-header" style="text-align:center; font-size:12px;">PERSONAS MORALES</div>
+      <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+      <!-- Folio, fecha, usuario -->
+      <div class="t-core" id="tFolio" style="font-size:12px;"></div>
+      <div class="t-core" id="tFecha" style="font-size:12px;"></div>
+      <div class="t-core" style="font-size:12px;">Atendió: <span id="tAtendio"></span></div>
+      <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+      <!-- Cliente -->
+      <div class="t-core" id="tCliente" style="font-size:12px;"></div>
+      <div class="t-core" id="tTipoRow" style="display:none; font-size:12px;">Tipo precio: <span id="tTipo"></span></div>
+
+      <!-- Facturación -->
+      <div class="t-core" id="tFacturaRow" style="font-size:12px; display:none;">Factura: <span id="tFacturaVal"></span></div>
+      <div class="t-core" id="tRFCRow" style="display:none; font-size:12px;">RFC: <span id="tRFC"></span></div>
+      <div class="t-core" id="tCFDIRow" style="display:none; font-size:12px;">Uso CFDI: <span id="tCFDI"></span></div>
+
+      <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+      <!-- Detalle productos -->
+      <div class="t-core" id="tLineas"></div>
+      <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+      <!-- Totales -->
+      <div class="t-totals t-core" style="font-size:12px; text-align:right;">
+        <div class="row"><span>Subtotal</span> <span id="tSubtotal"></span></div>
+        <div class="row"><span>Impuestos</span> <span id="tImpuestos"></span></div>
+        <div class="row" style="font-weight:700;"><span>Total</span> <span id="tTotal"></span></div>
+      </div>
+      <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+      <!-- Pago -->
+      <div class="t-core" style="font-size:12px;">Método: <span id="tMetodo"></span></div>
+      <div class="t-core" id="tRecibidoRow" style="font-size:12px;">
+        Pago: <span id="tRecibido"></span> · Cambio: <span id="tCambio"></span>
+      </div>
+
+      <!-- Notas -->
+      <div class="t-core" id="tNotas" style="font-size:12px; margin-top:4px;"></div>
+
+      <!-- Mensaje -->
+      <div class="t-thanks" style="text-align:center; margin-top:8px; font-size:12px;">¡Gracias por su compra!</div>
+    </div>
+</div>
+<script type="module" src="./main.js"></script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js")
+  .then(reg => console.log("✅ SW registrado:", reg.scope))
+  .catch(err => console.error("❌ Error registrando SW:", err));
+}
+
+// 🔹 Evento DOMContentLoaded — cierre de sesión limpio
+document.addEventListener("DOMContentLoaded", () => {
+  const btnLogout = document.getElementById("btnLogout");
+  if (btnLogout) {
+    btnLogout.addEventListener("click", () => {
+      console.log("🚪 Cerrando sesión...");
+      // 🧹 Limpiar sesión y caches
+      localStorage.removeItem("usuario_ruta");
+      localStorage.removeItem("catalogo_cache");
+      localStorage.removeItem("catalogo_fecha");
+      // 🔹 Restaurar UI
+      document.getElementById("posApp").style.display = "none";
+      document.getElementById("loginScreen").style.display = "flex";
+      document.getElementById("loginUsuario").value = "";
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginMsg").textContent = "";
+      mostrarToast("Sesión cerrada correctamente ✅");
+    });
+  } else {
+    console.warn("⚠️ No se encontró el botón Salir en el DOM.");
+  }
+});
+</script>
+</body>
+</html>

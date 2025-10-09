@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cortes Pendientes – PROVSOFT</title>
+  <meta name="theme-color" content="#0c6cbd">
+  <link rel="icon" href="data:,">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+      color: #222;
+    }
+    h1 { color: #00416A; text-align:center; margin-bottom:10px; }
+    select {
+      display:block; margin:0 auto 20px auto;
+      padding:8px 12px; border-radius:6px; border:1px solid #ccc;
+      font-size:14px;
+    }
+    table {
+      width: 100%; border-collapse: collapse; background:#fff;
+      border-radius: 10px; overflow:hidden;
+      box-shadow: 0 3px 8px rgba(0,0,0,.1);
+    }
+    th, td { padding: 10px 12px; border-bottom: 1px solid #ddd; text-align: left; font-size: 14px; }
+    th { background: #00416A; color: #fff; }
+    tr:hover { background: #f1f5f9; }
+    button {
+      padding: 6px 10px; border:none; border-radius:6px; cursor:pointer;
+      background:#0c6cbd; color:white; font-weight:600;
+    }
+    button[disabled] { background:#999; cursor:not-allowed; }
+    #modalResumen {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,.55);
+      align-items:center; justify-content:center; z-index:2000;
+    }
+    .modal-card {
+      background:#fff; border-radius:12px; width:min(500px,95vw);
+      padding:20px; box-shadow:0 8px 25px rgba(0,0,0,.3);
+    }
+    .modal-card h2 { margin-top:0; color:#00416A; }
+    .modal-card table { width:100%; margin-top:10px; }
+    .modal-card td, .modal-card th { border-bottom:1px solid #ddd; padding:6px; }
+    .modal-actions { margin-top:15px; text-align:right; }
+  </style>
+
+  <!-- Librerías externas -->
+  <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<h1>Cortes Pendientes</h1>
+<select id="selectRuta"><option value="">Selecciona una ruta...</option></select>
+
+<table id="tablaCortes">
+  <thead>
+    <tr>
+      <th>Usuario</th><th>Ruta</th><th>Total Día</th><th>Última Venta</th><th>Acción</th>
+    </tr>
+  </thead>
+  <tbody id="tbodyCortes">
+    <tr><td colspan="5" style="text-align:center;">Selecciona una ruta para ver pendientes</td></tr>
+  </tbody>
+</table>
+
+<!-- Modal resumen -->
+<div id="modalResumen">
+  <div class="modal-card">
+    <h2>Resumen de Corte</h2>
+    <div id="resumenContenido">Cargando...</div>
+    <div class="modal-actions">
+      <button id="btnCancelar">Cancelar</button>
+      <button id="btnConfirmar" style="background:#1e8e3e;">Confirmar Corte</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contenedor oculto para gráfica -->
+<div id="graficaDeptos" style="display:none;width:600px;height:400px;">
+  <canvas id="canvasDeptos" width="600" height="400"></canvas>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, getDocs, query, where, updateDoc, doc, addDoc, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const selectRuta = document.getElementById("selectRuta");
+  const tbody = document.getElementById("tbodyCortes");
+  const modal = document.getElementById("modalResumen");
+  const contenido = document.getElementById("resumenContenido");
+  const btnCancelar = document.getElementById("btnCancelar");
+  const btnConfirmar = document.getElementById("btnConfirmar");
+
+  let corteActual = null;
+  let mapaDepartamentos = {};
+
+  async function cargarDepartamentos() {
+    const depSnap = await getDocs(collection(db, "departamentos_venta"));
+    depSnap.forEach(d => { const data = d.data(); mapaDepartamentos[data.id?.toString()] = data; });
+  }
+
+  async function cargarRutas() {
+    const snap = await getDocs(collection(db, "rutas_venta"));
+    const rutas = new Map();
+    snap.forEach(d => { const v = d.data(); if (v.rutaId) rutas.set(v.rutaId, v.atendio || v.usuario || "Desconocido"); });
+    rutas.forEach((nombre, id) => {
+      const opt = document.createElement("option");
+      opt.value = id; opt.textContent = `${nombre} – ${id}`;
+      selectRuta.appendChild(opt);
+    });
+  }
+
+  async function cargarPendientes(rutaId) {
+    tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+    const snap = await getDocs(qVentas);
+    const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (ventas.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes</td></tr>";
+      return;
+    }
+    const totalHoy = ventas.reduce((a, v) => a + (v.total || 0), 0);
+    const ultima = ventas.sort((a,b)=> (b.fecha_txt||'').localeCompare(a.fecha_txt||''))[0]?.fecha_txt || "—";
+    tbody.innerHTML = `
+      <tr>
+        <td>${ventas[0].atendio || ventas[0].usuario || "—"}</td>
+        <td>${rutaId}</td>
+        <td>$${totalHoy.toFixed(2)}</td>
+        <td>${ultima}</td>
+        <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
+      </tr>`;
+  }
+
+  selectRuta.addEventListener("change", e => {
+    const rutaId = e.target.value;
+    if (!rutaId) {
+      tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>Selecciona una ruta</td></tr>";
+      return;
+    }
+    cargarPendientes(rutaId);
+  });
+
+  tbody.addEventListener("click", async e => {
+    const btn = e.target.closest("button[data-ruta]");
+    if (!btn) return;
+    const rutaId = btn.getAttribute("data-ruta");
+    corteActual = { rutaId, btn };
+    await mostrarResumenCorte(rutaId);
+  });
+
+  btnCancelar.onclick = () => (modal.style.display = "none");
+
+  btnConfirmar.onclick = async () => {
+    if (!corteActual) return;
+    const { rutaId, resumen } = corteActual;
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = "Cortando...";
+
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+    const snap = await getDocs(qVentas);
+    for (const d of snap.docs) await updateDoc(doc(db, "rutas_venta", d.id), { cortado: true });
+
+    await addDoc(collection(db, "cortes_globales"), {
+      rutaId,
+      fecha: serverTimestamp(),
+      creado_en: new Date().toISOString(),
+      realizado_por: "Administrador",
+      total_registros: resumen.totalTickets,
+      resumen
+    });
+
+    await generarPDFyEnviar(resumen, rutaId);
+    alert("✅ Corte realizado y PDF enviado a Telegram.");
+    modal.style.display = "none";
+    selectRuta.value = "";
+    tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
+  };
+
+async function mostrarResumenCorte(rutaId) {
+  contenido.innerHTML = "Generando resumen...";
+  modal.style.display = "flex";
+
+  const qVentas = query(
+    collection(db, "rutas_venta"),
+    where("rutaId", "==", rutaId),
+    where("cortado", "==", false)
+  );
+  const snap = await getDocs(qVentas);
+  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const porMetodo = {};
+  const porDepto = {};
+  let totalDia = 0;
+
+  for (const v of ventas) {
+    totalDia += v.total || 0;
+    const metodo = v.metodo_pago?.toLowerCase() || "otro";
+    porMetodo[metodo] = (porMetodo[metodo] || 0) + (v.total || 0);
+
+    // 🔹 Clasificación por departamento desde el detalle
+    for (const det of (v.detalle || [])) {
+      const depNombre =
+        det.departamento_info?.nombre?.toUpperCase() || "SIN DEPARTAMENTO";
+      const importe =
+        det.importe ||
+        (det.precio_unit && det.cantidad
+          ? det.precio_unit * det.cantidad
+          : 0);
+      porDepto[depNombre] = (porDepto[depNombre] || 0) + importe;
+    }
+  }
+
+  // 🔹 Ordenar de mayor a menor
+  const ordenDeptos = Object.entries(porDepto)
+    .sort((a, b) => b[1] - a[1])
+    .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+  const ordenMetodos = Object.entries(porMetodo)
+    .sort((a, b) => b[1] - a[1])
+    .reduce((acc, [k, v]) => ({ ...acc, [k]: v }), {});
+
+  const totalTickets = ventas.length;
+  const nombreCorte =
+    ventas[0]?.usuarioNombre ||
+    ventas[0]?.atendio ||
+    ventas[0]?.usuario ||
+    "Desconocido";
+
+  corteActual.resumen = {
+    totalDia,
+    totalTickets,
+    porMetodo: ordenMetodos,
+    porDepto: ordenDeptos,
+    nombreCorte,
+  };
+
+  // 🔹 Generar tabla resumen
+  let html = `<h3>Total del día: $${totalDia.toFixed(2)}</h3>`;
+  html += `<p>Tickets: ${totalTickets}</p>`;
+  html += "<h4>Por Departamento</h4><table><tbody>";
+  for (const [dep, val] of Object.entries(ordenDeptos))
+    html += `<tr><td>${dep}</td><td style='text-align:right;'>$${val.toFixed(
+      2
+    )}</td></tr>`;
+  html += "</tbody></table><h4>Métodos de Pago</h4><table><tbody>";
+  for (const [met, val] of Object.entries(ordenMetodos))
+    html += `<tr><td>${met}</td><td style='text-align:right;'>$${val.toFixed(
+      2
+    )}</td></tr>`;
+  html += "</tbody></table>";
+
+  contenido.innerHTML = html;
+}
+// === Generar PDF tamaño carta ===
+async function generarPDFyEnviar(resumen, rutaId) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ format: "letter", unit: "mm" });
+
+  // Encabezado
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text(`CORTE DE RUTA – ${rutaId}`, 10, 15);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 22);
+  pdf.text(`Total del día: $${resumen.totalDia.toFixed(2)}`, 10, 28);
+  pdf.text(`Tickets: ${resumen.totalTickets}`, 10, 34);
+
+  // Métodos de pago
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Métodos de Pago:", 10, 42);
+  pdf.setFont("helvetica", "normal");
+  let y = 48;
+  for (const [met, val] of Object.entries(resumen.porMetodo)) {
+    pdf.text(`${met}: $${val.toFixed(2)}`, 12, y);
+    y += 5;
+  }
+
+  // Departamentos
+  y += 3;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Totales por Departamento:", 10, y);
+  pdf.setFont("helvetica", "normal");
+  y += 5;
+  for (const [dep, val] of Object.entries(resumen.porDepto)) {
+    pdf.text(`${dep}: $${val.toFixed(2)}`, 12, y);
+    y += 4;
+  }
+
+  // 🥧 Gráfica a la derecha
+  try {
+    const imgGraf = await generarImagenGraficaDeptos(resumen.porDepto);
+    if (imgGraf) pdf.addImage(imgGraf, "PNG", 110, 45, 90, 90);
+  } catch (e) {
+    console.error("Error gráfica:", e);
+  }
+
+  pdf.setFontSize(8);
+  pdf.text("Reporte generado automáticamente por PROVSOFT POS", 10, 275);
+
+  const fecha = new Date().toISOString().slice(0, 10);
+  const nombreArchivo = `Corte_${rutaId}_${fecha}.pdf`;
+
+  // 🔹 Crear blob y URL temporal
+  const pdfBlob = pdf.output("blob");
+  const pdfUrl = URL.createObjectURL(pdfBlob);
+
+  // ✅ 1. Mostrar PDF en nueva pestaña para imprimir o ver
+  window.open(pdfUrl, "_blank");
+
+  // ✅ 2. Descargar automáticamente el PDF
+  const a = document.createElement("a");
+  a.href = pdfUrl;
+  a.download = nombreArchivo;
+  a.click();
+
+  // ✅ 3. Enviar también por Telegram
+  await enviarPDFaTelegram(
+    pdfBlob,
+    nombreArchivo,
+    `📦 *Corte generado*\nRuta: ${rutaId}\nTotal: $${resumen.totalDia.toFixed(
+      2
+    )}\nTickets: ${resumen.totalTickets}\nFecha: ${new Date().toLocaleString()}`
+  );
+
+  // Limpieza
+  URL.revokeObjectURL(pdfUrl);
+}
+
+// === Generar gráfica por departamento ===
+async function generarImagenGraficaDeptos(porDepto) {
+  const divGrafica = document.getElementById("graficaDeptos");
+  const canvas = document.getElementById("canvasDeptos");
+  divGrafica.style.display = "block";
+  const ctx = canvas.getContext("2d");
+  const etiquetas = Object.keys(porDepto);
+  const valores = Object.values(porDepto);
+  const chart = new Chart(ctx, {
+    type: "pie",
+    data: { labels: etiquetas, datasets: [{ data: valores }] },
+    options: { plugins: { legend: { position: "right" } }, animation: false },
+  });
+  await new Promise((r) => setTimeout(r, 1000));
+  const dataUrl = await domtoimage.toPng(divGrafica, {
+    quality: 0.95,
+    bgcolor: "#fff",
+  });
+  chart.destroy();
+  divGrafica.style.display = "none";
+  return dataUrl;
+}
+
+// === Enviar PDF a Telegram ===
+async function enviarPDFaTelegram(pdfBlob, nombreArchivo, resumenTexto) {
+  const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+  const CHAT_ID = "6617988297";
+  const formData = new FormData();
+  formData.append("chat_id", CHAT_ID);
+  formData.append("caption", resumenTexto);
+  formData.append("document", pdfBlob, nombreArchivo);
+  try {
+    const resp = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
+      { method: "POST", body: formData }
+    );
+    console.log("📤 Telegram:", await resp.json());
+  } catch (err) {
+    console.error("Error Telegram:", err);
+  }
+}
+
+  await cargarRutas();
+});
+</script>
+</body>
+</html>
