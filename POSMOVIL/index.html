@@ -1102,31 +1102,43 @@ if (ov) ov.remove();
   }
 }
   
-  // ==== Ticket ====
-  function rellenarTicket(venta){
-    document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
-    document.getElementById('tFecha').textContent = venta.fecha_txt || '';
-    document.getElementById('tAtendio').textContent = venta.atendio || '';
-    document.getElementById('tCliente').textContent = `Cliente: ${venta.cliente||'Mostrador'}`;
-    const tLineas=document.getElementById('tLineas'); tLineas.innerHTML='';
-    (venta.detalle||[]).forEach(it=>{
-      const fila=document.createElement('div');
-      fila.className='t-row';
-      fila.innerHTML=`<span class="t-desc">${it.cantidad.toFixed(2)} ${it.nombre}</span><span class="t-imp">${money(it.importe)}</span>`;
-      tLineas.appendChild(fila);
-    });
-    document.getElementById('tSubtotal').textContent  = money(venta.subtotal||0);
-    document.getElementById('tImpuestos').textContent = money(venta.impuestos||0);
-    document.getElementById('tTotal').textContent     = money(venta.total||0);
-    document.getElementById('tMetodo').textContent=venta.metodo_pago||"—";
-    if(venta.metodo_pago==='efectivo'||venta.metodo_pago==='mixto'){
-      document.getElementById('tRecibidoRow').style.display='block';
-      document.getElementById('tRecibido').textContent=money(venta.recibido||0);
-      document.getElementById('tCambio').textContent=money(venta.cambio||0);
-    } else document.getElementById('tRecibidoRow').style.display='none';
-    document.getElementById('tNotas').textContent=venta.notas||'';
+function rellenarTicket(venta){
+  document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
+  document.getElementById('tFecha').textContent = venta.fecha_txt || '';
+  document.getElementById('tAtendio').textContent = venta.atendio || '';
+  document.getElementById('tCliente').textContent = `Cliente: ${venta.cliente||'Mostrador'}`;
+  
+  const tLineas = document.getElementById('tLineas');
+  tLineas.innerHTML = '';
+  (venta.detalle || []).forEach(it => {
+    const fila = document.createElement('div');
+    fila.className = 't-row';
+    fila.innerHTML = `<span class="t-desc">${it.cantidad.toFixed(2)} ${it.nombre}</span><span class="t-imp">${money(it.importe)}</span>`;
+    tLineas.appendChild(fila);
+  });
+
+  // 🧮 Ajuste: tomar valores desde resumen_financiero si existen
+  const resumen = venta.resumen_financiero || {};
+  const subtotal = resumen.subtotal ?? venta.subtotal ?? 0;
+  const impuestos = resumen.impuestos ?? venta.impuestos ?? 0;
+  const total = resumen.total ?? venta.total ?? 0;
+
+  document.getElementById('tSubtotal').textContent  = money(subtotal);
+  document.getElementById('tImpuestos').textContent = money(impuestos);
+  document.getElementById('tTotal').textContent     = money(total);
+
+  document.getElementById('tMetodo').textContent = venta.metodo_pago || "—";
+
+  if (venta.metodo_pago === 'efectivo' || venta.metodo_pago === 'mixto') {
+    document.getElementById('tRecibidoRow').style.display = 'block';
+    document.getElementById('tRecibido').textContent = money(venta.recibido || 0);
+    document.getElementById('tCambio').textContent = money(venta.cambio || 0);
+  } else {
+    document.getElementById('tRecibidoRow').style.display = 'none';
   }
 
+  document.getElementById('tNotas').textContent = venta.notas || '';
+}
 function imprimirTicketEstilado(){
   const ticket = document.getElementById('ticketArea');
   ticket.style.display = "block";
