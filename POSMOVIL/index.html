@@ -708,21 +708,6 @@ const elCant = document.getElementById("cantidadInput");
 });
 
   // ==== Carrito ====
-  const money=(n)=>'$'+(Number(n)||0).toFixed(2);
-  function render(){
-    elTbody.innerHTML="";
-    carrito.forEach(it=>{
-      const tr=document.createElement("tr");
-      tr.innerHTML=`<td>${it.nombre}</td><td>${it.cantidad.toFixed(2)}</td><td>${money(it.importe)}</td>
-        <td class="del-col"><button class="del">✕</button></td>`;
-      tr.querySelector('.del').onclick=()=>delItem(it.id);
-      elTbody.appendChild(tr);
-    });
-    const {subtotal,impuestos,total}=calcularTotalesConImpuestosIncluidos();
-    lblSubtotal.textContent=money(subtotal);
-    lblImp.textContent=money(impuestos);
-    lblTotal.textContent=money(total);
-  }
   function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
   function addProduct(prod,cantidad=1){
     if(!prod)return;
