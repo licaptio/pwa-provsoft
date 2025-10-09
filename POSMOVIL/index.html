@@ -1301,6 +1301,26 @@ async function fijarClientePublico() {
     console.error("❌ Error fijando cliente público:", err);
   }
 }
+  // ==== Render principal (recalcula y dibuja tabla de carrito) ====
+function render() {
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  carrito.forEach(it => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${it.nombre}</td>
+      <td style="text-align:center">${it.cantidad.toFixed(2)}</td>
+      <td style="text-align:right">${money(it.importe)}</td>
+      <td class="del-col"><button class="del" onclick="delItem('${it.id}')">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const { subtotal, impuestos, total } = calcularTotalesConImpuestosIncluidos();
+  document.getElementById("lblSubtotal").textContent = money(subtotal);
+  document.getElementById("lblImpuestos").textContent = money(impuestos);
+  document.getElementById("lblTotal").textContent = money(total);
+}
 </script>
     <!-- 🔹 Modal de Cobro -->
   <div id="modalCobro" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1200; align-items:center; justify-content:center;">
