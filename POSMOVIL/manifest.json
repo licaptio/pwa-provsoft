@@ -2,7 +2,7 @@
   "name": "Ruta de Venta PDD – Dulces y Desechables",
   "short_name": "Ruta PDD",
   "description": "Sistema de punto de venta offline con sincronización automática para rutas de venta.",
-  "start_url": "/index.html",
+  "start_url": "/POSMOVIL/index.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
