@@ -1,14 +1,12 @@
 const CACHE_NAME = "provpos-v2";
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./logo_proveedora.webp",
-  "./icons/icon-192x192.png",
-  "./icons/icon-512x512.png"
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/logo_proveedora.webp",
+  "/icons/icon-192x192.png",
+  "/icons/icon-512x512.png"
 ];
-
-
 
 // 📦 Instalar y cachear archivos base
 self.addEventListener("install", e => {
