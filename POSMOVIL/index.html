@@ -371,6 +371,7 @@ if ("permissions" in navigator) {
     await cargarDepartamentos();
     render();
     await sincronizarVentasPendientes();
+      await fijarClientePublico();
 
       
       // 🔹 Guardar sesión en localStorage
@@ -419,6 +420,7 @@ window.addEventListener("beforeunload", (e) => {
     render();
     await sincronizarVentasPendientes();
     await checkCortePendiente();
+    await fijarClientePublico();
 
     console.log("✅ Sesión restaurada correctamente.");
   } catch (err) {
@@ -1240,6 +1242,40 @@ function mostrarToast(mensaje){
   setTimeout(()=>toast.style.opacity="0",2500);
   setTimeout(()=>toast.remove(),3000);
 }
+  // 🔹 Fijar automáticamente el cliente "PUBLICO EN GENERAL"
+async function fijarClientePublico() {
+  try {
+    const ref = collection(db, "clientes");
+    const q = query(ref, where("nombre", "==", "PUBLICO EN GENERAL"));
+    const snap = await getDocs(q);
+
+    if (!snap.empty) {
+      const docu = snap.docs[0];
+      const c = docu.data();
+
+      clienteSeleccionado = {
+        id: docu.id,
+        nombre: c.nombre || "PUBLICO EN GENERAL",
+        catalogo: c.catalogo || "",
+        rfc: c.rfc || "",
+        uso_cfdi: c.uso_cfdi || "",
+        ocupa_factura: !!c.ocupa_factura
+      };
+
+      const elCliente = document.getElementById("cliente");
+      elCliente.value = clienteSeleccionado.nombre;
+      elCliente.readOnly = true;
+      elCliente.style.background = "#e5e7eb";
+      elCliente.style.color = "#555";
+
+      console.log("✅ Cliente fijo aplicado:", clienteSeleccionado.nombre);
+    } else {
+      console.warn("⚠️ No se encontró 'PUBLICO EN GENERAL' en clientes");
+    }
+  } catch (err) {
+    console.error("❌ Error fijando cliente público:", err);
+  }
+}
 </script>
     <!-- 🔹 Modal de Cobro -->
   <div id="modalCobro" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1200; align-items:center; justify-content:center;">
@@ -1405,8 +1441,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 </script>
-
-
 </body>
 </html>
 
