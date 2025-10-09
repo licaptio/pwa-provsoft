@@ -312,19 +312,24 @@ let catalogo = [];
   const codeIndex      = new Map();
   
 
-  const elCliente=$('#cliente'), elBuscador=$('#buscador'), elCant=$('#cantidadInput');
-  elCliente.addEventListener("input", async ()=>{
-  const texto = elCliente.value.trim();
-  const sugerencias = await buscarClientesFirestore(texto);
-  const dl=document.getElementById("clientesList");
-  dl.innerHTML="";
-  sugerencias.forEach(cli=>{
-    const opt=document.createElement("option");
-    opt.value = cli.nombre;
-    opt.label = cli.catalogo ? `${cli.nombre} (${cli.catalogo})` : cli.nombre;
-    dl.appendChild(opt);
-  });
-});
+/* 🔒 [PROVSOFT CONFIG] — Búsqueda dinámica de clientes
+   Desactivado temporalmente porque sólo se usa "PÚBLICO EN GENERAL".
+   Cuando se habiliten más clientes, quitar este comentario.
+   ---------------------------------------------------------
+   elCliente.addEventListener("input", async ()=>{
+     const texto = elCliente.value.trim();
+     const sugerencias = await buscarClientesFirestore(texto);
+     const dl=document.getElementById("clientesList");
+     dl.innerHTML="";
+     sugerencias.forEach(cli=>{
+       const opt=document.createElement("option");
+       opt.value = cli.nombre;
+       opt.label = cli.catalogo ? `${cli.nombre} (${cli.catalogo})` : cli.nombre;
+       dl.appendChild(opt);
+     });
+   });
+*/
+
   const elResultados=$('#resultados'), elTbody=$('#tbody');
   const lblSubtotal=$('#lblSubtotal'), lblTotal=$('#lblTotal'), lblImp=$('#lblImpuestos');
 
@@ -400,6 +405,9 @@ window.addEventListener("beforeunload", (e) => {
   document.addEventListener("DOMContentLoaded", async () => {
   // 🛰️ Pedir ubicación apenas carga la app
   window.UBICACION_ACTUAL = await obtenerUbicacionRobusta();
+    // 👤 Fijar cliente público desde el inicio
+  await fijarClientePublico();
+
 
   const u = localStorage.getItem("usuario_ruta");
   if (!u) return; // no hay sesión previa
