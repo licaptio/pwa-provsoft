@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reportes de Ventas Cortadas</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.appspot.com",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:d2f1e80b17f123456789"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function cargarVentas() {
+      const contenedor = document.getElementById("reportes");
+      contenedor.innerHTML = "<p>Cargando reportes...</p>";
+
+      const snapshot = await getDocs(collection(db, "rutas_venta"));
+      let reportes = {};
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.cortado === true && Array.isArray(data.detalle)) {
+          const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : doc.createTime.toDate();
+          const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+          const vendedor = data.usuarioNombre || "SIN NOMBRE";
+          const ruta = data.rutaId || "Sin ruta";
+          const clave = `${fecha}_${vendedor}_${ruta}`;
+
+          if (!reportes[clave]) {
+            reportes[clave] = { fecha, vendedor, ruta, productos: {}, totalGeneral: 0 };
+          }
+
+          data.detalle.forEach(item => {
+            const codigo = item.id || "";
+            const nombre = item.nombre || "SIN NOMBRE";
+            const cantidad = item.cantidad || 0;
+            const precioUnit = item.precio_unit || 0;
+            const total = cantidad * precioUnit;
+
+            if (!reportes[clave].productos[codigo]) {
+              reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
+            }
+
+            reportes[clave].productos[codigo].cantidad += cantidad;
+            reportes[clave].productos[codigo].total += total;
+            reportes[clave].totalGeneral += total;
+          });
+        }
+      });
+
+      mostrarReportes(reportes);
+    }
+
+    function mostrarReportes(reportes) {
+      const contenedor = document.getElementById("reportes");
+      contenedor.innerHTML = "";
+
+      Object.values(reportes).forEach(rep => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const header = document.createElement("div");
+        header.className = "card-header";
+        header.innerHTML = `
+          <h2>🧾 Reporte de Venta ${rep.fecha}</h2>
+          <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
+        `;
+
+        const body = document.createElement("div");
+        body.className = "card-body";
+        body.style.display = "none";
+
+        const totalTop = document.createElement("div");
+        totalTop.className = "total-box";
+        totalTop.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
+
+        const tabla = document.createElement("table");
+        tabla.innerHTML = `
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Producto</th>
+              <th>Cantidad</th>
+              <th>Precio Unitario</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+
+        const tbody = tabla.querySelector("tbody");
+        for (const [codigo, info] of Object.entries(rep.productos)) {
+          const fila = document.createElement("tr");
+          fila.innerHTML = `
+            <td>${codigo}</td>
+            <td>${info.nombre}</td>
+            <td>${info.cantidad}</td>
+            <td>$${info.precioUnit.toFixed(2)}</td>
+            <td>$${info.total.toFixed(2)}</td>
+          `;
+          tbody.appendChild(fila);
+        }
+
+        const totalBottom = document.createElement("div");
+        totalBottom.className = "total-box";
+        totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
+
+        const botonImprimir = document.createElement("button");
+        botonImprimir.textContent = "🖨️ Imprimir";
+        botonImprimir.onclick = () => imprimirReporte(tabla.outerHTML, rep);
+
+        body.appendChild(totalTop);
+        body.appendChild(tabla);
+        body.appendChild(totalBottom);
+        body.appendChild(botonImprimir);
+
+        header.onclick = () => {
+          body.style.display = body.style.display === "none" ? "block" : "none";
+        };
+
+        card.appendChild(header);
+        card.appendChild(body);
+        contenedor.appendChild(card);
+      });
+    }
+
+    function imprimirReporte(tablaHTML, rep) {
+      const ventana = window.open("", "_blank");
+      ventana.document.write(`
+        <html><head><title>Imprimir Reporte</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+          h1 { text-align: center; color: #00416A; }
+          p { text-align: center; margin: 5px 0 15px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+          th { background: #00416A; color: white; }
+          .total { font-weight: bold; text-align: right; margin: 10px 0; }
+        </style>
+        </head><body>
+        <h1>Reporte de Venta ${rep.fecha}</h1>
+        <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
+        <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
+        ${tablaHTML}
+        <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
+        </body></html>
+      `);
+      ventana.document.close();
+      ventana.print();
+    }
+
+    window.onload = cargarVentas;
+  </script>
+
+  <style>
+    body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
+    h1 { text-align: center; color: #003366; margin-bottom: 20px; }
+    .card {
+      background: #fff; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin: 20px auto; width: 90%; max-width: 1000px; overflow: hidden;
+      transition: 0.3s; cursor: pointer;
+    }
+    .card:hover { box-shadow: 0 8px 18px rgba(0,0,0,0.15); }
+    .card-header {
+      background: #00416A; color: #fff; padding: 15px 20px;
+    }
+    .card-header h2 { margin: 0; font-size: 18px; }
+    .card-header p { margin: 5px 0 0; font-size: 14px; color: #dce6f2; }
+    .card-body { padding: 15px; background: #fafafa; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    th { background: #003366; color: white; }
+    button {
+      display: block; margin: 15px 0 5px auto; padding: 8px 15px;
+      background: #00416A; color: white; border: none; border-radius: 6px;
+      cursor: pointer; font-weight: bold;
+    }
+    button:hover { background: #0a6cb8; }
+    .total-box {
+      text-align: right;
+      font-size: 16px;
+      color: #00416A;
+      margin: 5px 0;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Reportes de Ventas Cortadas</h1>
+  <div id="reportes"></div>
+</body>
+</html>
