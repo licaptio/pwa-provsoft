@@ -1,4 +1,4 @@
-const CACHE_NAME = "provpos-v2"; // cambia versión si actualizas
+const CACHE_NAME = "provpos-v3"; // cambia versión si actualizas
 const ASSETS = [
   "./",
   "./index.html",
