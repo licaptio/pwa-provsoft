@@ -8,6 +8,7 @@ const ASSETS = [
   "./icons/icon-512x512.png"
 ];
 
+
 // 📦 Instalar y cachear los archivos base
 self.addEventListener("install", (event) => {
   console.log("📦 Instalando Service Worker...");
