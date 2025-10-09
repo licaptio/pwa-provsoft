@@ -609,15 +609,17 @@ async function cargarCatalogoDesdeFirestore() {
 
     prodSnap.forEach(d => {
       const x = d.data();
-      const prod = {
-        id: d.id,
-        nombre: x.concepto || "SIN NOMBRE",
-        codigo: (x.codigoBarra || "").toString(),
-        precioPublico: Number(x.precioPublico || 0),
-        ivaTasa: Number(x.ivaTasa || 0),
-        iepsTasa: Number(x.iepsTasa || 0),
-        departamento_id: x.departamento_id || null
-      };
+const prod = {
+  id: d.id,
+  nombre: x.concepto || "SIN NOMBRE",
+  codigo: (x.codigoBarra || "").toString(),
+  precioPublico: Number(x.precioPublico || 0),
+  costoUnit: Number(x.costo || 0), // 👈 nuevo campo
+  ivaTasa: Number(x.ivaTasa || 0),
+  iepsTasa: Number(x.iepsTasa || 0),
+  departamento_id: x.departamento_id || null
+};
+
       catalogo.push(prod);
       if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
     });
@@ -780,8 +782,8 @@ function calcularTotalesConImpuestosIncluidos() {
     // 🧠 Tasas desde departamento o producto, convertidas a fracción
     const depId = it.departamento_id?.toString() || "0";
     const depInfo = departamentos[depId] || { iva: 0, ieps: 0 };
-    const ivaTasa = Number(depInfo.iva || it.ivaTasa || 0) / 100;
-    const iepsTasa = Number(depInfo.ieps || it.iepsTasa || 0) / 100;
+    const ivaTasa = Number(depInfo.iva || 0) / 100;
+    const iepsTasa = Number(depInfo.ieps || 0) / 100;
 
     // 🧾 Desglose según impuestos incluidos
     if (iepsTasa > 0 && ivaTasa > 0) {
@@ -932,38 +934,65 @@ if (ubicacion.lat && ubicacion.lon) {
   mostrarToast("⚠️ Sin señal GPS, venta guardada sin coordenadas");
 }
 
-    const venta = {
-      folio,
-      rutaId,
-      usuario: USUARIO_LOGUEADO?.usuario || "",
-      atendio: USUARIO_LOGUEADO?.nombre || "",
-      fecha: serverTimestamp(),
-      fecha_txt: fechaTxt,
-      cliente: clienteTxt,
-      cliente_info: clienteSeleccionado || null,
-      metodo_pago: metodo,
-      recibido,
-      cambio,
-      subtotal,
-      impuestos,
-      total,
-      notas,
-      cortado: false,
-      ubicacion, // 🔹 guarda lat, lon, precision y dirección completa
-      detalle: carrito.map(it => {
-        const depId = it.departamento_id?.toString() || "0";
-        const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
-        return {
-          id: it.id,
-          nombre: it.nombre,
-          cantidad: it.cantidad,
-          precio_unit: it.precioUnit,
-          importe: it.importe,
-          departamento_id: depId,
-          departamento_info: depInfo
-        };
-      }),
+const venta = {
+  folio,
+  rutaId,
+  usuario: USUARIO_LOGUEADO?.usuario || "",
+  atendio: USUARIO_LOGUEADO?.nombre || "",
+  fecha: serverTimestamp(),
+  fecha_txt: fechaTxt,
+  cliente: clienteTxt,
+  cliente_info: clienteSeleccionado || null,
+  metodo_pago: metodo,
+  recibido,
+  cambio,
+  notas,
+  cortado: false,
+  ubicacion, // 🔹 guarda lat, lon, precision y dirección completa
+
+  // 🧾 Desglose de productos vendidos
+  detalle: carrito.map(it => {
+    const depId = it.departamento_id?.toString() || "0";
+    const depInfo = departamentos[depId] || { nombre: "SIN DEPARTAMENTO", iva: 0, ieps: 0 };
+    const costoUnit = Number(it.costoUnit || 0);
+    const costoTotal = costoUnit * it.cantidad;
+    const utilidad = it.importe - costoTotal;
+
+    return {
+      id: it.id,
+      nombre: it.nombre,
+      cantidad: it.cantidad,
+      precio_unit: it.precioUnit,
+      importe: it.importe,
+      costo_unit: costoUnit,
+      costo_total: +costoTotal.toFixed(2),
+      utilidad: +utilidad.toFixed(2),
+      departamento_id: depId,
+      departamento_info: depInfo
     };
+  }),
+};
+
+// 💰 Calcular totales y márgenes generales
+const costoTotalVenta = venta.detalle.reduce((acc, d) => acc + d.costo_total, 0);
+const utilidadTotal = venta.detalle.reduce((acc, d) => acc + d.utilidad, 0);
+const margenPorcentaje = total > 0 ? ((utilidadTotal / total) * 100).toFixed(2) : 0;
+
+// 📊 Resumen financiero completo
+venta.resumen_financiero = {
+  subtotal,
+  impuestos,
+  total,
+  costo_total: +costoTotalVenta.toFixed(2),
+  utilidad_total: +utilidadTotal.toFixed(2),
+  margen_porcentaje: +margenPorcentaje
+};
+
+// 🔹 Copias rápidas para consultas directas
+venta.costo_total = venta.resumen_financiero.costo_total;
+venta.utilidad_total = venta.resumen_financiero.utilidad_total;
+venta.margen_porcentaje = venta.resumen_financiero.margen_porcentaje;
+
 
     // 💾 Guardar venta en Firestore
     await guardarVentaEnFirestore(venta);
