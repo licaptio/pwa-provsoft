@@ -1444,14 +1444,14 @@ async function fijarClientePublico() {
     </div>
 </div>
 <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js")
-      .then(() => console.log("✅ Service Worker registrado"))
-      .catch(err => console.error("❌ Error SW:", err));
-    }
-  </script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js")
+    .then(() => console.log("✅ Service Worker registrado correctamente"))
+    .catch(err => console.error("❌ Error al registrar SW:", err));
+}
+</script>
+
+  document.addEventListener("DOMContentLoaded", () => {
   const btnLogout = document.getElementById("btnLogout");
   if (btnLogout) {
     btnLogout.addEventListener("click", () => {
