@@ -1,6 +1,6 @@
 // ===============================
-// 🌎 Función robusta de geolocalización
-// Compatible con POS industriales y móviles Android
+// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.1
+// Combina GPS, Network, IP pública, caché y reintento automático
 // ===============================
 
 export async function obtenerUbicacionRobusta() {
@@ -12,105 +12,148 @@ export async function obtenerUbicacionRobusta() {
     metodo: "desconocido"
   };
 
-  try {
-    // 🔍 1️⃣ Verificar permiso actual
-    if ("permissions" in navigator) {
-      try {
-        const perm = await navigator.permissions.query({ name: "geolocation" });
-        console.log("🔒 Permiso actual GPS:", perm.state);
+  const tiempoInicio = Date.now();
+  const maxIntentos = 3;
+  let intento = 0;
+  let ultimoError = null;
 
-        if (perm.state === "denied") {
-          alert("⚠️ Activa el permiso de ubicación en el navegador o ajustes del dispositivo.");
-          return resultado;
-        }
-      } catch (e) {
-        console.warn("No se pudo verificar permisos:", e.message);
+  while (intento < maxIntentos) {
+    intento++;
+    try {
+      console.log(`🛰️ Intento ${intento} de geolocalización...`);
+      const pos = await obtenerCoordenadasAltaPrecision();
+      resultado.lat = pos.coords.latitude;
+      resultado.lon = pos.coords.longitude;
+      resultado.precision = pos.coords.accuracy;
+      resultado.metodo = "gps";
+      console.log(`✅ GPS exitoso en intento ${intento}`, resultado);
+
+      // Obtener dirección legible (offline o Nominatim)
+      resultado.direccion = await obtenerDireccionLegible(resultado.lat, resultado.lon);
+      mostrarToast(`📡 GPS preciso (${resultado.precision.toFixed(1)}m)`);
+
+      // Guardar en caché por 5 minutos (fallback rápido)
+      localStorage.setItem("ultima_ubicacion", JSON.stringify({
+        ...resultado,
+        timestamp: Date.now()
+      }));
+
+      return resultado;
+
+    } catch (err) {
+      ultimoError = err;
+      console.warn(`⚠️ Intento ${intento} fallido: ${err.message}`);
+      await esperar(1500);
+    }
+  }
+
+  // 🚨 Si falla GPS tras varios intentos, usar fallback IP o caché
+  console.warn("⚠️ GPS falló, intentando fallback por IP...");
+  const fallback = await obtenerUbicacionPorIP();
+
+  if (!fallback.lat || !fallback.lon) {
+    console.warn("⚠️ Fallback por IP falló, usando caché local si existe...");
+    const cache = localStorage.getItem("ultima_ubicacion");
+    if (cache) {
+      const data = JSON.parse(cache);
+      const antiguedad = (Date.now() - data.timestamp) / 1000;
+      if (antiguedad < 300) {
+        console.log("♻️ Usando caché de ubicación reciente (<5min)");
+        mostrarToast("♻️ Usando ubicación guardada (sin señal GPS)");
+        return data;
       }
     }
+  }
 
-    // 🛰️ 2️⃣ Intentar obtener coordenadas precisas (GPS)
-    const pos = await new Promise((resolve, reject) => {
-      if (!("geolocation" in navigator))
-        return reject(new Error("Geolocalización no disponible"));
+  const tiempoTotal = ((Date.now() - tiempoInicio) / 1000).toFixed(1);
+  console.warn(`❌ Falló todo el proceso de geolocalización (${tiempoTotal}s)`);
+  mostrarToast("No se pudo obtener ubicación ❌");
 
-      navigator.geolocation.getCurrentPosition(
-        (p) => resolve(p),
-        (err) => reject(err),
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    });
+  return fallback;
+}
 
-    resultado.lat = pos.coords.latitude;
-    resultado.lon = pos.coords.longitude;
-    resultado.precision = pos.coords.accuracy;
-    resultado.metodo = "gps";
-
-    // 🌐 3️⃣ Obtener dirección legible (nominatim)
-    try {
-      const resp = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${resultado.lat}&lon=${resultado.lon}&format=json`
-      );
-      const data = await resp.json();
-      resultado.direccion = data.display_name || null;
-    } catch (e) {
-      console.warn("No se pudo obtener dirección legible:", e.message);
+// === 1️⃣ GPS Alta precisión con timeout de 10s ===
+async function obtenerCoordenadasAltaPrecision() {
+  return new Promise((resolve, reject) => {
+    if (!("geolocation" in navigator)) {
+      reject(new Error("Geolocalización no soportada"));
+      return;
     }
 
-    console.log("✅ Ubicación obtenida por GPS:", resultado);
-    mostrarToast(`GPS activo 📡 (${resultado.precision.toFixed(1)} m)`);
+    const timeout = setTimeout(() => reject(new Error("Timeout GPS (10s)")), 10000);
 
-    return resultado;
-  } catch (gpsErr) {
-    console.warn("⚠️ Falló GPS, intentando IP:", gpsErr.message);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timeout);
+        resolve(pos);
+      },
+      (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
 
-    // 🌐 4️⃣ Fallback: ubicación por IP pública
-    try {
-      const ipResp = await fetch("https://ipapi.co/json/");
-      const data = await ipResp.json();
-      resultado.lat = data.latitude;
-      resultado.lon = data.longitude;
-      resultado.precision = 5000; // estimada
-      resultado.direccion = data.city + ", " + data.region + ", " + data.country_name;
-      resultado.metodo = "ip";
-
-      console.log("✅ Ubicación obtenida por IP:", resultado);
-      mostrarToast("Ubicación por IP 🌐");
-
-      return resultado;
-    } catch (ipErr) {
-      console.error("❌ No se pudo obtener ubicación por IP:", ipErr.message);
-      mostrarToast("No se pudo obtener ubicación ❌");
-      return resultado;
-    }
+// === 2️⃣ Fallback IP ===
+async function obtenerUbicacionPorIP() {
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    const data = await res.json();
+    const ubic = {
+      lat: data.latitude,
+      lon: data.longitude,
+      precision: 5000,
+      direccion: `${data.city}, ${data.region}, ${data.country_name}`,
+      metodo: "ip"
+    };
+    console.log("✅ Ubicación por IP:", ubic);
+    mostrarToast("🌐 Ubicación aproximada (IP)");
+    return ubic;
+  } catch (e) {
+    console.error("❌ Error en ubicación por IP:", e.message);
+    return { metodo: "fallo" };
   }
 }
 
-// ===============================
-// 🔔 Toast para mensajes rápidos
-// ===============================
+// === 3️⃣ Obtener dirección legible desde coordenadas ===
+async function obtenerDireccionLegible(lat, lon) {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=18&addressdetails=1`
+    );
+    const data = await res.json();
+    return data.display_name || "Sin dirección";
+  } catch (e) {
+    console.warn("⚠️ No se pudo obtener dirección:", e.message);
+    return "Sin dirección";
+  }
+}
+
+// === 🕒 Utilidad ===
+function esperar(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// === 🔔 Toast visual ===
 function mostrarToast(mensaje) {
-  const toast = document.createElement("div");
-  toast.textContent = mensaje;
-  Object.assign(toast.style, {
+  const t = document.createElement("div");
+  t.textContent = mensaje;
+  Object.assign(t.style, {
     position: "fixed",
     bottom: "20px",
     left: "50%",
     transform: "translateX(-50%)",
-    background: "rgba(0,128,0,0.9)",
+    background: "rgba(0,0,0,0.85)",
     color: "#fff",
     padding: "10px 16px",
     borderRadius: "10px",
     fontWeight: "600",
-    zIndex: "3000",
-    boxShadow: "0 3px 12px rgba(0,0,0,0.3)",
-    opacity: "1",
+    zIndex: "9999",
     transition: "opacity 0.5s ease"
   });
-  document.body.appendChild(toast);
-  setTimeout(() => (toast.style.opacity = "0"), 2500);
-  setTimeout(() => toast.remove(), 3000);
+  document.body.appendChild(t);
+  setTimeout(() => (t.style.opacity = "0"), 2500);
+  setTimeout(() => t.remove(), 3000);
 }
