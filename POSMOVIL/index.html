@@ -279,43 +279,48 @@ body {
 
 <!-- 📷 Control de escáner QR -->
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const btnCam = document.getElementById("btnCam");
-    const camDiv = document.getElementById("qrReaderContainer");
-    const cerrarCam = document.getElementById("cerrarCam");
-    let html5QrCode = null;
+window.addEventListener("load", () => {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  let html5QrCode = null;
 
-    btnCam.addEventListener("click", () => {
-      camDiv.style.display = "flex";
-      html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          console.log("📦 Código detectado:", decodedText);
-          const buscador = document.getElementById("buscador");
-          buscador.value = decodedText;
-          camDiv.style.display = "none";
-          html5QrCode.stop().then(() => {
-            console.log("✅ Cámara detenida");
-            const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-            buscador.dispatchEvent(enterEvent);
-          });
-        },
-        (errorMessage) => console.log("⚠️", errorMessage)
-      ).catch((err) => {
-        alert("No se pudo abrir la cámara: " + err);
+  btnCam.addEventListener("click", () => {
+    camDiv.style.display = "flex";
+    const readerDiv = document.getElementById("reader");
+    if (!readerDiv) {
+      alert("No se encontró el contenedor del lector (#reader)");
+      return;
+    }
+
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        console.log("📦 Código detectado:", decodedText);
+        const buscador = document.getElementById("buscador");
+        buscador.value = decodedText;
         camDiv.style.display = "none";
-      });
-    });
-
-    cerrarCam.addEventListener("click", () => {
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => camDiv.style.display = "none");
-      } else camDiv.style.display = "none";
+        html5QrCode.stop().then(() => {
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          buscador.dispatchEvent(enterEvent);
+        });
+      },
+      (errorMessage) => console.log("⚠️", errorMessage)
+    ).catch((err) => {
+      alert("No se pudo abrir la cámara: " + err);
+      camDiv.style.display = "none";
     });
   });
+
+  cerrarCam.addEventListener("click", () => {
+    if (html5QrCode) html5QrCode.stop().then(() => camDiv.style.display = "none");
+    else camDiv.style.display = "none";
+  });
+});
 </script>
+
 
 <!-- Tu script principal de Firebase -->
 <script type="module">
