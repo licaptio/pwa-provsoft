@@ -1068,7 +1068,7 @@ pdf.text(`Total: $${total}`, 130, y);
 🧮 *Folio:* ${venta.folio}
 📍 *Ubicación:* ${venta.ubicacion?.direccion || "Sin dirección"}
 🌎 *Coordenadas:* ${venta.ubicacion?.lat?.toFixed(5) || "—"}, ${venta.ubicacion?.lon?.toFixed(5) || "—"}
-💰 *Total:* $${venta.total.toFixed(2)}
+💰 *Total:* $${(venta.resumen_financiero?.total || venta.total || 0).toFixed(2)}
 🧑‍🤝‍🧑 *Cliente:* ${venta.cliente || "Mostrador"}
 📌 [Ver en mapa](${mapUrl})  
 `.trim();
