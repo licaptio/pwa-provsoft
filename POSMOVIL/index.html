@@ -1287,44 +1287,6 @@ tablaTickets.addEventListener("click", async (e) => {
   imprimirTicketEstilado();
   modalReimp.style.display = "none";
 });
-      const detector = new BarcodeDetector({ formats: ["code_128", "ean_13", "qr_code"] });
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      video.setAttribute("playsinline", true);
-      video.play();
-
-      const preview = document.createElement("div");
-      preview.style.position = "fixed";
-      preview.style.inset = "0";
-      preview.style.background = "rgba(0,0,0,.7)";
-      preview.style.zIndex = "2000";
-      preview.style.display = "flex";
-      preview.style.alignItems = "center";
-      preview.style.justifyContent = "center";
-      preview.appendChild(video);
-      document.body.appendChild(preview);
-
-      const interval = setInterval(async () => {
-        try {
-          const barcodes = await detector.detect(video);
-          if (barcodes.length > 0) {
-            const codigo = barcodes[0].rawValue;
-            console.log("Código detectado:", codigo);
-            elBuscador.value = codigo;
-            preview.remove();
-            stream.getTracks().forEach(t => t.stop());
-            clearInterval(interval);
-            pintarResultados(buscarLocal(codigo));
-          }
-        } catch (err) { console.error(err); }
-      }, 500);
-    } catch (err) {
-      alert("No se pudo acceder a la cámara.");
-      console.error(err);
-    }
-  });
   // ✅ Toast / mensaje flotante elegante
 function mostrarToast(mensaje){
   const toast = document.createElement("div");
