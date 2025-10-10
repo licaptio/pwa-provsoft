@@ -1,13 +1,12 @@
 const CACHE_NAME = "provpos-v3";
 const ASSETS = [
-    "./",
+  "./",
   "./index.html",
   "./manifest.json",
   "./logo_proveedora.webp",
   "./icons/icon-192x192.png",
   "./icons/icon-512x512.png"
 ];
-
 
 // 📦 Instalar y cachear los archivos base
 self.addEventListener("install", (event) => {
@@ -38,7 +37,7 @@ self.addEventListener("fetch", (event) => {
         const resClone = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
         return res;
-      }).catch(() => caches.match("/POSMOVIL/index.html"))
+      }).catch(() => caches.match("index.html"))
     )
   );
 });
