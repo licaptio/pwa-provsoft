@@ -1032,14 +1032,19 @@ venta.margen_porcentaje = venta.resumen_financiero.margen_porcentaje;
         }
       });
 
-      y += 5;
-      pdf.line(10, y, 200, y);
-      y += 6;
-      pdf.text(`Subtotal: $${venta.subtotal.toFixed(2)}`, 130, y);
-      y += 5;
-      pdf.text(`Impuestos: $${venta.impuestos.toFixed(2)}`, 130, y);
-      y += 5;
-      pdf.text(`Total: $${venta.total.toFixed(2)}`, 130, y);
+// 💵 Totales seguros (evita error .toFixed en undefined)
+const subtotal = Number(venta.subtotal || 0).toFixed(2);
+const impuestos = Number(venta.impuestos || 0).toFixed(2);
+const total = Number(venta.total || 0).toFixed(2);
+
+y += 5;
+pdf.line(10, y, 200, y);
+y += 6;
+pdf.text(`Subtotal: $${subtotal}`, 130, y);
+y += 5;
+pdf.text(`Impuestos: $${impuestos}`, 130, y);
+y += 5;
+pdf.text(`Total: $${total}`, 130, y);
 
       if (venta.ubicacion?.lat) {
         y += 10;
