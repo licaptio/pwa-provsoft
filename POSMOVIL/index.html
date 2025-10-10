@@ -1165,11 +1165,7 @@ btnCorte.addEventListener("click", () => {
   window.open("corte.html", "_blank");
 });
 
-// ==== Reimpresión de Tickets (adaptada) ====
-import {
-  collection, getDocs, getDoc, query, orderBy, limit, doc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+// ==== Reimpresión de Tickets (adaptada) ====  
 const modalReimp = document.getElementById("modalReimp");
 const btnReimprimir = document.getElementById("btnReimprimir");
 const btnCerrarReimp = document.getElementById("btnCerrarReimp");
