@@ -188,7 +188,7 @@ async function generarCorteAnalitico(rutaId) {
   let totalDia=0, totalEfectivo=0, utilidadTotal=0;
 
   for (const v of ventas) {
-    totalDia += v.total||0;
+    totalDia += v.total || v.resumen_financiero?.total || 0;
     utilidadTotal += v.utilidad_total||0;
     const hora = (v.fecha_txt||"").split(",")[1]?.trim()||"";
     porNota.push({ folio:v.folio||"—", total:v.total||0, utilidad:v.utilidad_total||0, hora });
