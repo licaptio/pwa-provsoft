@@ -1,6 +1,6 @@
 // ===============================
-// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.5
-// Evita saltos falsos (ej. Saltillo) y valida posición real
+// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.6
+// Combina GPS, Google API, IP pública, caché y validación de zona
 // ===============================
 
 export async function obtenerUbicacionRobusta() {
@@ -13,8 +13,10 @@ export async function obtenerUbicacionRobusta() {
   };
 
   const MAX_REINTENTOS = 3;
-  const RADIO_VALIDO_KM = 30;  // si el punto se mueve >30 km se considera error
-  const COORD_POR_DEFECTO = { lat: 24.856, lon: -99.567 }; // Linares centro (ajusta a tu base)
+  const RADIO_VALIDO_KM = 20;  // Rango máximo de movimiento aceptado
+  const COORD_POR_DEFECTO = { lat: 24.856, lon: -99.567 }; // Linares base
+  const GOOGLE_API_KEY = "AQUI_TU_API_KEY"; // 🔑 Agrega tu API key de Google
+
   const historial = cargarHistorialUbicaciones();
   let ultimaValida = historial[0] || COORD_POR_DEFECTO;
 
@@ -29,9 +31,8 @@ export async function obtenerUbicacionRobusta() {
       const distancia = distanciaKm(lat, lon, ultimaValida.lat, ultimaValida.lon);
       console.log(`📏 Distancia respecto última válida: ${distancia.toFixed(1)} km`);
 
-      // ⚠️ descarta puntos fuera de rango (>30 km del último o precisión >200m)
       if (distancia > RADIO_VALIDO_KM || precision > 200) {
-        console.warn("⚠️ Coordenada fuera de rango o imprecisa, reintentando...");
+        console.warn("⚠️ Coordenada imprecisa o fuera de rango, reintentando...");
         await esperar(1500);
         continue;
       }
@@ -44,27 +45,37 @@ export async function obtenerUbicacionRobusta() {
 
       guardarUbicacionHistorial(lat, lon, precision);
       mostrarToast(`📍 GPS válido (${precision.toFixed(0)} m)`);
-
       return resultado;
+
     } catch (e) {
       console.warn(`⚠️ Intento ${intento} fallido: ${e.message}`);
       await esperar(1000);
     }
   }
 
-  console.warn("⚠️ GPS falló, intentando IP...");
+  // 🔁 Fallback 1: Google Geolocation API
+  console.warn("📡 Intentando ubicación por Google Geolocation API...");
+  const googleUbic = await obtenerUbicacionGoogle(GOOGLE_API_KEY);
+  if (googleUbic?.lat && googleUbic?.lon) {
+    guardarUbicacionHistorial(googleUbic.lat, googleUbic.lon, googleUbic.precision);
+    return googleUbic;
+  }
+
+  // 🔁 Fallback 2: IP pública
+  console.warn("🌐 Intentando ubicación por IP...");
   const ipUbic = await obtenerUbicacionPorIP();
   if (ipUbic.lat && ipUbic.lon) {
     guardarUbicacionHistorial(ipUbic.lat, ipUbic.lon, ipUbic.precision);
     return ipUbic;
   }
 
-  console.warn("⚠️ Fallback IP falló, usando última válida");
+  // 🔁 Fallback 3: Caché local
+  console.warn("♻️ Usando última ubicación válida o por defecto");
   mostrarToast("♻️ Usando última ubicación válida");
   return { ...ultimaValida, metodo: "cache" };
 }
 
-// === Alta precisión con timeout
+// === Alta precisión con timeout ===
 function obtenerCoordenadasAltaPrecision() {
   return new Promise((res, rej) => {
     if (!("geolocation" in navigator)) return rej(new Error("Sin geolocalización"));
@@ -75,6 +86,29 @@ function obtenerCoordenadasAltaPrecision() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   });
+}
+
+// === Google Geolocation API ===
+async function obtenerUbicacionGoogle(API_KEY) {
+  try {
+    const r = await fetch(`https://www.googleapis.com/geolocation/v1/geolocate?key=${API_KEY}`, { method: "POST" });
+    const d = await r.json();
+    if (d.location) {
+      const u = {
+        lat: d.location.lat,
+        lon: d.location.lng,
+        precision: d.accuracy || 50,
+        metodo: "google_api",
+        direccion: await obtenerDireccionLegible(d.location.lat, d.location.lng)
+      };
+      console.log("✅ Ubicación Google API:", u);
+      mostrarToast("📶 Ubicación por red (Google API)");
+      return u;
+    }
+  } catch (e) {
+    console.warn("❌ Google API falló:", e.message);
+  }
+  return null;
 }
 
 // === Fallback por IP ===
@@ -122,7 +156,7 @@ function distanciaKm(lat1, lon1, lat2, lon2) {
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// === Historial local de posiciones ===
+// === Historial local ===
 function cargarHistorialUbicaciones() {
   try {
     return JSON.parse(localStorage.getItem("historial_ubicaciones") || "[]");
@@ -145,4 +179,6 @@ function mostrarToast(m) {
     borderRadius:"10px",fontWeight:"600",zIndex:"9999",transition:"opacity .5s"
   });
   document.body.appendChild(t);
-  set
+  setTimeout(()=>t.style.opacity="0",2500);
+  setTimeout(()=>t.remove(),3000);
+}
