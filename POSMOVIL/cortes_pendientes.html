@@ -184,7 +184,7 @@ async function generarCorteAnalitico(rutaId) {
   const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   if (!ventas.length) return;
 
-  const porDepto={}, porMetodo={}, porNota=[], porHora={};
+  const porDepto = {}, porMetodo = {}, porNota = [], porHora = {}, porArticulo = {};
   let totalDia=0, totalEfectivo=0, utilidadTotal=0;
 
   for (const v of ventas) {
@@ -201,6 +201,14 @@ async function generarCorteAnalitico(rutaId) {
     porMetodo[metodo]=(porMetodo[metodo]||0)+(v.total||0);
     totalEfectivo+=v.total||0;
     for(const det of(v.detalle||[])){
+      // 🔹 Top de artículos más vendidos
+const nombreArt = det.nombre?.toUpperCase() || "SIN NOMBRE";
+if (!porArticulo[nombreArt]) {
+  porArticulo[nombreArt] = { cantidad: 0, importe: 0 };
+}
+porArticulo[nombreArt].cantidad += det.cantidad || 0;
+porArticulo[nombreArt].importe += det.importe || det.precio_unit * det.cantidad || 0;
+
       const dep=det.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
       const venta=det.importe||det.precio_unit*det.cantidad||0;
       const costo=det.costo_total||det.costo_unit*det.cantidad||0;
@@ -212,12 +220,13 @@ async function generarCorteAnalitico(rutaId) {
     porHora[horaKey]=(porHora[horaKey]||0)+(v.total||0);
   }
 
-  const resumen={
-    nombreCorte: ventas[0]?.usuarioNombre||ventas[0]?.atendio||"Desconocido",
-    totalDia,totalEfectivo,utilidadTotal,
-    totalTickets: ventas.length,
-    porDepto,porMetodo,porNota,porHora
-  };
+  const resumen = {
+  nombreCorte: ventas[0]?.usuarioNombre || ventas[0]?.atendio || "Desconocido",
+  totalDia, totalEfectivo, utilidadTotal,
+  totalTickets: ventas.length,
+  porDepto, porMetodo, porNota, porHora, porArticulo
+};
+
   await guardarCorteFirebase(rutaId,resumen);
   await generarPDFyEnviar(resumen,rutaId);
 }
@@ -261,6 +270,31 @@ pdf.text("Hora", 45, y);
 pdf.text("Total", 90, y);
 pdf.text("Utilidad", 130, y);
 pdf.setFont("helvetica", "normal");
+y += 10;
+pdf.setFont("helvetica", "bold");
+pdf.text("Top de Artículos Más Vendidos:", 10, y);
+pdf.setFont("helvetica", "normal");
+y += 6;
+
+const topArticulos = Object.entries(r.porArticulo)
+  .sort((a, b) => b[1].importe - a[1].importe)
+  .slice(0, 10);
+
+pdf.setFont("helvetica", "bold");
+pdf.text("Artículo", 12, y);
+pdf.text("Cantidad", 100, y);
+pdf.text("Importe", 140, y);
+pdf.setFont("helvetica", "normal");
+y += 5;
+
+for (const [nombre, datos] of topArticulos) {
+  pdf.text(nombre.substring(0, 40), 12, y);
+  pdf.text(`${datos.cantidad}`, 100, y);
+  pdf.text(`$${datos.importe.toFixed(2)}`, 140, y);
+  y += 5;
+  if (y > 260) { pdf.addPage(); y = 20; }
+}
+
 y += 5;
 
 let totalTickets = 0;
