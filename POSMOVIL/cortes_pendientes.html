@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 // 🔹 Calcular totales y utilidad del día
-const totalHoy = ventas.reduce((a, v) => a + (v.total || 0), 0);
+const totalHoy = ventas.reduce((a, v) => a + (v.total || v.resumen_financiero?.total || 0), 0);
 const utilidadHoy = ventas.reduce((a, v) => a + (v.utilidad_total || 0), 0);
 const ultima = ventas.sort((a, b) => (b.fecha_txt || '').localeCompare(a.fecha_txt || ''))[0]?.fecha_txt || "—";
 
