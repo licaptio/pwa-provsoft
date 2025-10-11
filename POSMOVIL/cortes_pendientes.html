@@ -321,9 +321,6 @@ for (const [nombre, datos] of topArticulos) {
 }
 y += 5;
 
-let totalTickets = 0;
-let totalUtilidad = 0;
-
 for (const n of r.porNota.slice(0, 30)) {
   pdf.text(n.folio || "—", 12, y);
   pdf.text(n.hora || "—", 45, y);
