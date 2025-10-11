@@ -159,13 +159,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const btn = e.target.closest("button[data-ruta]");
     if (!btn) return;
     const rutaId = btn.getAttribute("data-ruta");
-    overlay.style.display = "flex";
-    await generarCorteAnalitico(rutaId);
-    overlay.style.display = "none";
-    alert("✅ Corte realizado y PDF generado.");
-    selectRuta.value = "";
-    tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
-  });
+overlay.style.display = "flex";
+generarCorteAnalitico(rutaId).finally(() => {
+  overlay.style.display = "none";
+  alert("✅ Corte generado y procesado en background.");
+  selectRuta.value = "";
+  tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
+});
 
   async function generarCorteAnalitico(rutaId) {
     const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
