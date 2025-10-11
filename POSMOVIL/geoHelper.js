@@ -1,6 +1,6 @@
 // ===============================
-// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.1
-// Combina GPS, Network, IP pública, caché y reintento automático
+// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.5
+// Evita saltos falsos (ej. Saltillo) y valida posición real
 // ===============================
 
 export async function obtenerUbicacionRobusta() {
@@ -12,148 +12,137 @@ export async function obtenerUbicacionRobusta() {
     metodo: "desconocido"
   };
 
-  const tiempoInicio = Date.now();
-  const maxIntentos = 3;
-  let intento = 0;
-  let ultimoError = null;
+  const MAX_REINTENTOS = 3;
+  const RADIO_VALIDO_KM = 30;  // si el punto se mueve >30 km se considera error
+  const COORD_POR_DEFECTO = { lat: 24.856, lon: -99.567 }; // Linares centro (ajusta a tu base)
+  const historial = cargarHistorialUbicaciones();
+  let ultimaValida = historial[0] || COORD_POR_DEFECTO;
 
-  while (intento < maxIntentos) {
-    intento++;
+  for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
     try {
       console.log(`🛰️ Intento ${intento} de geolocalización...`);
       const pos = await obtenerCoordenadasAltaPrecision();
-      resultado.lat = pos.coords.latitude;
-      resultado.lon = pos.coords.longitude;
-      resultado.precision = pos.coords.accuracy;
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const precision = pos.coords.accuracy || 9999;
+
+      const distancia = distanciaKm(lat, lon, ultimaValida.lat, ultimaValida.lon);
+      console.log(`📏 Distancia respecto última válida: ${distancia.toFixed(1)} km`);
+
+      // ⚠️ descarta puntos fuera de rango (>30 km del último o precisión >200m)
+      if (distancia > RADIO_VALIDO_KM || precision > 200) {
+        console.warn("⚠️ Coordenada fuera de rango o imprecisa, reintentando...");
+        await esperar(1500);
+        continue;
+      }
+
+      resultado.lat = lat;
+      resultado.lon = lon;
+      resultado.precision = precision;
       resultado.metodo = "gps";
-      console.log(`✅ GPS exitoso en intento ${intento}`, resultado);
+      resultado.direccion = await obtenerDireccionLegible(lat, lon);
 
-      // Obtener dirección legible (offline o Nominatim)
-      resultado.direccion = await obtenerDireccionLegible(resultado.lat, resultado.lon);
-      mostrarToast(`📡 GPS preciso (${resultado.precision.toFixed(1)}m)`);
-
-      // Guardar en caché por 5 minutos (fallback rápido)
-      localStorage.setItem("ultima_ubicacion", JSON.stringify({
-        ...resultado,
-        timestamp: Date.now()
-      }));
+      guardarUbicacionHistorial(lat, lon, precision);
+      mostrarToast(`📍 GPS válido (${precision.toFixed(0)} m)`);
 
       return resultado;
-
-    } catch (err) {
-      ultimoError = err;
-      console.warn(`⚠️ Intento ${intento} fallido: ${err.message}`);
-      await esperar(1500);
+    } catch (e) {
+      console.warn(`⚠️ Intento ${intento} fallido: ${e.message}`);
+      await esperar(1000);
     }
   }
 
-  // 🚨 Si falla GPS tras varios intentos, usar fallback IP o caché
-  console.warn("⚠️ GPS falló, intentando fallback por IP...");
-  const fallback = await obtenerUbicacionPorIP();
-
-  if (!fallback.lat || !fallback.lon) {
-    console.warn("⚠️ Fallback por IP falló, usando caché local si existe...");
-    const cache = localStorage.getItem("ultima_ubicacion");
-    if (cache) {
-      const data = JSON.parse(cache);
-      const antiguedad = (Date.now() - data.timestamp) / 1000;
-      if (antiguedad < 300) {
-        console.log("♻️ Usando caché de ubicación reciente (<5min)");
-        mostrarToast("♻️ Usando ubicación guardada (sin señal GPS)");
-        return data;
-      }
-    }
+  console.warn("⚠️ GPS falló, intentando IP...");
+  const ipUbic = await obtenerUbicacionPorIP();
+  if (ipUbic.lat && ipUbic.lon) {
+    guardarUbicacionHistorial(ipUbic.lat, ipUbic.lon, ipUbic.precision);
+    return ipUbic;
   }
 
-  const tiempoTotal = ((Date.now() - tiempoInicio) / 1000).toFixed(1);
-  console.warn(`❌ Falló todo el proceso de geolocalización (${tiempoTotal}s)`);
-  mostrarToast("No se pudo obtener ubicación ❌");
-
-  return fallback;
+  console.warn("⚠️ Fallback IP falló, usando última válida");
+  mostrarToast("♻️ Usando última ubicación válida");
+  return { ...ultimaValida, metodo: "cache" };
 }
 
-// === 1️⃣ GPS Alta precisión con timeout de 10s ===
-async function obtenerCoordenadasAltaPrecision() {
-  return new Promise((resolve, reject) => {
-    if (!("geolocation" in navigator)) {
-      reject(new Error("Geolocalización no soportada"));
-      return;
-    }
-
-    const timeout = setTimeout(() => reject(new Error("Timeout GPS (10s)")), 10000);
-
+// === Alta precisión con timeout
+function obtenerCoordenadasAltaPrecision() {
+  return new Promise((res, rej) => {
+    if (!("geolocation" in navigator)) return rej(new Error("Sin geolocalización"));
+    const timeout = setTimeout(() => rej(new Error("Timeout 10 s")), 10000);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        clearTimeout(timeout);
-        resolve(pos);
-      },
-      (err) => {
-        clearTimeout(timeout);
-        reject(err);
-      },
+      (p) => { clearTimeout(timeout); res(p); },
+      (e) => { clearTimeout(timeout); rej(e); },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   });
 }
 
-// === 2️⃣ Fallback IP ===
+// === Fallback por IP ===
 async function obtenerUbicacionPorIP() {
   try {
-    const res = await fetch("https://ipapi.co/json/");
-    const data = await res.json();
-    const ubic = {
-      lat: data.latitude,
-      lon: data.longitude,
+    const r = await fetch("https://ipapi.co/json/");
+    const d = await r.json();
+    const u = {
+      lat: d.latitude,
+      lon: d.longitude,
       precision: 5000,
-      direccion: `${data.city}, ${data.region}, ${data.country_name}`,
+      direccion: `${d.city}, ${d.region}, ${d.country_name}`,
       metodo: "ip"
     };
-    console.log("✅ Ubicación por IP:", ubic);
+    console.log("✅ Ubicación IP:", u);
     mostrarToast("🌐 Ubicación aproximada (IP)");
-    return ubic;
+    return u;
   } catch (e) {
-    console.error("❌ Error en ubicación por IP:", e.message);
-    return { metodo: "fallo" };
+    console.error("❌ Fallback IP falló:", e);
+    return {};
   }
 }
 
-// === 3️⃣ Obtener dirección legible desde coordenadas ===
+// === Dirección legible ===
 async function obtenerDireccionLegible(lat, lon) {
   try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&zoom=18&addressdetails=1`
-    );
-    const data = await res.json();
-    return data.display_name || "Sin dirección";
-  } catch (e) {
-    console.warn("⚠️ No se pudo obtener dirección:", e.message);
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const d = await r.json();
+    return d.display_name || "Sin dirección";
+  } catch {
     return "Sin dirección";
   }
 }
 
-// === 🕒 Utilidad ===
-function esperar(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+// === Utilidades ===
+function esperar(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function distanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// === 🔔 Toast visual ===
-function mostrarToast(mensaje) {
+// === Historial local de posiciones ===
+function cargarHistorialUbicaciones() {
+  try {
+    return JSON.parse(localStorage.getItem("historial_ubicaciones") || "[]");
+  } catch { return []; }
+}
+function guardarUbicacionHistorial(lat, lon, precision) {
+  const arr = cargarHistorialUbicaciones();
+  arr.unshift({ lat, lon, precision, ts: Date.now() });
+  if (arr.length > 10) arr.pop();
+  localStorage.setItem("historial_ubicaciones", JSON.stringify(arr));
+}
+
+// === Toast visual ===
+function mostrarToast(m) {
   const t = document.createElement("div");
-  t.textContent = mensaje;
+  t.textContent = m;
   Object.assign(t.style, {
-    position: "fixed",
-    bottom: "20px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    background: "rgba(0,0,0,0.85)",
-    color: "#fff",
-    padding: "10px 16px",
-    borderRadius: "10px",
-    fontWeight: "600",
-    zIndex: "9999",
-    transition: "opacity 0.5s ease"
+    position:"fixed",bottom:"20px",left:"50%",transform:"translateX(-50%)",
+    background:"rgba(0,0,0,0.85)",color:"#fff",padding:"10px 16px",
+    borderRadius:"10px",fontWeight:"600",zIndex:"9999",transition:"opacity .5s"
   });
   document.body.appendChild(t);
-  setTimeout(() => (t.style.opacity = "0"), 2500);
-  setTimeout(() => t.remove(), 3000);
-}
+  set
