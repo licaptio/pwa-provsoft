@@ -266,6 +266,8 @@ body {
   <button class="btn" id="btnCorte">Corte del Día</button>
   <button class="btn" id="btnReimprimir" style="background:linear-gradient(180deg,#6b7280,#374151);">
     Reimprimir
+    <button class="btn" id="btnResumen" style="background:linear-gradient(180deg,#0c6cbd,#00416A);">
+    📊 Ver Resumen Diario
   </button>
 </section>
 
@@ -1222,6 +1224,14 @@ btnCorte.addEventListener("click", () => {
   window.open("corte.html", "_blank");
 });
 
+// 🔹 Botón que abre el resumen diario
+const btnResumen = document.getElementById("btnResumen");
+btnResumen.addEventListener("click", () => {
+  localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+  window.location.href = "resumen.html";
+});
+
+  
 // ==== Reimpresión de Tickets (adaptada) ====  
 const modalReimp = document.getElementById("modalReimp");
 const btnReimprimir = document.getElementById("btnReimprimir");
