@@ -247,19 +247,43 @@ async function generarPDFyEnviar(r,rutaId){
     pdf.text(`${dep}: $${v.venta.toFixed(2)}  Utilidad:$${v.utilidad.toFixed(2)} (${(v.utilidad/v.venta*100).toFixed(1)}%)`,12,y);
     y+=5; if(y>260){pdf.addPage();y=20;}
   }
-  y+=5; pdf.text("Métodos de Pago:",10,y); y+=5;
-  for(const[m,v]of Object.entries(r.porMetodo)){pdf.text(`${m}: $${v.toFixed(2)}`,12,y);y+=5;}
-  y+=5; pdf.text("Utilidad por Nota:",10,y); y+=5;
-  for(const n of r.porNota.slice(0,30)){
-    pdf.text(`${n.folio} ${n.hora}  $${n.total.toFixed(2)}  Uti:$${n.utilidad.toFixed(2)}`,12,y);
-    y+=4; if(y>260){pdf.addPage();y=20;}
-  }
-  const img1=await graficaDeptos(r.porDepto);
-  const img2=await graficaNotas(r.porNota);
-  const img3=await graficaHoras(r.porHora);
-  pdf.addPage(); pdf.text("Gráfica por Departamento",10,15); pdf.addImage(img1,"PNG",15,20,180,100);
-  pdf.addPage(); pdf.text("Utilidad por Nota",10,15); pdf.addImage(img2,"PNG",15,20,180,100);
-  pdf.addPage(); pdf.text("Trazado de Ventas por Hora",10,15); pdf.addImage(img3,"PNG",15,20,180,100);
+  y+=5; // 🔹 Resumen de Tickets
+y += 5;
+pdf.text("Resumen de Tickets:", 10, y);
+y += 6;
+pdf.setFont("helvetica", "bold");
+pdf.text("Folio", 12, y);
+pdf.text("Hora", 45, y);
+pdf.text("Total", 90, y);
+pdf.text("Utilidad", 130, y);
+pdf.setFont("helvetica", "normal");
+y += 5;
+
+let totalTickets = 0;
+let totalUtilidad = 0;
+
+for (const n of r.porNota.slice(0, 30)) {
+  pdf.text(n.folio || "—", 12, y);
+  pdf.text(n.hora || "—", 45, y);
+  pdf.text(`$${(n.total || n.resumen_financiero?.total || 0).toFixed(2)}`, 90, y);
+  pdf.text(`$${(n.utilidad || 0).toFixed(2)}`, 130, y);
+  totalTickets += n.total || n.resumen_financiero?.total || 0;
+  totalUtilidad += n.utilidad || 0;
+  y += 5;
+  if (y > 260) { pdf.addPage(); y = 20; }
+}
+
+// 🔹 Totales finales
+pdf.setFont("helvetica", "bold");
+pdf.text("——————————————————————————————————————", 10, y);
+y += 6;
+pdf.text(`TOTAL DÍA: $${totalTickets.toFixed(2)}   UTILIDAD TOTAL: $${totalUtilidad.toFixed(2)}`, 12, y);
+pdf.setFont("helvetica", "normal");
+
+const img1 = await graficaDeptos(r.porDepto);
+pdf.addPage();
+pdf.text("Gráfica por Departamento", 10, 15);
+pdf.addImage(img1, "PNG", 15, 20, 180, 100);
   pdf.text("Reporte generado automáticamente por PROVSOFT POS",10,275);
   const blob=pdf.output("blob");
   const url=URL.createObjectURL(blob);
