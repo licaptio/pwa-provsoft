@@ -106,6 +106,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const tbody = document.getElementById("tbodyCortes");
   const overlay = document.getElementById("overlay");
 
+  // 🧩 Texto dinámico dentro del overlay
+  const overlayText = document.createElement("div");
+  overlayText.id = "overlayText";
+  overlayText.style.marginTop = "10px";
+  overlay.appendChild(overlayText);
+
   async function cargarRutas() {
     const snap = await getDocs(collection(db, "rutas_venta"));
     const rutas = new Map();
@@ -155,18 +161,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     cargarPendientes(rutaId);
   });
 
+  // ✅ Listener corregido con corte asíncrono no bloqueante
   tbody.addEventListener("click", async e => {
     const btn = e.target.closest("button[data-ruta]");
     if (!btn) return;
     const rutaId = btn.getAttribute("data-ruta");
-overlay.style.display = "flex";
-generarCorteAnalitico(rutaId).finally(() => {
-  overlay.style.display = "none";
-  alert("✅ Corte generado y procesado en background.");
-  selectRuta.value = "";
-  tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
-});
 
+    overlay.style.display = "flex";
+    overlayText.innerText = "⏳ Generando resumen y PDF...";
+
+    generarCorteAnalitico(rutaId).finally(() => {
+      overlay.style.display = "none";
+      alert("✅ Corte generado y procesado en background.");
+      selectRuta.value = "";
+      tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
+    });
+  }); // ← Cierra el listener
+
+  // 👇 FUNCIONES GLOBALES (fuera del listener)
   async function generarCorteAnalitico(rutaId) {
     const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
     const snap = await getDocs(qVentas);
@@ -214,6 +226,8 @@ generarCorteAnalitico(rutaId).finally(() => {
   }
 
   async function generarPDFyEnviar(r, rutaId) {
+    overlayText.innerText = "🧾 Generando PDF...";
+
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ format: "letter", unit: "mm" });
     pdf.setFont("helvetica", "bold");
@@ -235,45 +249,13 @@ generarCorteAnalitico(rutaId).finally(() => {
 
     y += 8;
     pdf.setFont("helvetica", "bold");
-    pdf.text("Resumen de Tickets:", 10, y);
+    pdf.text("Top Artículos Más Vendidos:", 10, y);
     pdf.setFont("helvetica", "normal");
     y += 6;
-    pdf.text("Folio", 12, y);
-    pdf.text("Hora", 45, y);
-    pdf.text("Total", 90, y);
-    pdf.text("Utilidad", 130, y);
-    y += 5;
-
-    let totalTickets = 0, totalUtilidad = 0;
-    for (const n of r.porNota.slice(0, 30)) {
-      pdf.text(n.folio || "—", 12, y);
-      pdf.text(n.hora || "—", 45, y);
-      pdf.text(`$${(n.total || 0).toFixed(2)}`, 90, y);
-      pdf.text(`$${(n.utilidad || 0).toFixed(2)}`, 130, y);
-      totalTickets += n.total || 0;
-      totalUtilidad += n.utilidad || 0;
-      y += 5;
-      if (y > 260) { pdf.addPage(); y = 20; }
-    }
-
-    y += 3;
-    pdf.setFont("helvetica", "bold");
-    pdf.text("——————————————————————————————————————", 10, y);
-    y += 6;
-    pdf.text(`TOTAL DÍA: $${totalTickets.toFixed(2)}   UTILIDAD TOTAL: $${totalUtilidad.toFixed(2)}`, 12, y);
-    pdf.setFont("helvetica", "normal");
-
-    y += 10;
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Top de Artículos Más Vendidos:", 10, y);
-    pdf.setFont("helvetica", "normal");
-    y += 6;
-    const topArticulos = Object.entries(r.porArticulo).sort((a, b) => b[1].importe - a[1].importe).slice(0, 10);
-    pdf.setFont("helvetica", "bold");
+    const topArticulos = Object.entries(r.porArticulo).sort((a,b)=>b[1].importe - a[1].importe).slice(0,10);
     pdf.text("Artículo", 12, y);
-    pdf.text("Cantidad", 100, y);
+    pdf.text("Cant.", 100, y);
     pdf.text("Importe", 140, y);
-    pdf.setFont("helvetica", "normal");
     y += 5;
     for (const [nombre, datos] of topArticulos) {
       pdf.text(nombre.substring(0, 40), 12, y);
@@ -293,10 +275,20 @@ generarCorteAnalitico(rutaId).finally(() => {
     window.open(url, "_blank");
     const a = document.createElement("a"); a.href = url; a.download = `Corte_${rutaId}.pdf`; a.click();
 
-    // 🚀 Enviar sin bloquear
+    overlayText.innerText = "📤 Enviando a Telegram...";
+
     enviarTelegram(blob, `Corte_${rutaId}.pdf`, `📦 Corte ${rutaId} Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`)
-      .then(() => console.log("✅ Corte enviado a Telegram"))
-      .catch(err => console.warn("⚠️ No se pudo enviar a Telegram:", err));
+      .then(() => {
+        overlayText.innerText = "✅ Envío completado";
+        console.log("✅ Corte enviado a Telegram");
+      })
+      .catch(err => {
+        overlayText.innerText = "⚠️ Error al enviar";
+        console.warn("⚠️ No se pudo enviar a Telegram:", err);
+      })
+      .finally(() => {
+        setTimeout(()=>{ overlay.style.display="none"; },1500);
+      });
 
     URL.revokeObjectURL(url);
   }
