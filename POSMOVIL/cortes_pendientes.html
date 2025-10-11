@@ -248,7 +248,6 @@ async function generarCorteAnalitico(rutaId) {
 
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ format: "letter", unit: "mm" });
-fimport { 
     pdf.setFont("helvetica", "bold");
     pdf.text(`CORTE ANALÍTICO – ${rutaId}`, 10, 15);
     pdf.setFont("helvetica", "normal");
