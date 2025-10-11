@@ -242,11 +242,10 @@ async function generarPDFyEnviar(r,rutaId){
   pdf.setFontSize(10);
   pdf.text(`Usuario: ${r.nombreCorte}`,10,22);
   pdf.text(`Fecha: ${new Date().toLocaleString()}`,10,28);
-  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`,10,34);
-  pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`,10,40);
-  pdf.text(`Total a Entregar: $${r.totalEfectivo.toFixed(2)}`,10,46);
-  pdf.text(`Tickets: ${r.totalTickets}`,10,52);
-  let y=60;
+pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`,10,34);
+pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`,10,40);
+pdf.text(`Tickets: ${r.totalTickets}`,10,46);
+let y = 56;
   pdf.text("Totales por Departamento:",10,y); y+=5;
   for(const[dep,v]of Object.entries(r.porDepto)){
     pdf.text(`${dep}: $${v.venta.toFixed(2)}  Utilidad:$${v.utilidad.toFixed(2)} (${(v.utilidad/v.venta*100).toFixed(1)}%)`,12,y);
