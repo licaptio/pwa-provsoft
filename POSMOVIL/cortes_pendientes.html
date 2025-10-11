@@ -191,7 +191,12 @@ async function generarCorteAnalitico(rutaId) {
     totalDia += v.total || v.resumen_financiero?.total || 0;
     utilidadTotal += v.utilidad_total||0;
     const hora = (v.fecha_txt||"").split(",")[1]?.trim()||"";
-    porNota.push({ folio:v.folio||"—", total:v.total||0, utilidad:v.utilidad_total||0, hora });
+    porNota.push({
+  folio: v.folio || "—",
+  total: v.total || v.resumen_financiero?.total || 0,
+  utilidad: v.utilidad_total || 0,
+  hora
+});
     const metodo=v.metodo_pago?.toLowerCase()||"otro";
     porMetodo[metodo]=(porMetodo[metodo]||0)+(v.total||0);
     totalEfectivo+=v.total||0;
