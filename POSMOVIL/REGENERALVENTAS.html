@@ -34,6 +34,8 @@
           const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
           const vendedor = data.usuarioNombre || "SIN NOMBRE";
           const ruta = data.rutaId || "Sin ruta";
+
+          // 🔹 clave: día + vendedor + ruta
           const clave = `${fecha}_${vendedor}_${ruta}`;
 
           if (!reportes[clave]) {
@@ -65,14 +67,17 @@
       const contenedor = document.getElementById("reportes");
       contenedor.innerHTML = "";
 
-      Object.values(reportes).forEach(rep => {
+      const claves = Object.keys(reportes).sort((a, b) => new Date(reportes[b].fecha) - new Date(reportes[a].fecha));
+
+      claves.forEach(clave => {
+        const rep = reportes[clave];
         const card = document.createElement("div");
         card.className = "card";
 
         const header = document.createElement("div");
         header.className = "card-header";
         header.innerHTML = `
-          <h2>🧾 Reporte de Venta ${rep.fecha}</h2>
+          <h2>🧾 Reporte ${rep.fecha}</h2>
           <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
         `;
 
