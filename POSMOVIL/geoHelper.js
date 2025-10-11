@@ -15,7 +15,7 @@ export async function obtenerUbicacionRobusta() {
   const MAX_REINTENTOS = 3;
   const RADIO_VALIDO_KM = 20;  // Rango máximo de movimiento aceptado
   const COORD_POR_DEFECTO = { lat: 24.856, lon: -99.567 }; // Linares base
-  const GOOGLE_API_KEY = "AQUI_TU_API_KEY"; // 🔑 Agrega tu API key de Google
+  const GOOGLE_API_KEY = "AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE"; // 🔑 Agrega tu API key de Google
 
   const historial = cargarHistorialUbicaciones();
   let ultimaValida = historial[0] || COORD_POR_DEFECTO;
