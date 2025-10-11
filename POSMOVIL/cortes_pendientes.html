@@ -133,16 +133,27 @@ document.addEventListener("DOMContentLoaded", async () => {
       tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes</td></tr>";
       return;
     }
-    const totalHoy = ventas.reduce((a, v) => a + (v.total || 0), 0);
-    const ultima = ventas.sort((a,b)=> (b.fecha_txt||'').localeCompare(a.fecha_txt||''))[0]?.fecha_txt || "—";
-    tbody.innerHTML = `
-      <tr>
-        <td>${ventas[0].atendio || ventas[0].usuario || "—"}</td>
-        <td>${rutaId}</td>
-        <td>$${totalHoy.toFixed(2)}</td>
-        <td>${ultima}</td>
-        <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
-      </tr>`;
+// 🔹 Calcular totales y utilidad del día
+const totalHoy = ventas.reduce((a, v) => a + (v.total || 0), 0);
+const utilidadHoy = ventas.reduce((a, v) => a + (v.utilidad_total || 0), 0);
+const ultima = ventas.sort((a, b) => (b.fecha_txt || '').localeCompare(a.fecha_txt || ''))[0]?.fecha_txt || "—";
+
+// 🔹 Mostrar resumen en tabla
+tbody.innerHTML = `
+  <tr>
+    <td>${ventas[0].atendio || ventas[0].usuario || "—"}</td>
+    <td>${rutaId}</td>
+    <td>$${totalHoy.toFixed(2)}</td>
+    <td>${ultima}</td>
+    <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
+  </tr>
+  <tr style="background:#e8f0fe;font-weight:600;">
+    <td colspan="2" style="text-align:right;">TOTAL GENERAL:</td>
+    <td>$${totalHoy.toFixed(2)}</td>
+    <td>UTILIDAD:</td>
+    <td>$${utilidadHoy.toFixed(2)}</td>
+  </tr>`;
+
   }
 
   selectRuta.addEventListener("change", e => {
