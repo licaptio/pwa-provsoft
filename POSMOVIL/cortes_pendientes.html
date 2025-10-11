@@ -321,24 +321,6 @@ for (const [nombre, datos] of topArticulos) {
 }
 y += 5;
 
-for (const n of r.porNota.slice(0, 30)) {
-  pdf.text(n.folio || "—", 12, y);
-  pdf.text(n.hora || "—", 45, y);
-  pdf.text(`$${(n.total || n.resumen_financiero?.total || 0).toFixed(2)}`, 90, y);
-  pdf.text(`$${(n.utilidad || 0).toFixed(2)}`, 130, y);
-  totalTickets += n.total || n.resumen_financiero?.total || 0;
-  totalUtilidad += n.utilidad || 0;
-  y += 5;
-  if (y > 260) { pdf.addPage(); y = 20; }
-}
-
-// 🔹 Totales finales
-pdf.setFont("helvetica", "bold");
-pdf.text("——————————————————————————————————————", 10, y);
-y += 6;
-pdf.text(`TOTAL DÍA: $${totalTickets.toFixed(2)}   UTILIDAD TOTAL: $${totalUtilidad.toFixed(2)}`, 12, y);
-pdf.setFont("helvetica", "normal");
-
 const img1 = await graficaDeptos(r.porDepto);
 pdf.addPage();
 pdf.text("Gráfica por Departamento", 10, 15);
