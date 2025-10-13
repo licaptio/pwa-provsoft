@@ -1,6 +1,6 @@
 // ===============================
-// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.6
-// Combina GPS, Google API, IP pública, caché y validación de zona
+// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.8
+// Combina GPS, Google API, IP pública, caché y validación de zona segura
 // ===============================
 
 export async function obtenerUbicacionRobusta() {
@@ -9,17 +9,22 @@ export async function obtenerUbicacionRobusta() {
     lon: null,
     precision: null,
     direccion: null,
-    metodo: "desconocido"
+    metodo: "desconocido",
+    fuera_ruta: false // nuevo flag
   };
 
   const MAX_REINTENTOS = 3;
-  const RADIO_VALIDO_KM = 20;  // Rango máximo de movimiento aceptado
-  const COORD_POR_DEFECTO = { lat: 24.856, lon: -99.567 }; // Linares base
+  const RADIO_VALIDO_KM = 20;  // Rango máximo de movimiento aceptado respecto a la última válida
+  const ZONA_BASE = { lat: 24.859, lon: -99.567 }; // Linares centro
+  const RADIO_ZONA_SEGURA_KM = 25; // radio máximo desde Linares permitido
   const GOOGLE_API_KEY = "AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE"; // 🔑 Agrega tu API key de Google
 
   const historial = cargarHistorialUbicaciones();
-  let ultimaValida = historial[0] || COORD_POR_DEFECTO;
+  let ultimaValida = historial[0] || ZONA_BASE;
 
+  // ============================
+  // 🔹 Intento GPS directo
+  // ============================
   for (let intento = 1; intento <= MAX_REINTENTOS; intento++) {
     try {
       console.log(`🛰️ Intento ${intento} de geolocalización...`);
@@ -43,6 +48,13 @@ export async function obtenerUbicacionRobusta() {
       resultado.metodo = "gps";
       resultado.direccion = await obtenerDireccionLegible(lat, lon);
 
+      // ✅ Validar si está dentro de la zona segura
+      resultado.fuera_ruta = !estaDentroDeZona(lat, lon, ZONA_BASE, RADIO_ZONA_SEGURA_KM);
+      if (resultado.fuera_ruta) {
+        mostrarToast("🚧 Venta fuera de la zona de Linares");
+        console.warn("⚠️ Coordenada fuera del perímetro autorizado:", resultado);
+      }
+
       guardarUbicacionHistorial(lat, lon, precision);
       mostrarToast(`📍 GPS válido (${precision.toFixed(0)} m)`);
       return resultado;
@@ -53,26 +65,36 @@ export async function obtenerUbicacionRobusta() {
     }
   }
 
+  // ============================
   // 🔁 Fallback 1: Google Geolocation API
+  // ============================
   console.warn("📡 Intentando ubicación por Google Geolocation API...");
   const googleUbic = await obtenerUbicacionGoogle(GOOGLE_API_KEY);
   if (googleUbic?.lat && googleUbic?.lon) {
+    googleUbic.fuera_ruta = !estaDentroDeZona(googleUbic.lat, googleUbic.lon, ZONA_BASE, RADIO_ZONA_SEGURA_KM);
+    if (googleUbic.fuera_ruta) mostrarToast("🚧 Venta fuera de la zona de Linares");
     guardarUbicacionHistorial(googleUbic.lat, googleUbic.lon, googleUbic.precision);
     return googleUbic;
   }
 
+  // ============================
   // 🔁 Fallback 2: IP pública
+  // ============================
   console.warn("🌐 Intentando ubicación por IP...");
   const ipUbic = await obtenerUbicacionPorIP();
   if (ipUbic.lat && ipUbic.lon) {
+    ipUbic.fuera_ruta = !estaDentroDeZona(ipUbic.lat, ipUbic.lon, ZONA_BASE, RADIO_ZONA_SEGURA_KM);
+    if (ipUbic.fuera_ruta) mostrarToast("🚧 Venta fuera de la zona de Linares");
     guardarUbicacionHistorial(ipUbic.lat, ipUbic.lon, ipUbic.precision);
     return ipUbic;
   }
 
+  // ============================
   // 🔁 Fallback 3: Caché local
+  // ============================
   console.warn("♻️ Usando última ubicación válida o por defecto");
   mostrarToast("♻️ Usando última ubicación válida");
-  return { ...ultimaValida, metodo: "cache" };
+  return { ...ultimaValida, metodo: "cache", fuera_ruta: false };
 }
 
 // === Alta precisión con timeout ===
@@ -141,6 +163,12 @@ async function obtenerDireccionLegible(lat, lon) {
   } catch {
     return "Sin dirección";
   }
+}
+
+// === Validación de zona segura (Linares) ===
+function estaDentroDeZona(lat, lon, base, radioKm) {
+  const d = distanciaKm(lat, lon, base.lat, base.lon);
+  return d <= radioKm;
 }
 
 // === Utilidades ===
