@@ -147,9 +147,11 @@ async function cargarVentas(fechaSeleccionada) {
 
   try {
     const ventasRef = collection(db, "rutas_venta");
-    const q = query(
+// ✅ Mostrar solo las ventas NO CORTADAS del usuario actual
+const q = query(
   ventasRef,
   where("usuarioNombre", "==", nombre),
+  where("cortado", "==", false),
   orderBy("fecha_txt", "desc")
 );
 
