@@ -448,11 +448,17 @@ async function graficaDeptos(p) {
   const canvas = document.getElementById("canvasDeptos");
   const ctx = canvas.getContext("2d");
 
+  // 🧩 Aseguramos tamaño físico del canvas
+  canvas.width = 800;
+  canvas.height = 500;
+  div.style.width = "800px";
+  div.style.height = "500px";
+
   div.style.display = "block";
   div.style.visibility = "visible";
   div.style.opacity = "1";
 
-  // 🔹 Crear el gráfico
+  // 🎨 Crear el gráfico
   const chart = new Chart(ctx, {
     type: "pie",
     data: {
@@ -461,38 +467,52 @@ async function graficaDeptos(p) {
         {
           data: Object.values(p).map(v => v.venta),
           backgroundColor: [
-            "#007bff", "#ff6384", "#ffc107", "#28a745", "#17a2b8", "#6610f2",
-            "#fd7e14", "#6f42c1", "#20c997", "#e83e8c"
+            "#007bff", "#ff6384", "#ffc107", "#28a745",
+            "#17a2b8", "#6610f2", "#fd7e14", "#6f42c1",
+            "#20c997", "#e83e8c"
           ],
+          borderWidth: 1,
         }
       ]
     },
     options: {
-      plugins: { legend: { position: "right" } },
-      animation: false,
+      plugins: {
+        legend: { position: "right" },
+        title: { display: true, text: "Distribución por Departamento", font: { size: 18 } }
+      },
+      animation: { duration: 0 },
       responsive: false,
       maintainAspectRatio: false
     }
   });
 
-  // 🔹 Espera un momento para asegurar render completo
-  await new Promise(r => setTimeout(r, 500));
+  // 🕒 Esperar asegurando render completo
+  await new Promise(r => setTimeout(r, 1000));
 
-  // 🔹 Generar imagen PNG desde el canvas directamente
-  const imgData = canvas.toDataURL("image/png");
-  if (!imgData.startsWith("data:image/png;base64,")) {
-    console.warn("⚠️ Imagen inválida, se omitirá la gráfica.");
+  // 📸 Capturar imagen en formato seguro
+  let imgData = "";
+  try {
+    imgData = canvas.toDataURL("image/png", 1.0);
+  } catch (err) {
+    console.warn("⚠️ Error al generar imagen del gráfico:", err);
+  }
+
+  // ⚙️ Validar contenido
+  if (!imgData || imgData.length < 1000) {
+    console.warn("⚠️ Imagen inválida o vacía, se omitirá en el PDF.");
     chart.destroy();
     div.style.display = "none";
     return null;
   }
 
-  // 🔹 Limpiar
+  // 🧹 Limpiar
   chart.destroy();
   div.style.display = "none";
 
+  console.log("✅ Gráfica generada correctamente:", imgData.substring(0, 50) + "...");
   return imgData;
 }
+
 
   async function enviarTelegram(pdfBlob, nombre, texto) {
     try {
