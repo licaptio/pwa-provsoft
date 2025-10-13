@@ -58,7 +58,6 @@
     }
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/dom-to-image-more@3.3.0/dist/dom-to-image-more.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -92,7 +91,6 @@ import {
   getFirestore, collection, getDocs, query, where, addDoc, updateDoc, doc, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-
 document.addEventListener("DOMContentLoaded", async () => {
   const firebaseConfig = {
     apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -110,6 +108,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const overlay = document.getElementById("overlay");
   const overlayText = document.getElementById("overlayText");
 
+  console.log({
+    jsPDF: !!window.jspdf,
+    Chart: !!window.Chart
+  });
+
   async function cargarRutas() {
     const snap = await getDocs(collection(db, "rutas_venta"));
     const rutas = new Map();
@@ -126,11 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function cargarPendientes(rutaId) {
     tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
-
-    const qVentas = query(collection(db, "rutas_venta"),
-      where("rutaId", "==", rutaId),
-      where("cortado", "==", false)
-    );
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -139,38 +138,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-
-// 🗓️ Agrupar ventas por DÍA (ignorando hora)
-const grupos = {};
-ventas.forEach(v => {
-  let fechaBase = "SIN_FECHA";
-  if (v.fecha_txt) {
-    // Detecta formato "2025-10-11T14:35:00" o "11/10/2025, 2:35:00 p.m."
-    if (v.fecha_txt.includes("T")) {
-      fechaBase = v.fecha_txt.split("T")[0].trim();
-    } else if (v.fecha_txt.includes(",")) {
-      fechaBase = v.fecha_txt.split(",")[0].trim();
-    } else {
-      fechaBase = v.fecha_txt.split(" ")[0].trim();
-    }
-
-    // Normaliza formato a yyyy-mm-dd
-    if (fechaBase.includes("/")) {
-      const [d, m, y] = fechaBase.split("/");
-      fechaBase = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    }
-  }
-
-  if (!grupos[fechaBase]) grupos[fechaBase] = [];
-  grupos[fechaBase].push(v);
-});
+    const grupos = {};
+    ventas.forEach(v => {
+      let fechaBase = "SIN_FECHA";
+      if (v.fecha_txt) {
+        if (v.fecha_txt.includes("T")) fechaBase = v.fecha_txt.split("T")[0].trim();
+        else if (v.fecha_txt.includes(",")) fechaBase = v.fecha_txt.split(",")[0].trim();
+        else fechaBase = v.fecha_txt.split(" ")[0].trim();
+        if (fechaBase.includes("/")) {
+          const [d, m, y] = fechaBase.split("/");
+          fechaBase = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        }
+      }
+      if (!grupos[fechaBase]) grupos[fechaBase] = [];
+      grupos[fechaBase].push(v);
+    });
 
     tbody.innerHTML = "";
     Object.entries(grupos).forEach(([fecha, lista]) => {
       const total = lista.reduce((a, v) => a + (v.resumen_financiero?.total || v.total || 0), 0);
-      const utilidad = lista.reduce((a, v) => a + (v.utilidad_total || 0), 0);
       const usuario = lista[0].atendio || lista[0].usuarioNombre || "—";
-
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${usuario}</td>
@@ -199,65 +186,38 @@ ventas.forEach(v => {
     const fecha = btn.dataset.fecha;
     overlay.style.display = "flex";
     overlayText.innerText = `⏳ Generando corte del ${fecha}...`;
-    generarCorteAnalitico(rutaId, fecha).finally(() => {
-      overlay.style.display = "none";
-      alert(`✅ Corte del ${fecha} generado correctamente.`);
-      selectRuta.value = "";
-      tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
-    });
+    await generarCorteAnalitico(rutaId, fecha);
   });
 
   async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
-    const qVentas = query(collection(db, "rutas_venta"),
-      where("rutaId", "==", rutaId),
-      where("cortado", "==", false)
-    );
+    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const ventasDia = ventas.filter(v => v.fecha_txt?.startsWith(fechaSeleccionada));
 
-    
-// 🔍 Filtrar solo las ventas del día seleccionado (independiente del formato)
-const ventasDia = ventas.filter(v => {
-  if (!v.fecha_txt) return false;
-  let fecha = v.fecha_txt.split(",")[0].trim();
+    if (!ventasDia.length) {
+      overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
+      return;
+    }
 
-  // Normalizar formato "dd/mm/yyyy" → "yyyy-mm-dd"
-  if (fecha.includes("/")) {
-    const [d, m, y] = fecha.split("/");
-    fecha = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
-
-  return fecha === fechaSeleccionada;
-});
-
-if (!ventasDia.length) {
-  overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
-  console.warn("No se encontraron ventas del día:", fechaSeleccionada);
-  return;
-}
-
-    const porDepto = {}, porNota = [], porArticulo = {};
+    const porDepto = {}, porArticulo = {};
     let totalDia = 0, utilidadTotal = 0;
 
     for (const v of ventasDia) {
       totalDia += v.resumen_financiero?.total || v.total || 0;
       utilidadTotal += v.utilidad_total || 0;
-      const hora = (v.fecha_txt || "").split(",")[1]?.trim() || "";
-      porNota.push({ folio: v.folio || "—", total: v.total || 0, utilidad: v.utilidad_total || 0, hora });
-
       for (const det of (v.detalle || [])) {
-        const nombreArt = det.nombre?.toUpperCase() || "SIN NOMBRE";
-        if (!porArticulo[nombreArt]) porArticulo[nombreArt] = { cantidad: 0, importe: 0 };
-        porArticulo[nombreArt].cantidad += det.cantidad || 0;
-        porArticulo[nombreArt].importe += det.importe || det.precio_unit * det.cantidad || 0;
-
         const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
         const venta = det.importe || det.precio_unit * det.cantidad || 0;
         const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
         const util = det.utilidad || (venta - costo);
         if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
-        porDepto[dep].venta += venta;
-        porDepto[dep].utilidad += util;
+        porDepto[dep].venta += venta; porDepto[dep].utilidad += util;
+
+        const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
+        if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0 };
+        porArticulo[art].cantidad += det.cantidad || 0;
+        porArticulo[art].importe += venta;
       }
     }
 
@@ -265,7 +225,7 @@ if (!ventasDia.length) {
       nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
       totalDia, utilidadTotal,
       totalTickets: ventasDia.length,
-      porDepto, porNota, porArticulo
+      porDepto, porArticulo
     };
 
     await addDoc(collection(db, "cortes_globales"), {
@@ -279,217 +239,70 @@ if (!ventasDia.length) {
     });
 
     for (const v of ventasDia) {
-      const ventaRef = doc(db, "rutas_venta", v.id);
-      await updateDoc(ventaRef, { cortado: true });
+      await updateDoc(doc(db, "rutas_venta", v.id), { cortado: true });
     }
 
     await generarPDFyEnviar(resumen, rutaId, fechaSeleccionada);
+    overlay.style.display = "none";
+    alert(`✅ Corte del ${fechaSeleccionada} generado correctamente.`);
   }
 
-async function generarPDFyEnviar(r, rutaId, fecha) {
-  overlayText.innerText = "🧾 Generando PDF...";
+  async function generarPDFyEnviar(r, rutaId, fecha) {
+    overlayText.innerText = "🧾 Generando PDF...";
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) { console.error("jsPDF no cargado"); return; }
+    const pdf = new jsPDF({ format: "letter", unit: "mm" });
 
-  const { jsPDF } = window.jspdf || {};
-if (!jsPDF) {
-  overlayText.innerText = "❌ Error: jsPDF no cargado.";
-  console.error("jsPDF no está disponible en window.jspdf");
-  return;
-}
+    pdf.setFont("helvetica", "bold");
+    pdf.text(`PROVSOFT – CORTE ${rutaId}`, 15, 15);
+    pdf.setFontSize(12);
+    pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
+    pdf.text(`Fecha: ${fecha}`, 15, 32);
+    pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad: $${r.utilidadTotal.toFixed(2)}`, 15, 39);
 
-  const pdf = new jsPDF({ format: "letter", unit: "mm" });
-  
-
-  // 🔹 Logo PROVSOFT (base64)
-  const logoProvsoft = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAH0lEQVQYV2NkYGD4z0AeA7EwCkYGigEkqECkQAIAD+0BBdBZ0jUAAAAASUVORK5CYII=";
-
-  // =============================
-  // 🧾 PAGINA 1: RESUMEN GENERAL
-  // =============================
-  pdf.addImage(logoProvsoft, "PNG", 10, 8, 10, 10);
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(16);
-  pdf.text("PROVSOFT – CORTE ANALÍTICO", 25, 15);
-  pdf.setFontSize(12);
-  pdf.text(`Ruta: ${rutaId}`, 25, 21);
-
-  pdf.setDrawColor(0);
-  pdf.line(10, 25, 200, 25);
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  let y = 33;
-  pdf.text(`Usuario: ${r.nombreCorte}`, 10, y); y += 6;
-  pdf.text(`Fecha corte: ${fecha}`, 10, y); y += 6;
-  pdf.text(`Generado: ${new Date().toLocaleString()}`, 10, y); y += 10;
-
-  // 🔹 Bloque Totales visual
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setDrawColor(0, 102, 204);
-  pdf.setFillColor(240, 247, 255);
-  pdf.roundedRect(10, y, 190, 30, 3, 3, "FD");
-  pdf.text(`Tickets: ${r.totalTickets}`, 15, y + 10);
-  pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`, 15, y + 18);
-  pdf.text(`Total Día:`, 130, y + 18);
-  pdf.setFontSize(18);
-  pdf.text(`$${r.totalDia.toFixed(2)}`, 150, y + 18);
-  y += 42;
-
-  pdf.setFontSize(11);
-  pdf.setFont("helvetica", "italic");
-  pdf.text("Resumen general de ventas del día", 10, y);
-
-  // =============================
-  // 📊 PAGINA 2: VENTAS POR DEPTO
-  // =============================
-  pdf.addPage();
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(14);
-  pdf.text("VENTAS POR DEPARTAMENTO", 70, 15);
-
-  // Encabezados de tabla
-  pdf.setFontSize(11);
-  pdf.setDrawColor(0);
-  pdf.setFillColor(240, 240, 240);
-  pdf.rect(10, 25, 190, 8, "F");
-  pdf.text("Departamento", 12, 31);
-  pdf.text("Venta Total", 100, 31);
-  pdf.text("Utilidad Neta", 140, 31);
-  pdf.text("% Utilidad", 175, 31);
-
-  y = 39;
-  pdf.setFont("helvetica", "normal");
-  Object.entries(r.porDepto).forEach(([dep, v]) => {
-    if (y > 260) { pdf.addPage(); y = 20; }
-    pdf.text(dep.substring(0, 35), 12, y);
-    pdf.text(`$${v.venta.toFixed(2)}`, 100, y, { align: "right" });
-    pdf.text(`$${v.utilidad.toFixed(2)}`, 145, y, { align: "right" });
-    const pct = ((v.utilidad / v.venta) * 100).toFixed(1) + "%";
-    pdf.text(pct, 185, y, { align: "right" });
+    let y = 50;
+    pdf.setFontSize(11);
+    pdf.text("Departamento", 15, y);
+    pdf.text("Venta", 100, y);
+    pdf.text("Utilidad", 150, y);
     y += 6;
-  });
 
-  pdf.setDrawColor(0);
-  pdf.line(10, y + 2, 200, y + 2);
-  pdf.setFont("helvetica", "bold");
-  y += 8;
-  pdf.text("TOTALES:", 12, y);
-  pdf.text(`$${r.totalDia.toFixed(2)}`, 100, y, { align: "right" });
-  pdf.text(`$${r.utilidadTotal.toFixed(2)}`, 145, y, { align: "right" });
-
-  // =============================
-  // 📦 PAGINA 3: TOP + GRAFICA
-  // =============================
-  pdf.addPage();
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(14);
-  pdf.text("TOP 10 ARTÍCULOS MÁS VENDIDOS", 50, 15);
-
-  // Encabezados tabla top
-  pdf.setFontSize(11);
-  pdf.setDrawColor(0);
-  pdf.setFillColor(240, 240, 240);
-  pdf.rect(10, 25, 190, 8, "F");
-  pdf.text("Artículo", 12, 31);
-  pdf.text("Cant.", 120, 31);
-  pdf.text("Importe", 160, 31);
-
-  y = 39;
-  const topArticulos = Object.entries(r.porArticulo)
-    .sort((a, b) => b[1].importe - a[1].importe)
-    .slice(0, 10);
-
-  pdf.setFont("helvetica", "normal");
-  topArticulos.forEach(([nombre, datos]) => {
-    if (y > 260) { pdf.addPage(); y = 20; }
-    pdf.text(nombre.substring(0, 50), 12, y);
-    pdf.text(`${datos.cantidad}`, 125, y, { align: "right" });
-    pdf.text(`$${datos.importe.toFixed(2)}`, 185, y, { align: "right" });
-    y += 6;
-  });
-
-// 🔹 Insertar gráfica circular
-overlayText.innerText = "🎨 Generando gráfica...";
-const img1 = await graficaDeptos(r.porDepto);
-
-pdf.addPage();
-pdf.setFont("helvetica", "bold");
-pdf.setFontSize(14);
-pdf.text("GRÁFICA POR DEPARTAMENTO", 50, 15);
-
-if (img1 && img1.startsWith("data:image/png")) {
-  pdf.addImage(img1, "PNG", 20, 25, 170, 110);
-} else {
-  console.warn("⚠️ No se pudo generar la gráfica, se omitirá del PDF.");
-  pdf.setFont("helvetica", "italic");
-  pdf.setFontSize(12);
-  pdf.text("⚠️ No se pudo generar la gráfica en este corte.", 20, 40);
-}
-
-  // =============================
-  // 💾 Exportar y enviar
-  // =============================
-  const blob = pdf.output("blob");
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `Corte_${rutaId}_${fecha}.pdf`;
-  a.click();
-
-  overlayText.innerText = "📤 Enviando a Telegram...";
-
-  await enviarTelegram(
-    blob,
-    `Corte_${rutaId}_${fecha}.pdf`,
-    `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`
-  )
-    .then(() => (overlayText.innerText = "✅ Enviado a Telegram"))
-    .catch(err => {
-      overlayText.innerText = "⚠️ Error al enviar";
-      console.warn("⚠️ No se pudo enviar a Telegram:", err);
-    })
-    .finally(() => setTimeout(() => { overlay.style.display = "none"; }, 1500));
-
-  URL.revokeObjectURL(url);
-}
-
-async function graficaDeptos(p) {
-  const div = document.getElementById("graficaDeptos");
-  const canvas = document.getElementById("canvasDeptos");
-  const ctx = canvas.getContext("2d");
-
-  div.style.display = "block"; // asegúrate de que sea visible
-
-  const chart = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels: Object.keys(p),
-      datasets: [{
-        data: Object.values(p).map(v => v.venta),
-      }]
-    },
-    options: {
-      plugins: { legend: { position: "right" } },
-      animation: false,
-      responsive: true
+    for (const [dep, v] of Object.entries(r.porDepto)) {
+      if (y > 270) { pdf.addPage(); y = 20; }
+      pdf.text(dep.substring(0, 30), 15, y);
+      pdf.text(`$${v.venta.toFixed(2)}`, 100, y);
+      pdf.text(`$${v.utilidad.toFixed(2)}`, 150, y);
+      y += 6;
     }
-  });
 
-  // Espera que Chart.js termine de dibujar
-  await new Promise(r => setTimeout(r, 1200));
+    const img1 = await graficaDeptos(r.porDepto);
+    if (img1) pdf.addImage(img1, "PNG", 25, y + 10, 150, 100);
 
-  let img;
-  try {
-    img = canvas.toDataURL("image/png", 1.0);
-  } catch (err) {
-    console.error("Error generando imagen del gráfico:", err);
+    const blob = pdf.output("blob");
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    await enviarTelegram(blob, `Corte_${rutaId}_${fecha}.pdf`, `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`);
   }
 
-  chart.destroy();
-  div.style.display = "none";
-  return img;
-}
+  async function graficaDeptos(p) {
+    const div = document.getElementById("graficaDeptos");
+    const canvas = document.getElementById("canvasDeptos");
+    const ctx = canvas.getContext("2d");
+    div.style.display = "block";
+    const chart = new Chart(ctx, {
+      type: "pie",
+      data: {
+        labels: Object.keys(p),
+        datasets: [{ data: Object.values(p).map(v => v.venta) }]
+      },
+      options: { plugins: { legend: { position: "right" } }, animation: false }
+    });
+    await new Promise(r => setTimeout(r, 1000));
+    const img = canvas.toDataURL("image/png", 1.0);
+    chart.destroy();
+    div.style.display = "none";
+    return img;
+  }
 
   async function enviarTelegram(pdfBlob, nombre, texto) {
     try {
@@ -499,8 +312,11 @@ async function graficaDeptos(p) {
       f.append("chat_id", CHAT);
       f.append("caption", texto);
       f.append("document", pdfBlob, nombre);
-      const res = await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, { method: "POST", body: f });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const res = await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, {
+        method: "POST", body: f, headers: { "Accept": "application/json" }
+      });
+      const data = await res.json();
+      console.log("Respuesta Telegram:", data);
     } catch (err) {
       console.error("Error al enviar Telegram:", err);
     }
