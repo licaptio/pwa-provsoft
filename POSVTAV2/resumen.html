@@ -147,7 +147,7 @@ async function cargarVentas(fechaSeleccionada) {
 
   try {
     const ventasRef = collection(db, "rutas_venta");
-    const q = query(ventasRef, where("usuario", "==", usuario), orderBy("fecha", "desc"));
+    const q = query(ventasRef, where("usuario", "==", usuario), orderBy("fecha_txt", "desc"));
     const snap = await getDocs(q);
 
     let totalDia = 0;
