@@ -289,8 +289,15 @@ if (!ventasDia.length) {
 async function generarPDFyEnviar(r, rutaId, fecha) {
   overlayText.innerText = "🧾 Generando PDF...";
 
-  const { jsPDF } = window.jspdf;
+  const { jsPDF } = window.jspdf || {};
+if (!jsPDF) {
+  overlayText.innerText = "❌ Error: jsPDF no cargado.";
+  console.error("jsPDF no está disponible en window.jspdf");
+  return;
+}
+
   const pdf = new jsPDF({ format: "letter", unit: "mm" });
+  
 
   // 🔹 Logo PROVSOFT (base64)
   const logoProvsoft = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAH0lEQVQYV2NkYGD4z0AeA7EwCkYGigEkqECkQAIAD+0BBdBZ0jUAAAAASUVORK5CYII=";
@@ -452,66 +459,35 @@ async function graficaDeptos(p) {
   const canvas = document.getElementById("canvasDeptos");
   const ctx = canvas.getContext("2d");
 
-  // Aseguramos que el contenedor sea visible para el render
-  div.style.position = "absolute";
-  div.style.top = "-1000px";
-  div.style.left = "-1000px";
-  div.style.display = "block";
-  div.style.visibility = "visible";
-  div.style.width = "600px";
-  div.style.height = "400px";
-  canvas.width = 600;
-  canvas.height = 400;
+  div.style.display = "block"; // asegúrate de que sea visible
 
-  // 🎨 Crear la gráfica
   const chart = new Chart(ctx, {
     type: "pie",
     data: {
       labels: Object.keys(p),
       datasets: [{
         data: Object.values(p).map(v => v.venta),
-        backgroundColor: [
-          "#007bff", "#ff6384", "#ffc107", "#28a745",
-          "#17a2b8", "#6610f2", "#fd7e14", "#6f42c1",
-          "#20c997", "#e83e8c"
-        ]
       }]
     },
     options: {
+      plugins: { legend: { position: "right" } },
       animation: false,
-      responsive: false,
-      plugins: { legend: { position: "right" } }
+      responsive: true
     }
   });
 
-  // Esperar un pequeño tiempo para asegurar render
-  await new Promise(r => setTimeout(r, 800));
+  // Espera que Chart.js termine de dibujar
+  await new Promise(r => setTimeout(r, 1200));
 
-  let img = null;
-  for (let intento = 1; intento <= 3; intento++) {
-    try {
-      img = await domtoimage.toPng(div);
-      // validamos que el PNG sea válido y no esté vacío
-      if (img && img.startsWith("data:image/png") && img.length > 1000) {
-        console.log(`✅ Gráfica generada en intento ${intento}`);
-        break;
-      } else {
-        console.warn(`⚠️ PNG inválido (intento ${intento}), reintentando...`);
-      }
-    } catch (err) {
-      console.warn(`❌ Error al generar PNG (intento ${intento}):`, err.message);
-    }
-    await new Promise(r => setTimeout(r, 600));
+  let img;
+  try {
+    img = canvas.toDataURL("image/png", 1.0);
+  } catch (err) {
+    console.error("Error generando imagen del gráfico:", err);
   }
 
   chart.destroy();
   div.style.display = "none";
-
-  if (!img) {
-    console.warn("⚠️ No se pudo generar la gráfica después de 3 intentos.");
-    return null;
-  }
-
   return img;
 }
 
