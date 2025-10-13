@@ -304,6 +304,48 @@ console.log("✅ Coincidencias encontradas:", ventasDia.length);
     overlay.style.display = "none";
     alert(`✅ Corte del ${fechaSeleccionada} generado correctamente.`);
   }
+async function graficaDeptos(porDepto) {
+  return new Promise((resolve) => {
+    try {
+      const canvas = document.getElementById("canvasDeptos");
+      const ctx = canvas.getContext("2d");
+      const labels = Object.keys(porDepto);
+      const data = Object.values(porDepto).map(v => v.venta);
+
+      // Limpia cualquier gráfico anterior
+      if (window.chartDepto) window.chartDepto.destroy();
+
+      window.chartDepto = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label: "Ventas por Departamento",
+            data,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+
+      // Espera un pequeño retardo y devuelve la imagen
+      setTimeout(() => {
+        const img = canvas.toDataURL("image/png");
+        resolve(img);
+      }, 800);
+
+    } catch (err) {
+      console.error("Error generando gráfica:", err);
+      resolve(null);
+    }
+  });
+}
 
 async function generarPDFyEnviar(r, rutaId, fecha) {
   overlayText.innerText = "🧾 Generando PDF...";
