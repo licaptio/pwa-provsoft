@@ -242,19 +242,32 @@ console.log("✅ Coincidencias encontradas:", ventasDia.length);
       return;
     }
 
-    const porDepto = {}, porArticulo = {};
+    const porDepto = {}, porArticulo = {}, porNota = [];
     let totalDia = 0, utilidadTotal = 0;
 
     for (const v of ventasDia) {
-      totalDia += v.resumen_financiero?.total || v.total || 0;
-      utilidadTotal += v.utilidad_total || 0;
+      const totalVenta = v.resumen_financiero?.total || v.total || 0;
+      const utilidadVenta = v.utilidad_total || 0;
+      totalDia += totalVenta;
+      utilidadTotal += utilidadVenta;
+
+      // 📌 Agrega el ticket al listado para el resumen de página 2
+      const hora = v.fecha_txt?.split("T")[1]?.substring(0,5) || v.fecha_txt || "";
+      porNota.push({
+        folio: v.folio || v.id,
+        hora,
+        total: totalVenta,
+        utilidad: utilidadVenta
+      });
+
       for (const det of (v.detalle || [])) {
         const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
         const venta = det.importe || det.precio_unit * det.cantidad || 0;
         const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
         const util = det.utilidad || (venta - costo);
         if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
-        porDepto[dep].venta += venta; porDepto[dep].utilidad += util;
+        porDepto[dep].venta += venta;
+        porDepto[dep].utilidad += util;
 
         const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
         if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0 };
@@ -265,9 +278,12 @@ console.log("✅ Coincidencias encontradas:", ventasDia.length);
 
     const resumen = {
       nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
-      totalDia, utilidadTotal,
+      totalDia,
+      utilidadTotal,
       totalTickets: ventasDia.length,
-      porDepto, porArticulo
+      porDepto,
+      porArticulo,
+      porNota // 👈 añade esto al resumen
     };
 
     await addDoc(collection(db, "cortes_globales"), {
@@ -289,62 +305,106 @@ console.log("✅ Coincidencias encontradas:", ventasDia.length);
     alert(`✅ Corte del ${fechaSeleccionada} generado correctamente.`);
   }
 
-  async function generarPDFyEnviar(r, rutaId, fecha) {
-    overlayText.innerText = "🧾 Generando PDF...";
-    const { jsPDF } = window.jspdf || {};
-    if (!jsPDF) { console.error("jsPDF no cargado"); return; }
-    const pdf = new jsPDF({ format: "letter", unit: "mm" });
+async function generarPDFyEnviar(r, rutaId, fecha) {
+  overlayText.innerText = "🧾 Generando PDF...";
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) { console.error("jsPDF no cargado"); return; }
+  const pdf = new jsPDF({ format: "letter", unit: "mm" });
 
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`PROVSOFT – CORTE ${rutaId}`, 15, 15);
-    pdf.setFontSize(12);
-    pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
-    pdf.text(`Fecha: ${fecha}`, 15, 32);
-    pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad: $${r.utilidadTotal.toFixed(2)}`, 15, 39);
+  // =============================
+  // 📄 PAGINA 1: RESUMEN GENERAL
+  // =============================
+  pdf.setFont("helvetica", "bold");
+  pdf.text(`PROVSOFT – CORTE ${rutaId}`, 15, 15);
+  pdf.setFontSize(12);
+  pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
+  pdf.text(`Fecha: ${fecha}`, 15, 32);
+  pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad: $${r.utilidadTotal.toFixed(2)}`, 15, 39);
 
-    let y = 50;
-    pdf.setFontSize(11);
-    pdf.text("Departamento", 15, y);
-    pdf.text("Venta", 100, y);
-    pdf.text("Utilidad", 150, y);
+  let y = 50;
+  pdf.setFontSize(11);
+  pdf.text("Departamento", 15, y);
+  pdf.text("Venta", 100, y);
+  pdf.text("Utilidad", 150, y);
+  y += 6;
+
+  for (const [dep, v] of Object.entries(r.porDepto)) {
+    if (y > 270) { pdf.addPage(); y = 20; }
+    pdf.text(dep.substring(0, 30), 15, y);
+    pdf.text(`$${v.venta.toFixed(2)}`, 100, y);
+    pdf.text(`$${v.utilidad.toFixed(2)}`, 150, y);
     y += 6;
-
-    for (const [dep, v] of Object.entries(r.porDepto)) {
-      if (y > 270) { pdf.addPage(); y = 20; }
-      pdf.text(dep.substring(0, 30), 15, y);
-      pdf.text(`$${v.venta.toFixed(2)}`, 100, y);
-      pdf.text(`$${v.utilidad.toFixed(2)}`, 150, y);
-      y += 6;
-    }
-
-    const img1 = await graficaDeptos(r.porDepto);
-    if (img1) pdf.addImage(img1, "PNG", 25, y + 10, 150, 100);
-
-    const blob = pdf.output("blob");
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    await enviarTelegram(blob, `Corte_${rutaId}_${fecha}.pdf`, `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`);
   }
 
-  async function graficaDeptos(p) {
-    const div = document.getElementById("graficaDeptos");
-    const canvas = document.getElementById("canvasDeptos");
-    const ctx = canvas.getContext("2d");
-    div.style.display = "block";
-    const chart = new Chart(ctx, {
-      type: "pie",
-      data: {
-        labels: Object.keys(p),
-        datasets: [{ data: Object.values(p).map(v => v.venta) }]
-      },
-      options: { plugins: { legend: { position: "right" } }, animation: false }
+  // =============================
+  // 📑 PAGINA 2: RESUMEN DE TICKETS
+  // =============================
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("RESUMEN DE TICKETS", 70, 15);
+  pdf.setFontSize(11);
+
+  // Encabezado
+  pdf.setFillColor(230, 230, 230);
+  pdf.rect(10, 25, 190, 8, "F");
+  pdf.text("Folio", 12, 30);
+  pdf.text("Fecha", 50, 30);
+  pdf.text("Total", 110, 30);
+  pdf.text("Utilidad", 150, 30);
+  pdf.text("%", 185, 30);
+
+  y = 38;
+  const tickets = (r.porNota || [])
+    .sort((a, b) => {
+      const f1 = a.folio?.toString() || "";
+      const f2 = b.folio?.toString() || "";
+      return f1.localeCompare(f2);
     });
-    await new Promise(r => setTimeout(r, 1000));
-    const img = canvas.toDataURL("image/png", 1.0);
-    chart.destroy();
-    div.style.display = "none";
-    return img;
+
+  if (!tickets.length) {
+    pdf.setFont("helvetica", "italic");
+    pdf.text("No hay tickets detallados disponibles en este corte.", 15, 45);
+  } else {
+    pdf.setFont("helvetica", "normal");
+    tickets.forEach((t) => {
+      if (y > 270) { pdf.addPage(); y = 20; }
+      const pct = t.total ? ((t.utilidad / t.total) * 100).toFixed(1) + "%" : "—";
+      pdf.text(String(t.folio || "—"), 12, y);
+      pdf.text(String(t.hora || ""), 50, y);
+      pdf.text(`$${t.total?.toFixed(2) || "0.00"}`, 110, y);
+      pdf.text(`$${t.utilidad?.toFixed(2) || "0.00"}`, 150, y);
+      pdf.text(pct, 185, y);
+      y += 6;
+    });
   }
+
+  // =============================
+  // 📊 PAGINA 3: GRAFICA POR DEPTO
+  // =============================
+  const img1 = await graficaDeptos(r.porDepto);
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("GRÁFICA POR DEPARTAMENTO", 50, 15);
+
+  if (img1) {
+    pdf.addImage(img1, "PNG", 25, 25, 150, 100);
+  } else {
+    pdf.setFont("helvetica", "italic");
+    pdf.text("⚠️ No se pudo generar la gráfica.", 15, 40);
+  }
+
+  // =============================
+  // 💾 Exportar y enviar
+  // =============================
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  await enviarTelegram(blob, `Corte_${rutaId}_${fecha}.pdf`, 
+    `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`
+  );
+}
 
   async function enviarTelegram(pdfBlob, nombre, texto) {
     try {
