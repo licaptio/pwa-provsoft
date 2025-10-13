@@ -286,73 +286,162 @@ if (!ventasDia.length) {
     await generarPDFyEnviar(resumen, rutaId, fechaSeleccionada);
   }
 
-  async function generarPDFyEnviar(r, rutaId, fecha) {
-    overlayText.innerText = "🧾 Generando PDF...";
+async function generarPDFyEnviar(r, rutaId, fecha) {
+  overlayText.innerText = "🧾 Generando PDF...";
 
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ format: "letter", unit: "mm" });
-    pdf.setFont("helvetica", "bold");
-    pdf.text(`CORTE ANALÍTICO – ${rutaId}`, 10, 15);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.text(`Usuario: ${r.nombreCorte}`, 10, 22);
-    pdf.text(`Fecha corte: ${fecha}`, 10, 28);
-    pdf.text(`Generado: ${new Date().toLocaleString()}`, 10, 34);
-    pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 10, 40);
-    pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`, 10, 46);
-    pdf.text(`Tickets: ${r.totalTickets}`, 10, 52);
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ format: "letter", unit: "mm" });
 
-    let y = 60;
-    pdf.text("Totales por Departamento:", 10, y); y += 5;
-    for (const [dep, v] of Object.entries(r.porDepto)) {
-      pdf.text(`${dep}: $${v.venta.toFixed(2)}  Utilidad:$${v.utilidad.toFixed(2)} (${(v.utilidad / v.venta * 100).toFixed(1)}%)`, 12, y);
-      y += 5; if (y > 260) { pdf.addPage(); y = 20; }
-    }
+  // 🔹 Logo PROVSOFT (base64)
+  const logoProvsoft = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAH0lEQVQYV2NkYGD4z0AeA7EwCkYGigEkqECkQAIAD+0BBdBZ0jUAAAAASUVORK5CYII=";
 
-    y += 8;
-    pdf.setFont("helvetica", "bold");
-    pdf.text("Top Artículos Más Vendidos:", 10, y);
-    pdf.setFont("helvetica", "normal");
+  // =============================
+  // 🧾 PAGINA 1: RESUMEN GENERAL
+  // =============================
+  pdf.addImage(logoProvsoft, "PNG", 10, 8, 10, 10);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.text("PROVSOFT – CORTE ANALÍTICO", 25, 15);
+  pdf.setFontSize(12);
+  pdf.text(`Ruta: ${rutaId}`, 25, 21);
+
+  pdf.setDrawColor(0);
+  pdf.line(10, 25, 200, 25);
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(11);
+  let y = 33;
+  pdf.text(`Usuario: ${r.nombreCorte}`, 10, y); y += 6;
+  pdf.text(`Fecha corte: ${fecha}`, 10, y); y += 6;
+  pdf.text(`Generado: ${new Date().toLocaleString()}`, 10, y); y += 10;
+
+  // 🔹 Bloque Totales visual
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.setDrawColor(0, 102, 204);
+  pdf.setFillColor(240, 247, 255);
+  pdf.roundedRect(10, y, 190, 30, 3, 3, "FD");
+  pdf.text(`Tickets: ${r.totalTickets}`, 15, y + 10);
+  pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`, 15, y + 18);
+  pdf.text(`Total Día:`, 130, y + 18);
+  pdf.setFontSize(18);
+  pdf.text(`$${r.totalDia.toFixed(2)}`, 150, y + 18);
+  y += 42;
+
+  pdf.setFontSize(11);
+  pdf.setFont("helvetica", "italic");
+  pdf.text("Resumen general de ventas del día", 10, y);
+
+  // =============================
+  // 📊 PAGINA 2: VENTAS POR DEPTO
+  // =============================
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("VENTAS POR DEPARTAMENTO", 70, 15);
+
+  // Encabezados de tabla
+  pdf.setFontSize(11);
+  pdf.setDrawColor(0);
+  pdf.setFillColor(240, 240, 240);
+  pdf.rect(10, 25, 190, 8, "F");
+  pdf.text("Departamento", 12, 31);
+  pdf.text("Venta Total", 100, 31);
+  pdf.text("Utilidad Neta", 140, 31);
+  pdf.text("% Utilidad", 175, 31);
+
+  y = 39;
+  pdf.setFont("helvetica", "normal");
+  Object.entries(r.porDepto).forEach(([dep, v]) => {
+    if (y > 260) { pdf.addPage(); y = 20; }
+    pdf.text(dep.substring(0, 35), 12, y);
+    pdf.text(`$${v.venta.toFixed(2)}`, 100, y, { align: "right" });
+    pdf.text(`$${v.utilidad.toFixed(2)}`, 145, y, { align: "right" });
+    const pct = ((v.utilidad / v.venta) * 100).toFixed(1) + "%";
+    pdf.text(pct, 185, y, { align: "right" });
     y += 6;
-    const topArticulos = Object.entries(r.porArticulo).sort((a,b)=>b[1].importe - a[1].importe).slice(0,10);
-    pdf.text("Artículo", 12, y);
-    pdf.text("Cant.", 100, y);
-    pdf.text("Importe", 140, y);
-    y += 5;
-    for (const [nombre, datos] of topArticulos) {
-      pdf.text(nombre.substring(0, 40), 12, y);
-      pdf.text(`${datos.cantidad}`, 100, y);
-      pdf.text(`$${datos.importe.toFixed(2)}`, 140, y);
-      y += 5; if (y > 260) { pdf.addPage(); y = 20; }
-    }
+  });
 
-    const img1 = await graficaDeptos(r.porDepto);
-    pdf.addPage();
-    pdf.text("Gráfica por Departamento", 10, 15);
-    pdf.addImage(img1, "PNG", 15, 20, 180, 100);
-    pdf.text("Reporte generado automáticamente por PROVSOFT POS", 10, 275);
+  pdf.setDrawColor(0);
+  pdf.line(10, y + 2, 200, y + 2);
+  pdf.setFont("helvetica", "bold");
+  y += 8;
+  pdf.text("TOTALES:", 12, y);
+  pdf.text(`$${r.totalDia.toFixed(2)}`, 100, y, { align: "right" });
+  pdf.text(`$${r.utilidadTotal.toFixed(2)}`, 145, y, { align: "right" });
 
-    const blob = pdf.output("blob");
-    const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    const a = document.createElement("a"); a.href = url; a.download = `Corte_${rutaId}_${fecha}.pdf`; a.click();
+  // =============================
+  // 📦 PAGINA 3: TOP + GRAFICA
+  // =============================
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("TOP 10 ARTÍCULOS MÁS VENDIDOS", 50, 15);
 
-    overlayText.innerText = "📤 Enviando a Telegram...";
+  // Encabezados tabla top
+  pdf.setFontSize(11);
+  pdf.setDrawColor(0);
+  pdf.setFillColor(240, 240, 240);
+  pdf.rect(10, 25, 190, 8, "F");
+  pdf.text("Artículo", 12, 31);
+  pdf.text("Cant.", 120, 31);
+  pdf.text("Importe", 160, 31);
 
-    enviarTelegram(blob, `Corte_${rutaId}_${fecha}.pdf`, `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`)
-      .then(() => {
-        overlayText.innerText = "✅ Enviado a Telegram";
-      })
-      .catch(err => {
-        overlayText.innerText = "⚠️ Error al enviar";
-        console.warn("⚠️ No se pudo enviar a Telegram:", err);
-      })
-      .finally(() => {
-        setTimeout(()=>{ overlay.style.display="none"; },1500);
-      });
+  y = 39;
+  const topArticulos = Object.entries(r.porArticulo)
+    .sort((a, b) => b[1].importe - a[1].importe)
+    .slice(0, 10);
 
-    URL.revokeObjectURL(url);
-  }
+  pdf.setFont("helvetica", "normal");
+  topArticulos.forEach(([nombre, datos]) => {
+    if (y > 260) { pdf.addPage(); y = 20; }
+    pdf.text(nombre.substring(0, 50), 12, y);
+    pdf.text(`${datos.cantidad}`, 125, y, { align: "right" });
+    pdf.text(`$${datos.importe.toFixed(2)}`, 185, y, { align: "right" });
+    y += 6;
+  });
+
+  // 🔹 Insertar gráfica circular
+  overlayText.innerText = "🎨 Generando gráfica...";
+  const img1 = await graficaDeptos(r.porDepto);
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("GRÁFICA POR DEPARTAMENTO", 50, 15);
+  pdf.addImage(img1, "PNG", 20, 25, 170, 110);
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "italic");
+  pdf.text("Reporte generado automáticamente por PROVSOFT POS", 40, 270);
+
+  // =============================
+  // 💾 Exportar y enviar
+  // =============================
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Corte_${rutaId}_${fecha}.pdf`;
+  a.click();
+
+  overlayText.innerText = "📤 Enviando a Telegram...";
+
+  await enviarTelegram(
+    blob,
+    `Corte_${rutaId}_${fecha}.pdf`,
+    `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`
+  )
+    .then(() => (overlayText.innerText = "✅ Enviado a Telegram"))
+    .catch(err => {
+      overlayText.innerText = "⚠️ Error al enviar";
+      console.warn("⚠️ No se pudo enviar a Telegram:", err);
+    })
+    .finally(() => setTimeout(() => { overlay.style.display = "none"; }, 1500));
+
+  URL.revokeObjectURL(url);
+}
+
 
   async function graficaDeptos(p) {
     const div = document.getElementById("graficaDeptos");
