@@ -70,7 +70,7 @@
 <table id="tablaCortes">
   <thead>
     <tr>
-      <th>Usuario</th><th>Ruta</th><th>Total Día</th><th>Última Venta</th><th>Acción</th>
+      <th>Usuario</th><th>Ruta</th><th>Total Día</th><th>Fecha</th><th>Acción</th>
     </tr>
   </thead>
   <tbody id="tbodyCortes">
@@ -80,7 +80,8 @@
 
 <div id="overlay">
   <div class="spinner"></div>
-  ⏳ Procesando corte, generando PDF y enviando a Telegram...
+  ⏳ Procesando corte...
+  <div id="overlayText" style="margin-top:10px;"></div>
 </div>
 
 <div id="graficaDeptos" style="display:none;width:600px;height:400px;"><canvas id="canvasDeptos"></canvas></div>
@@ -107,17 +108,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const selectRuta = document.getElementById("selectRuta");
   const tbody = document.getElementById("tbodyCortes");
   const overlay = document.getElementById("overlay");
-
-  // 🧩 Texto dinámico dentro del overlay
-  const overlayText = document.createElement("div");
-  overlayText.id = "overlayText";
-  overlayText.style.marginTop = "10px";
-  overlay.appendChild(overlayText);
+  const overlayText = document.getElementById("overlayText");
 
   async function cargarRutas() {
     const snap = await getDocs(collection(db, "rutas_venta"));
     const rutas = new Map();
-    snap.forEach(d => { const v = d.data(); if (v.rutaId) rutas.set(v.rutaId, v.atendio || v.usuario || "Desconocido"); });
+    snap.forEach(d => {
+      const v = d.data();
+      if (v.rutaId) rutas.set(v.rutaId, v.atendio || v.usuarioNombre || "Desconocido");
+    });
     rutas.forEach((nombre, id) => {
       const opt = document.createElement("option");
       opt.value = id; opt.textContent = `${nombre} – ${id}`;
@@ -127,31 +126,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function cargarPendientes(rutaId) {
     tbody.innerHTML = "<tr><td colspan='5'>Buscando ventas...</td></tr>";
-    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+
+    const qVentas = query(collection(db, "rutas_venta"),
+      where("rutaId", "==", rutaId),
+      where("cortado", "==", false)
+    );
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (ventas.length === 0) {
+
+    if (!ventas.length) {
       tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:#999;'>No hay cortes pendientes</td></tr>";
       return;
     }
-    const totalHoy = ventas.reduce((a, v) => a + (v.total || v.resumen_financiero?.total || 0), 0);
-    const utilidadHoy = ventas.reduce((a, v) => a + (v.utilidad_total || 0), 0);
-    const ultima = ventas.sort((a, b) => (b.fecha_txt || '').localeCompare(a.fecha_txt || ''))[0]?.fecha_txt || "—";
 
-    tbody.innerHTML = `
-      <tr>
-        <td>${ventas[0].atendio || ventas[0].usuario || "—"}</td>
+    // 🗓️ Agrupar ventas por fecha
+    const grupos = {};
+    ventas.forEach(v => {
+      const fecha = (v.fecha_txt || "").split("T")[0] ||
+                    (v.fecha_txt || "").split(",")[0]?.trim() ||
+                    "SIN_FECHA";
+      if (!grupos[fecha]) grupos[fecha] = [];
+      grupos[fecha].push(v);
+    });
+
+    tbody.innerHTML = "";
+    Object.entries(grupos).forEach(([fecha, lista]) => {
+      const total = lista.reduce((a, v) => a + (v.resumen_financiero?.total || v.total || 0), 0);
+      const utilidad = lista.reduce((a, v) => a + (v.utilidad_total || 0), 0);
+      const usuario = lista[0].atendio || lista[0].usuarioNombre || "—";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${usuario}</td>
         <td>${rutaId}</td>
-        <td>$${totalHoy.toFixed(2)}</td>
-        <td>${ultima}</td>
-        <td><button data-ruta="${rutaId}">📊 Hacer Corte</button></td>
-      </tr>
-      <tr style="background:#e8f0fe;font-weight:600;">
-        <td colspan="2" style="text-align:right;">TOTAL GENERAL:</td>
-        <td>$${totalHoy.toFixed(2)}</td>
-        <td>UTILIDAD:</td>
-        <td>$${utilidadHoy.toFixed(2)}</td>
-      </tr>`;
+        <td>$${total.toFixed(2)}</td>
+        <td>${fecha}</td>
+        <td><button data-ruta="${rutaId}" data-fecha="${fecha}">📊 Cortar ${fecha}</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
   }
 
   selectRuta.addEventListener("change", e => {
@@ -163,87 +176,87 @@ document.addEventListener("DOMContentLoaded", async () => {
     cargarPendientes(rutaId);
   });
 
-  // ✅ Listener corregido con corte asíncrono no bloqueante
   tbody.addEventListener("click", async e => {
-    const btn = e.target.closest("button[data-ruta]");
+    const btn = e.target.closest("button[data-ruta][data-fecha]");
     if (!btn) return;
-    const rutaId = btn.getAttribute("data-ruta");
-
+    const rutaId = btn.dataset.ruta;
+    const fecha = btn.dataset.fecha;
     overlay.style.display = "flex";
-    overlayText.innerText = "⏳ Generando resumen y PDF...";
-
-    generarCorteAnalitico(rutaId).finally(() => {
+    overlayText.innerText = `⏳ Generando corte del ${fecha}...`;
+    generarCorteAnalitico(rutaId, fecha).finally(() => {
       overlay.style.display = "none";
-      alert("✅ Corte generado y procesado en background.");
+      alert(`✅ Corte del ${fecha} generado correctamente.`);
       selectRuta.value = "";
       tbody.innerHTML = "<tr><td colspan='5'>Selecciona una ruta...</td></tr>";
     });
-  }); // ← Cierra el listener
-
-async function generarCorteAnalitico(rutaId) {
-  const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
-  const snap = await getDocs(qVentas);
-  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  if (!ventas.length) {
-    console.warn(`No hay ventas pendientes para ${rutaId}`);
-    return;
-  }
-
-  const porDepto = {}, porNota = [], porArticulo = {};
-  let totalDia = 0, utilidadTotal = 0;
-
-  // 🔹 Recopilar totales
-  for (const v of ventas) {
-    totalDia += v.total || v.resumen_financiero?.total || 0;
-    utilidadTotal += v.utilidad_total || 0;
-    const hora = (v.fecha_txt || "").split(",")[1]?.trim() || "";
-    porNota.push({ folio: v.folio || "—", total: v.total || 0, utilidad: v.utilidad_total || 0, hora });
-
-    for (const det of (v.detalle || [])) {
-      const nombreArt = det.nombre?.toUpperCase() || "SIN NOMBRE";
-      if (!porArticulo[nombreArt]) porArticulo[nombreArt] = { cantidad: 0, importe: 0 };
-      porArticulo[nombreArt].cantidad += det.cantidad || 0;
-      porArticulo[nombreArt].importe += det.importe || det.precio_unit * det.cantidad || 0;
-
-      const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
-      const venta = det.importe || det.precio_unit * det.cantidad || 0;
-      const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
-      const util = det.utilidad || (venta - costo);
-      if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
-      porDepto[dep].venta += venta;
-      porDepto[dep].utilidad += util;
-    }
-  }
-
-  const resumen = {
-    nombreCorte: ventas[0]?.usuarioNombre || ventas[0]?.atendio || "Desconocido",
-    totalDia, utilidadTotal,
-    totalTickets: ventas.length,
-    porDepto, porNota, porArticulo
-  };
-
-  // 🔹 Guardar resumen del corte en la colección cortes_globales
-  await addDoc(collection(db, "cortes_globales"), {
-    rutaId,
-    fecha: serverTimestamp(),
-    creado_en: new Date().toISOString(),
-    realizado_por: resumen.nombreCorte,
-    total_registros: resumen.totalTickets,
-    resumen
   });
 
-  // 🔹 Marcar las ventas como cortadas
-  for (const v of ventas) {
-    const ventaRef = doc(db, "rutas_venta", v.id);
-    await updateDoc(ventaRef, { cortado: true });
+  async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
+    const qVentas = query(collection(db, "rutas_venta"),
+      where("rutaId", "==", rutaId),
+      where("cortado", "==", false)
+    );
+    const snap = await getDocs(qVentas);
+    const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Filtrar solo las ventas de la fecha seleccionada
+    const ventasDia = ventas.filter(v => (v.fecha_txt || "").includes(fechaSeleccionada));
+    if (!ventasDia.length) {
+      overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
+      return;
+    }
+
+    const porDepto = {}, porNota = [], porArticulo = {};
+    let totalDia = 0, utilidadTotal = 0;
+
+    for (const v of ventasDia) {
+      totalDia += v.resumen_financiero?.total || v.total || 0;
+      utilidadTotal += v.utilidad_total || 0;
+      const hora = (v.fecha_txt || "").split(",")[1]?.trim() || "";
+      porNota.push({ folio: v.folio || "—", total: v.total || 0, utilidad: v.utilidad_total || 0, hora });
+
+      for (const det of (v.detalle || [])) {
+        const nombreArt = det.nombre?.toUpperCase() || "SIN NOMBRE";
+        if (!porArticulo[nombreArt]) porArticulo[nombreArt] = { cantidad: 0, importe: 0 };
+        porArticulo[nombreArt].cantidad += det.cantidad || 0;
+        porArticulo[nombreArt].importe += det.importe || det.precio_unit * det.cantidad || 0;
+
+        const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
+        const venta = det.importe || det.precio_unit * det.cantidad || 0;
+        const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
+        const util = det.utilidad || (venta - costo);
+        if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
+        porDepto[dep].venta += venta;
+        porDepto[dep].utilidad += util;
+      }
+    }
+
+    const resumen = {
+      nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
+      totalDia, utilidadTotal,
+      totalTickets: ventasDia.length,
+      porDepto, porNota, porArticulo
+    };
+
+    await addDoc(collection(db, "cortes_globales"), {
+      rutaId,
+      fecha: serverTimestamp(),
+      fecha_corte: fechaSeleccionada,
+      creado_en: new Date().toISOString(),
+      realizado_por: resumen.nombreCorte,
+      total_registros: resumen.totalTickets,
+      resumen
+    });
+
+    for (const v of ventasDia) {
+      const ventaRef = doc(db, "rutas_venta", v.id);
+      await updateDoc(ventaRef, { cortado: true });
+    }
+
+    await generarPDFyEnviar(resumen, rutaId, fechaSeleccionada);
   }
-  console.log(`✅ ${ventas.length} ventas marcadas como cortadas para ${rutaId}`);
 
-  // 🔹 Generar el PDF y enviar a Telegram
-  await generarPDFyEnviar(resumen, rutaId);
-}
-
-  async function generarPDFyEnviar(r, rutaId) {
+  async function generarPDFyEnviar(r, rutaId, fecha) {
     overlayText.innerText = "🧾 Generando PDF...";
 
     const { jsPDF } = window.jspdf;
@@ -253,12 +266,13 @@ async function generarCorteAnalitico(rutaId) {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
     pdf.text(`Usuario: ${r.nombreCorte}`, 10, 22);
-    pdf.text(`Fecha: ${new Date().toLocaleString()}`, 10, 28);
-    pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 10, 34);
-    pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`, 10, 40);
-    pdf.text(`Tickets: ${r.totalTickets}`, 10, 46);
+    pdf.text(`Fecha corte: ${fecha}`, 10, 28);
+    pdf.text(`Generado: ${new Date().toLocaleString()}`, 10, 34);
+    pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 10, 40);
+    pdf.text(`Utilidad Total: $${r.utilidadTotal.toFixed(2)}`, 10, 46);
+    pdf.text(`Tickets: ${r.totalTickets}`, 10, 52);
 
-    let y = 56;
+    let y = 60;
     pdf.text("Totales por Departamento:", 10, y); y += 5;
     for (const [dep, v] of Object.entries(r.porDepto)) {
       pdf.text(`${dep}: $${v.venta.toFixed(2)}  Utilidad:$${v.utilidad.toFixed(2)} (${(v.utilidad / v.venta * 100).toFixed(1)}%)`, 12, y);
@@ -291,14 +305,13 @@ async function generarCorteAnalitico(rutaId) {
     const blob = pdf.output("blob");
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
-    const a = document.createElement("a"); a.href = url; a.download = `Corte_${rutaId}.pdf`; a.click();
+    const a = document.createElement("a"); a.href = url; a.download = `Corte_${rutaId}_${fecha}.pdf`; a.click();
 
     overlayText.innerText = "📤 Enviando a Telegram...";
 
-    enviarTelegram(blob, `Corte_${rutaId}.pdf`, `📦 Corte ${rutaId} Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`)
+    enviarTelegram(blob, `Corte_${rutaId}_${fecha}.pdf`, `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`)
       .then(() => {
-        overlayText.innerText = "✅ Envío completado";
-        console.log("✅ Corte enviado a Telegram");
+        overlayText.innerText = "✅ Enviado a Telegram";
       })
       .catch(err => {
         overlayText.innerText = "⚠️ Error al enviar";
@@ -330,12 +343,8 @@ async function generarCorteAnalitico(rutaId) {
       f.append("chat_id", CHAT);
       f.append("caption", texto);
       f.append("document", pdfBlob, nombre);
-      const ctrl = new AbortController();
-      const timeout = setTimeout(() => ctrl.abort(), 20000);
-      const res = await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, { method: "POST", body: f, signal: ctrl.signal });
-      clearTimeout(timeout);
+      const res = await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, { method: "POST", body: f });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      console.log("Telegram envío exitoso");
     } catch (err) {
       console.error("Error al enviar Telegram:", err);
     }
