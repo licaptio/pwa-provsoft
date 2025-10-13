@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Resumen de Ventas – Ruta</title>
+  <!-- 🔹 Fecha del día -->
+<p id="fechaDia" style="
+  text-align:center; 
+  color:white; 
+  font-weight:600; 
+  margin-top:-6px; 
+  margin-bottom:12px;
+"></p>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
@@ -113,6 +122,11 @@ const hoy = new Date();
 const offset = hoy.getTimezoneOffset();
 const hoyLocal = new Date(hoy.getTime() - offset * 60000);
 const fechaISO = hoyLocal.toISOString().split("T")[0];
+// 🗓️ Mostrar fecha formateada en texto legible
+const opciones = { day: '2-digit', month: '2-digit', year: 'numeric' };
+const fechaFormateada = hoyLocal.toLocaleDateString('es-MX', opciones);
+document.getElementById("fechaDia").textContent = `🗓️ Ventas del día: ${fechaFormateada}`;
+
 
 // Cargar automáticamente las ventas del día actual
 cargarVentas(fechaISO);
