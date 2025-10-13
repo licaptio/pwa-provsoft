@@ -401,18 +401,23 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
     y += 6;
   });
 
-  // 🔹 Insertar gráfica circular
-  overlayText.innerText = "🎨 Generando gráfica...";
-  const img1 = await graficaDeptos(r.porDepto);
-  pdf.addPage();
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(14);
-  pdf.text("GRÁFICA POR DEPARTAMENTO", 50, 15);
-  pdf.addImage(img1, "PNG", 20, 25, 170, 110);
+// 🔹 Insertar gráfica circular
+overlayText.innerText = "🎨 Generando gráfica...";
+const img1 = await graficaDeptos(r.porDepto);
 
-  pdf.setFontSize(10);
+pdf.addPage();
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(14);
+pdf.text("GRÁFICA POR DEPARTAMENTO", 50, 15);
+
+if (img1 && img1.startsWith("data:image/png")) {
+  pdf.addImage(img1, "PNG", 20, 25, 170, 110);
+} else {
+  console.warn("⚠️ No se pudo generar la gráfica, se omitirá del PDF.");
   pdf.setFont("helvetica", "italic");
-  pdf.text("Reporte generado automáticamente por PROVSOFT POS", 40, 270);
+  pdf.setFontSize(12);
+  pdf.text("⚠️ No se pudo generar la gráfica en este corte.", 20, 40);
+}
 
   // =============================
   // 💾 Exportar y enviar
