@@ -54,10 +54,23 @@
 <body>
 
 <h2>📋 Resumen de Ventas</h2>
+<!-- 🔹 Mini dashboard resumen -->
+<div id="dashboard" style="
+  max-width:700px; margin:0 auto 10px; 
+  background:rgba(255,255,255,0.9);
+  border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.15);
+  display:flex; justify-content:space-around; align-items:center;
+  padding:12px; font-weight:600; font-size:16px;
+">
+  <div>🧾 Ventas del día: <span id="lblConteo">0</span></div>
+  <div>💰 Total acumulado: <span id="lblTotalDash">$0.00</span></div>
+</div>
+
 <div class="card">
+
   <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
   <label for="fecha">Selecciona fecha:</label>
-  <input type="date" id="fecha" />
+  <input type="date" id="fecha" readonly style="background:#e5e7eb; color:#555; cursor:not-allowed;" />
 
   <table id="tabla">
     <thead>
@@ -101,14 +114,17 @@ const hoy = new Date();
 const fechaInput = document.getElementById("fecha");
 fechaInput.valueAsDate = hoy;
 
-// 🧾 Cargar ventas
 async function cargarVentas(fechaSeleccionada) {
   const tabla = document.querySelector("#tabla tbody");
   const totalEl = document.getElementById("lblTotal");
+  const totalDash = document.getElementById("lblTotalDash");
+  const conteoEl = document.getElementById("lblConteo");
   const loading = document.getElementById("loading");
 
   tabla.innerHTML = "";
   totalEl.textContent = "$0.00";
+  totalDash.textContent = "$0.00";
+  conteoEl.textContent = "0";
   loading.style.display = "block";
   loading.textContent = "Cargando ventas...";
 
@@ -124,8 +140,9 @@ async function cargarVentas(fechaSeleccionada) {
       const v = doc.data();
       if (!v.fecha_txt || !v.resumen_financiero?.total) return;
 
-      // ✅ Filtrar por fecha exacta seleccionada
-      if (!v.fecha_txt.startsWith(fechaSeleccionada)) return;
+      // ✅ Filtrar solo las ventas del día actual
+      const fechaVenta = (v.fecha_txt || "").split("T")[0] || (v.fecha_txt || "").split(" ")[0];
+      if (fechaVenta !== fechaSeleccionada) return;
 
       const row = document.createElement("tr");
       const hora = (v.fecha_txt.split(" ")[1] || "").slice(0,5);
@@ -148,16 +165,12 @@ async function cargarVentas(fechaSeleccionada) {
     }
 
     totalEl.textContent = "$" + totalDia.toFixed(2);
+    totalDash.textContent = "$" + totalDia.toFixed(2);
+    conteoEl.textContent = encontrados.toString();
   } catch (e) {
     loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
   }
 }
-
-// 🗓️ Detectar cambio de fecha
-fechaInput.addEventListener("change", () => {
-  const fechaSeleccionada = fechaInput.value;
-  if (fechaSeleccionada) cargarVentas(fechaSeleccionada);
-});
 
 // 🔄 Cargar inicial
 const fechaISO = hoy.toISOString().split("T")[0];
