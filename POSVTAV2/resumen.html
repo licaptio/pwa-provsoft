@@ -158,54 +158,52 @@ async function cargarVentas(fechaSeleccionada) {
   loading.textContent = "Cargando ventas...";
 
   try {
-    const ventasRef = collection(db, "rutas_venta");
-// ✅ Mostrar solo las ventas NO CORTADAS del usuario actual
-const q = query(
-  ventasRef,
-  where("usuarioNombre", "==", nombre),
-  where("cortado", "==", false),
-  orderBy("fecha_txt", "desc")
-);
+  const ventasRef = collection(db, "rutas_venta");
+  const q = query(
+    ventasRef,
+    where("usuarioNombre", "==", nombre),
+    where("cortado", "==", false)
+  );
 
-    const snap = await getDocs(q);
+  const snap = await getDocs(q);
 
-    let totalDia = 0;
-    let encontrados = 0;
+  let totalDia = 0;
+  let encontrados = 0;
 
-    snap.forEach(doc => {
-      const v = doc.data();
-      if (!v.fecha_txt || !v.resumen_financiero?.total) return;
+  snap.forEach(doc => {
+    const v = doc.data();
+    if (!v.fecha_txt || !v.resumen_financiero?.total) return;
 
-      // ✅ Filtrar solo las ventas del día actual
-      const fechaVenta = (v.fecha_txt || "").split("T")[0] || (v.fecha_txt || "").split(" ")[0];
-      if (fechaVenta !== fechaSeleccionada) return;
+    // 🔍 Filtrar por coincidencia de texto de la fecha local (ejemplo: "12/10/2025")
+    if (!v.fecha_txt.includes(fechaFormateada)) return;
 
-      const row = document.createElement("tr");
-      const hora = (v.fecha_txt.split(" ")[1] || "").slice(0,5);
-      const total = Number(v.resumen_financiero.total || v.total || 0);
-      totalDia += total;
-      encontrados++;
+    const row = document.createElement("tr");
+    const hora = v.fecha_txt.split(",")[1]?.trim() || "";
+    const total = Number(v.resumen_financiero.total || v.total || 0);
+    totalDia += total;
+    encontrados++;
 
-      row.innerHTML = `
-        <td>${v.folio}</td>
-        <td>${hora}</td>
-        <td style="text-align:right">$${total.toFixed(2)}</td>
-      `;
-      tabla.appendChild(row);
-    });
+    row.innerHTML = `
+      <td>${v.folio}</td>
+      <td>${hora}</td>
+      <td style="text-align:right">$${total.toFixed(2)}</td>
+    `;
+    tabla.appendChild(row);
+  });
 
-    if (encontrados === 0) {
-      loading.textContent = "Sin ventas registradas en esta fecha.";
-    } else {
-      loading.style.display = "none";
-    }
-
-    totalEl.textContent = "$" + totalDia.toFixed(2);
-    totalDash.textContent = "$" + totalDia.toFixed(2);
-    conteoEl.textContent = encontrados.toString();
-  } catch (e) {
-    loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
+  if (encontrados === 0) {
+    loading.textContent = "Sin ventas registradas en esta fecha.";
+  } else {
+    loading.style.display = "none";
   }
+
+  totalEl.textContent = "$" + totalDia.toFixed(2);
+  totalDash.textContent = "$" + totalDia.toFixed(2);
+  conteoEl.textContent = encontrados.toString();
+} catch (e) {
+  loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
+}
+
 }
 
 </script>
