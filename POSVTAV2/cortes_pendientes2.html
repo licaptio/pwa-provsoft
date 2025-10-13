@@ -447,13 +447,12 @@ if (img1 && img1.startsWith("data:image/png")) {
   URL.revokeObjectURL(url);
 }
 
-
 async function graficaDeptos(p) {
   const div = document.getElementById("graficaDeptos");
   const canvas = document.getElementById("canvasDeptos");
   const ctx = canvas.getContext("2d");
 
-  // 🔹 Forzamos tamaño visible fuera del viewport
+  // Aseguramos que el contenedor sea visible para el render
   div.style.position = "absolute";
   div.style.top = "-1000px";
   div.style.left = "-1000px";
@@ -464,7 +463,7 @@ async function graficaDeptos(p) {
   canvas.width = 600;
   canvas.height = 400;
 
-  // 🎨 Crear el gráfico
+  // 🎨 Crear la gráfica
   const chart = new Chart(ctx, {
     type: "pie",
     data: {
@@ -485,29 +484,34 @@ async function graficaDeptos(p) {
     }
   });
 
-  // ⏳ Esperar render completo con verificación
-  await new Promise(resolve => setTimeout(resolve, 800));
+  // Esperar un pequeño tiempo para asegurar render
+  await new Promise(r => setTimeout(r, 800));
 
-  let img;
-  for (let i = 0; i < 3; i++) { // reintenta hasta 3 veces
+  let img = null;
+  for (let intento = 1; intento <= 3; intento++) {
     try {
       img = await domtoimage.toPng(div);
-      if (img && img.startsWith("data:image/png") && img.length > 1000) break;
+      // validamos que el PNG sea válido y no esté vacío
+      if (img && img.startsWith("data:image/png") && img.length > 1000) {
+        console.log(`✅ Gráfica generada en intento ${intento}`);
+        break;
+      } else {
+        console.warn(`⚠️ PNG inválido (intento ${intento}), reintentando...`);
+      }
     } catch (err) {
-      console.warn("Intento fallido al generar PNG:", err);
+      console.warn(`❌ Error al generar PNG (intento ${intento}):`, err.message);
     }
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(r => setTimeout(r, 600));
   }
 
   chart.destroy();
   div.style.display = "none";
 
   if (!img) {
-    console.warn("⚠️ No se pudo generar la gráfica (imagen vacía o corrupta).");
+    console.warn("⚠️ No se pudo generar la gráfica después de 3 intentos.");
     return null;
   }
 
-  console.log("✅ Gráfica generada correctamente.");
   return img;
 }
 
