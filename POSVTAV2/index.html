@@ -131,15 +131,17 @@
     background: #fff;
   }
 
-  #ticket {
-    width: 72mm !important;          /* 🔹 más compatible que 80mm */
-    max-width: 76mm !important;
-    margin: 0 auto !important;
-    padding: 0 2mm !important;
-    font-size: 11px !important;
-    line-height: 1.25;
-    color: #000;
-  }
+#ticket {
+  width: 100% !important;           /* 🔹 ocupa todo el ancho del papel */
+  max-width: 72mm !important;       /* 🔹 72 mm reales de térmica */
+  transform: scale(1.35);           /* 🔹 agranda todo el contenido */
+  transform-origin: top left;       /* 🔹 evita que se descuadre */
+  margin: 0 auto !important;
+  padding: 0 2mm !important;
+  font-size: 13px !important;       /* 🔹 texto más grande */
+  line-height: 1.35;
+  color: #000;
+}
 
   #ticket, #ticket * {
     page-break-before: avoid !important;
@@ -158,9 +160,10 @@
 
 /* 📏 Forzar altura grande para evitar “hoja 2” */
 @page {
-  size: 72mm 500mm;   /* 🔹 72 mm ancho x 500 mm alto */
+  size: 72mm auto;
   margin: 0;
 }
+
 #ticket {
   margin-left: auto !important;
   margin-right: auto !important;
