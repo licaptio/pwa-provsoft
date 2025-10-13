@@ -193,7 +193,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const ventasDia = ventas.filter(v => v.fecha_txt?.startsWith(fechaSeleccionada));
+    const ventasDia = ventas.filter(v => {
+  if (!v.fecha_txt) return false;
+  let f = v.fecha_txt.split("T")[0] || v.fecha_txt.split(",")[0] || v.fecha_txt.split(" ")[0];
+  f = f.trim();
+  // Normaliza "dd/mm/yyyy" a "yyyy-mm-dd"
+  if (f.includes("/")) {
+    const [d, m, y] = f.split("/");
+    f = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+  }
+  return f === fechaSeleccionada;
+});
+
 
     if (!ventasDia.length) {
       overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
