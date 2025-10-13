@@ -74,120 +74,128 @@
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs } 
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, query, where, getDocs } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.firebasestorage.app",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.firebasestorage.app",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const map = L.map('map').setView([24.857, -99.57], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      maxZoom:18,
-      attribution:'© OpenStreetMap'
-    }).addTo(map);
+  const map = L.map('map').setView([24.857, -99.57], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
 
-    let markers = [];
+  let markers = [];
 
-    async function cargarUsuarios() {
-      const ref = collection(db, "rutas_venta");
-      const q = query(ref, where("cortado", "==", true));
-      const snapshot = await getDocs(q);
-      const usuarios = new Set();
-      snapshot.forEach(doc=>{
-        const data = doc.data();
-        if(data.usuarioNombre) usuarios.add(data.usuarioNombre);
-      });
-      const sel = document.getElementById('usuario');
-      sel.innerHTML = '<option value="">-- Selecciona --</option>';
-      [...usuarios].sort().forEach(u=>{
-        sel.innerHTML += `<option value="${u}">${u}</option>`;
-      });
-    }
-    cargarUsuarios();
+  async function cargarUsuarios() {
+    const ref = collection(db, "rutas_venta");
+    const q = query(ref, where("cortado", "==", true));
+    const snapshot = await getDocs(q);
+    const usuarios = new Set();
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.usuarioNombre) usuarios.add(data.usuarioNombre);
+    });
+    const sel = document.getElementById('usuario');
+    sel.innerHTML = '<option value="">-- Selecciona --</option>';
+    [...usuarios].sort().forEach(u => {
+      sel.innerHTML += `<option value="${u}">${u}</option>`;
+    });
+  }
+  cargarUsuarios();
 
-    async function consultarVentasCortadas() {
-      markers.forEach(m=>map.removeLayer(m));
-      markers = [];
-      document.getElementById('tabla').innerHTML = '';
-      document.getElementById('resumen').innerHTML = '';
+  async function consultarVentasCortadas() {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    document.getElementById('tabla').innerHTML = '';
+    document.getElementById('resumen').innerHTML = '';
 
-      const usuarioSel = document.getElementById('usuario').value;
-      const fechaSel = document.getElementById('fecha').value;
+    const usuarioSel = document.getElementById('usuario').value;
+    const fechaSel = document.getElementById('fecha').value;
 
-      if(!usuarioSel || !fechaSel){ alert("Selecciona usuario y fecha."); return; }
-
-      const ref = collection(db, "rutas_venta");
-      const q = query(ref, where("usuarioNombre","==",usuarioSel), where("cortado","==",true));
-      const snapshot = await getDocs(q);
-
-      const ventas = [];
-      snapshot.forEach(doc=>{
-        const data = doc.data();
-        try{
-          const fechaVenta = data.fecha?.toDate?.().toISOString().split("T")[0];
-          if(fechaVenta === fechaSel) ventas.push(data);
-        }catch(e){}
-      });
-
-      if (ventas.length === 0){
-        alert("No hay ventas cortadas de ese usuario en esa fecha.");
-        return;
-      }
-
-      let totalDia = 0;
-      let hayUbicaciones = false;
-
-      ventas.forEach(v=>{
-        const totalVenta = Number(v.total ?? v.costo_total ?? 0);
-        totalDia += totalVenta;
-
-        // Crear marcador si hay ubicación
-        if (v.ubicacion && typeof v.ubicacion.lat === "number" && typeof v.ubicacion.lon === "number") {
-          const marker = L.marker([v.ubicacion.lat, v.ubicacion.lon]).addTo(map);
-          marker.bindPopup(`
-            <b>${v.usuarioNombre || ''}</b><br>
-            ${v.fecha_txt || ''}<br>
-            <b>$${totalVenta.toLocaleString('es-MX')}</b><br>
-            ${v.metodo_pago || ''}<br>
-            ${v.cliente || ''}
-          `);
-          markers.push(marker);
-          hayUbicaciones = true;
-        }
-
-        const row = `<tr>
-          <td>${v.usuarioNombre || ''}</td>
-          <td>${v.fecha_txt || ''}</td>
-          <td>$${totalVenta.toLocaleString('es-MX')}</td>
-          <td>${v.metodo_pago || ''}</td>
-          <td>${v.cliente || ''}</td>
-        </tr>`;
-        document.getElementById('tabla').insertAdjacentHTML('beforeend', row);
-      });
-
-      document.getElementById('resumen').innerHTML = 
-        `Total del día: <span style="color:#0c6cbd">$${totalDia.toLocaleString('es-MX')}</span>`;
-
-      if(hayUbicaciones){
-        const primera = ventas.find(v=>v.ubicacion?.lat);
-        if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
-      }else{
-        alert("No hay coordenadas registradas para esas ventas. Se muestran solo en tabla.");
-      }
+    if (!usuarioSel || !fechaSel) { 
+      alert("Selecciona usuario y fecha."); 
+      return; 
     }
 
-    document.getElementById('consultar').addEventListener('click', consultarVentasCortadas);
-  </script>
+    const ref = collection(db, "rutas_venta");
+    const q = query(ref, where("usuarioNombre", "==", usuarioSel), where("cortado", "==", true));
+    const snapshot = await getDocs(q);
+
+    const ventas = [];
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      try {
+        const fechaVenta = data.fecha?.toDate?.().toISOString().split("T")[0];
+        if (fechaVenta === fechaSel) ventas.push(data);
+      } catch (e) {}
+    });
+
+    if (ventas.length === 0) {
+      alert("No hay ventas cortadas de ese usuario en esa fecha.");
+      return;
+    }
+
+    let totalDia = 0;
+    let hayUbicaciones = false;
+
+    ventas.forEach(v => {
+      // 🔒 Manejo ultra seguro del total
+      let totalVenta = parseFloat(v.total ?? v.costo_total ?? 0);
+      if (isNaN(totalVenta)) totalVenta = 0;
+
+      totalDia += totalVenta;
+
+      // Marcadores en el mapa
+      if (v.ubicacion && typeof v.ubicacion.lat === "number" && typeof v.ubicacion.lon === "number") {
+        const marker = L.marker([v.ubicacion.lat, v.ubicacion.lon]).addTo(map);
+        marker.bindPopup(`
+          <b>${v.usuarioNombre || ''}</b><br>
+          ${v.fecha_txt || ''}<br>
+          <b>$${totalVenta.toLocaleString('es-MX')}</b><br>
+          ${v.metodo_pago || ''}<br>
+          ${v.cliente || ''}
+        `);
+        markers.push(marker);
+        hayUbicaciones = true;
+      }
+
+      // Fila de la tabla
+      const row = `<tr>
+        <td>${v.usuarioNombre || ''}</td>
+        <td>${v.fecha_txt || ''}</td>
+        <td>$${totalVenta.toLocaleString('es-MX')}</td>
+        <td>${v.metodo_pago || ''}</td>
+        <td>${v.cliente || ''}</td>
+      </tr>`;
+      document.getElementById('tabla').insertAdjacentHTML('beforeend', row);
+    });
+
+    document.getElementById('resumen').innerHTML = 
+      `Total del día: <span style="color:#0c6cbd">$${totalDia.toLocaleString('es-MX')}</span>`;
+
+    if (hayUbicaciones) {
+      const primera = ventas.find(v => v.ubicacion?.lat);
+      if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
+    } else {
+      alert("No hay coordenadas registradas para esas ventas. Se muestran solo en tabla.");
+    }
+  }
+
+  document.getElementById('consultar').addEventListener('click', consultarVentasCortadas);
+</script>
+
 </body>
 </html>
