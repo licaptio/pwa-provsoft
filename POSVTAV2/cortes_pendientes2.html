@@ -139,15 +139,31 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    // 🗓️ Agrupar ventas por fecha
-    const grupos = {};
-    ventas.forEach(v => {
-      const fecha = (v.fecha_txt || "").split("T")[0] ||
-                    (v.fecha_txt || "").split(",")[0]?.trim() ||
-                    "SIN_FECHA";
-      if (!grupos[fecha]) grupos[fecha] = [];
-      grupos[fecha].push(v);
-    });
+
+// 🗓️ Agrupar ventas por DÍA (ignorando hora)
+const grupos = {};
+ventas.forEach(v => {
+  let fechaBase = "SIN_FECHA";
+  if (v.fecha_txt) {
+    // Detecta formato "2025-10-11T14:35:00" o "11/10/2025, 2:35:00 p.m."
+    if (v.fecha_txt.includes("T")) {
+      fechaBase = v.fecha_txt.split("T")[0].trim();
+    } else if (v.fecha_txt.includes(",")) {
+      fechaBase = v.fecha_txt.split(",")[0].trim();
+    } else {
+      fechaBase = v.fecha_txt.split(" ")[0].trim();
+    }
+
+    // Normaliza formato a yyyy-mm-dd
+    if (fechaBase.includes("/")) {
+      const [d, m, y] = fechaBase.split("/");
+      fechaBase = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+  }
+
+  if (!grupos[fechaBase]) grupos[fechaBase] = [];
+  grupos[fechaBase].push(v);
+});
 
     tbody.innerHTML = "";
     Object.entries(grupos).forEach(([fecha, lista]) => {
