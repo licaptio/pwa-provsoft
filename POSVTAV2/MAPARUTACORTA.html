@@ -100,7 +100,6 @@
 
     let markers = [];
 
-    // Cargar lista de usuarios con ventas cortadas
     async function cargarUsuarios() {
       const ref = collection(db, "rutas_venta");
       const q = query(ref, where("cortado", "==", true));
@@ -118,7 +117,6 @@
     }
     cargarUsuarios();
 
-    // Consultar ventas cortadas
     async function consultarVentasCortadas() {
       markers.forEach(m=>map.removeLayer(m));
       markers = [];
@@ -138,7 +136,7 @@
       snapshot.forEach(doc=>{
         const data = doc.data();
         try{
-          const fechaVenta = data.fecha.toDate().toISOString().split("T")[0];
+          const fechaVenta = data.fecha?.toDate?.().toISOString().split("T")[0];
           if(fechaVenta === fechaSel) ventas.push(data);
         }catch(e){}
       });
@@ -152,38 +150,39 @@
       let hayUbicaciones = false;
 
       ventas.forEach(v=>{
-        totalDia += v.total || 0;
+        const totalVenta = typeof v.total === "number" ? v.total : (v.costo_total || 0);
+        totalDia += totalVenta;
 
         // Crear marcador si hay ubicación
         if (v.ubicacion && typeof v.ubicacion.lat === "number" && typeof v.ubicacion.lon === "number") {
           const marker = L.marker([v.ubicacion.lat, v.ubicacion.lon]).addTo(map);
           marker.bindPopup(`
             <b>${v.usuarioNombre}</b><br>
-            ${v.fecha_txt}<br>
-            <b>$${(v.total || 0).toLocaleString('es-MX')}</b><br>
+            ${v.fecha_txt || ''}<br>
+            <b>$${totalVenta.toLocaleString('es-MX')}</b><br>
             ${v.metodo_pago || ''}<br>
             ${v.cliente || ''}
           `);
           markers.push(marker);
           hayUbicaciones = true;
+        } else {
+          console.log("Venta sin ubicación:", v.folio || "(sin folio)", v);
         }
 
         // Agregar fila
         const row = `<tr>
-          <td>${v.usuarioNombre}</td>
-          <td>${v.fecha_txt}</td>
-          <td>$${(v.total || 0).toLocaleString('es-MX')}</td>
+          <td>${v.usuarioNombre || ''}</td>
+          <td>${v.fecha_txt || ''}</td>
+          <td>$${totalVenta.toLocaleString('es-MX')}</td>
           <td>${v.metodo_pago || ''}</td>
           <td>${v.cliente || ''}</td>
         </tr>`;
         document.getElementById('tabla').insertAdjacentHTML('beforeend', row);
       });
 
-      // Resumen arriba de la tabla
       document.getElementById('resumen').innerHTML = 
         `Total del día: <span style="color:#0c6cbd">$${totalDia.toLocaleString('es-MX')}</span>`;
 
-      // Centrar mapa
       if(hayUbicaciones){
         const primera = ventas.find(v=>v.ubicacion?.lat);
         if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
