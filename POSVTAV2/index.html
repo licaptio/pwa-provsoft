@@ -114,81 +114,58 @@
   from { transform: rotateY(0deg); }
   to   { transform: rotateY(360deg); }
 }   
-    /* ==== Estilos de impresión del ticket ==== */
+/* ==== Estilos térmicos universales H10/Sunmi ==== */
 @media print {
-  body * {
-    visibility: hidden;
-  }
+  body * { visibility: hidden !important; }
+
   #ticketArea, #ticketArea * {
-    visibility: visible;
+    visibility: visible !important;
   }
+
   #ticketArea {
     display: block !important;
     position: relative !important;
-    inset: auto !important;
-    background: #fff;
-    margin: 0;
+    margin: 0 auto !important;
     padding: 0;
+    width: 100%;
+    background: #fff;
   }
 
-  /* Ticket estilo recibo térmico */
-#ticket {
-  width: 80mm;
-  min-width: 80mm;
-  max-width: 80mm;
-  margin: 0;
-  padding: 0 2mm;
-}
-
-  #ticket .t-header {
-    text-align: center;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.3px;
+  #ticket {
+    width: 72mm !important;          /* 🔹 más compatible que 80mm */
+    max-width: 76mm !important;
+    margin: 0 auto !important;
+    padding: 0 2mm !important;
+    font-size: 11px !important;
+    line-height: 1.25;
+    color: #000;
   }
 
-  #ticket .t-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 13px;
-    margin: 3px 0;
-    font-weight: 600;
+  #ticket, #ticket * {
+    page-break-before: avoid !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
   }
 
-  #ticket .t-totals {
-    margin-top: 6px;
-    font-weight: 700;
+  img, hr, .t-row, .t-totals {
+    page-break-inside: avoid !important;
   }
 
-  #ticket .t-thanks {
-    text-align: center;
-    margin-top: 10px;
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  #ticket hr {
-    border: none;
-    border-top: 1px dashed #000;
-    margin: 6px 0;
-    opacity: 0.9;
-  }
-
-  /* Quita botones o colores web */
-  button, .btn, header, .actions, #loginScreen {
+  header, .btn, .actions, #loginScreen, #modalCobro, #qrReaderContainer {
     display: none !important;
   }
 }
-    @page {
-  size: 80mm auto;   /* ancho fijo 80mm, alto automático */
-  margin: 0;         /* sin márgenes */
-}
-/* 🔒 Desactivar pull-to-refresh en móviles Android/Chrome */
-body {
-  overscroll-behavior-y: contain;
-  touch-action: pan-x pan-y;
-}
 
+/* 📏 Forzar altura grande para evitar “hoja 2” */
+@page {
+  size: 72mm 500mm;   /* 🔹 72 mm ancho x 500 mm alto */
+  margin: 0;
+}
+#ticket {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+  
   </style>
 </head>
 <body>
