@@ -69,9 +69,7 @@
 <div class="card">
 
   <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
-  <label for="fecha">Selecciona fecha:</label>
-  <input type="date" id="fecha" readonly style="background:#e5e7eb; color:#555; cursor:not-allowed;" />
-
+  
   <table id="tabla">
     <thead>
       <tr><th>Folio</th><th>Hora</th><th>Total</th></tr>
@@ -110,9 +108,14 @@ const nombre = u?.nombre || "Desconocido";
 document.getElementById("lblUsuario").textContent = nombre;
 
 // 📆 Establecer fecha actual por defecto
+// 📆 Detectar fecha local real y usarla directamente (sin input)
 const hoy = new Date();
-const fechaInput = document.getElementById("fecha");
-fechaInput.valueAsDate = hoy;
+const offset = hoy.getTimezoneOffset();
+const hoyLocal = new Date(hoy.getTime() - offset * 60000);
+const fechaISO = hoyLocal.toISOString().split("T")[0];
+
+// Cargar automáticamente las ventas del día actual
+cargarVentas(fechaISO);
 
 async function cargarVentas(fechaSeleccionada) {
   const tabla = document.querySelector("#tabla tbody");
@@ -172,9 +175,6 @@ async function cargarVentas(fechaSeleccionada) {
   }
 }
 
-// 🔄 Cargar inicial
-const fechaISO = hoy.toISOString().split("T")[0];
-cargarVentas(fechaISO);
 </script>
 
 </body>
