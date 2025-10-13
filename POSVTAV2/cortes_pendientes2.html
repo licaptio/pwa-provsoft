@@ -443,16 +443,56 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
 }
 
 
-  async function graficaDeptos(p) {
-    const div = document.getElementById("graficaDeptos");
-    const ctx = document.getElementById("canvasDeptos").getContext("2d");
-    div.style.display = "block";
-    const c = new Chart(ctx, { type: "pie", data: { labels: Object.keys(p), datasets: [{ data: Object.values(p).map(v => v.venta) }] }, options: { animation: false } });
-    await new Promise(r => setTimeout(r, 1000));
-    const img = await domtoimage.toPng(div);
-    c.destroy(); div.style.display = "none";
-    return img;
+async function graficaDeptos(p) {
+  const div = document.getElementById("graficaDeptos");
+  const canvas = document.getElementById("canvasDeptos");
+  const ctx = canvas.getContext("2d");
+
+  div.style.display = "block";
+  div.style.visibility = "visible";
+  div.style.opacity = "1";
+
+  // 🔹 Crear el gráfico
+  const chart = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: Object.keys(p),
+      datasets: [
+        {
+          data: Object.values(p).map(v => v.venta),
+          backgroundColor: [
+            "#007bff", "#ff6384", "#ffc107", "#28a745", "#17a2b8", "#6610f2",
+            "#fd7e14", "#6f42c1", "#20c997", "#e83e8c"
+          ],
+        }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: "right" } },
+      animation: false,
+      responsive: false,
+      maintainAspectRatio: false
+    }
+  });
+
+  // 🔹 Espera un momento para asegurar render completo
+  await new Promise(r => setTimeout(r, 500));
+
+  // 🔹 Generar imagen PNG desde el canvas directamente
+  const imgData = canvas.toDataURL("image/png");
+  if (!imgData.startsWith("data:image/png;base64,")) {
+    console.warn("⚠️ Imagen inválida, se omitirá la gráfica.");
+    chart.destroy();
+    div.style.display = "none";
+    return null;
   }
+
+  // 🔹 Limpiar
+  chart.destroy();
+  div.style.display = "none";
+
+  return imgData;
+}
 
   async function enviarTelegram(pdfBlob, nombre, texto) {
     try {
