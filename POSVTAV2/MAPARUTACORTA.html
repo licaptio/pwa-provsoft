@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="theme-color" content="#0c6cbd">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporte de Ventas Cortadas – PROVSOFT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <style>
+    body{
+      font-family:'Poppins',sans-serif;
+      background:#f5f7fa;
+      color:#222;
+      margin:0;
+      padding:0;
+    }
+    header{
+      background:linear-gradient(to right,#00416A,#0c6cbd);
+      color:#fff;
+      padding:15px;
+      text-align:center;
+    }
+    main{padding:15px;}
+    h1{margin:0;font-size:22px;}
+    .filtros{
+      display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:15px;
+    }
+    input,select,button{
+      padding:8px 10px;border-radius:8px;border:1px solid #ccc;font-family:inherit;font-size:14px;
+    }
+    button{
+      background:#0c6cbd;color:white;border:none;cursor:pointer;transition:background .3s;
+    }
+    button:hover{background:#00416A;}
+    #map{height:420px;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,.1);margin-bottom:20px;}
+    table{
+      width:100%;border-collapse:collapse;background:white;box-shadow:0 2px 6px rgba(0,0,0,.1);
+    }
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;}
+    th{background:#00416A;color:white;}
+    tr:hover{background:#f0f4ff;}
+    .info-box{
+      text-align:right;
+      margin-bottom:10px;
+      font-weight:600;
+      color:#00416A;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Ventas Cortadas por Usuario – PROVSOFT</h1>
+  </header>
+  <main>
+    <div class="filtros">
+      <label>Usuario: 
+        <select id="usuario"></select>
+      </label>
+      <label>Fecha: <input type="date" id="fecha"></label>
+      <button id="consultar">Consultar Cortes</button>
+    </div>
+
+    <div id="map"></div>
+    <div class="info-box" id="resumen"></div>
+
+    <table>
+      <thead>
+        <tr><th>Usuario</th><th>Hora</th><th>Total</th><th>Pago</th><th>Cliente</th></tr>
+      </thead>
+      <tbody id="tabla"></tbody>
+    </table>
+  </main>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } 
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Inicializar mapa en Linares
+    const map = L.map('map').setView([24.857, -99.57], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      maxZoom:18,
+      attribution:'© OpenStreetMap'
+    }).addTo(map);
+
+    let markers = [];
+
+    // Cargar lista de usuarios con ventas cortadas
+    async function cargarUsuarios() {
+      const ref = collection(db, "rutas_venta");
+      const q = query(ref, where("cortado", "==", true));
+      const snapshot = await getDocs(q);
+      const usuarios = new Set();
+      snapshot.forEach(doc=>{
+        const data = doc.data();
+        if(data.usuarioNombre) usuarios.add(data.usuarioNombre);
+      });
+      const sel = document.getElementById('usuario');
+      sel.innerHTML = '<option value="">-- Selecciona --</option>';
+      [...usuarios].sort().forEach(u=>{
+        sel.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+    }
+    cargarUsuarios();
+
+    // Consultar ventas cortadas
+    async function consultarVentasCortadas() {
+      markers.forEach(m=>map.removeLayer(m));
+      markers = [];
+      document.getElementById('tabla').innerHTML = '';
+      document.getElementById('resumen').innerHTML = '';
+
+      const usuarioSel = document.getElementById('usuario').value;
+      const fechaSel = document.getElementById('fecha').value;
+
+      if(!usuarioSel || !fechaSel){ alert("Selecciona usuario y fecha."); return; }
+
+      const ref = collection(db, "rutas_venta");
+      const q = query(ref, where("usuarioNombre","==",usuarioSel), where("cortado","==",true));
+      const snapshot = await getDocs(q);
+
+      const ventas = [];
+      snapshot.forEach(doc=>{
+        const data = doc.data();
+        try{
+          const fechaVenta = data.fecha.toDate().toISOString().split("T")[0];
+          if(fechaVenta === fechaSel) ventas.push(data);
+        }catch(e){}
+      });
+
+      if (ventas.length === 0){
+        alert("No hay ventas cortadas de ese usuario en esa fecha.");
+        return;
+      }
+
+      let totalDia = 0;
+      let hayUbicaciones = false;
+
+      ventas.forEach(v=>{
+        totalDia += v.total || 0;
+
+        // Crear marcador si hay ubicación
+        if (v.ubicacion && typeof v.ubicacion.lat === "number" && typeof v.ubicacion.lon === "number") {
+          const marker = L.marker([v.ubicacion.lat, v.ubicacion.lon]).addTo(map);
+          marker.bindPopup(`
+            <b>${v.usuarioNombre}</b><br>
+            ${v.fecha_txt}<br>
+            <b>$${(v.total || 0).toLocaleString('es-MX')}</b><br>
+            ${v.metodo_pago || ''}<br>
+            ${v.cliente || ''}
+          `);
+          markers.push(marker);
+          hayUbicaciones = true;
+        }
+
+        // Agregar fila
+        const row = `<tr>
+          <td>${v.usuarioNombre}</td>
+          <td>${v.fecha_txt}</td>
+          <td>$${(v.total || 0).toLocaleString('es-MX')}</td>
+          <td>${v.metodo_pago || ''}</td>
+          <td>${v.cliente || ''}</td>
+        </tr>`;
+        document.getElementById('tabla').insertAdjacentHTML('beforeend', row);
+      });
+
+      // Resumen arriba de la tabla
+      document.getElementById('resumen').innerHTML = 
+        `Total del día: <span style="color:#0c6cbd">$${totalDia.toLocaleString('es-MX')}</span>`;
+
+      // Centrar mapa
+      if(hayUbicaciones){
+        const primera = ventas.find(v=>v.ubicacion?.lat);
+        if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
+      }else{
+        alert("No hay coordenadas registradas para esas ventas. Se muestran solo en tabla.");
+      }
+    }
+
+    document.getElementById('consultar').addEventListener('click', consultarVentasCortadas);
+  </script>
+</body>
+</html>
