@@ -91,7 +91,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Inicializar mapa en Linares
     const map = L.map('map').setView([24.857, -99.57], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       maxZoom:18,
@@ -150,14 +149,14 @@
       let hayUbicaciones = false;
 
       ventas.forEach(v=>{
-        const totalVenta = typeof v.total === "number" ? v.total : (v.costo_total || 0);
+        const totalVenta = Number(v.total ?? v.costo_total ?? 0);
         totalDia += totalVenta;
 
         // Crear marcador si hay ubicación
         if (v.ubicacion && typeof v.ubicacion.lat === "number" && typeof v.ubicacion.lon === "number") {
           const marker = L.marker([v.ubicacion.lat, v.ubicacion.lon]).addTo(map);
           marker.bindPopup(`
-            <b>${v.usuarioNombre}</b><br>
+            <b>${v.usuarioNombre || ''}</b><br>
             ${v.fecha_txt || ''}<br>
             <b>$${totalVenta.toLocaleString('es-MX')}</b><br>
             ${v.metodo_pago || ''}<br>
@@ -165,11 +164,8 @@
           `);
           markers.push(marker);
           hayUbicaciones = true;
-        } else {
-          console.log("Venta sin ubicación:", v.folio || "(sin folio)", v);
         }
 
-        // Agregar fila
         const row = `<tr>
           <td>${v.usuarioNombre || ''}</td>
           <td>${v.fecha_txt || ''}</td>
