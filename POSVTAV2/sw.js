@@ -1,43 +1,65 @@
-const CACHE_NAME = "provpos-v3";
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./logo_proveedora.webp",
-  "./icons/icon-192x192.png",
-  "./icons/icon-512x512.png"
+const CACHE_NAME = 'provsoft-pos-v1';
+const STATIC_ASSETS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './logo_proveedora.webp',
+  './html5-qrcode.min.js',
+  './geoHelper.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/maskable_icon.png',
+  'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap'
 ];
 
-// 📦 Instalar y cachear los archivos base
-self.addEventListener("install", (event) => {
-  console.log("📦 Instalando Service Worker...");
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
-  self.skipWaiting();
+// 📦 INSTALACIÓN DEL SW: cachea todos los archivos base
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
 
-// 🚀 Activar y limpiar versiones viejas
-self.addEventListener("activate", (event) => {
-  console.log("🚀 Activando Service Worker...");
+// ⚙️ ACTIVACIÓN: limpia versiones antiguas del cache
+self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(k => (k !== CACHE_NAME ? caches.delete(k) : null)))
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
-  return self.clients.claim();
+  self.clients.claim();
 });
 
-// 🌐 Estrategia: cache-first, fallback a red
-self.addEventListener("fetch", (event) => {
+// ⚡️ ESTRATEGIA DE CACHE: “Network first, fallback to cache”
+self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== "GET") return;
+
+  // Ignorar llamadas a Firestore/Telegram (que requieren conexión)
+  if (req.url.includes('firestore') || req.url.includes('telegram')) return;
+
   event.respondWith(
-    caches.match(req).then((cached) =>
-      cached ||
-      fetch(req).then((res) => {
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+    fetch(req)
+      .then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         return res;
-      }).catch(() => caches.match("index.html"))
-    )
+      })
+      .catch(() => caches.match(req))
   );
+});
+
+// 🛰️ Sincronización en segundo plano (ventas pendientes)
+self.addEventListener('sync', async (event) => {
+  if (event.tag === 'sync-ventas-pendientes') {
+    console.log('🔁 Sincronizando ventas pendientes...');
+    const clients = await self.clients.matchAll({ includeUncontrolled: true });
+    clients.forEach(client => client.postMessage({ action: 'sincronizar' }));
+  }
+});
+
+// 🔔 Notificación cuando vuelva la conexión
+self.addEventListener('online', async () => {
+  const clients = await self.clients.matchAll({ includeUncontrolled: true });
+  clients.forEach(client => client.postMessage({ action: 'sincronizar' }));
 });
