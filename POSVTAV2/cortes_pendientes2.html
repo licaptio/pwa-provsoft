@@ -450,14 +450,21 @@ if (img1 && img1.startsWith("data:image/png")) {
 
 async function graficaDeptos(p) {
   const div = document.getElementById("graficaDeptos");
-  const ctx = document.getElementById("canvasDeptos").getContext("2d");
+  const canvas = document.getElementById("canvasDeptos");
+  const ctx = canvas.getContext("2d");
 
-  div.style.display = "block";
+  // 🔹 Forzamos tamaño visible fuera del viewport
   div.style.position = "absolute";
-  div.style.top = "-1000px"; // fuera de vista, pero visible para render
+  div.style.top = "-1000px";
   div.style.left = "-1000px";
+  div.style.display = "block";
   div.style.visibility = "visible";
+  div.style.width = "600px";
+  div.style.height = "400px";
+  canvas.width = 600;
+  canvas.height = 400;
 
+  // 🎨 Crear el gráfico
   const chart = new Chart(ctx, {
     type: "pie",
     data: {
@@ -471,14 +478,36 @@ async function graficaDeptos(p) {
         ]
       }]
     },
-    options: { animation: false, responsive: false }
+    options: {
+      animation: false,
+      responsive: false,
+      plugins: { legend: { position: "right" } }
+    }
   });
 
-  await new Promise(r => setTimeout(r, 1000)); // esperar render
-  const img = await domtoimage.toPng(div); // 🔹 igual que en la versión vieja
+  // ⏳ Esperar render completo con verificación
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  let img;
+  for (let i = 0; i < 3; i++) { // reintenta hasta 3 veces
+    try {
+      img = await domtoimage.toPng(div);
+      if (img && img.startsWith("data:image/png") && img.length > 1000) break;
+    } catch (err) {
+      console.warn("Intento fallido al generar PNG:", err);
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
 
   chart.destroy();
   div.style.display = "none";
+
+  if (!img) {
+    console.warn("⚠️ No se pudo generar la gráfica (imagen vacía o corrupta).");
+    return null;
+  }
+
+  console.log("✅ Gráfica generada correctamente.");
   return img;
 }
 
