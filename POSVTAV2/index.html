@@ -131,17 +131,16 @@
     background: #fff;
   }
 
-#ticket {
-  width: 100% !important;           /* 🔹 ocupa todo el ancho del papel */
-  max-width: 72mm !important;       /* 🔹 72 mm reales de térmica */
-  transform: scale(1.35);           /* 🔹 agranda todo el contenido */
-  transform-origin: top left;       /* 🔹 evita que se descuadre */
-  margin: 0 auto !important;
-  padding: 0 2mm !important;
-  font-size: 13px !important;       /* 🔹 texto más grande */
-  line-height: 1.35;
-  color: #000;
-}
+  #ticket {
+    width: 72mm !important;              /* ancho exacto de rollo térmico */
+    margin: 0 auto !important;
+    padding: 0 2mm !important;
+    font-size: 14px !important;          /* tamaño legible */
+    line-height: 1.45;
+    color: #000;
+    transform: none !important;          /* sin escalado */
+    page-break-inside: avoid !important;
+  }
 
   #ticket, #ticket * {
     page-break-before: avoid !important;
@@ -158,11 +157,11 @@
   }
 }
 
-/* 📏 Forzar altura grande para evitar “hoja 2” */
 @page {
-  size: 72mm auto;
+  size: 72mm auto; /* ancho fijo, altura variable */
   margin: 0;
 }
+
 
 #ticket {
   margin-left: auto !important;
@@ -1118,12 +1117,39 @@ function rellenarTicket(venta){
 
   document.getElementById('tNotas').textContent = venta.notas || '';
 }
-function imprimirTicketEstilado(){
-  const ticket = document.getElementById('ticketArea');
+function imprimirTicketEstilado() {
+  const ticket = document.getElementById("ticketArea");
+
+  // 🚀 Modo Sunmi / InnerPrinter directo
+  if (window.InnerPrinter && typeof window.InnerPrinter.printHtml === "function") {
+    try {
+      console.log("🖨️ Imprimiendo directo con InnerPrinter...");
+      const html = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { font-family: sans-serif; font-size: 14px; line-height: 1.4; margin: 0; padding: 0; }
+              #ticket { width: 72mm; margin: 0 auto; }
+              img { max-width: 100%; }
+            </style>
+          </head>
+          <body>${ticket.innerHTML}</body>
+        </html>`;
+      window.InnerPrinter.printHtml(html);
+      return;
+    } catch (err) {
+      console.error("❌ Error InnerPrinter:", err);
+      alert("No se pudo imprimir directamente, se usará vista previa.");
+    }
+  }
+
+  // 🖨️ Fallback (PC o navegador)
   ticket.style.display = "block";
   window.print();
   ticket.style.display = "none";
 }
+
   // ==== Botones ====
   document.getElementById('btnCobrar').onclick=abrirCobro;
   document.getElementById('btnCancelarCobro').onclick=cerrarCobro;
