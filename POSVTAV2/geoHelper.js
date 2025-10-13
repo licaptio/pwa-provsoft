@@ -1,6 +1,6 @@
 // ===============================
-// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v2.9
-// Detección de terminales limitadas + precisión adaptativa + validación de zona
+// 🌍 GEOLOCALIZACIÓN ROBUSTA PROVSOFT v3.0
+// Detección de terminales limitadas + contador visual + validación de zona
 // ===============================
 
 export async function obtenerUbicacionRobusta() {
@@ -12,26 +12,26 @@ export async function obtenerUbicacionRobusta() {
 
   const GOOGLE_API_KEY = "AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE";
   const ZONA_BASE = { lat: 24.859, lon: -99.567 }; // Linares
-  const RADIO_VALIDO_KM = 20;
   const RADIO_ZONA_SEGURA_KM = 25;
 
-  let TIMEOUT_GPS = 10000;
+  let TIMEOUT_GPS = 15000; // base
   if (isDispositivoLimitado()) {
     resultado.gps_limitado = true;
-    TIMEOUT_GPS = 15000;
-    mostrarToast("⚠️ Terminal con GPS limitado detectada");
+    TIMEOUT_GPS = 20000; // ⏱ más tiempo para H10 y similares
+    mostrarToast("⚠️ Terminal con GPS limitado detectada (modo extendido)");
   }
 
   const historial = cargarHistorialUbicaciones();
   const ultimaValida = historial[0] || ZONA_BASE;
 
-  // === Intentos GPS ===
-  for (let i = 1; i <= 3; i++) {
+  // === Intentos de geolocalización ===
+  for (let intento = 1; intento <= 2; intento++) {
     try {
-      console.log(`🛰️ Intento ${i} de geolocalización...`);
+      console.log(`🛰️ Intento ${intento} de geolocalización...`);
+      await mostrarContadorGPS(TIMEOUT_GPS); // ⏱ contador visual
+
       const pos = await obtenerCoordenadasAltaPrecision(TIMEOUT_GPS);
       const { latitude: lat, longitude: lon, accuracy: precision } = pos.coords;
-      const dist = distanciaKm(lat, lon, ultimaValida.lat, ultimaValida.lon);
 
       resultado.lat = lat;
       resultado.lon = lon;
@@ -41,42 +41,57 @@ export async function obtenerUbicacionRobusta() {
       resultado.precision_categoria =
         precision < 50 ? "alta" : precision < 500 ? "media" : "baja";
 
-      // 📍 Validaciones
       resultado.fuera_ruta = !estaDentroDeZona(lat, lon, ZONA_BASE, RADIO_ZONA_SEGURA_KM);
       if (resultado.fuera_ruta) mostrarToast("🚧 Venta fuera de la zona de Linares");
 
-      if (precision > 1000) {
-        console.warn("⚠️ GPS impreciso (>1000m), probando Google API...");
-        const googleUbic = await obtenerUbicacionGoogle(GOOGLE_API_KEY);
-        if (googleUbic?.lat && googleUbic?.lon) {
-          Object.assign(resultado, googleUbic, { metodo: "google_api", gps_impreciso: true });
-        }
-      }
-
       guardarUbicacionHistorial(lat, lon, precision);
-      mostrarToast(`📍 ${resultado.metodo.toUpperCase()} (${precision.toFixed(0)} m)`);
+      mostrarToast(`📍 GPS válido (${precision.toFixed(0)} m)`);
       return resultado;
+
     } catch (e) {
-      console.warn(`⚠️ Intento ${i} fallido: ${e.message}`);
+      console.warn(`⚠️ Intento ${intento} fallido: ${e.message}`);
       await esperar(1000);
     }
   }
 
-  // === Fallbacks ===
+  // === Fallbacks (Google / IP / Caché) ===
+  console.warn("📡 Intentando ubicación por Google API...");
   const googleUbic = await obtenerUbicacionGoogle(GOOGLE_API_KEY);
-  if (googleUbic?.lat) {
-    googleUbic.fuera_ruta = !estaDentroDeZona(googleUbic.lat, googleUbic.lon, ZONA_BASE, RADIO_ZONA_SEGURA_KM);
-    return googleUbic;
-  }
+  if (googleUbic?.lat) return googleUbic;
 
+  console.warn("🌐 Intentando ubicación por IP...");
   const ipUbic = await obtenerUbicacionPorIP();
-  if (ipUbic?.lat) {
-    ipUbic.fuera_ruta = !estaDentroDeZona(ipUbic.lat, ipUbic.lon, ZONA_BASE, RADIO_ZONA_SEGURA_KM);
-    return ipUbic;
-  }
+  if (ipUbic?.lat) return ipUbic;
 
   mostrarToast("♻️ Usando última ubicación válida");
-  return { ...ultimaValida, metodo: "cache", fuera_ruta: false };
+  return { ...ultimaValida, metodo: "cache" };
+}
+
+// === Contador visual mientras se busca GPS ===
+async function mostrarContadorGPS(tiempoTotal) {
+  const segundos = tiempoTotal / 1000;
+  const div = document.createElement("div");
+  Object.assign(div.style, {
+    position: "fixed",
+    bottom: "80px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "rgba(0,0,0,0.8)",
+    color: "#fff",
+    padding: "10px 16px",
+    borderRadius: "12px",
+    fontWeight: "600",
+    zIndex: "9999"
+  });
+  document.body.appendChild(div);
+
+  for (let i = segundos; i >= 0; i--) {
+    div.textContent = `🛰 Buscando señal GPS... (${i}s restantes)`;
+    await esperar(1000);
+  }
+
+  div.textContent = "⌛ Verificando coordenada...";
+  setTimeout(() => div.remove(), 1500);
 }
 
 // === Alta precisión con timeout ===
@@ -92,17 +107,17 @@ function obtenerCoordenadasAltaPrecision(timeoutMs) {
   });
 }
 
-// === Detección de dispositivo limitado ===
+// === Dispositivo limitado ===
 function isDispositivoLimitado() {
   const ua = navigator.userAgent.toLowerCase();
   return ["h10", "spreadtrum", "unisoc", "mobiwire", "generic"].some(x => ua.includes(x));
 }
 
-// === Google API / IP / Zona / Utilidades (igual que versión 2.8) ===
-async function obtenerUbicacionGoogle(API_KEY) { /* igual que antes */ }
-async function obtenerUbicacionPorIP() { /* igual que antes */ }
-async function obtenerDireccionLegible(lat, lon) { /* igual que antes */ }
-function estaDentroDeZona(lat, lon, base, radioKm) { const d = distanciaKm(lat, lon, base.lat, base.lon); return d <= radioKm; }
+// === Fallbacks, zona y utilidades ===
+async function obtenerUbicacionGoogle(API_KEY){/* igual a v2.9 */}
+async function obtenerUbicacionPorIP(){/* igual a v2.9 */}
+async function obtenerDireccionLegible(lat,lon){/* igual a v2.9 */}
+function estaDentroDeZona(lat,lon,base,radioKm){const d=distanciaKm(lat,lon,base.lat,base.lon);return d<=radioKm;}
 function esperar(ms){return new Promise(r=>setTimeout(r,ms));}
 function distanciaKm(lat1,lon1,lat2,lon2){const R=6371;const dLat=((lat2-lat1)*Math.PI)/180;const dLon=((lon2-lon1)*Math.PI)/180;const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
 function cargarHistorialUbicaciones(){try{return JSON.parse(localStorage.getItem("historial_ubicaciones")||"[]");}catch{return[];}}
