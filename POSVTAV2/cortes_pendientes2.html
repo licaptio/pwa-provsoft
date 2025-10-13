@@ -215,12 +215,26 @@ ventas.forEach(v => {
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    // Filtrar solo las ventas de la fecha seleccionada
-    const ventasDia = ventas.filter(v => (v.fecha_txt || "").includes(fechaSeleccionada));
-    if (!ventasDia.length) {
-      overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
-      return;
-    }
+    
+// 🔍 Filtrar solo las ventas del día seleccionado (independiente del formato)
+const ventasDia = ventas.filter(v => {
+  if (!v.fecha_txt) return false;
+  let fecha = v.fecha_txt.split(",")[0].trim();
+
+  // Normalizar formato "dd/mm/yyyy" → "yyyy-mm-dd"
+  if (fecha.includes("/")) {
+    const [d, m, y] = fecha.split("/");
+    fecha = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  return fecha === fechaSeleccionada;
+});
+
+if (!ventasDia.length) {
+  overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
+  console.warn("No se encontraron ventas del día:", fechaSeleccionada);
+  return;
+}
 
     const porDepto = {}, porNota = [], porArticulo = {};
     let totalDia = 0, utilidadTotal = 0;
