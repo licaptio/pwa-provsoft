@@ -312,33 +312,48 @@ async function graficaDeptos(porDepto) {
       const labels = Object.keys(porDepto);
       const data = Object.values(porDepto).map(v => v.venta);
 
-      // Limpia cualquier gráfico anterior
+      // Colores dinámicos para el pastel
+      const colors = labels.map((_, i) => {
+        const hue = (i * 360 / labels.length) % 360;
+        return `hsl(${hue}, 70%, 55%)`;
+      });
+
+      // Elimina una gráfica previa si existe
       if (window.chartDepto) window.chartDepto.destroy();
 
       window.chartDepto = new Chart(ctx, {
-        type: "bar",
+        type: "pie",
         data: {
           labels,
           datasets: [{
-            label: "Ventas por Departamento",
             data,
+            backgroundColor: colors,
+            borderColor: "#fff",
             borderWidth: 1
           }]
         },
         options: {
           responsive: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true }
+          plugins: {
+            legend: {
+              display: true,
+              position: "bottom",
+              labels: { boxWidth: 12, color: "#222", font: { size: 10 } }
+            },
+            title: {
+              display: true,
+              text: "Ventas por Departamento",
+              font: { size: 14 }
+            }
           }
         }
       });
 
-      // Espera un pequeño retardo y devuelve la imagen
+      // Espera a que renderice y devuelve la imagen PNG
       setTimeout(() => {
         const img = canvas.toDataURL("image/png");
         resolve(img);
-      }, 800);
+      }, 900);
 
     } catch (err) {
       console.error("Error generando gráfica:", err);
