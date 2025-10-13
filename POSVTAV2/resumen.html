@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Resumen de Ventas – Ruta</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #00416A, #E4E5E6);
+      margin: 0; padding: 20px;
+      color: #111;
+    }
+    h2 { color: white; text-align: center; margin-bottom: 10px; }
+    .card {
+      background: rgba(255,255,255,0.9);
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+      padding: 16px; max-width: 700px; margin: 0 auto;
+    }
+    label { font-weight: 600; }
+    input[type="date"] {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin: 5px 0 10px;
+      font-family: inherit;
+    }
+    table {
+      width: 100%; border-collapse: collapse; margin-top: 12px;
+    }
+    th, td {
+      padding: 8px; text-align: left; font-size: 14px;
+      border-bottom: 1px solid #ccc;
+    }
+    th { background: #00416A; color: #fff; }
+    tr:hover { background: #f1f5f9; }
+    .total {
+      font-weight: bold; text-align: right;
+      margin-top: 10px; font-size: 18px;
+    }
+    .volver {
+      display:block; text-align:center; margin-top:20px;
+      background:#0c6cbd; color:#fff; padding:10px 16px;
+      border-radius:10px; text-decoration:none; font-weight:600;
+    }
+    #loading {
+      text-align:center; padding:10px; font-weight:600;
+      color:#00416A;
+    }
+  </style>
+</head>
+<body>
+
+<h2>📋 Resumen de Ventas</h2>
+<div class="card">
+  <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
+  <label for="fecha">Selecciona fecha:</label>
+  <input type="date" id="fecha" />
+
+  <table id="tabla">
+    <thead>
+      <tr><th>Folio</th><th>Hora</th><th>Total</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="loading">Cargando ventas...</div>
+  <div class="total">Total del Día: <span id="lblTotal">$0.00</span></div>
+</div>
+
+<a class="volver" href="index.html">⬅️ Volver al POS</a>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, where, orderBy, getDocs } 
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔧 Configuración Firebase (igual que tu POS)
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// 🧠 Obtener usuario actual desde sesión POS
+const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
+const usuario = u?.usuario || "";
+const nombre = u?.nombre || "Desconocido";
+document.getElementById("lblUsuario").textContent = nombre;
+
+// 📆 Establecer fecha actual por defecto
+const hoy = new Date();
+const fechaInput = document.getElementById("fecha");
+fechaInput.valueAsDate = hoy;
+
+// 🧾 Cargar ventas
+async function cargarVentas(fechaSeleccionada) {
+  const tabla = document.querySelector("#tabla tbody");
+  const totalEl = document.getElementById("lblTotal");
+  const loading = document.getElementById("loading");
+
+  tabla.innerHTML = "";
+  totalEl.textContent = "$0.00";
+  loading.style.display = "block";
+  loading.textContent = "Cargando ventas...";
+
+  try {
+    const ventasRef = collection(db, "rutas_venta");
+    const q = query(ventasRef, where("usuario", "==", usuario), orderBy("fecha", "desc"));
+    const snap = await getDocs(q);
+
+    let totalDia = 0;
+    let encontrados = 0;
+
+    snap.forEach(doc => {
+      const v = doc.data();
+      if (!v.fecha_txt || !v.resumen_financiero?.total) return;
+
+      // ✅ Filtrar por fecha exacta seleccionada
+      if (!v.fecha_txt.startsWith(fechaSeleccionada)) return;
+
+      const row = document.createElement("tr");
+      const hora = (v.fecha_txt.split(" ")[1] || "").slice(0,5);
+      const total = Number(v.resumen_financiero.total || v.total || 0);
+      totalDia += total;
+      encontrados++;
+
+      row.innerHTML = `
+        <td>${v.folio}</td>
+        <td>${hora}</td>
+        <td style="text-align:right">$${total.toFixed(2)}</td>
+      `;
+      tabla.appendChild(row);
+    });
+
+    if (encontrados === 0) {
+      loading.textContent = "Sin ventas registradas en esta fecha.";
+    } else {
+      loading.style.display = "none";
+    }
+
+    totalEl.textContent = "$" + totalDia.toFixed(2);
+  } catch (e) {
+    loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
+  }
+}
+
+// 🗓️ Detectar cambio de fecha
+fechaInput.addEventListener("change", () => {
+  const fechaSeleccionada = fechaInput.value;
+  if (fechaSeleccionada) cargarVentas(fechaSeleccionada);
+});
+
+// 🔄 Cargar inicial
+const fechaISO = hoy.toISOString().split("T")[0];
+cargarVentas(fechaISO);
+</script>
+
+</body>
+</html>
