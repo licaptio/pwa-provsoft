@@ -701,6 +701,7 @@ const elCant = document.getElementById("cantidadInput");
 
   // ==== Carrito ====
   function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+  window.delItem = delItem; // 👈 agrega esto
   function addProduct(prod,cantidad=1){
     if(!prod)return;
     const cant=Math.max(0.01,Number(cantidad)||1);
