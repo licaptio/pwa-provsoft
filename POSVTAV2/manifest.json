@@ -1,32 +1,28 @@
 {
-  "name": "Ruta de Venta PDD – Dulces y Desechables",
-  "short_name": "Ruta PDD",
-  "description": "Sistema de punto de venta offline con sincronización automática para rutas de venta.",
+  "name": "PROVSOFT POS – Ruta de Venta",
+  "short_name": "POS Ruta",
+  "description": "Sistema de ventas offline para rutas de La Proveedora",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#002b4e",
+  "background_color": "#00416A",
   "theme_color": "#0c6cbd",
-  "lang": "es-MX",
-  "categories": ["business", "productivity", "sales"],
+  "orientation": "portrait",
   "icons": [
-    { "src": "./icons/icon-72x72.png", "sizes": "72x72", "type": "image/png" },
-    { "src": "./icons/icon-96x96.png", "sizes": "96x96", "type": "image/png" },
-    { "src": "./icons/icon-128x128.png", "sizes": "128x128", "type": "image/png" },
-    { "src": "./icons/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icons/icon-512x512.png", "sizes": "512x512", "type": "image/png" }
-  ],
-  "shortcuts": [
     {
-      "name": "Nueva Venta",
-      "short_name": "Venta",
-      "url": "./index.html"
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     },
     {
-      "name": "Corte del Día",
-      "short_name": "Corte",
-      "url": "./corte.html"
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/maskable_icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
