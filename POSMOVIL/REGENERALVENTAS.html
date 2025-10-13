@@ -74,12 +74,18 @@
         const card = document.createElement("div");
         card.className = "card";
 
-        const header = document.createElement("div");
-        header.className = "card-header";
-        header.innerHTML = `
-          <h2>🧾 Reporte ${rep.fecha}</h2>
-          <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
-        `;
+const header = document.createElement("div");
+header.className = "card-header";
+header.innerHTML = `
+  <div class="header-left">
+    <h2>🧾 Reporte ${rep.fecha}</h2>
+    <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
+  </div>
+  <div class="header-right">
+    <label>No. Factura:</label>
+    <input type="text" class="factura-input" placeholder="Ingrese número" />
+  </div>
+`;
 
         const body = document.createElement("div");
         body.className = "card-body";
@@ -122,7 +128,10 @@
 
         const botonImprimir = document.createElement("button");
         botonImprimir.textContent = "🖨️ Imprimir";
-        botonImprimir.onclick = () => imprimirReporte(tabla.outerHTML, rep);
+        botonImprimir.onclick = () => {
+  const factura = card.querySelector(".factura-input")?.value || "";
+  imprimirReporte(tabla.outerHTML, rep, factura);
+};
 
         body.appendChild(totalTop);
         body.appendChild(tabla);
@@ -139,31 +148,32 @@
       });
     }
 
-    function imprimirReporte(tablaHTML, rep) {
-      const ventana = window.open("", "_blank");
-      ventana.document.write(`
-        <html><head><title>Imprimir Reporte</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
-          h1 { text-align: center; color: #00416A; }
-          p { text-align: center; margin: 5px 0 15px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-          th { background: #00416A; color: white; }
-          .total { font-weight: bold; text-align: right; margin: 10px 0; }
-        </style>
-        </head><body>
-        <h1>Reporte de Venta ${rep.fecha}</h1>
-        <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
-        <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
-        ${tablaHTML}
-        <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
-        </body></html>
-      `);
-      ventana.document.close();
-      ventana.print();
-    }
-
+function imprimirReporte(tablaHTML, rep, factura) {
+  const ventana = window.open("", "_blank");
+  ventana.document.write(`
+    <html><head><title>Imprimir Reporte</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+      h1 { text-align: center; color: #00416A; }
+      p { text-align: center; margin: 5px 0 15px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+      th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+      th { background: #00416A; color: white; }
+      .total { font-weight: bold; text-align: right; margin: 10px 0; }
+    </style>
+    </head><body>
+    <h1>Reporte de Venta ${rep.fecha}</h1>
+    <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; 
+       <strong>Vendedor:</strong> ${rep.vendedor} &nbsp; | &nbsp;
+       <strong>No. Factura:</strong> ${factura}</p>
+    <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
+    ${tablaHTML}
+    <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
+    </body></html>
+  `);
+  ventana.document.close();
+  ventana.print();
+}
     window.onload = cargarVentas;
   </script>
 
@@ -198,6 +208,34 @@
       margin: 5px 0;
       font-weight: bold;
     }
+    .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #00416A;
+  color: #fff;
+  padding: 15px 20px;
+  flex-wrap: wrap;
+}
+.header-left {
+  flex: 1 1 60%;
+}
+.header-right {
+  flex: 1 1 30%;
+  text-align: right;
+}
+.header-right label {
+  font-size: 13px;
+  margin-right: 6px;
+  color: #dce6f2;
+}
+.factura-input {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  width: 140px;
+}
   </style>
 </head>
 <body>
