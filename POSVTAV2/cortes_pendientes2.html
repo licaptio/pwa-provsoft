@@ -193,17 +193,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
     const snap = await getDocs(qVentas);
     const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const ventasDia = ventas.filter(v => {
+// 🧩 Filtro flexible para cualquier formato de fecha
+const ventasDia = ventas.filter(v => {
   if (!v.fecha_txt) return false;
-  let f = v.fecha_txt.split("T")[0] || v.fecha_txt.split(",")[0] || v.fecha_txt.split(" ")[0];
-  f = f.trim();
-  // Normaliza "dd/mm/yyyy" a "yyyy-mm-dd"
-  if (f.includes("/")) {
-    const [d, m, y] = f.split("/");
-    f = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+  let fecha = v.fecha_txt.trim();
+
+  // Detecta y normaliza varios formatos
+  if (fecha.includes("T")) {
+    // Ejemplo: 2025-10-12T14:30:00
+    fecha = fecha.split("T")[0];
+  } else if (fecha.includes(",")) {
+    // Ejemplo: 12/10/2025, 2:30:00 p.m.
+    fecha = fecha.split(",")[0];
+  } else if (fecha.includes(" ")) {
+    // Ejemplo: Sun Oct 12 2025 14:30:00 GMT...
+    const partes = fecha.split(" ");
+    if (partes.length >= 4 && isNaN(partes[0])) {
+      // Convierte texto en fecha Date nativa
+      try {
+        const d = new Date(fecha);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        fecha = `${yyyy}-${mm}-${dd}`;
+      } catch (e) {}
+    } else {
+      fecha = fecha.split(" ")[0];
+    }
   }
-  return f === fechaSeleccionada;
+
+  // Si viene en dd/mm/yyyy → convierte a yyyy-mm-dd
+  if (fecha.includes("/")) {
+    const [d, m, y] = fecha.split("/");
+    fecha = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  return fecha === fechaSeleccionada;
 });
+
+console.log("📆 Fecha seleccionada:", fechaSeleccionada);
+console.log("🧾 Fechas encontradas en ventas:", ventas.map(v => v.fecha_txt));
+console.log("✅ Coincidencias encontradas:", ventasDia.length);
+
 
 
     if (!ventasDia.length) {
