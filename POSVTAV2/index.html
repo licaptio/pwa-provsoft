@@ -1242,6 +1242,50 @@ function render() {
   document.getElementById("lblImpuestos").textContent = money(impuestos);
   document.getElementById("lblTotal").textContent = money(total);
 }
+// === 🔹 Generador de texto simple para RawBT ===
+function generarTextoSimpleRawBT() {
+  try {
+    const folio = document.getElementById("tFolio").textContent || "";
+    const fecha = document.getElementById("tFecha").textContent || "";
+    const cliente = document.getElementById("tCliente").textContent || "";
+    const total = document.getElementById("tTotal").textContent || "";
+    const metodo = document.getElementById("tMetodo").textContent || "";
+    const recibido = document.getElementById("tRecibido").textContent || "";
+    const cambio = document.getElementById("tCambio").textContent || "";
+
+    let texto = `
+LA PROVEEDORA
+-----------------------------
+${folio}
+${fecha}
+${cliente}
+
+-----------------------------
+`;
+
+    document.querySelectorAll("#tLineas .t-row").forEach(row => {
+      const desc = row.querySelector(".t-desc")?.textContent || "";
+      const imp = row.querySelector(".t-imp")?.textContent || "";
+      texto += `${desc}\n ${imp}\n`;
+    });
+
+    texto += `
+-----------------------------
+TOTAL: ${total}
+PAGO: ${metodo}
+RECIBIDO: ${recibido}
+CAMBIO: ${cambio}
+-----------------------------
+¡Gracias por su compra!
+`;
+
+    return texto.trim();
+  } catch (err) {
+    console.error("❌ Error generando texto RawBT:", err);
+    return "Error al generar ticket";
+  }
+}
+
 </script>
     <!-- 🔹 Modal de Cobro -->
   <div id="modalCobro" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1200; align-items:center; justify-content:center;">
