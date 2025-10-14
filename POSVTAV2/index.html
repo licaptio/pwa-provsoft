@@ -1242,7 +1242,6 @@ function render() {
   document.getElementById("lblImpuestos").textContent = money(impuestos);
   document.getElementById("lblTotal").textContent = money(total);
 }
-// === 🔹 Generador de texto simple para RawBT ===
 function generarTextoSimpleRawBT() {
   try {
     const folio = document.getElementById("tFolio").textContent || "";
@@ -1253,29 +1252,55 @@ function generarTextoSimpleRawBT() {
     const recibido = document.getElementById("tRecibido").textContent || "";
     const cambio = document.getElementById("tCambio").textContent || "";
 
+    // === Encabezado ===
     let texto = `
 LA PROVEEDORA
------------------------------
+-------------------------------
 ${folio}
 ${fecha}
 ${cliente}
-
------------------------------
+-------------------------------
+CANT  DESCRIPCIÓN               IMPORTE
+-------------------------------
 `;
 
+    // === Línea por producto ===
     document.querySelectorAll("#tLineas .t-row").forEach(row => {
-      const desc = row.querySelector(".t-desc")?.textContent || "";
-      const imp = row.querySelector(".t-imp")?.textContent || "";
-      texto += `${desc}\n ${imp}\n`;
+      const desc = (row.querySelector(".t-desc")?.textContent || "").trim();
+      const imp = (row.querySelector(".t-imp")?.textContent || "").trim();
+
+      // Cortar descripción si es muy larga
+      const partes = desc.split(" ");
+      let linea = "";
+      let resultado = "";
+
+      partes.forEach(palabra => {
+        if ((linea + " " + palabra).length <= 22) {
+          linea += (linea ? " " : "") + palabra;
+        } else {
+          resultado += linea + "\n";
+          linea = palabra;
+        }
+      });
+      resultado += linea;
+
+      // Solo tomar primera línea para mantener todo en una fila visualmente
+      const descCorta = resultado.split("\n")[0].padEnd(22, " ").substring(0, 22);
+
+      const cantidad = desc.match(/^\d+(\.\d+)?/) ? desc.split(" ")[0] : "";
+      const izq = cantidad ? cantidad.padStart(5, " ") : "     ";
+
+      const lineaFormateada = `${izq} ${descCorta} ${imp.padStart(8, " ")}`;
+      texto += lineaFormateada + "\n";
     });
 
-    texto += `
------------------------------
-TOTAL: ${total}
-PAGO: ${metodo}
-RECIBIDO: ${recibido}
-CAMBIO: ${cambio}
------------------------------
+    // === Totales ===
+    texto += `-------------------------------
+TOTAL:       ${total}
+PAGO:        ${metodo}
+RECIBIDO:    ${recibido}
+CAMBIO:      ${cambio}
+-------------------------------
 ¡Gracias por su compra!
 `;
 
@@ -1285,7 +1310,6 @@ CAMBIO: ${cambio}
     return "Error al generar ticket";
   }
 }
-
 </script>
     <!-- 🔹 Modal de Cobro -->
   <div id="modalCobro" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1200; align-items:center; justify-content:center;">
