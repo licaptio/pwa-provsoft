@@ -1113,31 +1113,40 @@ function rellenarTicket(venta){
 function imprimirTicketEstilado() {
   const ticket = document.getElementById("ticketArea");
 
-  // 🚀 Modo Sunmi / InnerPrinter directo
+  // 🧠 1️⃣ Si es terminal H10 / Sunmi: usar InnerPrinter nativo
   if (window.InnerPrinter && typeof window.InnerPrinter.printHtml === "function") {
     try {
-      console.log("🖨️ Imprimiendo directo con InnerPrinter...");
+      console.log("🖨️ Imprimiendo con InnerPrinter (H10/Sunmi)...");
       const html = `
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: sans-serif; font-size: 14px; line-height: 1.4; margin: 0; padding: 0; }
-              #ticket { width: 72mm; margin: 0 auto; }
-              img { max-width: 100%; }
-            </style>
-          </head>
-          <body>${ticket.innerHTML}</body>
-        </html>`;
+        <html><head><meta charset="utf-8">
+        <style>
+          body { font-family: sans-serif; font-size: 14px; line-height: 1.4; margin: 0; padding: 0; }
+          #ticket { width: 72mm; margin: 0 auto; }
+          img { max-width: 100%; }
+        </style></head>
+        <body>${ticket.innerHTML}</body></html>`;
       window.InnerPrinter.printHtml(html);
       return;
     } catch (err) {
       console.error("❌ Error InnerPrinter:", err);
-      alert("No se pudo imprimir directamente, se usará vista previa.");
     }
   }
 
-  // 🖨️ Fallback (PC o navegador)
+  // 🧠 2️⃣ Si está en Android y RawBT instalada
+  try {
+    if (/Android/i.test(navigator.userAgent)) {
+      console.log("📱 Android detectado, intentando impresión con RawBT...");
+      const textoTicket = generarTextoSimpleRawBT();
+      const encoded = encodeURIComponent(textoTicket + "\n\n\n");
+      window.open("rawbt:print?data=" + encoded, "_blank");
+      return;
+    }
+  } catch (err) {
+    console.error("⚠️ Error RawBT:", err);
+  }
+
+  // 🧠 3️⃣ Fallback universal (PC / navegador normal)
+  console.log("🖨️ Fallback: impresión navegador");
   ticket.style.display = "block";
   window.print();
   ticket.style.display = "none";
