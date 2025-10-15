@@ -412,6 +412,11 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.setFontSize(14);
   pdf.text("RESUMEN DE TICKETS", 70, 15);
   pdf.setFontSize(11);
+const margenPromedio = (r.totalDia > 0)
+  ? ((r.utilidadTotal / r.totalDia) * 100).toFixed(1) + "%"
+  : "—";
+pdf.setFont("helvetica", "normal");
+pdf.text(`Margen promedio neto: ${margenPromedio}`, 15, 22);
 
   // Encabezado
   pdf.setFillColor(230, 230, 230);
