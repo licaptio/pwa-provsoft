@@ -366,21 +366,43 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.text(`Fecha: ${fecha}`, 15, 32);
   pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad (neto): $${r.utilidadTotal.toFixed(2)}`, 15, 39);
 
-
   let y = 50;
   pdf.setFontSize(11);
   pdf.text("Departamento", 15, y);
   pdf.text("Venta", 100, y);
-  pdf.text("Utilidad", 150, y);
+  pdf.text("Utilidad", 145, y);
+  pdf.text("%", 180, y);
   y += 6;
 
-  for (const [dep, v] of Object.entries(r.porDepto)) {
-    if (y > 270) { pdf.addPage(); y = 20; }
+  pdf.setFont("helvetica", "normal");
+  let totalVenta = 0, totalUtilidad = 0;
+
+  // Ordena por venta descendente (opcional, más claro visualmente)
+  const departamentosOrdenados = Object.entries(r.porDepto)
+    .sort((a, b) => b[1].venta - a[1].venta);
+
+  for (const [dep, v] of departamentosOrdenados) {
+    if (y > 260) { pdf.addPage(); y = 20; }
+    const margen = (v.venta > 0) ? ((v.utilidad / v.venta) * 100).toFixed(1) + "%" : "—";
     pdf.text(dep.substring(0, 30), 15, y);
-    pdf.text(`$${v.venta.toFixed(2)}`, 100, y);
-    pdf.text(`$${v.utilidad.toFixed(2)}`, 150, y);
+    pdf.text(`$${v.venta.toFixed(2)}`, 100, y, { align: "left" });
+    pdf.text(`$${v.utilidad.toFixed(2)}`, 145, y, { align: "left" });
+    pdf.text(margen, 180, y, { align: "left" });
     y += 6;
+    totalVenta += v.venta;
+    totalUtilidad += v.utilidad;
   }
+
+  // Línea de totales destacada
+  if (y > 260) { pdf.addPage(); y = 20; }
+  pdf.setFillColor(230, 230, 230);
+  pdf.rect(10, y - 3, 190, 8, "F");
+  const margenTotal = totalVenta > 0 ? ((totalUtilidad / totalVenta) * 100).toFixed(1) + "%" : "—";
+  pdf.setFont("helvetica", "bold");
+  pdf.text("TOTALES", 15, y + 2);
+  pdf.text(`$${totalVenta.toFixed(2)}`, 100, y + 2);
+  pdf.text(`$${totalUtilidad.toFixed(2)}`, 145, y + 2);
+  pdf.text(margenTotal, 180, y + 2);
 
   // =============================
   // 📑 PAGINA 2: RESUMEN DE TICKETS
@@ -401,18 +423,17 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.text("%", 185, 30);
 
   y = 38;
-  const tickets = (r.porNota || [])
-    .sort((a, b) => {
-      const f1 = a.folio?.toString() || "";
-      const f2 = b.folio?.toString() || "";
-      return f1.localeCompare(f2);
-    });
+  const tickets = (r.porNota || []).sort((a, b) => {
+    const f1 = a.folio?.toString() || "";
+    const f2 = b.folio?.toString() || "";
+    return f1.localeCompare(f2);
+  });
 
+  pdf.setFont("helvetica", "normal");
   if (!tickets.length) {
     pdf.setFont("helvetica", "italic");
     pdf.text("No hay tickets detallados disponibles en este corte.", 15, 45);
   } else {
-    pdf.setFont("helvetica", "normal");
     tickets.forEach((t) => {
       if (y > 270) { pdf.addPage(); y = 20; }
       const pct = t.total ? ((t.utilidad / t.total) * 100).toFixed(1) + "%" : "—";
@@ -447,10 +468,14 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   const blob = pdf.output("blob");
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
-  await enviarTelegram(blob, `Corte_${rutaId}_${fecha}.pdf`, 
+
+  await enviarTelegram(
+    blob,
+    `Corte_${rutaId}_${fecha}.pdf`,
     `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`
   );
 }
+
 
   async function enviarTelegram(pdfBlob, nombre, texto) {
     try {
