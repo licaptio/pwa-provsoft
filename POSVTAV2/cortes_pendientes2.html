@@ -262,9 +262,12 @@ console.log("✅ Coincidencias encontradas:", ventasDia.length);
 
       for (const det of (v.detalle || [])) {
         const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
-        const venta = det.importe || det.precio_unit * det.cantidad || 0;
-        const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
-        const util = det.utilidad || (venta - costo);
+const ivaPct = det.departamento_info?.iva || 0;
+const iepsPct = det.departamento_info?.ieps || 0;
+const importe = det.importe || det.precio_unit * det.cantidad || 0;
+const ventaSinImpuestos = (importe / (1 + ivaPct / 100)) - (importe * iepsPct / 100);
+const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
+const util = ventaSinImpuestos - costo;
         if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
         porDepto[dep].venta += venta;
         porDepto[dep].utilidad += util;
@@ -376,7 +379,8 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.setFontSize(12);
   pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
   pdf.text(`Fecha: ${fecha}`, 15, 32);
-  pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad: $${r.utilidadTotal.toFixed(2)}`, 15, 39);
+  pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad (neto): $${r.utilidadTotal.toFixed(2)}`, 15, 39);
+
 
   let y = 50;
   pdf.setFontSize(11);
