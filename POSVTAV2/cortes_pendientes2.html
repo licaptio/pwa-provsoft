@@ -367,42 +367,60 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad (neto): $${r.utilidadTotal.toFixed(2)}`, 15, 39);
 
   let y = 50;
-  pdf.setFontSize(11);
-  pdf.text("Departamento", 15, y);
-  pdf.text("Venta", 100, y);
-  pdf.text("Utilidad", 145, y);
-  pdf.text("%", 180, y);
+  pdf.setFontSize(10);
+  pdf.text("Departamento", 10, y);
+  pdf.text("Venta", 60, y);
+  pdf.text("Imp.", 90, y);
+  pdf.text("Venta+Imp", 110, y);
+  pdf.text("Costo", 140, y);
+  pdf.text("Utilidad", 165, y);
+  pdf.text("%", 190, y);
   y += 6;
 
   pdf.setFont("helvetica", "normal");
-  let totalVenta = 0, totalUtilidad = 0;
+  let totalVenta = 0, totalImpuestos = 0, totalCosto = 0, totalUtilidad = 0;
 
-  // Ordena por venta descendente (opcional, más claro visualmente)
+  // Ordena por venta descendente
   const departamentosOrdenados = Object.entries(r.porDepto)
     .sort((a, b) => b[1].venta - a[1].venta);
 
   for (const [dep, v] of departamentosOrdenados) {
     if (y > 260) { pdf.addPage(); y = 20; }
-    const margen = (v.venta > 0) ? ((v.utilidad / v.venta) * 100).toFixed(1) + "%" : "—";
-    pdf.text(dep.substring(0, 30), 15, y);
-    pdf.text(`$${v.venta.toFixed(2)}`, 100, y, { align: "left" });
-    pdf.text(`$${v.utilidad.toFixed(2)}`, 145, y, { align: "left" });
-    pdf.text(margen, 180, y, { align: "left" });
+    const venta = v.venta;
+    const impuestos = v.impuestos || 0;
+    const costo = v.costo || 0;
+    const utilidad = v.utilidad;
+    const ventaTotal = venta + impuestos;
+    const margen = (venta > 0) ? ((utilidad / venta) * 100).toFixed(1) + "%" : "—";
+
+    pdf.text(dep.substring(0, 28), 10, y);
+    pdf.text(`$${venta.toFixed(2)}`, 60, y);
+    pdf.text(`$${impuestos.toFixed(2)}`, 90, y);
+    pdf.text(`$${ventaTotal.toFixed(2)}`, 110, y);
+    pdf.text(`$${costo.toFixed(2)}`, 140, y);
+    pdf.text(`$${utilidad.toFixed(2)}`, 165, y);
+    pdf.text(margen, 190, y);
+
+    totalVenta += venta;
+    totalImpuestos += impuestos;
+    totalCosto += costo;
+    totalUtilidad += utilidad;
     y += 6;
-    totalVenta += v.venta;
-    totalUtilidad += v.utilidad;
   }
 
-  // Línea de totales destacada
+  // Totales
   if (y > 260) { pdf.addPage(); y = 20; }
-  pdf.setFillColor(230, 230, 230);
-  pdf.rect(10, y - 3, 190, 8, "F");
   const margenTotal = totalVenta > 0 ? ((totalUtilidad / totalVenta) * 100).toFixed(1) + "%" : "—";
+  pdf.setFillColor(230, 230, 230);
+  pdf.rect(8, y - 3, 194, 8, "F");
   pdf.setFont("helvetica", "bold");
-  pdf.text("TOTALES", 15, y + 2);
-  pdf.text(`$${totalVenta.toFixed(2)}`, 100, y + 2);
-  pdf.text(`$${totalUtilidad.toFixed(2)}`, 145, y + 2);
-  pdf.text(margenTotal, 180, y + 2);
+  pdf.text("TOTALES", 10, y + 2);
+  pdf.text(`$${totalVenta.toFixed(2)}`, 60, y + 2);
+  pdf.text(`$${totalImpuestos.toFixed(2)}`, 90, y + 2);
+  pdf.text(`$${(totalVenta + totalImpuestos).toFixed(2)}`, 110, y + 2);
+  pdf.text(`$${totalCosto.toFixed(2)}`, 140, y + 2);
+  pdf.text(`$${totalUtilidad.toFixed(2)}`, 165, y + 2);
+  pdf.text(margenTotal, 190, y + 2);
 
   // =============================
   // 📑 PAGINA 2: RESUMEN DE TICKETS
@@ -411,42 +429,50 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.setFont("helvetica", "bold");
   pdf.setFontSize(14);
   pdf.text("RESUMEN DE TICKETS", 70, 15);
-  pdf.setFontSize(11);
-const margenPromedio = (r.totalDia > 0)
-  ? ((r.utilidadTotal / r.totalDia) * 100).toFixed(1) + "%"
-  : "—";
-pdf.setFont("helvetica", "normal");
-pdf.text(`Margen promedio neto: ${margenPromedio}`, 15, 22);
+  pdf.setFontSize(10);
 
-  // Encabezado
+  const margenPromedio = (r.totalDia > 0)
+    ? ((r.utilidadTotal / r.totalDia) * 100).toFixed(1) + "%"
+    : "—";
+  pdf.setFont("helvetica", "normal");
+  pdf.text(`Margen promedio neto: ${margenPromedio}`, 15, 22);
+
   pdf.setFillColor(230, 230, 230);
-  pdf.rect(10, 25, 190, 8, "F");
-  pdf.text("Folio", 12, 30);
-  pdf.text("Fecha", 50, 30);
-  pdf.text("Total", 110, 30);
-  pdf.text("Utilidad", 150, 30);
-  pdf.text("%", 185, 30);
+  pdf.rect(8, 25, 194, 8, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Folio", 10, 30);
+  pdf.text("Fecha", 35, 30);
+  pdf.text("Venta", 70, 30);
+  pdf.text("Imp.", 95, 30);
+  pdf.text("Total", 115, 30);
+  pdf.text("Costo", 140, 30);
+  pdf.text("Utilidad", 165, 30);
+  pdf.text("%", 190, 30);
 
   y = 38;
-  const tickets = (r.porNota || []).sort((a, b) => {
-    const f1 = a.folio?.toString() || "";
-    const f2 = b.folio?.toString() || "";
-    return f1.localeCompare(f2);
-  });
-
   pdf.setFont("helvetica", "normal");
+
+  const tickets = (r.porNota || []).sort((a, b) => (a.folio || "").localeCompare(b.folio || ""));
   if (!tickets.length) {
     pdf.setFont("helvetica", "italic");
     pdf.text("No hay tickets detallados disponibles en este corte.", 15, 45);
   } else {
     tickets.forEach((t) => {
       if (y > 270) { pdf.addPage(); y = 20; }
-      const pct = t.total ? ((t.utilidad / t.total) * 100).toFixed(1) + "%" : "—";
-      pdf.text(String(t.folio || "—"), 12, y);
-      pdf.text(String(t.hora || ""), 50, y);
-      pdf.text(`$${t.total?.toFixed(2) || "0.00"}`, 110, y);
-      pdf.text(`$${t.utilidad?.toFixed(2) || "0.00"}`, 150, y);
-      pdf.text(pct, 185, y);
+      const venta = t.venta || (t.total / 1.16) || 0;
+      const impuestos = t.total - venta;
+      const costo = t.costo || 0;
+      const utilidad = t.utilidad || venta - costo;
+      const pct = venta > 0 ? ((utilidad / venta) * 100).toFixed(1) + "%" : "—";
+
+      pdf.text(String(t.folio || "—"), 10, y);
+      pdf.text(String(t.hora || ""), 35, y);
+      pdf.text(`$${venta.toFixed(2)}`, 70, y);
+      pdf.text(`$${impuestos.toFixed(2)}`, 95, y);
+      pdf.text(`$${(venta + impuestos).toFixed(2)}`, 115, y);
+      pdf.text(`$${costo.toFixed(2)}`, 140, y);
+      pdf.text(`$${utilidad.toFixed(2)}`, 165, y);
+      pdf.text(pct, 190, y);
       y += 6;
     });
   }
@@ -474,10 +500,14 @@ pdf.text(`Margen promedio neto: ${margenPromedio}`, 15, 22);
   const url = URL.createObjectURL(blob);
   window.open(url, "_blank");
 
+  const margenTexto = totalVenta > 0
+    ? ((totalUtilidad / totalVenta) * 100).toFixed(1)
+    : "—";
+
   await enviarTelegram(
     blob,
     `Corte_${rutaId}_${fecha}.pdf`,
-    `📦 Corte ${rutaId} (${fecha}) Total:$${r.totalDia.toFixed(2)} Utilidad:$${r.utilidadTotal.toFixed(2)}`
+    `📦 Corte ${rutaId} (${fecha})\nTotal: $${r.totalDia.toFixed(2)}\nUtilidad neta: $${r.utilidadTotal.toFixed(2)} (${margenTexto}%)`
   );
 }
 
