@@ -189,124 +189,109 @@ document.addEventListener("DOMContentLoaded", async () => {
     await generarCorteAnalitico(rutaId, fecha);
   });
 
-  async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
-    const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
-    const snap = await getDocs(qVentas);
-    const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-// 🧩 Filtro flexible para cualquier formato de fecha
-const ventasDia = ventas.filter(v => {
-  if (!v.fecha_txt) return false;
-  let fecha = v.fecha_txt.trim();
+async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
+  const qVentas = query(collection(db, "rutas_venta"), where("rutaId", "==", rutaId), where("cortado", "==", false));
+  const snap = await getDocs(qVentas);
+  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  // Detecta y normaliza varios formatos
-  if (fecha.includes("T")) {
-    // Ejemplo: 2025-10-12T14:30:00
-    fecha = fecha.split("T")[0];
-  } else if (fecha.includes(",")) {
-    // Ejemplo: 12/10/2025, 2:30:00 p.m.
-    fecha = fecha.split(",")[0];
-  } else if (fecha.includes(" ")) {
-    // Ejemplo: Sun Oct 12 2025 14:30:00 GMT...
-    const partes = fecha.split(" ");
-    if (partes.length >= 4 && isNaN(partes[0])) {
-      // Convierte texto en fecha Date nativa
-      try {
-        const d = new Date(fecha);
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        fecha = `${yyyy}-${mm}-${dd}`;
-      } catch (e) {}
-    } else {
-      fecha = fecha.split(" ")[0];
+  const ventasDia = ventas.filter(v => {
+    if (!v.fecha_txt) return false;
+    let fecha = v.fecha_txt.trim();
+    if (fecha.includes("T")) fecha = fecha.split("T")[0];
+    else if (fecha.includes(",")) fecha = fecha.split(",")[0];
+    else if (fecha.includes(" ")) {
+      const partes = fecha.split(" ");
+      if (partes.length >= 4 && isNaN(partes[0])) {
+        try {
+          const d = new Date(fecha);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          fecha = `${yyyy}-${mm}-${dd}`;
+        } catch {}
+      } else fecha = fecha.split(" ")[0];
     }
+    if (fecha.includes("/")) {
+      const [d, m, y] = fecha.split("/");
+      fecha = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    return fecha === fechaSeleccionada;
+  });
+
+  if (!ventasDia.length) {
+    overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
+    return;
   }
 
-  // Si viene en dd/mm/yyyy → convierte a yyyy-mm-dd
-  if (fecha.includes("/")) {
-    const [d, m, y] = fecha.split("/");
-    fecha = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-  }
+  const porDepto = {}, porArticulo = {}, porNota = [];
+  let totalDia = 0, utilidadTotal = 0;
 
-  return fecha === fechaSeleccionada;
-});
+  for (const v of ventasDia) {
+    const totalVenta = v.resumen_financiero?.total || v.total || 0;
+    totalDia += totalVenta;
 
-console.log("📆 Fecha seleccionada:", fechaSeleccionada);
-console.log("🧾 Fechas encontradas en ventas:", ventas.map(v => v.fecha_txt));
-console.log("✅ Coincidencias encontradas:", ventasDia.length);
+    let utilidadVentaRecalc = 0;
 
+    for (const det of (v.detalle || [])) {
+      const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
+      const ivaPct = det.departamento_info?.iva || 0;
+      const iepsPct = det.departamento_info?.ieps || 0;
+      const importe = det.importe || det.precio_unit * det.cantidad || 0;
+      const ventaSinImpuestos = (importe / (1 + ivaPct / 100)) - (importe * iepsPct / 100);
+      const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
+      const util = ventaSinImpuestos - costo;
+      utilidadVentaRecalc += util;
 
+      if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
+      porDepto[dep].venta += ventaSinImpuestos;
+      porDepto[dep].utilidad += util;
 
-    if (!ventasDia.length) {
-      overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
-      return;
+      const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
+      if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0 };
+      porArticulo[art].cantidad += det.cantidad || 0;
+      porArticulo[art].importe += ventaSinImpuestos;
     }
 
-    const porDepto = {}, porArticulo = {}, porNota = [];
-    let totalDia = 0, utilidadTotal = 0;
+    utilidadTotal += utilidadVentaRecalc;
 
-    for (const v of ventasDia) {
-      const totalVenta = v.resumen_financiero?.total || v.total || 0;
-      const utilidadVenta = v.utilidad_total || 0;
-      totalDia += totalVenta;
-      utilidadTotal += utilidadVenta;
-
-      // 📌 Agrega el ticket al listado para el resumen de página 2
-      const hora = v.fecha_txt?.split("T")[1]?.substring(0,5) || v.fecha_txt || "";
-      porNota.push({
-        folio: v.folio || v.id,
-        hora,
-        total: totalVenta,
-        utilidad: utilidadVenta
-      });
-
-      for (const det of (v.detalle || [])) {
-        const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
-const ivaPct = det.departamento_info?.iva || 0;
-const iepsPct = det.departamento_info?.ieps || 0;
-const importe = det.importe || det.precio_unit * det.cantidad || 0;
-const ventaSinImpuestos = (importe / (1 + ivaPct / 100)) - (importe * iepsPct / 100);
-const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
-const util = ventaSinImpuestos - costo;
-        if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
-        porDepto[dep].venta += venta;
-        porDepto[dep].utilidad += util;
-
-        const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
-        if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0 };
-        porArticulo[art].cantidad += det.cantidad || 0;
-        porArticulo[art].importe += venta;
-      }
-    }
-
-    const resumen = {
-      nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
-      totalDia,
-      utilidadTotal,
-      totalTickets: ventasDia.length,
-      porDepto,
-      porArticulo,
-      porNota // 👈 añade esto al resumen
-    };
-
-    await addDoc(collection(db, "cortes_globales"), {
-      rutaId,
-      fecha: serverTimestamp(),
-      fecha_corte: fechaSeleccionada,
-      creado_en: new Date().toISOString(),
-      realizado_por: resumen.nombreCorte,
-      total_registros: resumen.totalTickets,
-      resumen
+    const hora = v.fecha_txt?.split("T")[1]?.substring(0,5) || v.fecha_txt || "";
+    porNota.push({
+      folio: v.folio || v.id,
+      hora,
+      total: totalVenta,
+      utilidad: utilidadVentaRecalc
     });
-
-    for (const v of ventasDia) {
-      await updateDoc(doc(db, "rutas_venta", v.id), { cortado: true });
-    }
-
-    await generarPDFyEnviar(resumen, rutaId, fechaSeleccionada);
-    overlay.style.display = "none";
-    alert(`✅ Corte del ${fechaSeleccionada} generado correctamente.`);
   }
+
+  const resumen = {
+    nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
+    totalDia,
+    utilidadTotal,
+    totalTickets: ventasDia.length,
+    porDepto,
+    porArticulo,
+    porNota
+  };
+
+  await addDoc(collection(db, "cortes_globales"), {
+    rutaId,
+    fecha: serverTimestamp(),
+    fecha_corte: fechaSeleccionada,
+    creado_en: new Date().toISOString(),
+    realizado_por: resumen.nombreCorte,
+    total_registros: resumen.totalTickets,
+    resumen
+  });
+
+  for (const v of ventasDia) {
+    await updateDoc(doc(db, "rutas_venta", v.id), { cortado: true });
+  }
+
+  await generarPDFyEnviar(resumen, rutaId, fechaSeleccionada);
+  overlay.style.display = "none";
+  alert(`✅ Corte del ${fechaSeleccionada} generado correctamente.`);
+}
+
 async function graficaDeptos(porDepto) {
   return new Promise((resolve) => {
     try {
