@@ -572,30 +572,40 @@ async function cargarCatalogoDesdeFirestore() {
 
     catalogo = [];
     codeIndex.clear();
+prodSnap.forEach(d => {
+  const x = d.data();
+  const prod = {
+    id: d.id,
+    nombre: x.concepto || "SIN NOMBRE",
+    codigo: (x.codigoBarra || "").toString(),
+    precioPublico: Number(x.precioPublico || 0),
+    costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
+    ivaTasa: Number(x.ivaTasa || 0),
+    iepsTasa: Number(x.iepsTasa || 0),
+    departamento_id: x.departamento_id || null
+  };
 
-    prodSnap.forEach(d => {
-      const x = d.data();
-const prod = {
-  id: d.id,
-  nombre: x.concepto || "SIN NOMBRE",
-  codigo: (x.codigoBarra || "").toString(),
-  precioPublico: Number(x.precioPublico || 0),
-  costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
-  ivaTasa: Number(x.ivaTasa || 0),
-  iepsTasa: Number(x.iepsTasa || 0),
-  departamento_id: x.departamento_id || null
-};
+  // ✅ incluir códigos equivalentes
+  const equivalentes = Array.isArray(x.codigosEquivalentes)
+    ? x.codigosEquivalentes.map(String)
+    : [];
+  prod.equivalentes = equivalentes;
 
-      catalogo.push(prod);
-      if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
-    });
+  catalogo.push(prod);
 
-    localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
-    localStorage.setItem("catalogo_fecha", hoy);
-    console.log(`✅ Catálogo guardado en cache local (${catalogo.length} productos activos)`);
-  } catch (err) {
-    console.error("❌ Error cargando catálogo:", err);
-  }
+  if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
+  prod.equivalentes.forEach(eq => {
+    if (eq) codeIndex.set(eq.trim(), prod.id);
+  });
+});
+
+// ✅ guardar caché y registrar log
+localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
+localStorage.setItem("catalogo_fecha", hoy);
+console.log(`✅ Catálogo guardado en cache local (${catalogo.length} productos activos)`);
+
+} catch (err) {
+  console.error("❌ Error cargando catálogo:", err);
 }
 
 let departamentos = {};
