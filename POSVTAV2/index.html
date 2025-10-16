@@ -705,7 +705,6 @@ function decodificarCodigoBalanza(codigo) {
   return { base, peso };
 }
 
-  // ==== Buscador ====
 function buscarLocal(qraw) {
   const q = (qraw || "").trim();
   if (!q) return [];
@@ -713,8 +712,11 @@ function buscarLocal(qraw) {
   // 🧩 Detectar código de balanza
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
-    console.log("🔍 Detectado código de balanza:", bal);
-    const prodId = codeIndex.get(bal.base) || codeIndex.get(("000000" + bal.base).slice(-6));
+    const base = bal.base.padStart(6, "0");
+    const prodId =
+      codeIndex.get(base) ||
+      codeIndex.get(bal.base) ||
+      catalogo.find(p => p.equivalentes.includes(base) || p.equivalentes.includes(bal.base))?.id;
     if (prodId) {
       const p = catalogo.find(x => x.id === prodId);
       if (p) {
@@ -724,14 +726,18 @@ function buscarLocal(qraw) {
     }
   }
 
-  // 🔎 Normal
+  // 🔎 Buscar por código exacto o equivalente
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
   }
 
-  // 🧠 Por nombre
+  // 🧠 Buscar dentro de equivalentes aunque no esté en codeIndex
+  const matchEq = catalogo.find(p => (p.equivalentes || []).some(eq => eq.trim() === q));
+  if (matchEq) return [matchEq];
+
+  // 🧮 Buscar por nombre o descripción
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q.toLowerCase()));
 }
 
