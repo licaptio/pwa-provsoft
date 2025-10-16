@@ -522,6 +522,56 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
     pdf.text("⚠️ No se pudo generar la gráfica.", 15, 40);
   }
 
+// =============================
+// 📦 PAGINA 4: TOP 15 ARTÍCULOS MÁS VENDIDOS (por unidades con utilidad y margen)
+// =============================
+const topArticulos = Object.entries(r.porArticulo)
+  .map(([nombre, data]) => ({
+    nombre,
+    cantidad: data.cantidad || 0,
+    importe: data.importe || 0,
+    costo: data.costo || 0,
+    utilidad: (data.importe || 0) - (data.costo || 0),
+    margen: (data.importe > 0) ? (((data.importe - (data.costo || 0)) / data.importe) * 100) : 0
+  }))
+  .sort((a, b) => b.cantidad - a.cantidad) // 👈 ranking por unidades
+  .slice(0, 15);
+
+pdf.addPage();
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(14);
+pdf.text("TOP 15 ARTÍCULOS MÁS VENDIDOS (POR UNIDADES)", 25, 15);
+pdf.setFontSize(9);
+pdf.setFillColor(230, 230, 230);
+pdf.rect(8, 20, 194, 8, "F");
+pdf.text("Artículo", 10, 25);
+pdf.text("Cant.", 80, 25);
+pdf.text("Venta", 105, 25);
+pdf.text("Costo", 130, 25);
+pdf.text("Utilidad", 155, 25);
+pdf.text("%", 185, 25);
+
+let yTop = 33;
+pdf.setFont("helvetica", "normal");
+
+if (topArticulos.length === 0) {
+  pdf.setFont("helvetica", "italic");
+  pdf.text("No hay artículos registrados en este corte.", 15, yTop);
+} else {
+  for (const art of topArticulos) {
+    if (yTop > 270) { pdf.addPage(); yTop = 20; }
+    pdf.text(art.nombre.substring(0, 65), 10, yTop);
+    pdf.text(String(art.cantidad.toFixed(2)), 80, yTop);
+    pdf.text(`$${art.importe.toFixed(2)}`, 105, yTop);
+    pdf.text(`$${art.costo?.toFixed(2) || "0.00"}`, 130, yTop);
+    pdf.text(`$${art.utilidad.toFixed(2)}`, 155, yTop);
+    pdf.text(`${art.margen.toFixed(1)}%`, 185, yTop);
+    yTop += 6;
+  }
+}
+
+
+  
   // =============================
   // 💾 Exportar y enviar
   // =============================
