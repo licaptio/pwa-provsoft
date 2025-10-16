@@ -232,25 +232,37 @@ async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
 
     let utilidadVentaRecalc = 0;
 
-    for (const det of (v.detalle || [])) {
-      const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
-      const ivaPct = det.departamento_info?.iva || 0;
-      const iepsPct = det.departamento_info?.ieps || 0;
-      const importe = det.importe || det.precio_unit * det.cantidad || 0;
-      const ventaSinImpuestos = (importe / (1 + ivaPct / 100)) - (importe * iepsPct / 100);
-      const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
-      const util = ventaSinImpuestos - costo;
-      utilidadVentaRecalc += util;
+for (const det of (v.detalle || [])) {
+  const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
+  const ivaPct = det.departamento_info?.iva || 0;
+  const iepsPct = det.departamento_info?.ieps || 0;
+  const importe = det.importe || det.precio_unit * det.cantidad || 0;
 
-      if (!porDepto[dep]) porDepto[dep] = { venta: 0, utilidad: 0 };
-      porDepto[dep].venta += ventaSinImpuestos;
-      porDepto[dep].utilidad += util;
+  // 👇 Desglose correcto de venta, impuestos y costo
+  const ventaSinImpuestos = (importe / (1 + ivaPct / 100)) - (importe * iepsPct / 100);
+  const impuestos = importe - ventaSinImpuestos;
+  const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
+  const utilidad = ventaSinImpuestos - costo;
 
-      const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
-      if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0 };
-      porArticulo[art].cantidad += det.cantidad || 0;
-      porArticulo[art].importe += ventaSinImpuestos;
-    }
+  // Acumuladores globales
+  utilidadVentaRecalc += utilidad;
+
+  // 👇 Registro por departamento completo
+  if (!porDepto[dep]) {
+    porDepto[dep] = { venta: 0, impuestos: 0, costo: 0, utilidad: 0 };
+  }
+  porDepto[dep].venta += ventaSinImpuestos;
+  porDepto[dep].impuestos += impuestos;
+  porDepto[dep].costo += costo;
+  porDepto[dep].utilidad += utilidad;
+
+  // 👇 Registro por artículo (opcional)
+  const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
+  if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0 };
+  porArticulo[art].cantidad += det.cantidad || 0;
+  porArticulo[art].importe += ventaSinImpuestos;
+}
+
 
     utilidadTotal += utilidadVentaRecalc;
 
