@@ -239,8 +239,17 @@ for (const det of (v.detalle || [])) {
   const importe = det.importe || det.precio_unit * det.cantidad || 0;
 
   // 👇 Desglose correcto de venta, impuestos y costo
-  const ventaSinImpuestos = (importe / (1 + ivaPct / 100)) - (importe * iepsPct / 100);
-  const impuestos = importe - ventaSinImpuestos;
+let ventaSinImpuestos = importe;
+let impuestos = 0;
+
+// Calcular IVA e IEPS solo si existen porcentajes válidos
+if (ivaPct > 0 || iepsPct > 0) {
+  const base = importe / (1 + ivaPct / 100 + iepsPct / 100);
+  const iva = base * (ivaPct / 100);
+  const ieps = base * (iepsPct / 100);
+  ventaSinImpuestos = base;
+  impuestos = iva + ieps;
+}
   const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
   const utilidad = ventaSinImpuestos - costo;
 
