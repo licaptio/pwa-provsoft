@@ -276,12 +276,20 @@ if (ivaPct > 0 || iepsPct > 0) {
     utilidadTotal += utilidadVentaRecalc;
 
     const hora = v.fecha_txt?.split("T")[1]?.substring(0,5) || v.fecha_txt || "";
-    porNota.push({
-      folio: v.folio || v.id,
-      hora,
-      total: totalVenta,
-      utilidad: utilidadVentaRecalc
-    });
+let costoVenta = 0;
+for (const det of (v.detalle || [])) {
+  const costoItem = det.costo_total || det.costo_unit * det.cantidad || 0;
+  costoVenta += costoItem;
+}
+
+porNota.push({
+  folio: v.folio || v.id,
+  hora,
+  total: totalVenta,
+  costo: costoVenta,
+  utilidad: utilidadVentaRecalc
+});
+
   }
 
   const resumen = {
