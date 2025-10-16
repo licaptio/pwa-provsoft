@@ -570,6 +570,59 @@ if (topArticulos.length === 0) {
   }
 }
 
+// =============================
+// 🗺️ PAGINA 5: MAPA DE TRAZABILIDAD (RUTA COMPLETA)
+// =============================
+try {
+  const puntos = (r.ventasDetalle || r.porNota || [])
+    .filter(v => v.ubicacion?.lat && v.ubicacion?.lon)
+    .map(v => ({
+      lat: v.ubicacion.lat,
+      lon: v.ubicacion.lon,
+      folio: v.folio || "—"
+    }));
+
+  if (puntos.length > 0) {
+    // Centro del mapa = promedio de coordenadas
+    const latC = puntos.reduce((a, p) => a + p.lat, 0) / puntos.length;
+    const lonC = puntos.reduce((a, p) => a + p.lon, 0) / puntos.length;
+
+    // Generamos URL del mapa estático de Google
+    const markers = puntos
+      .map(p => `markers=color:red%7Clabel:${p.folio?.slice(-2)}%7C${p.lat},${p.lon}`)
+      .join("&");
+
+    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latC},${lonC}&zoom=14&size=600x400&maptype=roadmap&${markers}&key=AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE;
+
+    // Cargar imagen del mapa
+    const img = await fetch(mapUrl)
+      .then(r => r.blob())
+      .then(b => new Promise(res => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result);
+        reader.readAsDataURL(b);
+      }));
+
+    pdf.addPage();
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.text("MAPA DE TRAZABILIDAD DE VENTAS", 50, 15);
+    pdf.addImage(img, "JPEG", 10, 25, 190, 120);
+
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Puntos totales: ${puntos.length}`, 15, 155);
+    pdf.text(`Centro: ${latC.toFixed(4)}, ${lonC.toFixed(4)}`, 15, 162);
+    pdf.text("Cada punto representa una venta registrada con ubicación GPS.", 15, 170);
+  } else {
+    pdf.addPage();
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(12);
+    pdf.text("⚠️ No hay ubicaciones registradas para mostrar en el mapa.", 20, 50);
+  }
+} catch (err) {
+  console.error("Error generando mapa:", err);
+}
 
   
   // =============================
