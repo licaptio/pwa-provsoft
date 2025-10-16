@@ -65,13 +65,20 @@
       const contenedor = document.getElementById("reportes");
       contenedor.innerHTML = "";
 
-      const claves = Object.keys(reportes).sort((a, b) => new Date(reportes[b].fecha) - new Date(reportes[a].fecha));
+      const claves = Object.keys(reportes).sort((a, b) => {
+  const fechaA = new Date(reportes[a].fecha.split(" de ").reverse().join("-"));
+  const fechaB = new Date(reportes[b].fecha.split(" de ").reverse().join("-"));
+  return fechaB - fechaA; // más recientes primero
+});
+
 
       claves.forEach(clave => {
         const rep = reportes[clave];
         const card = document.createElement("div");
         card.className = "card";
-
+        if (!rep.factura || rep.factura.trim() === "") {
+  card.classList.add("alerta");
+}
         const header = document.createElement("div");
         header.className = "card-header";
         header.innerHTML = `
@@ -132,6 +139,7 @@
           try {
             await updateDoc(doc(db, "rutas_venta", rep.id), { factura });
             alert("Número de factura guardado correctamente ✅");
+            card.classList.remove("alerta");
           } catch (err) {
             console.error("Error al guardar factura:", err);
             alert("Error al guardar el número de factura ❌");
@@ -221,6 +229,15 @@
     .factura-input {
       padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; width: 140px;
     }
+              .card.alerta {
+  border: 3px solid #ffcc00;
+  animation: parpadeo 1s infinite;
+}
+
+@keyframes parpadeo {
+  0%, 100% { box-shadow: 0 0 10px #ffcc00; }
+  50% { box-shadow: 0 0 25px #ffcc00; }
+}
   </style>
 </head>
 <body>
