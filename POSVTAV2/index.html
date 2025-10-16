@@ -709,39 +709,52 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim();
   if (!q) return [];
 
-  // 🧩 Detectar código de balanza
+  // 🧩 Detección de código de balanza
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
-    const base = bal.base.padStart(6, "0");
-    const prodId =
-      codeIndex.get(base) ||
-      codeIndex.get(bal.base) ||
-      catalogo.find(p => p.equivalentes.includes(base) || p.equivalentes.includes(bal.base))?.id;
-    if (prodId) {
-      const p = catalogo.find(x => x.id === prodId);
-      if (p) {
-        p._pesoDetectado = bal.peso;
-        return [p];
+    console.log("Código de balanza detectado:", bal);
+   const posibles = [
+  bal.base,
+  bal.base.padStart(6, "0"),
+  ("000000" + bal.base).slice(-6),
+  "2" + bal.base.padStart(6, "0"),
+  "20000" + bal.base   // 🔥 esta línea agrega compatibilidad con tus equivalentes reales
+];
+
+    // Buscar en codeIndex y equivalentes
+    for (const key of posibles) {
+      const prodId =
+        codeIndex.get(key) ||
+        catalogo.find(p => (p.equivalentes || []).some(eq => eq === key))?.id;
+
+      if (prodId) {
+        const p = catalogo.find(x => x.id === prodId);
+        if (p) {
+          p._pesoDetectado = bal.peso;
+          return [p];
+        }
       }
     }
   }
 
-  // 🔎 Buscar por código exacto o equivalente
+  // 🔎 Búsqueda por código exacto o equivalente
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
   }
 
-  // 🧠 Buscar dentro de equivalentes aunque no esté en codeIndex
-  const matchEq = catalogo.find(p => (p.equivalentes || []).some(eq => eq.trim() === q));
+  // 🔍 Buscar en equivalentes parciales
+  const matchEq = catalogo.find(p =>
+    (p.equivalentes || []).some(eq => q.includes(eq))
+  );
   if (matchEq) return [matchEq];
 
-  // 🧮 Buscar por nombre o descripción
-  return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q.toLowerCase()));
+  // 🔠 Buscar por nombre
+  return catalogo.filter(p =>
+    (p.nombre || "").toLowerCase().includes(q.toLowerCase())
+  );
 }
-
-
   function pintarResultados(hits){
     elResultados.innerHTML=""; if(hits.length===0){elResultados.style.display="none";return;}
     elResultados.style.display="block";
