@@ -687,10 +687,10 @@ const elCant = document.getElementById("cantidadInput");
 function decodificarCodigoBalanza(codigo) {
   // Ejemplo: 2000016001105
   if (!codigo || codigo.length < 13) return null;
-  if (!codigo.startsWith("2")) return null; // prefijo de balanza
-  const base = codigo.substring(1, 7);      // código real del producto
-  const pesoStr = codigo.substring(7, 12);  // parte de peso (00110 → 0.110)
-  const peso = parseFloat(pesoStr) / 1000;  // convertir a kg
+  if (!codigo.startsWith("2")) return null;
+  const base = codigo.substring(1, 7).replace(/^0+/, ""); // ← quitar ceros a la izquierda
+  const pesoStr = codigo.substring(7, 12);
+  const peso = parseFloat(pesoStr) / 1000;
   return { base, peso };
 }
 
@@ -699,29 +699,31 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim();
   if (!q) return [];
 
-  // 🧩 Detectar códigos de balanza
+  // 🧩 Detectar código de balanza
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
-    const prodId = codeIndex.get(bal.base);
+    console.log("🔍 Detectado código de balanza:", bal);
+    const prodId = codeIndex.get(bal.base) || codeIndex.get(("000000" + bal.base).slice(-6));
     if (prodId) {
       const p = catalogo.find(x => x.id === prodId);
       if (p) {
-        p._pesoDetectado = bal.peso; // guardar peso leído
+        p._pesoDetectado = bal.peso;
         return [p];
       }
     }
   }
 
-  // 🔎 Búsqueda normal (código principal o equivalente)
+  // 🔎 Normal
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
   }
 
-  // 🧠 Por nombre parcial
+  // 🧠 Por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q.toLowerCase()));
 }
+
 
   function pintarResultados(hits){
     elResultados.innerHTML=""; if(hits.length===0){elResultados.style.display="none";return;}
