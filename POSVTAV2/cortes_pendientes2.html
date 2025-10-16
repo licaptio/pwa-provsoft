@@ -815,6 +815,11 @@ try {
   pdf.setFont("helvetica", "italic");
   pdf.setFontSize(12);
   pdf.text("⚠️ Error al generar el gráfico de márgenes de utilidad.", 20, 50);
+pdf.setFontSize(8);
+pdf.setTextColor(100);
+pdf.text("*Las utilidades y márgenes se calculan sobre base neta (sin IVA ni IEPS).", 15, 280);
+pdf.setTextColor(0);
+
 }
   
   // =============================
