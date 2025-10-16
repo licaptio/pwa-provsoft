@@ -571,52 +571,59 @@ if (topArticulos.length === 0) {
 }
 
 // =============================
-// 🗺️ PAGINA 5: MAPA DE TRAZABILIDAD (RUTA COMPLETA)
+// 🗺️ PAGINA 5: MAPA DE TRAZABILIDAD (OPTIMIZADO Y CON LEYENDA)
 // =============================
 try {
-  const puntos = (r.ventasDetalle || r.porNota || [])
+  const puntos = (r.porNota || [])
     .filter(v => v.ubicacion?.lat && v.ubicacion?.lon)
     .map(v => ({
       lat: v.ubicacion.lat,
       lon: v.ubicacion.lon,
-      folio: v.folio || "—"
+      folio: v.folio || "—",
+      cliente: v.cliente || "PÚBLICO",
+      direccion: v.ubicacion.direccion || ""
     }));
 
   if (puntos.length > 0) {
-    // Centro del mapa = promedio de coordenadas
     const latC = puntos.reduce((a, p) => a + p.lat, 0) / puntos.length;
     const lonC = puntos.reduce((a, p) => a + p.lon, 0) / puntos.length;
 
-    // Generamos URL del mapa estático de Google
     const markers = puntos
-      .map(p => `markers=color:red%7Clabel:${p.folio?.slice(-2)}%7C${p.lat},${p.lon}`)
+      .map(p => `markers=color:red%7Clabel:${encodeURIComponent(p.folio?.slice(-2) || "X")}%7C${p.lat},${p.lon}`)
       .join("&");
-const path = `path=color:blue|weight:3|${puntos.map(p => `${p.lat},${p.lon}`).join("|")}`;
+    const path = `path=color:0x0000ff|weight:3|${puntos.map(p => `${p.lat},${p.lon}`).join("|")}`;
 
-    
-    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latC},${lonC}&zoom=14&size=600x400&maptype=roadmap&${markers}&${path}&key=AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE`;
+    // 🧠 mapa en alta resolución y con espera
+    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latC},${lonC}&zoom=13&scale=2&size=640x480&maptype=roadmap&${markers}&${path}&key=AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE`;
 
+    overlayText.innerText = "🗺️ Cargando mapa de trazabilidad...";
 
-    // Cargar imagen del mapa
-    const img = await fetch(mapUrl)
-      .then(r => r.blob())
-      .then(b => new Promise(res => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result);
-        reader.readAsDataURL(b);
-      }));
+    const response = await fetch(mapUrl);
+    const blob = await response.blob();
+    const img = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
 
     pdf.addPage();
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(14);
-    pdf.text("MAPA DE TRAZABILIDAD DE VENTAS", 50, 15);
+    pdf.text("MAPA DE TRAZABILIDAD DE VENTAS", 45, 15);
     pdf.addImage(img, "JPEG", 10, 25, 190, 120);
 
+    // leyenda con clientes o folios
+    pdf.setFontSize(9);
+    let yLeyenda = 155;
+    for (const p of puntos.slice(0, 10)) { // máximo 10 líneas
+      pdf.text(`${p.folio.padEnd(8)}  ${p.direccion.substring(0, 60)}`, 15, yLeyenda);
+      yLeyenda += 5;
+    }
+
     pdf.setFontSize(10);
-    pdf.setFont("helvetica", "normal");
-    pdf.text(`Puntos totales: ${puntos.length}`, 15, 155);
-    pdf.text(`Centro: ${latC.toFixed(4)}, ${lonC.toFixed(4)}`, 15, 162);
-    pdf.text("Cada punto representa una venta registrada con ubicación GPS.", 15, 170);
+    pdf.text(`Puntos totales: ${puntos.length}`, 15, yLeyenda + 5);
+    pdf.text(`Centro: ${latC.toFixed(4)}, ${lonC.toFixed(4)}`, 15, yLeyenda + 10);
+    pdf.text("Cada punto representa una venta registrada con ubicación GPS.", 15, yLeyenda + 15);
   } else {
     pdf.addPage();
     pdf.setFont("helvetica", "italic");
@@ -626,7 +633,6 @@ const path = `path=color:blue|weight:3|${puntos.map(p => `${p.lat},${p.lon}`).jo
 } catch (err) {
   console.error("Error generando mapa:", err);
 }
-
   
   // =============================
   // 💾 Exportar y enviar
