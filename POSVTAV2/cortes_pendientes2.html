@@ -648,6 +648,174 @@ try {
   pdf.text("⚠️ No se pudo generar el mapa de trazabilidad.", 20, 50);
 }
 
+// =============================
+// 💸 PAGINA 6: TOP 20 ARTÍCULOS CON MENOR UTILIDAD (%)
+// =============================
+try {
+  const articulosProcesados = Object.entries(r.porArticulo)
+    .map(([nombre, data]) => {
+      const importe = data.importe || 0;
+      const costo = data.costo || 0;
+      const utilidad = importe - costo;
+      const margen = (importe > 0) ? ((utilidad / importe) * 100) : 0;
+      return { nombre, cantidad: data.cantidad || 0, importe, costo, utilidad, margen };
+    })
+    .filter(a => a.importe > 0);
+
+  // Métricas globales
+  const promedioMargen = articulosProcesados.length
+    ? (articulosProcesados.reduce((a, b) => a + b.margen, 0) / articulosProcesados.length)
+    : 0;
+  const bajosMargen = articulosProcesados.filter(a => a.margen < 10).length;
+  const negativos = articulosProcesados.filter(a => a.margen < 0).length;
+
+  // Orden ascendente por margen
+  const articulosOrdenados = [...articulosProcesados]
+    .sort((a, b) => a.margen - b.margen)
+    .slice(0, 20);
+
+  // --- Inicio de la página ---
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("TOP 20 ARTÍCULOS CON MENOR UTILIDAD (%)", 25, 15);
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
+  pdf.text(`Margen promedio general: ${promedioMargen.toFixed(1)}%`, 15, 22);
+  pdf.text(`⚠ Artículos con margen <10%: ${bajosMargen}  |  🔴 Negativos: ${negativos}`, 15, 28);
+
+  // Encabezado
+  pdf.setFontSize(9);
+  pdf.setFillColor(230, 230, 230);
+  pdf.rect(8, 32, 194, 8, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Artículo", 10, 37);
+  pdf.text("Cant.", 80, 37);
+  pdf.text("Venta", 105, 37);
+  pdf.text("Costo", 130, 37);
+  pdf.text("Utilidad", 155, 37);
+  pdf.text("%", 185, 37);
+
+  let yLow = 45;
+  pdf.setFont("helvetica", "normal");
+
+  if (articulosOrdenados.length === 0) {
+    pdf.setFont("helvetica", "italic");
+    pdf.text("No hay artículos con utilidad registrada para este corte.", 15, yLow);
+  } else {
+    for (const art of articulosOrdenados) {
+      if (yLow > 270) { pdf.addPage(); yLow = 20; }
+      pdf.text(art.nombre.substring(0, 65), 10, yLow);
+      pdf.text(String(art.cantidad.toFixed(2)), 80, yLow);
+      pdf.text(`$${art.importe.toFixed(2)}`, 105, yLow);
+      pdf.text(`$${art.costo.toFixed(2)}`, 130, yLow);
+      pdf.text(`$${art.utilidad.toFixed(2)}`, 155, yLow);
+      pdf.text(`${art.margen.toFixed(1)}%`, 185, yLow);
+      yLow += 6;
+    }
+  }
+
+  // --- Resumen visual al final ---
+  if (yLow > 260) { pdf.addPage(); yLow = 20; }
+  pdf.setFillColor(255, 250, 200);
+  pdf.rect(10, yLow + 4, 180, 12, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(10);
+  pdf.text(`🔎 Análisis final: Promedio margen ${promedioMargen.toFixed(1)}%.`, 15, yLow + 10);
+  pdf.text(`⚠ ${bajosMargen} artículos por debajo del 10% y ${negativos} con margen negativo.`, 15, yLow + 15);
+} catch (err) {
+  console.error("Error generando top bajo margen:", err);
+  pdf.addPage();
+  pdf.setFont("helvetica", "italic");
+  pdf.setFontSize(12);
+  pdf.text("⚠️ No se pudo generar el listado de artículos con baja utilidad.", 20, 50);
+}
+// =============================
+// 📊 PAGINA 7: GRAFICO DE MARGEN DE LOS 20 ARTICULOS MAS BAJOS
+// =============================
+try {
+  // Tomamos los mismos datos ya ordenados
+  const articulosTopBajos = Object.entries(r.porArticulo)
+    .map(([nombre, data]) => {
+      const importe = data.importe || 0;
+      const costo = data.costo || 0;
+      const utilidad = importe - costo;
+      const margen = (importe > 0) ? ((utilidad / importe) * 100) : 0;
+      return { nombre, margen };
+    })
+    .filter(a => a.margen !== 0)
+    .sort((a, b) => a.margen - b.margen)
+    .slice(0, 20);
+
+  if (articulosTopBajos.length > 0) {
+    // Crear un canvas temporal
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+
+    // Configurar gráfico
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: articulosTopBajos.map(a => a.nombre.substring(0, 20)),
+        datasets: [{
+          label: "% de Utilidad",
+          data: articulosTopBajos.map(a => a.margen.toFixed(1)),
+          backgroundColor: articulosTopBajos.map(a =>
+            a.margen < 0 ? "rgba(255, 99, 132, 0.7)" :
+            a.margen < 10 ? "rgba(255, 205, 86, 0.7)" :
+            "rgba(75, 192, 192, 0.7)"
+          ),
+          borderColor: "rgba(0,0,0,0.1)",
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: false,
+        scales: {
+          x: { ticks: { color: "#222", font: { size: 9 }, autoSkip: false, maxRotation: 90, minRotation: 90 } },
+          y: { ticks: { color: "#222", font: { size: 9 }, callback: v => v + "%" } }
+        },
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: "Artículos con menor margen (%)", font: { size: 14 } }
+        }
+      }
+    });
+
+    // Espera renderizado y convierte a imagen
+    await new Promise(r => setTimeout(r, 1200));
+    const img = canvas.toDataURL("image/png");
+
+    pdf.addPage();
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.text("GRAFICO DE UTILIDAD – 20 ARTÍCULOS CON MENOR MARGEN", 15, 15);
+    pdf.addImage(img, "PNG", 10, 25, 190, 100);
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Colores:", 15, 135);
+    pdf.setTextColor(255, 99, 132);
+    pdf.text("🔴 Pérdida (<0%)", 35, 135);
+    pdf.setTextColor(255, 205, 86);
+    pdf.text("🟡 Margen bajo (<10%)", 75, 135);
+    pdf.setTextColor(75, 192, 192);
+    pdf.text("🟢 Margen aceptable (>10%)", 135, 135);
+    pdf.setTextColor(0, 0, 0);
+  } else {
+    pdf.addPage();
+    pdf.setFont("helvetica", "italic");
+    pdf.setFontSize(12);
+    pdf.text("⚠️ No se pudo generar gráfico de margen (sin datos suficientes).", 20, 50);
+  }
+} catch (err) {
+  console.error("Error generando gráfico de márgenes:", err);
+  pdf.addPage();
+  pdf.setFont("helvetica", "italic");
+  pdf.setFontSize(12);
+  pdf.text("⚠️ Error al generar el gráfico de márgenes de utilidad.", 20, 50);
+}
   
   // =============================
   // 💾 Exportar y enviar
