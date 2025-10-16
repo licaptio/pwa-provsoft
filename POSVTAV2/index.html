@@ -684,14 +684,45 @@ const elCant = document.getElementById("cantidadInput");
     else{carrito.push({...prod,cantidad:cant,precioUnit:precio,importe:cant*precio});}
     render();
   }
+function decodificarCodigoBalanza(codigo) {
+  // Ejemplo: 2000016001105
+  if (!codigo || codigo.length < 13) return null;
+  if (!codigo.startsWith("2")) return null; // prefijo de balanza
+  const base = codigo.substring(1, 7);      // código real del producto
+  const pesoStr = codigo.substring(7, 12);  // parte de peso (00110 → 0.110)
+  const peso = parseFloat(pesoStr) / 1000;  // convertir a kg
+  return { base, peso };
+}
 
   // ==== Buscador ====
-  function buscarLocal(qraw){
-    const q=(qraw||"").trim(); if(!q)return[];
-    const idByCode=codeIndex.get(q);
-    if(idByCode){const p=catalogo.find(x=>x.id===idByCode); if(p)return[p];}
-    return catalogo.filter(p=>(p.nombre||"").toLowerCase().includes(q.toLowerCase()));
+function buscarLocal(qraw) {
+  const q = (qraw || "").trim();
+  if (!q) return [];
+
+  // 🧩 Detectar códigos de balanza
+  const bal = decodificarCodigoBalanza(q);
+  if (bal) {
+    const prodId = codeIndex.get(bal.base);
+    if (prodId) {
+      const p = catalogo.find(x => x.id === prodId);
+      if (p) {
+        p._pesoDetectado = bal.peso; // guardar peso leído
+        return [p];
+      }
+    }
   }
+
+  // 🔎 Búsqueda normal (código principal o equivalente)
+  const idByCode = codeIndex.get(q);
+  if (idByCode) {
+    const p = catalogo.find(x => x.id === idByCode);
+    return p ? [p] : [];
+  }
+
+  // 🧠 Por nombre parcial
+  return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q.toLowerCase()));
+}
+
   function pintarResultados(hits){
     elResultados.innerHTML=""; if(hits.length===0){elResultados.style.display="none";return;}
     elResultados.style.display="block";
@@ -720,9 +751,13 @@ const elCant = document.getElementById("cantidadInput");
     if(ev.key==='Enter'){
       if(!clienteSeleccionado){alert('Selecciona un cliente primero.');elCliente.focus();return;}
       if(!prodSeleccionado){alert('Selecciona un producto.');elBuscador.focus();return;}
-      let cant=parseFloat(elCant.value||'');
-      if(isNaN(cant)||cant<=0){alert('Ingresa cantidad válida.');elCant.focus();return;}
-      addProduct(prodSeleccionado,cant);
+      // Si se detectó peso desde balanza, usarlo en vez de cantidad
+let cant = parseFloat(elCant.value || '');
+if (isNaN(cant) || cant <= 0) {
+  cant = prodSeleccionado._pesoDetectado || 1;
+}
+addProduct(prodSeleccionado, cant);
+
       prodSeleccionado=null; elBuscador.value=''; elCant.value='1'; elBuscador.focus();
     }
   });
