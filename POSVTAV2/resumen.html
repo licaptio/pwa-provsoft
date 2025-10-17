@@ -106,10 +106,12 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, query, where, orderBy, getDocs } 
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getFirestore, collection, query, where, getDocs, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
 
-// 🔧 Configuración Firebase (igual que tu POS)
+// 🔧 Configuración Firebase (igual que POS)
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -122,28 +124,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🧠 Obtener usuario actual desde sesión POS
+// 🧠 Usuario actual desde sesión POS
 const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
-const usuario = u?.usuario || "";
 const nombre = u?.nombre || "Desconocido";
 document.getElementById("lblUsuario").textContent = nombre;
 
-// 📆 Establecer fecha actual por defecto
-// 📆 Detectar fecha local real y usarla directamente (sin input)
+// 📆 Fecha actual legible
 const hoy = new Date();
 const offset = hoy.getTimezoneOffset();
 const hoyLocal = new Date(hoy.getTime() - offset * 60000);
 const fechaISO = hoyLocal.toISOString().split("T")[0];
-// 🗓️ Mostrar fecha formateada en texto legible
-const opciones = { day: '2-digit', month: '2-digit', year: 'numeric' };
-const fechaFormateada = hoyLocal.toLocaleDateString('es-MX', opciones);
+const fechaFormateada = hoyLocal.toLocaleDateString("es-MX", { day: '2-digit', month: '2-digit', year: 'numeric' });
 document.getElementById("fechaDia").textContent = `🗓️ Ventas del día: ${fechaFormateada}`;
 
-
-// Cargar automáticamente las ventas del día actual
+// 🚀 Cargar ventas del día
 cargarVentas(fechaISO);
 
-async function cargarVentas(fechaSeleccionada) {
+async function cargarVentas() {
   const tabla = document.querySelector("#tabla tbody");
   const totalEl = document.getElementById("lblTotal");
   const totalDash = document.getElementById("lblTotalDash");
@@ -158,52 +155,126 @@ async function cargarVentas(fechaSeleccionada) {
   loading.textContent = "Cargando ventas...";
 
   try {
-  const ventasRef = collection(db, "rutas_venta");
-  const q = query(
-    ventasRef,
-    where("usuarioNombre", "==", nombre),
-    where("cortado", "==", false)
-  );
+    const ventasRef = collection(db, "rutas_venta");
+    const q = query(
+      ventasRef,
+      where("usuarioNombre", "==", nombre),
+      where("cortado", "==", false)
+    );
+    const snap = await getDocs(q);
 
-  const snap = await getDocs(q);
+    let totalDia = 0, encontrados = 0;
 
-  let totalDia = 0;
-  let encontrados = 0;
+    snap.forEach((docSnap) => {
+      const v = docSnap.data();
+      if (!v.fecha_txt || !v.resumen_financiero?.total) return;
+      if (!v.fecha_txt.includes(fechaFormateada)) return;
 
-  snap.forEach(doc => {
-    const v = doc.data();
-    if (!v.fecha_txt || !v.resumen_financiero?.total) return;
+      const hora = v.fecha_txt.split(",")[1]?.trim() || "";
+      const total = Number(v.resumen_financiero.total || 0);
+      totalDia += total; encontrados++;
 
-    // 🔍 Filtrar por coincidencia de texto de la fecha local (ejemplo: "12/10/2025")
-    if (!v.fecha_txt.includes(fechaFormateada)) return;
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${v.folio}</td>
+        <td>${hora}</td>
+        <td style="text-align:right">$${total.toFixed(2)}</td>
+        <td style="text-align:center">
+          <button class="btnReimp" 
+            style="background:#0c6cbd;color:#fff;border:none;
+                   padding:6px 10px;border-radius:8px;
+                   font-weight:600;cursor:pointer;">🖨️ Reimprimir</button>
+        </td>
+      `;
+      tabla.appendChild(row);
 
-    const row = document.createElement("tr");
-    const hora = v.fecha_txt.split(",")[1]?.trim() || "";
-    const total = Number(v.resumen_financiero.total || v.total || 0);
-    totalDia += total;
-    encontrados++;
+      // 🔹 Botón Reimprimir
+      row.querySelector(".btnReimp").addEventListener("click", () => reimprimirTicket(docSnap.id));
+    });
 
-    row.innerHTML = `
-      <td>${v.folio}</td>
-      <td>${hora}</td>
-      <td style="text-align:right">$${total.toFixed(2)}</td>
-    `;
-    tabla.appendChild(row);
-  });
-
-  if (encontrados === 0) {
-    loading.textContent = "Sin ventas registradas en esta fecha.";
-  } else {
-    loading.style.display = "none";
+    loading.style.display = encontrados ? "none" : "block";
+    loading.textContent = encontrados ? "" : "Sin ventas registradas en esta fecha.";
+    totalEl.textContent = "$" + totalDia.toFixed(2);
+    totalDash.textContent = "$" + totalDia.toFixed(2);
+    conteoEl.textContent = encontrados.toString();
+  } catch (e) {
+    loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
   }
-
-  totalEl.textContent = "$" + totalDia.toFixed(2);
-  totalDash.textContent = "$" + totalDia.toFixed(2);
-  conteoEl.textContent = encontrados.toString();
-} catch (e) {
-  loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
 }
 
+// 🖨️ Reimpresión idéntica al formato térmico/PDF
+async function reimprimirTicket(id) {
+  try {
+    const docRef = doc(db, "rutas_venta", id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      alert("No se encontró la venta.");
+      return;
+    }
+    const venta = snap.data();
+
+    // === Generar PDF igual que el POS ===
+    const pdf = new jsPDF();
+    pdf.setFont("courier", "bold");
+    pdf.setFontSize(12);
+    pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
+    pdf.setFont("courier", "normal");
+    pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
+    pdf.text("LINARES, NUEVO LEÓN, 67700", 105, 27, { align: "center" });
+    pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
+    pdf.text("TEL: (821) 2121805", 105, 39, { align: "center" });
+    pdf.text("RÉGIMEN GENERAL DE LEY", 105, 45, { align: "center" });
+    pdf.text("PERSONAS MORALES", 105, 51, { align: "center" });
+    pdf.line(10, 54, 200, 54);
+    pdf.setFont("courier", "bold");
+    pdf.text(`# Venta : ${venta.folio}`, 10, 60);
+    pdf.text(`Fecha : ${venta.fecha_txt}`, 130, 60);
+    pdf.line(10, 63, 200, 63);
+
+    let y = 70;
+    pdf.setFont("courier", "normal");
+
+    (venta.detalle || []).forEach((it) => {
+      pdf.text((it.nombre || "").substring(0, 40), 10, y); y += 5;
+      const linea = `Cant: ${it.cantidad.toFixed(3)}   ${it.precio_unit.toFixed(2)}   ${it.importe.toFixed(2)}`;
+      pdf.text(linea, 10, y); y += 4;
+      pdf.text("--------------------------------", 10, y); y += 6;
+      if (y > 270) { pdf.addPage(); y = 20; }
+    });
+
+    const totalIva = Number(venta?.resumen_financiero?.totalIva || 0);
+    const totalIeps = Number(venta?.resumen_financiero?.totalIeps || 0);
+    const impuestosIncluidos = (totalIva + totalIeps).toFixed(2);
+    const total = venta?.resumen_financiero?.total || 0;
+    const recib = venta.recibido || 0;
+    const camb = venta.cambio || 0;
+
+    pdf.line(10, y, 200, y); y += 8;
+    pdf.setFont("courier", "bold");
+    pdf.text(`Total : ${total.toFixed(2)}`, 10, y);
+    y += 5;
+    pdf.setFont("courier", "normal");
+    pdf.text(`Su Pago : ${recib.toFixed(2)}`, 10, y);
+    y += 5;
+    pdf.text(`Cambio : ${camb.toFixed(2)}`, 10, y);
+    y += 5;
+    pdf.line(10, y, 200, y);
+    y += 8;
+    pdf.text(`Artículos vendidos : ${venta.detalle.length}`, 10, y);
+    y += 5;
+    pdf.text(`Incluye ${impuestosIncluidos} de Impuestos`, 10, y);
+    y += 5;
+    pdf.text(`Cajero : ${venta.atendio || "—"}`, 10, y);
+    y += 10;
+    pdf.setFont("courier", "bold");
+    pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
+
+    // 📄 Mostrar o imprimir
+    pdf.output("dataurlnewwindow");
+  } catch (err) {
+    console.error("Error reimprimiendo ticket:", err);
+    alert("Error al generar reimpresión.");
+  }
 }
 
 </script>
