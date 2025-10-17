@@ -112,12 +112,17 @@
 
 <a class="volver" href="index.html">⬅️ Volver al POS</a>
 
+<!-- ✅ jsPDF debe cargarse como script normal -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, query, where, getDocs, doc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+
+// ✅ Usa jsPDF desde el objeto global
+const { jsPDF } = window.jspdf;
 
 // 🔧 Configuración Firebase
 const firebaseConfig = {
@@ -214,10 +219,7 @@ async function reimprimirTicket(id) {
     }
     const venta = snap.data();
 
-    // 🧮 Calcular impuestos reales desde departamento_info
-    let totalIva = 0;
-    let totalIeps = 0;
-
+    let totalIva = 0, totalIeps = 0;
     (venta.detalle || []).forEach(det => {
       const ivaPct = det.departamento_info?.iva || 0;
       const iepsPct = det.departamento_info?.ieps || 0;
@@ -225,10 +227,8 @@ async function reimprimirTicket(id) {
 
       if (ivaPct > 0 || iepsPct > 0) {
         const base = importe / (1 + ivaPct / 100 + iepsPct / 100);
-        const iva = base * (ivaPct / 100);
-        const ieps = base * (iepsPct / 100);
-        totalIva += iva;
-        totalIeps += ieps;
+        totalIva += base * (ivaPct / 100);
+        totalIeps += base * (iepsPct / 100);
       }
     });
 
@@ -236,9 +236,6 @@ async function reimprimirTicket(id) {
     const total = venta?.resumen_financiero?.total || 0;
     const recibido = venta.recibido || 0;
     const cambio = venta.cambio || 0;
-
-    // 🔹 resto de tu código térmico / PDF (igual)
-
 
     let texto = `
 PROVEEDORA MATRIZ
@@ -274,12 +271,10 @@ Cajero : ${venta.atendio || "—"}
 
     // === Detectar dispositivo ===
     if (/Android/i.test(navigator.userAgent)) {
-      // 📱 Imprime directo por RawBT
       const encoded = encodeURIComponent(texto + "\n\n\n");
       const rawbtIntent = `intent://print?data=${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
       window.location.href = rawbtIntent;
     } else {
-      // 💻 Modo escritorio: PDF
       const pdf = new jsPDF();
       pdf.setFont("courier", "bold");
       pdf.setFontSize(12);
