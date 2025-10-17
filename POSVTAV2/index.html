@@ -1136,6 +1136,8 @@ pdf.text(`Cajero : ${venta.atendio || "—"}`, 10, y);
 
     // 🧾 Ticket local e impresión
     rellenarTicket({ ...venta, fecha: fecha });
+    // ✅ Guardar la venta actual en memoria global
+window.ULTIMA_VENTA = venta;
     imprimirTicketEstilado();
 
     carrito = [];
@@ -1193,18 +1195,14 @@ function rellenarTicket(venta){
 function imprimirTicketEstilado() {
   const ticket = document.getElementById("ticketArea");
 
-  // 🧠 1️⃣ Si es terminal H10 / Sunmi: usar InnerPrinter nativo
+  // 🖨️ Impresión con InnerPrinter (H10 / Sunmi)
   if (window.InnerPrinter && typeof window.InnerPrinter.printHtml === "function") {
     try {
       console.log("🖨️ Imprimiendo con InnerPrinter (H10/Sunmi)...");
-      const html = `
-        <html><head><meta charset="utf-8">
-        <style>
-          body { font-family: sans-serif; font-size: 14px; line-height: 1.4; margin: 0; padding: 0; }
+      const html = `<html><head><meta charset="utf-8"><style>
+          body { font-family: 'Courier New', monospace; font-size: 14px; line-height: 1.4; margin: 0; padding: 0; }
           #ticket { width: 72mm; margin: 0 auto; }
-          img { max-width: 100%; }
-        </style></head>
-        <body>${ticket.innerHTML}</body></html>`;
+        </style></head><body>${ticket.innerHTML}</body></html>`;
       window.InnerPrinter.printHtml(html);
       return;
     } catch (err) {
@@ -1212,11 +1210,11 @@ function imprimirTicketEstilado() {
     }
   }
 
-  // 🧠 2️⃣ Si está en Android y RawBT instalada
+  // 🖨️ RawBT (Android)
   try {
     if (/Android/i.test(navigator.userAgent)) {
-      console.log("📱 Android detectado, intentando impresión con RawBT...");
-      const textoTicket = generarTextoSimpleRawBT();
+      console.log("📱 Android detectado, usando RawBT...");
+      const textoTicket = generarTextoSimpleRawBT(window.ULTIMA_VENTA || {});
       const encoded = encodeURIComponent(textoTicket + "\n\n\n");
       window.open("rawbt:print?data=" + encoded, "_blank");
       return;
@@ -1225,7 +1223,7 @@ function imprimirTicketEstilado() {
     console.error("⚠️ Error RawBT:", err);
   }
 
-  // 🧠 3️⃣ Fallback universal (PC / navegador normal)
+  // 🖨️ Fallback navegador
   console.log("🖨️ Fallback: impresión navegador");
   ticket.style.display = "block";
   window.print();
