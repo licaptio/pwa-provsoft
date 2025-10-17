@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Resumen de Ventas – Ruta</title>
-  <!-- 🔹 Fecha del día -->
-<p id="fechaDia" style="
-  text-align:center; 
-  color:white; 
-  font-weight:600; 
-  margin-top:-6px; 
-  margin-bottom:12px;
-"></p>
+
+  <p id="fechaDia" style="
+    text-align:center;
+    color:white;
+    font-weight:600;
+    margin-top:-6px;
+    margin-bottom:12px;
+  "></p>
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
@@ -27,14 +27,6 @@
       border-radius: 14px;
       box-shadow: 0 6px 18px rgba(0,0,0,0.2);
       padding: 16px; max-width: 700px; margin: 0 auto;
-    }
-    label { font-weight: 600; }
-    input[type="date"] {
-      border: 1px solid #ccc;
-      padding: 6px 10px;
-      border-radius: 8px;
-      margin: 5px 0 10px;
-      font-family: inherit;
     }
     table {
       width: 100%; border-collapse: collapse; margin-top: 12px;
@@ -58,26 +50,38 @@
       text-align:center; padding:10px; font-weight:600;
       color:#00416A;
     }
+    .btnReimp {
+      background:#0c6cbd;
+      color:#fff;
+      border:none;
+      padding:6px 10px;
+      border-radius:8px;
+      font-weight:600;
+      cursor:pointer;
+      transition: all 0.15s ease;
+    }
+    .btnReimp:hover {
+      background:#0078d4;
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
 
 <h2>📋 Resumen de Ventas</h2>
-<!-- 🔹 Aviso de filtro activo -->
 <p id="filtroAviso" style="
-  text-align:center; 
-  color:#e0f7ff; 
-  font-weight:600; 
-  margin-top:-4px; 
-  margin-bottom:14px; 
+  text-align:center;
+  color:#e0f7ff;
+  font-weight:600;
+  margin-top:-4px;
+  margin-bottom:14px;
   font-size:15px;
 ">
   🔄 Mostrando ventas pendientes de corte del día
 </p>
 
-<!-- 🔹 Mini dashboard resumen -->
 <div id="dashboard" style="
-  max-width:700px; margin:0 auto 10px; 
+  max-width:700px; margin:0 auto 10px;
   background:rgba(255,255,255,0.9);
   border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.15);
   display:flex; justify-content:space-around; align-items:center;
@@ -88,12 +92,16 @@
 </div>
 
 <div class="card">
-
   <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
   
   <table id="tabla">
     <thead>
-      <tr><th>Folio</th><th>Hora</th><th>Total</th></tr>
+      <tr>
+        <th>Folio</th>
+        <th>Hora</th>
+        <th>Total</th>
+        <th>Reimpresión</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -111,7 +119,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { jsPDF } from "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
 
-// 🔧 Configuración Firebase (igual que POS)
+// 🔧 Configuración Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -120,25 +128,23 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🧠 Usuario actual desde sesión POS
+// 👤 Usuario actual
 const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
 const nombre = u?.nombre || "Desconocido";
 document.getElementById("lblUsuario").textContent = nombre;
 
-// 📆 Fecha actual legible
+// 📆 Fecha actual
 const hoy = new Date();
 const offset = hoy.getTimezoneOffset();
 const hoyLocal = new Date(hoy.getTime() - offset * 60000);
-const fechaISO = hoyLocal.toISOString().split("T")[0];
 const fechaFormateada = hoyLocal.toLocaleDateString("es-MX", { day: '2-digit', month: '2-digit', year: 'numeric' });
 document.getElementById("fechaDia").textContent = `🗓️ Ventas del día: ${fechaFormateada}`;
 
 // 🚀 Cargar ventas del día
-cargarVentas(fechaISO);
+cargarVentas();
 
 async function cargarVentas() {
   const tabla = document.querySelector("#tabla tbody");
@@ -180,15 +186,10 @@ async function cargarVentas() {
         <td>${hora}</td>
         <td style="text-align:right">$${total.toFixed(2)}</td>
         <td style="text-align:center">
-          <button class="btnReimp" 
-            style="background:#0c6cbd;color:#fff;border:none;
-                   padding:6px 10px;border-radius:8px;
-                   font-weight:600;cursor:pointer;">🖨️ Reimprimir</button>
+          <button class="btnReimp">🖨️ Reimprimir</button>
         </td>
       `;
       tabla.appendChild(row);
-
-      // 🔹 Botón Reimprimir
       row.querySelector(".btnReimp").addEventListener("click", () => reimprimirTicket(docSnap.id));
     });
 
@@ -202,7 +203,7 @@ async function cargarVentas() {
   }
 }
 
-// 🖨️ Reimpresión idéntica al formato térmico/PDF
+// 🖨️ Reimpresión RawBT (Android) o PDF (PC)
 async function reimprimirTicket(id) {
   try {
     const docRef = doc(db, "rutas_venta", id);
@@ -213,71 +214,96 @@ async function reimprimirTicket(id) {
     }
     const venta = snap.data();
 
-    // === Generar PDF igual que el POS ===
-    const pdf = new jsPDF();
-    pdf.setFont("courier", "bold");
-    pdf.setFontSize(12);
-    pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
-    pdf.setFont("courier", "normal");
-    pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
-    pdf.text("LINARES, NUEVO LEÓN, 67700", 105, 27, { align: "center" });
-    pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
-    pdf.text("TEL: (821) 2121805", 105, 39, { align: "center" });
-    pdf.text("RÉGIMEN GENERAL DE LEY", 105, 45, { align: "center" });
-    pdf.text("PERSONAS MORALES", 105, 51, { align: "center" });
-    pdf.line(10, 54, 200, 54);
-    pdf.setFont("courier", "bold");
-    pdf.text(`# Venta : ${venta.folio}`, 10, 60);
-    pdf.text(`Fecha : ${venta.fecha_txt}`, 130, 60);
-    pdf.line(10, 63, 200, 63);
-
-    let y = 70;
-    pdf.setFont("courier", "normal");
-
-    (venta.detalle || []).forEach((it) => {
-      pdf.text((it.nombre || "").substring(0, 40), 10, y); y += 5;
-      const linea = `Cant: ${it.cantidad.toFixed(3)}   ${it.precio_unit.toFixed(2)}   ${it.importe.toFixed(2)}`;
-      pdf.text(linea, 10, y); y += 4;
-      pdf.text("--------------------------------", 10, y); y += 6;
-      if (y > 270) { pdf.addPage(); y = 20; }
-    });
-
+    // === Generar texto térmico (RawBT)
     const totalIva = Number(venta?.resumen_financiero?.totalIva || 0);
     const totalIeps = Number(venta?.resumen_financiero?.totalIeps || 0);
     const impuestosIncluidos = (totalIva + totalIeps).toFixed(2);
     const total = venta?.resumen_financiero?.total || 0;
-    const recib = venta.recibido || 0;
-    const camb = venta.cambio || 0;
+    const recibido = venta.recibido || 0;
+    const cambio = venta.cambio || 0;
 
-    pdf.line(10, y, 200, y); y += 8;
-    pdf.setFont("courier", "bold");
-    pdf.text(`Total : ${total.toFixed(2)}`, 10, y);
-    y += 5;
-    pdf.setFont("courier", "normal");
-    pdf.text(`Su Pago : ${recib.toFixed(2)}`, 10, y);
-    y += 5;
-    pdf.text(`Cambio : ${camb.toFixed(2)}`, 10, y);
-    y += 5;
-    pdf.line(10, y, 200, y);
-    y += 8;
-    pdf.text(`Artículos vendidos : ${venta.detalle.length}`, 10, y);
-    y += 5;
-    pdf.text(`Incluye ${impuestosIncluidos} de Impuestos`, 10, y);
-    y += 5;
-    pdf.text(`Cajero : ${venta.atendio || "—"}`, 10, y);
-    y += 10;
-    pdf.setFont("courier", "bold");
-    pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
+    let texto = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, NUEVO LEÓN, 67700
+RFC: PDD-031204-KL5
+TEL: (821) 2121805
+RÉGIMEN GENERAL DE LEY
+PERSONAS MORALES
+--------------------------------
+# Venta : ${venta.folio}
+Fecha : ${venta.fecha_txt}
+--------------------------------
+`;
 
-    // 📄 Mostrar o imprimir
-    pdf.output("dataurlnewwindow");
+    (venta.detalle || []).forEach(it => {
+      texto += `${(it.nombre || "").substring(0, 35)}\n`;
+      texto += `Cant:${it.cantidad.toFixed(3).padStart(6," ")}  ${it.precio_unit.toFixed(2).padStart(8," ")}  ${it.importe.toFixed(2).padStart(8," ")}\n`;
+      texto += `--------------------------------\n`;
+    });
+
+    texto += `
+Total : ${total.toFixed(2)}
+Su Pago : ${recibido.toFixed(2)}
+Cambio : ${cambio.toFixed(2)}
+--------------------------------
+Artículos vendidos : ${venta.detalle.length}
+Incluye ${impuestosIncluidos} de Impuestos
+Cajero : ${venta.atendio || "—"}
+--------------------------------
+¡Gracias por su compra!
+`;
+
+    // === Detectar dispositivo ===
+    if (/Android/i.test(navigator.userAgent)) {
+      // 📱 Imprime directo por RawBT
+      const encoded = encodeURIComponent(texto + "\n\n\n");
+      const rawbtIntent = `intent://print?data=${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+      window.location.href = rawbtIntent;
+    } else {
+      // 💻 Modo escritorio: PDF
+      const pdf = new jsPDF();
+      pdf.setFont("courier", "bold");
+      pdf.setFontSize(12);
+      pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
+      pdf.setFont("courier", "normal");
+      pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
+      pdf.text("LINARES, NUEVO LEÓN, 67700", 105, 27, { align: "center" });
+      pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
+      pdf.text("TEL: (821) 2121805", 105, 39, { align: "center" });
+      pdf.text("RÉGIMEN GENERAL DE LEY", 105, 45, { align: "center" });
+      pdf.text("PERSONAS MORALES", 105, 51, { align: "center" });
+      pdf.line(10, 54, 200, 54);
+      pdf.text(`# Venta : ${venta.folio}`, 10, 60);
+      pdf.text(`Fecha : ${venta.fecha_txt}`, 130, 60);
+      pdf.line(10, 63, 200, 63);
+
+      let y = 70;
+      (venta.detalle || []).forEach(it => {
+        pdf.text((it.nombre || "").substring(0, 40), 10, y); y += 5;
+        const linea = `Cant: ${it.cantidad.toFixed(3)}   ${it.precio_unit.toFixed(2)}   ${it.importe.toFixed(2)}`;
+        pdf.text(linea, 10, y); y += 4;
+        pdf.text("--------------------------------", 10, y); y += 6;
+        if (y > 270) { pdf.addPage(); y = 20; }
+      });
+
+      pdf.line(10, y, 200, y); y += 8;
+      pdf.text(`Total : ${total.toFixed(2)}`, 10, y); y += 5;
+      pdf.text(`Su Pago : ${recibido.toFixed(2)}`, 10, y); y += 5;
+      pdf.text(`Cambio : ${cambio.toFixed(2)}`, 10, y); y += 5;
+      pdf.line(10, y, 200, y); y += 8;
+      pdf.text(`Artículos vendidos : ${venta.detalle.length}`, 10, y); y += 5;
+      pdf.text(`Incluye ${impuestosIncluidos} de Impuestos`, 10, y); y += 5;
+      pdf.text(`Cajero : ${venta.atendio || "—"}`, 10, y); y += 10;
+      pdf.setFont("courier", "bold");
+      pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
+      pdf.output("dataurlnewwindow");
+    }
   } catch (err) {
     console.error("Error reimprimiendo ticket:", err);
     alert("Error al generar reimpresión.");
   }
 }
-
 </script>
-
 </body>
 </html>
