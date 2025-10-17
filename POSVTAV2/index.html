@@ -1079,14 +1079,20 @@ const total = venta.resumen_financiero?.total || 0;
 const recib = venta.recibido || 0;
 const camb = venta.cambio || 0;
 
+// ✅ Formato con comas para PDF
+const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
 pdf.setFont("courier", "bold");
-pdf.text(`Total : ${total.toFixed(2)}`, 10, y);
+pdf.text(`Total : ${formatoNum(total)}`, 10, y);
 y += 5;
 
 pdf.setFont("courier", "normal");
-pdf.text(`Su Pago : ${recib.toFixed(2)}`, 10, y);
+pdf.text(`Su Pago : ${formatoNum(recib)}`, 10, y);
 y += 5;
-pdf.text(`Cambio : ${camb.toFixed(2)}`, 10, y);
+pdf.text(`Cambio : ${formatoNum(camb)}`, 10, y);
 y += 5;
 
 pdf.line(10, y, 200, y);
@@ -1341,9 +1347,15 @@ function render() {
 function generarTextoSimpleRawBT(venta) {
   try {
     // 🧾 Variables base
-    const total = (venta?.resumen_financiero?.total || 0).toFixed(2);
-    const recibido = (venta?.recibido || 0).toFixed(2);
-    const cambio = (venta?.cambio || 0).toFixed(2);
+// ✅ Formato con separadores de miles y 2 decimales
+const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+const total = formatoNum(venta?.resumen_financiero?.total || 0);
+const recibido = formatoNum(venta?.recibido || 0);
+const cambio = formatoNum(venta?.cambio || 0);
 
     // ✅ Cálculo total de impuestos (IVA + IEPS)
 // 🧮 Calcular impuestos reales desde departamento_info
