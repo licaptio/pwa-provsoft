@@ -1022,12 +1022,12 @@ venta.margen_porcentaje = venta.resumen_financiero.margen_porcentaje;
     try {
       const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
       const CHAT_ID = "6617988297";
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-
-// === ENCABEZADO GENERAL ===
+// === ENCABEZADO PRINCIPAL ===
+const { jsPDF } = window.jspdf;
+const pdf = new jsPDF();
 pdf.setFont("courier", "bold");
 pdf.setFontSize(12);
+
 pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
 pdf.setFont("courier", "normal");
 pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
@@ -1036,33 +1036,45 @@ pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
 pdf.text("TEL: (821) 2121805", 105, 39, { align: "center" });
 pdf.text("RÉGIMEN GENERAL DE LEY", 105, 45, { align: "center" });
 pdf.text("PERSONAS MORALES", 105, 51, { align: "center" });
+
 pdf.line(10, 54, 200, 54);
 
 pdf.setFont("courier", "bold");
-pdf.text(`# Venta : ${venta.folio}   Fecha : ${venta.fecha_txt}`, 10, 60);
-pdf.line(10, 62, 200, 62);
+pdf.text(`# Venta : ${venta.folio}`, 10, 60);
+pdf.text(`Fecha : ${venta.fecha_txt}`, 130, 60);
+pdf.line(10, 63, 200, 63);
 
-let y = 68;
+let y = 70;
+
+// === DETALLE DE PRODUCTOS ===
 pdf.setFont("courier", "normal");
-
-(venta.detalle || []).forEach(item => {
-  const nombre = item.nombre.length > 35 ? item.nombre.slice(0, 35) + "…" : item.nombre;
+(venta.detalle || []).forEach((it) => {
+  const nombre = (it.nombre || "").substring(0, 40);
   pdf.text(nombre, 10, y);
   y += 5;
-  pdf.text(`Cant: ${item.cantidad.toFixed(3)}   ${item.precio_unit.toFixed(2)}   ${item.importe.toFixed(2)}`, 10, y);
+
+  const linea = `Cant: ${it.cantidad.toFixed(3)}   ${it.precio_unit.toFixed(2)}   ${it.importe.toFixed(2)}`;
+  pdf.text(linea, 10, y);
+  y += 4;
+
+  pdf.text("--------------------------------", 10, y);
   y += 6;
+
+  // Añadir salto de página si se sale del área
   if (y > 270) {
     pdf.addPage();
     y = 20;
   }
 });
 
+// === TOTALES ===
 pdf.line(10, y, 200, y);
 y += 8;
 
-// === TOTALES Y PIE ===
 const subtotal = venta.resumen_financiero?.subtotal || 0;
-const impuestosIncluidos = (venta.resumen_financiero?.totalIva || 0) + (venta.resumen_financiero?.totalIeps || 0);
+const totalIva = Number(venta.resumen_financiero?.totalIva || 0);
+const totalIeps = Number(venta.resumen_financiero?.totalIeps || 0);
+const impuestosIncluidos = (totalIva + totalIeps).toFixed(2);
 const total = venta.resumen_financiero?.total || 0;
 const recib = venta.recibido || 0;
 const camb = venta.cambio || 0;
@@ -1070,19 +1082,25 @@ const camb = venta.cambio || 0;
 pdf.setFont("courier", "bold");
 pdf.text(`Total : ${total.toFixed(2)}`, 10, y);
 y += 5;
+
 pdf.setFont("courier", "normal");
 pdf.text(`Su Pago : ${recib.toFixed(2)}`, 10, y);
 y += 5;
 pdf.text(`Cambio : ${camb.toFixed(2)}`, 10, y);
-y += 6;
+y += 5;
+
 pdf.line(10, y, 200, y);
 y += 8;
 pdf.text(`Artículos vendidos : ${venta.detalle.length}`, 10, y);
 y += 5;
-pdf.text(`Incluye ${impuestosIncluidos.toFixed(2)} de Impuestos`, 10, y);
+pdf.text(`Incluye ${impuestosIncluidos} de Impuestos`, 10, y);
 y += 5;
 pdf.text(`Cajero : ${venta.atendio || "—"}`, 10, y);
 
+y += 10;
+pdf.setFont("courier", "bold");
+pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
+      
       if (venta.ubicacion?.lat) {
         y += 10;
         pdf.setTextColor(0, 0, 255);
