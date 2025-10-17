@@ -1322,11 +1322,17 @@ function render() {
 }
 function generarTextoSimpleRawBT(venta) {
   try {
+    // 🧾 Variables base
     const total = (venta?.resumen_financiero?.total || 0).toFixed(2);
     const recibido = (venta?.recibido || 0).toFixed(2);
     const cambio = (venta?.cambio || 0).toFixed(2);
-    const impuestosIncluidos = ((venta?.resumen_financiero?.totalIva || 0) + (venta?.resumen_financiero?.totalIeps || 0)).toFixed(2);
 
+    // ✅ Cálculo total de impuestos (IVA + IEPS)
+    const totalIva = Number(venta?.resumen_financiero?.totalIva || 0);
+    const totalIeps = Number(venta?.resumen_financiero?.totalIeps || 0);
+    const impuestosIncluidos = (totalIva + totalIeps).toFixed(2);
+
+    // === ENCABEZADO ===
     let texto = `
 PROVEEDORA MATRIZ
 MADERO 690 SUR, CENTRO
@@ -1336,17 +1342,25 @@ TEL: (821) 2121805
 RÉGIMEN GENERAL DE LEY
 PERSONAS MORALES
 --------------------------------
-# Venta : ${venta.folio}  Fecha : ${venta.fecha_txt}
+# Venta : ${venta.folio}
+Fecha : ${venta.fecha_txt}
 --------------------------------
 `;
 
+    // === DETALLE DE PRODUCTOS ===
     (venta.detalle || []).forEach(it => {
-      const nombre = it.nombre.length > 32 ? it.nombre.slice(0, 32) + "…" : it.nombre;
+      const nombre = (it.nombre || "").substring(0, 35);
+      const cant = it.cantidad.toFixed(3).padStart(6, " ");
+      const precio = it.precio_unit.toFixed(2).padStart(8, " ");
+      const imp = it.importe.toFixed(2).padStart(8, " ");
+
       texto += `${nombre}\n`;
-      texto += `Cant: ${it.cantidad.toFixed(3)}   ${it.precio_unit.toFixed(2)}   ${it.importe.toFixed(2)}\n`;
+      texto += `Cant:${cant}  ${precio}  ${imp}\n`;
+      texto += `--------------------------------\n`;
     });
 
-    texto += `--------------------------------
+    // === TOTALES ===
+    texto += `
 Total : ${total}
 Su Pago : ${recibido}
 Cambio : ${cambio}
