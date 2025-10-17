@@ -839,13 +839,13 @@ function calcularTotalesConImpuestosIncluidos() {
 
   const impuestos = totalIva + totalIeps;
 
-  return {
-    subtotal: +subtotal.toFixed(2),
-    impuestos: +impuestos.toFixed(2),
-    total: +total.toFixed(2),
-    totalIva: +totalIva.toFixed(2),
-    totalIeps: +totalIeps.toFixed(2)
-  };
+return {
+  subtotal: +subtotal.toFixed(2),
+  impuestos: +(totalIva + totalIeps).toFixed(2),
+  total: +total.toFixed(2),
+  totalIva: +totalIva.toFixed(2),
+  totalIeps: +totalIeps.toFixed(2)
+};
 }
 
   // ==== Modal Cobro ====
