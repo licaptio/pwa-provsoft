@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Monitor de Ventas – Ruta Móvil | PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #00416A, #E4E5E6);
+      color: #111;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h2 {
+      text-align: center;
+      color: white;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .filtro-fecha {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    input[type="date"], button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer;
+    }
+
+    input[type="date"] {
+      margin-right: 10px;
+    }
+
+    button {
+      background: #00416A;
+      color: white;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #002b4c;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ccc;
+    }
+
+    th {
+      background: #00416A;
+      color: white;
+    }
+
+    tr:hover { background: #f3f3f3; }
+
+    .btn-delete {
+      background: #e53935;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-delete:hover { background: #b71c1c; }
+
+    #totalVentas {
+      text-align: right;
+      margin-top: 10px;
+      font-weight: bold;
+      color: white;
+      font-size: 1.1em;
+    }
+
+    .footer {
+      text-align: center;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9em;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🧾 Monitor de Ventas – Ruta Móvil | PROVSOFT</h2>
+
+  <div class="filtro-fecha">
+    <label>Filtrar por fecha: </label>
+    <input type="date" id="fechaFiltro">
+    <button onclick="cargarVentas()">Mostrar todas</button>
+  </div>
+
+  <table id="tablaVentas">
+    <thead>
+      <tr>
+        <th>Cliente</th>
+        <th>Atendió</th>
+        <th>Total</th>
+        <th>Fecha / Hora</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="totalVentas"></div>
+
+  <div class="footer">
+    PROVSOFT © 2025 – Sistema Monitor de Ventas Ruta Móvil
+  </div>
+
+  <script>
+    // 🔥 CONFIGURA TU FIREBASE AQUÍ
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tablaBody = document.querySelector("#tablaVentas tbody");
+    const fechaInput = document.getElementById("fechaFiltro");
+    const totalDiv = document.getElementById("totalVentas");
+
+    // 📦 Función para cargar ventas
+    async function cargarVentas() {
+      tablaBody.innerHTML = "<tr><td colspan='5'>Cargando ventas...</td></tr>";
+      totalDiv.textContent = "";
+
+      const fecha = fechaInput.value;
+      let query = db.collection("rutas_venta");
+
+      // Ordena por hora o timestamp (más recientes arriba)
+      query = query.orderBy("createdAt", "desc");
+
+      const snapshot = await query.get();
+      let totalGeneral = 0;
+      tablaBody.innerHTML = "";
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+
+        // Si hay filtro por fecha
