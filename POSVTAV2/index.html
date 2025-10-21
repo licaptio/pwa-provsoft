@@ -249,51 +249,6 @@
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-<!-- 📷 Control de escáner QR -->
-<script>
-window.addEventListener("load", () => {
-  const btnCam = document.getElementById("btnCam");
-  const camDiv = document.getElementById("qrReaderContainer");
-  const cerrarCam = document.getElementById("cerrarCam");
-  let html5QrCode = null;
-
-  btnCam.addEventListener("click", () => {
-    camDiv.style.display = "flex";
-    const readerDiv = document.getElementById("reader");
-    if (!readerDiv) {
-      alert("No se encontró el contenedor del lector (#reader)");
-      return;
-    }
-
-    html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        console.log("📦 Código detectado:", decodedText);
-        const buscador = document.getElementById("buscador");
-        buscador.value = decodedText;
-        camDiv.style.display = "none";
-        html5QrCode.stop().then(() => {
-          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-          buscador.dispatchEvent(enterEvent);
-        });
-      },
-      (errorMessage) => console.log("⚠️", errorMessage)
-    ).catch((err) => {
-      alert("No se pudo abrir la cámara: " + err);
-      camDiv.style.display = "none";
-    });
-  });
-
-  cerrarCam.addEventListener("click", () => {
-    if (html5QrCode) html5QrCode.stop().then(() => camDiv.style.display = "none");
-    else camDiv.style.display = "none";
-  });
-});
-</script>
-
-
 <!-- Tu script principal de Firebase -->
 <script type="module">
   
@@ -1571,6 +1526,56 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 </script>
+<!-- 🔹 Contenedor oculto para cámara -->
+<div id="qrReaderContainer" style="display:none;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;">
+  <div id="reader" style="width:90%;max-width:360px;margin:auto;background:#fff;border-radius:12px;padding:8px;"></div>
+  <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
+</div>
 
+<!-- 📸 Librería QR -->
+<script src="./html5-qrcode.min.js"></script>
+
+<!-- 📷 Control funcional (nuevo y correcto) -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  const readerDiv = document.getElementById("reader");
+  let html5QrCode = null;
+
+  btnCam.addEventListener("click", async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Tu dispositivo no permite acceso a la cámara.");
+      return;
+    }
+
+    camDiv.style.display = "flex";
+    html5QrCode = new Html5Qrcode("reader");
+
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        decodedText => {
+          console.log("📦 Código detectado:", decodedText);
+          document.getElementById("buscador").value = decodedText;
+          html5QrCode.stop().then(() => camDiv.style.display = "none");
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          document.getElementById("buscador").dispatchEvent(enterEvent);
+        }
+      );
+    } catch (err) {
+      alert("Error al iniciar cámara: " + err);
+      camDiv.style.display = "none";
+    }
+  });
+
+  cerrarCam.addEventListener("click", async () => {
+    if (html5QrCode) await html5QrCode.stop();
+    camDiv.style.display = "none";
+  });
+});
+</script>
 </body>
 </html>
