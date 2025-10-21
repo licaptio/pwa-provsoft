@@ -130,7 +130,6 @@
   </div>
 
   <script>
-    // 🔥 CONFIGURA TU FIREBASE AQUÍ
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -167,3 +166,62 @@ const app = initializeApp(firebaseConfig);
         const data = doc.data();
 
         // Si hay filtro por fecha
+        if (!fecha || data.fecha === fecha) {
+          const total = parseFloat(data.total || 0);
+          totalGeneral += total;
+
+          // Muestra hora si existe campo createdAt
+          let fechaHora = "";
+          if (data.createdAt && data.createdAt.toDate) {
+            const d = data.createdAt.toDate();
+            const fechaStr = d.toLocaleDateString("es-MX");
+            const horaStr = d.toLocaleTimeString("es-MX", { hour12: false });
+            fechaHora = `${fechaStr} ${horaStr}`;
+          } else {
+            fechaHora = `${data.fecha || "—"} ${data.hora || ""}`;
+          }
+
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${data.cliente || "—"}</td>
+            <td>${data.atendio || "—"}</td>
+            <td>$${total.toFixed(2)}</td>
+            <td>${fechaHora}</td>
+            <td><button class="btn-delete" onclick="eliminarVenta('${doc.id}')">Eliminar</button></td>
+          `;
+          tablaBody.appendChild(row);
+        }
+      });
+
+      if (tablaBody.innerHTML === "") {
+        tablaBody.innerHTML = "<tr><td colspan='5'>No hay ventas registradas</td></tr>";
+      }
+
+      totalDiv.textContent = `💰 Total general: $${totalGeneral.toFixed(2)}`;
+    }
+
+    // 🗑️ Eliminar con doble confirmación
+    async function eliminarVenta(id) {
+      const conf1 = confirm("¿Seguro que deseas eliminar esta venta?");
+      if (!conf1) return;
+      const conf2 = confirm("Esta acción no se puede deshacer. Confirmar eliminación definitiva.");
+      if (!conf2) return;
+
+      try {
+        await db.collection("rutas_venta").doc(id).delete();
+        alert("✅ Venta eliminada correctamente");
+        cargarVentas();
+      } catch (e) {
+        console.error(e);
+        alert("❌ Error al eliminar");
+      }
+    }
+
+    // 📅 Eventos
+    fechaInput.addEventListener("change", cargarVentas);
+
+    // 🚀 Cargar todas al inicio
+    window.onload = cargarVentas;
+  </script>
+</body>
+</html>
