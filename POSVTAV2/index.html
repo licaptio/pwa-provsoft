@@ -243,19 +243,67 @@
 
   </main>
 </div>
+<!-- 📸 Librería QR -->
+<script src="./html5-qrcode.min.js"></script>
 
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
+<!-- 📷 Control de escáner QR -->
+<script>
+window.addEventListener("load", () => {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  let html5QrCode = null;
+
+  btnCam.addEventListener("click", () => {
+    camDiv.style.display = "flex";
+    const readerDiv = document.getElementById("reader");
+    if (!readerDiv) {
+      alert("No se encontró el contenedor del lector (#reader)");
+      return;
+    }
+
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        console.log("📦 Código detectado:", decodedText);
+        const buscador = document.getElementById("buscador");
+        buscador.value = decodedText;
+        camDiv.style.display = "none";
+        html5QrCode.stop().then(() => {
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          buscador.dispatchEvent(enterEvent);
+        });
+      },
+      (errorMessage) => console.log("⚠️", errorMessage)
+    ).catch((err) => {
+      alert("No se pudo abrir la cámara: " + err);
+      camDiv.style.display = "none";
+    });
+  });
+
+  cerrarCam.addEventListener("click", () => {
+    if (html5QrCode) html5QrCode.stop().then(() => camDiv.style.display = "none");
+    else camDiv.style.display = "none";
+  });
+});
+</script>
+
+
 <!-- Tu script principal de Firebase -->
 <script type="module">
-  
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+"use strict";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, addDoc, setDoc, serverTimestamp, runTransaction, doc,
-  getDocs, getDoc, query, where, orderBy, Timestamp, limit   // 👈 agrega limit aquí
+  getDocs, getDoc, query, where, orderBy, Timestamp, limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
+import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { obtenerUbicacionRobusta } from "./geoHelper.js";
 
   // ==== Configuración Firebase ====
   const firebaseConfig = {
@@ -269,10 +317,6 @@ import {
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
   const $ = (s)=>document.querySelector(s); // <--- muévela aquí
-import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-// === GEOLOCALIZACIÓN ROBUSTA ===
-import { obtenerUbicacionRobusta } from './geoHelper.js';
-
 enableIndexedDbPersistence(db).catch(err => {
   console.warn("⚠️ Firestore offline persistence desactivado:", err);
 });
@@ -649,9 +693,10 @@ const elCant = document.getElementById("cantidadInput");
     render();
   }
 function decodificarCodigoBalanza(codigo) {
-  // 🧠 Estructura esperada: 20 + 5 dígitos producto + 5 dígitos peso + 1 verificador
-  if (!codigo || codigo.length !== 13 || !codigo.startsWith("20")) return null;
-  const base = codigo.substring(2, 7).replace(/^0+/, ""); // producto base
+  // Ejemplo: 2000016001105
+  if (!codigo || codigo.length < 13) return null;
+  if (!codigo.startsWith("2")) return null;
+  const base = codigo.substring(1, 7).replace(/^0+/, ""); // ← quitar ceros a la izquierda
   const pesoStr = codigo.substring(7, 12);
   const peso = parseFloat(pesoStr) / 1000;
   return { base, peso };
@@ -661,21 +706,23 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim();
   if (!q) return [];
 
-  // 🧩 Código de balanza
+  // 🧩 Detección de código de balanza
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
-    console.log("Código balanza detectado:", bal);
-    const posibles = [
-      bal.base,
-      bal.base.padStart(5, "0"),
-      "20" + bal.base.padStart(5, "0"),
-      "20000" + bal.base
-    ];
+    console.log("Código de balanza detectado:", bal);
+   const posibles = [
+  bal.base,
+  bal.base.padStart(6, "0"),
+  ("000000" + bal.base).slice(-6),
+  "2" + bal.base.padStart(6, "0"),
+  "20000" + bal.base   // 🔥 esta línea agrega compatibilidad con tus equivalentes reales
+];
 
+    // Buscar en codeIndex y equivalentes
     for (const key of posibles) {
       const prodId =
         codeIndex.get(key) ||
-        catalogo.find(p => (p.equivalentes || []).includes(key))?.id;
+        catalogo.find(p => (p.equivalentes || []).some(eq => eq === key))?.id;
 
       if (prodId) {
         const p = catalogo.find(x => x.id === prodId);
@@ -687,25 +734,25 @@ function buscarLocal(qraw) {
     }
   }
 
-  // 🔍 Búsqueda normal
+  // 🔎 Búsqueda por código exacto o equivalente
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
   }
 
-  // Buscar en equivalentes
+  // 🔍 Buscar en equivalentes parciales
   const matchEq = catalogo.find(p =>
     (p.equivalentes || []).some(eq => q.includes(eq))
   );
   if (matchEq) return [matchEq];
 
-  // Por nombre
+  // 🔠 Buscar por nombre
   return catalogo.filter(p =>
     (p.nombre || "").toLowerCase().includes(q.toLowerCase())
   );
 }
-function pintarResultados(hits){
+  function pintarResultados(hits){
     elResultados.innerHTML=""; if(hits.length===0){elResultados.style.display="none";return;}
     elResultados.style.display="block";
     hits.forEach(p=>{
@@ -1476,6 +1523,11 @@ Cajero : ${venta.atendio || "—"}
       <div class="t-thanks" style="text-align:center; margin-top:8px; font-size:12px;">¡Gracias por su compra!</div>
     </div>
 </div>
+<!-- 🔹 Contenedor oculto para cámara -->
+<div id="qrReaderContainer" style="display:none; flex-direction:column; align-items:center; justify-content:center; position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:3000;">
+  <div id="reader" style="width:90%; max-width:360px; margin:auto; background:#fff; border-radius:12px; padding:8px;"></div>
+  <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
+</div>
 
 <script>
 if ("serviceWorker" in navigator) {
@@ -1507,56 +1559,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-<!-- 🔹 Contenedor oculto para cámara -->
-<div id="qrReaderContainer" style="display:none;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;">
-  <div id="reader" style="width:90%;max-width:360px;margin:auto;background:#fff;border-radius:12px;padding:8px;"></div>
-  <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
-</div>
-
-<!-- 📸 Librería QR -->
-<script src="./html5-qrcode.min.js"></script>
-
-<!-- 📷 Control funcional (nuevo y correcto) -->
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  const btnCam = document.getElementById("btnCam");
-  const camDiv = document.getElementById("qrReaderContainer");
-  const cerrarCam = document.getElementById("cerrarCam");
-  const readerDiv = document.getElementById("reader");
-  let html5QrCode = null;
-
-  btnCam.addEventListener("click", async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      alert("Tu dispositivo no permite acceso a la cámara.");
-      return;
-    }
-
-    camDiv.style.display = "flex";
-    html5QrCode = new Html5Qrcode("reader");
-
-    try {
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        decodedText => {
-          console.log("📦 Código detectado:", decodedText);
-          document.getElementById("buscador").value = decodedText;
-          html5QrCode.stop().then(() => camDiv.style.display = "none");
-          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-          document.getElementById("buscador").dispatchEvent(enterEvent);
-        }
-      );
-    } catch (err) {
-      alert("Error al iniciar cámara: " + err);
-      camDiv.style.display = "none";
-    }
-  });
-
-  cerrarCam.addEventListener("click", async () => {
-    if (html5QrCode) await html5QrCode.stop();
-    camDiv.style.display = "none";
-  });
-});
 </script>
 </body>
 </html>
