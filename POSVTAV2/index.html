@@ -765,31 +765,32 @@ function buscarLocal(qraw) {
 
   let prodSeleccionado=null;
   elBuscador.addEventListener('input',()=>pintarResultados(buscarLocal(elBuscador.value)));
-  elBuscador.addEventListener('keydown',(ev)=>{
-    if(ev.key==='Enter'){
-      const hits=buscarLocal(elBuscador.value.trim());
-      if(hits.length>=1){
-        prodSeleccionado=hits[0];
-        elResultados.style.display="none";
-        elBuscador.value=hits[0].nombre;
-        elCant.focus(); elCant.select();
-      }
-    }
-  });
-  elCant.addEventListener('keydown',(ev)=>{
-    if(ev.key==='Enter'){
-      if(!clienteSeleccionado){alert('Selecciona un cliente primero.');elCliente.focus();return;}
-      if(!prodSeleccionado){alert('Selecciona un producto.');elBuscador.focus();return;}
-      // Si se detectó peso desde balanza, usarlo en vez de cantidad
-let cant = parseFloat(elCant.value || '');
-if (isNaN(cant) || cant <= 0) {
-  cant = prodSeleccionado._pesoDetectado || 1;
-}
-addProduct(prodSeleccionado, cant);
+elBuscador.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') {
+    const hits = buscarLocal(elBuscador.value.trim());
+    if (hits.length >= 1) {
+      prodSeleccionado = hits[0];
+      elResultados.style.display = "none";
+      elBuscador.value = hits[0].nombre;
 
-      prodSeleccionado=null; elBuscador.value=''; elCant.value='1'; elBuscador.focus();
+      // 🧩 Si es producto de balanza, usar el peso detectado directamente
+      const pesoAuto = parseFloat(prodSeleccionado._pesoDetectado || 0);
+      if (pesoAuto > 0) {
+        addProduct(prodSeleccionado, pesoAuto);
+        prodSeleccionado = null;
+        elBuscador.value = "";
+        elCant.value = "1";
+        elBuscador.focus();
+        return;
+      }
+
+      // Si no tiene peso, pedir cantidad manualmente
+      elCant.focus();
+      elCant.select();
     }
-  });
+  }
+});
+
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
 
