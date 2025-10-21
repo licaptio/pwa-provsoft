@@ -695,20 +695,6 @@ const elCant = document.getElementById("cantidadInput");
     else{carrito.push({...prod,cantidad:cant,precioUnit:precio,importe:cant*precio});}
     render();
   }
-function decodificarCodigoBalanza(codigo) {
-  // Ejemplo: 2000016001105
-  if (!codigo || codigo.length < 13) return null;
-  if (!codigo.startsWith("2")) return null;
-  const base = codigo.substring(1, 7).replace(/^0+/, ""); // ← quitar ceros a la izquierda
-  const pesoStr = codigo.substring(7, 12);
-  const peso = parseFloat(pesoStr) / 1000;
-  return { base, peso };
-}
-
-function buscarLocal(qraw) {
-  const q = (qraw || "").trim();
-  if (!q) return [];
-
   // 🧩 Detección de código de balanza
 function decodificarCodigoBalanza(codigo) {
   // Ejemplo: 2000004245603
