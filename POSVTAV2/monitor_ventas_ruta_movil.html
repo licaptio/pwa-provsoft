@@ -16,19 +16,16 @@
       padding: 20px;
       margin: 0;
     }
-
     h2 {
       text-align: center;
       color: white;
       margin-bottom: 15px;
       font-weight: 600;
     }
-
     .filtro-fecha {
       text-align: center;
       margin-bottom: 20px;
     }
-
     input[type="date"], button {
       padding: 10px 14px;
       border-radius: 8px;
@@ -37,21 +34,13 @@
       font-family: 'Poppins', sans-serif;
       cursor: pointer;
     }
-
-    input[type="date"] {
-      margin-right: 10px;
-    }
-
+    input[type="date"] { margin-right: 10px; }
     button {
       background: #00416A;
       color: white;
       transition: 0.2s;
     }
-
-    button:hover {
-      background: #002b4c;
-    }
-
+    button:hover { background: #002b4c; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -59,20 +48,13 @@
       border-radius: 12px;
       overflow: hidden;
     }
-
     th, td {
       padding: 10px;
       text-align: left;
       border-bottom: 1px solid #ccc;
     }
-
-    th {
-      background: #00416A;
-      color: white;
-    }
-
+    th { background: #00416A; color: white; }
     tr:hover { background: #f3f3f3; }
-
     .btn-delete {
       background: #e53935;
       color: white;
@@ -82,9 +64,7 @@
       cursor: pointer;
       transition: 0.2s;
     }
-
     .btn-delete:hover { background: #b71c1c; }
-
     #totalVentas {
       text-align: right;
       margin-top: 10px;
@@ -92,7 +72,6 @@
       color: white;
       font-size: 1.1em;
     }
-
     .footer {
       text-align: center;
       color: rgba(255,255,255,0.8);
@@ -116,7 +95,7 @@
         <th>Cliente</th>
         <th>Atendió</th>
         <th>Total</th>
-        <th>Fecha / Hora</th>
+        <th>Fecha</th>
         <th>Acción</th>
       </tr>
     </thead>
@@ -130,7 +109,6 @@
   </div>
 
   <script>
-    // ✅ Inicialización correcta (Firebase Compat)
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
       authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -147,16 +125,12 @@
     const fechaInput = document.getElementById("fechaFiltro");
     const totalDiv = document.getElementById("totalVentas");
 
-    // 📦 Función para cargar ventas
     async function cargarVentas() {
       tablaBody.innerHTML = "<tr><td colspan='5'>Cargando ventas...</td></tr>";
       totalDiv.textContent = "";
 
       const fecha = fechaInput.value;
-      let query = db.collection("rutas_venta");
-
-      // Ordena por campo createdAt descendente (recientes arriba)
-      query = query.orderBy("createdAt", "desc");
+      let query = db.collection("rutas_venta").orderBy("fecha", "desc");
 
       const snapshot = await query.get();
       let totalGeneral = 0;
@@ -169,22 +143,12 @@
           const total = parseFloat(data.total || 0);
           totalGeneral += total;
 
-          let fechaHora = "";
-          if (data.createdAt && data.createdAt.toDate) {
-            const d = data.createdAt.toDate();
-            const fechaStr = d.toLocaleDateString("es-MX");
-            const horaStr = d.toLocaleTimeString("es-MX", { hour12: false });
-            fechaHora = `${fechaStr} ${horaStr}`;
-          } else {
-            fechaHora = `${data.fecha || "—"} ${data.hora || ""}`;
-          }
-
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${data.cliente || "—"}</td>
             <td>${data.atendio || "—"}</td>
             <td>$${total.toFixed(2)}</td>
-            <td>${fechaHora}</td>
+            <td>${data.fecha || "—"}</td>
             <td><button class="btn-delete" onclick="eliminarVenta('${doc.id}')">Eliminar</button></td>
           `;
           tablaBody.appendChild(row);
@@ -198,7 +162,6 @@
       totalDiv.textContent = `💰 Total general: $${totalGeneral.toFixed(2)}`;
     }
 
-    // 🗑️ Eliminar con doble confirmación
     async function eliminarVenta(id) {
       const conf1 = confirm("¿Seguro que deseas eliminar esta venta?");
       if (!conf1) return;
@@ -216,8 +179,6 @@
     }
 
     fechaInput.addEventListener("change", cargarVentas);
-
-    // 🚀 Cargar todas al inicio
     window.onload = cargarVentas;
   </script>
 </body>
