@@ -710,37 +710,22 @@ function buscarLocal(qraw) {
   if (!q) return [];
 
   // 🧩 Detección de código de balanza
-function decodificarCodigoBalanza(codigo) {
-  // Ejemplo: 2000004245603
-  if (!codigo || codigo.length !== 13) return null;
-  if (!codigo.startsWith("20")) return null;
-
-  const base = codigo.substring(0, 7); // 2000004 → producto base
-  const pesoStr = codigo.substring(7, 12); // 24560 → gramos × 1000
-  const peso = parseFloat(pesoStr) / 1000; // → 24.560
-  return { base, peso };
-}
-
-function buscarLocal(qraw) {
-  const q = (qraw || "").trim();
-  if (!q) return [];
-
-  // 🔍 Detectar códigos de balanza tipo 20xxxx + peso + verificador
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
-    console.log("📦 Código de balanza detectado:", bal);
+    console.log("Código de balanza detectado:", bal);
+   const posibles = [
+  bal.base,
+  bal.base.padStart(6, "0"),
+  ("000000" + bal.base).slice(-6),
+  "2" + bal.base.padStart(6, "0"),
+  "20000" + bal.base   // 🔥 esta línea agrega compatibilidad con tus equivalentes reales
+];
 
-    const posibles = [
-      bal.base,
-      bal.base.padStart(7, "0"),
-      "2" + bal.base.padStart(6, "0"),
-      "20000" + bal.base // compatibilidad con tus equivalentes reales
-    ];
-
+    // Buscar en codeIndex y equivalentes
     for (const key of posibles) {
       const prodId =
         codeIndex.get(key) ||
-        catalogo.find(p => (p.equivalentes || []).includes(key))?.id;
+        catalogo.find(p => (p.equivalentes || []).some(eq => eq === key))?.id;
 
       if (prodId) {
         const p = catalogo.find(x => x.id === prodId);
@@ -759,7 +744,7 @@ function buscarLocal(qraw) {
     return p ? [p] : [];
   }
 
-  // 🔍 Buscar por equivalentes parciales
+  // 🔍 Buscar en equivalentes parciales
   const matchEq = catalogo.find(p =>
     (p.equivalentes || []).some(eq => q.includes(eq))
   );
@@ -770,7 +755,6 @@ function buscarLocal(qraw) {
     (p.nombre || "").toLowerCase().includes(q.toLowerCase())
   );
 }
-
   function pintarResultados(hits){
     elResultados.innerHTML=""; if(hits.length===0){elResultados.style.display="none";return;}
     elResultados.style.display="block";
