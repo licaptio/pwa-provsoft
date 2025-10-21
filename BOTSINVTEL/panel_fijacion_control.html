@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel de Control – Fijación de Artículos | PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, where, orderBy, getDocs, setDoc, doc } 
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // 🔧 Tu configuración Firebase real
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Elementos del DOM
+    const busqueda = document.getElementById('busqueda');
+    const resultados = document.getElementById('resultados');
+    const codigo = document.getElementById('codigo');
+    const concepto = document.getElementById('concepto');
+    const inventario_fijado = document.getElementById('inventario_fijado');
+    const inventario_minimo = document.getElementById('inventario_minimo');
+    const usuario = document.getElementById('usuario');
+    const msg = document.getElementById('msg');
+    const tbody = document.getElementById('tbody');
+
+    // 🔍 Búsqueda en vivo de productos activos
+    busqueda.addEventListener('input', async () => {
+      const texto = busqueda.value.trim().toLowerCase();
+      if (texto.length < 2) { resultados.style.display = 'none'; return; }
+
+      const productosRef = collection(db, "productos");
+      const q = query(productosRef, where("activo", "==", true));
+      const snap = await getDocs(q);
+
+      resultados.innerHTML = '';
+      let encontrados = 0;
+
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const coincide = data.codigoBarra.includes(texto) || data.concepto.toLowerCase().includes(texto);
+        if (coincide) {
+          encontrados++;
+          const div = document.createElement('div');
+          div.textContent = `${data.codigoBarra} – ${data.concepto}`;
+          div.onclick = () => {
+            codigo.value = data.codigoBarra;
+            concepto.value = data.concepto;
+            busqueda.value = '';
+            resultados.style.display = 'none';
+            msg.innerText = "✅ Artículo seleccionado";
+          };
+          resultados.appendChild(div);
+        }
+      });
+
+      resultados.style.display = encontrados > 0 ? 'block' : 'none';
+    });
+
+    // 💾 Guardar / Actualizar y registrar historial
+    window.guardarArticulo = async function guardarArticulo() {
+      const codigoVal = codigo.value.trim();
+      const conceptoVal = concepto.value.trim();
+      const fijadoVal = parseInt(inventario_fijado.value || 0);
+      const minimoVal = parseInt(inventario_minimo.value || 0);
+      const usuarioVal = usuario.value.trim() || "Desconocido";
+      const ahora = new Date().toISOString();
+
+      if (!codigoVal || !fijadoVal) return alert("Completa código y cantidad fijada");
+
+      const docRef = doc(db, "seguimiento_inventario", codigoVal);
+
+      await setDoc(docRef, {
+        codigoBarra: codigoVal,
+        concepto: conceptoVal,
+        inventario_fijado: fijadoVal,
+        inventario_minimo: minimoVal,
+        activo: true,
+        fecha_inicio: ahora,
+        actualizadoEn: ahora
+      });
+
+      const histRef = doc(db, `seguimiento_inventario/${codigoVal}/historial`, ahora);
+      await setDoc(histRef, {
+        inventario_fijado: fijadoVal,
+        inventario_minimo: minimoVal,
+        usuario: usuarioVal,
+        fecha: ahora
+      });
+
+      msg.innerText = "✅ Artículo fijado / actualizado correctamente";
+      inventario_fijado.value = '';
+      inventario_minimo.value = '';
+      codigo.value = '';
+      concepto.value = '';
+      cargarTabla();
+    };
+
+    // 📋 Cargar tabla de artículos fijados activos
+    async function cargarTabla() {
+      const segRef = collection(db, "seguimiento_inventario");
+      const q = query(segRef, where("activo", "==", true), orderBy("codigoBarra"));
+      const snap = await getDocs(q);
+
+      tbody.innerHTML = "";
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${data.codigoBarra}</td>
+          <td>${data.concepto || "-"}</td>
+          <td>${data.inventario_fijado}</td>
+          <td>${data.inventario_minimo}</td>
+          <td>${data.actualizadoEn ? data.actualizadoEn.split("T")[0] : "-"}</td>
+        `;
+        tr.onclick = () => {
+          codigo.value = data.codigoBarra;
+          concepto.value = data.concepto;
+          inventario_fijado.value = data.inventario_fijado;
+          inventario_minimo.value = data.inventario_minimo;
+          msg.innerText = "📝 Editando artículo " + data.codigoBarra;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+        tbody.appendChild(tr);
+      });
+    }
+
+    cargarTabla();
+  </script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(to right, #00416A, #E4E5E6);
+      color: white;
+      padding: 20px;
+    }
+    h2, h3 {
+      text-align: center;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      max-width: 700px;
+      margin: auto;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: none;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 600;
+      background: #F5AF19;
+    }
+    #resultados {
+      background: white;
+      color: black;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+    #resultados div {
+      padding: 8px;
+      border-bottom: 1px solid #ccc;
+      cursor: pointer;
+    }
+    #resultados div:hover { background: #eee; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: rgba(255,255,255,0.95);
+      color: black;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background: #00416A;
+      color: white;
+    }
+    tr:hover { background: #f0f0f0; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>📦 Panel de Control de Inventario Fijado</h2>
+
+    <input id="busqueda" placeholder="Buscar por código o concepto (solo activos)">
+    <div id="resultados"></div>
+
+    <input id="codigo" placeholder="Código de barras" disabled>
+    <input id="concepto" placeholder="Concepto del artículo" disabled>
+    <input id="inventario_fijado" type="number" placeholder="Inventario fijado">
+    <input id="inventario_minimo" type="number" placeholder="Inventario mínimo (alerta)">
+    <input id="usuario" placeholder="Usuario" value="Gerardo Ríos">
+    <button onclick="guardarArticulo()">💾 Guardar / Actualizar</button>
+    <p id="msg"></p>
+
+    <h3>📋 Artículos Fijados Activos</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Concepto</th>
+          <th>Fijado</th>
+          <th>Mínimo</th>
+          <th>Última actualización</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</body>
+</html>
