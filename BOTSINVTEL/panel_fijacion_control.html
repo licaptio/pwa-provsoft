@@ -48,7 +48,10 @@
 
       snap.forEach(docSnap => {
         const data = docSnap.data();
-        const coincide = data.codigoBarra.includes(texto) || data.concepto.toLowerCase().includes(texto);
+        const codigoStr = String(data.codigoBarra || '').toLowerCase();
+const conceptoStr = String(data.concepto || '').toLowerCase();
+const coincide = codigoStr.includes(texto) || conceptoStr.includes(texto);
+
         if (coincide) {
           encontrados++;
           const div = document.createElement('div');
