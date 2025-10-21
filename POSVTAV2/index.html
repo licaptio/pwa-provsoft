@@ -792,6 +792,17 @@ elBuscador.addEventListener('keydown', (ev) => {
     }
   }
 });
+  // 🧩 Agregar producto al presionar Enter en campo de cantidad
+elCant.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter' && prodSeleccionado) {
+    const cant = parseFloat(elCant.value || "1");
+    addProduct(prodSeleccionado, cant);
+    prodSeleccionado = null;
+    elBuscador.value = "";
+    elCant.value = "1";
+    elBuscador.focus();
+  }
+});
 
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
