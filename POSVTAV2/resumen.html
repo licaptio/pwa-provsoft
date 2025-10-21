@@ -174,16 +174,28 @@ async function cargarVentas() {
     );
     const snap = await getDocs(q);
 
-    let totalDia = 0, encontrados = 0;
-
-    snap.forEach((docSnap) => {
+    // Convertir a arreglo y filtrar por fecha del día
+    let ventas = [];
+    snap.forEach(docSnap => {
       const v = docSnap.data();
-      if (!v.fecha_txt || !v.resumen_financiero?.total) return;
-      if (!v.fecha_txt.includes(fechaFormateada)) return;
+      if (v.fecha_txt && v.resumen_financiero?.total && v.fecha_txt.includes(fechaFormateada)) {
+        ventas.push({ id: docSnap.id, ...v });
+      }
+    });
 
+    // Ordenar por hora (extraída del texto de fecha)
+ventas.sort((a, b) => {
+  const horaA = a.fecha_txt.split(",")[1]?.trim() || "";
+  const horaB = b.fecha_txt.split(",")[1]?.trim() || "";
+  return horaB.localeCompare(horaA); // descendente
+});
+
+
+    let totalDia = 0;
+    ventas.forEach(v => {
       const hora = v.fecha_txt.split(",")[1]?.trim() || "";
       const total = Number(v.resumen_financiero.total || 0);
-      totalDia += total; encontrados++;
+      totalDia += total;
 
       const row = document.createElement("tr");
       row.innerHTML = `
@@ -195,14 +207,14 @@ async function cargarVentas() {
         </td>
       `;
       tabla.appendChild(row);
-      row.querySelector(".btnReimp").addEventListener("click", () => reimprimirTicket(docSnap.id));
+      row.querySelector(".btnReimp").addEventListener("click", () => reimprimirTicket(v.id));
     });
 
-    loading.style.display = encontrados ? "none" : "block";
-    loading.textContent = encontrados ? "" : "Sin ventas registradas en esta fecha.";
+    loading.style.display = ventas.length ? "none" : "block";
+    loading.textContent = ventas.length ? "" : "Sin ventas registradas en esta fecha.";
     totalEl.textContent = "$" + totalDia.toFixed(2);
     totalDash.textContent = "$" + totalDia.toFixed(2);
-    conteoEl.textContent = encontrados.toString();
+    conteoEl.textContent = ventas.length.toString();
   } catch (e) {
     loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
   }
