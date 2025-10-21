@@ -693,12 +693,12 @@ const elCant = document.getElementById("cantidadInput");
     render();
   }
 function decodificarCodigoBalanza(codigo) {
-  // Ejemplo: 2000016001105
+  // Ejemplo: 200004245603 → base=42, peso=24.560
   if (!codigo || codigo.length < 13) return null;
   if (!codigo.startsWith("2")) return null;
-  const base = codigo.substring(1, 7).replace(/^0+/, ""); // ← quitar ceros a la izquierda
-  const pesoStr = codigo.substring(7, 12);
-  const peso = parseFloat(pesoStr) / 1000;
+  const base = codigo.substring(1, 7).replace(/^0+/, "");  // 000042 → 42
+  const pesoStr = codigo.substring(7, 12);                 // 24560
+  const peso = parseFloat(pesoStr) / 100;                  // ← divide entre 100, no 1000
   return { base, peso };
 }
 
