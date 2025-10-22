@@ -52,23 +52,34 @@
     }
 
     .searchbox{ position:relative; z-index:auto; }
-   .search-results{
+.search-results{
   position:absolute;
   left:90px;
   right:10px;
   top:calc(100% + 6px);
   background:#fff;
   border-radius:12px;
-  box-shadow:0 6px 18px rgba(0,0,0,.18);
-  max-height:260px;
-  overflow:auto;
+  box-shadow:0 8px 20px rgba(0,0,0,.25);
+  max-height:240px;
+  overflow-y:auto;
   display:none;
-  z-index:4000; /* 🔺 fuerza que esté encima de todo */
+  z-index:9999; /* 🔺 asegura que quede sobre todo */
+  color:#111;
+  font-size:14px;
 }
-
-    .result-item{ padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
-    .result-item small{ color:var(--muted); }
-    .result-item:hover{ background:#f2f4f7; }
+.result-item{
+  padding:10px 12px;
+  cursor:pointer;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid #eee;
+}
+.result-item:last-child{border-bottom:none;}
+.result-item:hover{
+  background:#0c6cbd;
+  color:#fff;
+}
 
     .card{ background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
 
