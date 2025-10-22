@@ -227,9 +227,9 @@ window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: nu
 let rutaId = null;
 let carrito = [];
 let clientes = [];
-let catalogo = [];
+window.catalogo = []; // 👉 visible desde consola
+window.codeIndex = new Map();
 const money = (n)=>'$'+(Number(n)||0).toFixed(2);
-const codeIndex = new Map();
 
 // =======================================================
 // 🔐 LOGIN
