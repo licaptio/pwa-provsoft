@@ -52,11 +52,20 @@
     }
 
     .searchbox{ position:relative; z-index:300; }
-    .search-results{
-      position:absolute; left:90px; right:10px; top:calc(100% + 6px);
-      background:#fff; border-radius:12px; box-shadow:var(--shadow);
-      max-height:260px; overflow:auto; display:none; z-index:9999; /* 🔺 CAMBIAR AQUÍ */
-    }
+   .search-results{
+  position:absolute;
+  left:90px;
+  right:10px;
+  top:calc(100% + 6px);
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,.18);
+  max-height:260px;
+  overflow:auto;
+  display:none;
+  z-index:4000; /* 🔺 fuerza que esté encima de todo */
+}
+
     .result-item{ padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
     .result-item small{ color:var(--muted); }
     .result-item:hover{ background:#f2f4f7; }
@@ -701,6 +710,8 @@ document.getElementById("btnCobrar").addEventListener("click", ()=>{
   document.getElementById("lblSubtotal").textContent = money(subtotal);
   document.getElementById("lblImpuestos").textContent = money(impuestos);
   document.getElementById("lblTotal").textContent = money(total);
+  document.getElementById("modalCobro").style.display = "flex";
+}); // ✅ cierre del botón Cobrar
 
 
 // =======================================================
