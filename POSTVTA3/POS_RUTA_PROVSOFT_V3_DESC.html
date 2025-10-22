@@ -398,6 +398,70 @@ function addProduct(prod,cantidad=1){
   render();
 }
 window.addProduct = addProduct; // ✅ permite usarla desde fuera
+  // =======================================================
+// 🔍 BUSCADOR LOCAL CON EQUIVALENTES Y CÓDIGOS DE BALANZA
+// =======================================================
+function decodificarCodigoBalanza(codigo) {
+  if (!codigo || codigo.length < 13) return null;
+  if (!codigo.startsWith("2")) return null;
+
+  const base = codigo.substring(1, 7).replace(/^0+/, "");
+  const pesoStr = codigo.substring(7, 12);
+  const peso = parseFloat(pesoStr) / 1000;
+
+  return { base, peso };
+}
+
+function buscarLocal(qraw) {
+  const q = (qraw || "").trim();
+  if (!q) return [];
+
+  const bal = decodificarCodigoBalanza(q);
+  if (bal) {
+    const posibles = [
+      bal.base,
+      bal.base.padStart(6, "0"),
+      ("000000" + bal.base).slice(-6),
+      "2" + bal.base.padStart(6, "0"),
+      "20000" + bal.base
+    ];
+
+    for (const key of posibles) {
+      const prodId =
+        codeIndex.get(key) ||
+        catalogo.find(p => (p.equivalentes || []).some(eq => eq === key))?.id;
+
+      if (prodId) {
+        const p = catalogo.find(x => x.id === prodId);
+        if (p) {
+          p._pesoDetectado = bal.peso;
+          return [p];
+        }
+      }
+    }
+  }
+
+  let idByCode = codeIndex.get(q);
+  if (!idByCode) {
+    const prodEq = catalogo.find(p =>
+      (p.equivalentes || []).some(eq => eq.trim() === q)
+    );
+    idByCode = prodEq ? prodEq.id : null;
+  }
+  if (idByCode) {
+    const p = catalogo.find(x => x.id === idByCode);
+    return p ? [p] : [];
+  }
+
+  const matchEq = catalogo.find(p =>
+    (p.equivalentes || []).some(eq => q.includes(eq))
+  );
+  if (matchEq) return [matchEq];
+
+  return catalogo.filter(p =>
+    (p.nombre || "").toLowerCase().includes(q.toLowerCase())
+  );
+}
   
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
