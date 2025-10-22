@@ -587,9 +587,17 @@ async function confirmarCobro() {
       await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, { method: "POST", body: formData });
     } catch (err) { console.error("❌ Telegram error:", err); }
 
-    mostrarToast("✅ Venta completada y enviada a LOBA");
-    carrito = []; render();
-    cerrarCobro();
+mostrarToast("✅ Venta completada y enviada a LOBA");
+carrito = [];
+render();
+
+// 🔄 restablecer campos después de cobrar
+document.getElementById("buscador").value = "";
+document.getElementById("cantidadInput").value = 1; // o 0 si prefieres
+document.getElementById("cliente").readOnly = true; // mantiene cliente fijo
+productoSeleccionado = null;
+
+cerrarCobro();
 
   } catch (err) { console.error("❌ Error en cobro:", err); alert("Error al guardar venta"); }
 }
