@@ -695,9 +695,12 @@ document.addEventListener("DOMContentLoaded", () => {
 // 🎯 BOTÓN COBRAR – abre modal
 // =======================================================
 document.getElementById("btnCobrar").addEventListener("click", ()=>{
+  const { total } = calcularTotalesConImpuestosIncluidos();
+  document.getElementById("cobroTotal").textContent = money(total); // ✅ mostrar total actual
   document.getElementById("modalCobro").style.display = "flex";
-  actualizarTotalesCobro();
+  actualizarTotalesCobro(); // recalcula si hay descuento
 });
+
 // =======================================================
 // 🔍 BUSCAR PRODUCTO Y AGREGAR AL CARRITO
 // =======================================================
