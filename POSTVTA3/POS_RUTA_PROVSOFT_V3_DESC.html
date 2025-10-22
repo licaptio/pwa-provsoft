@@ -373,7 +373,8 @@ function addProduct(prod,cantidad=1){
   else{carrito.push({...prod,cantidad:cant,precioUnit:precio,importe:cant*precio});}
   render();
 }
-
+window.addProduct = addProduct; // ✅ permite usarla desde fuera
+  
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
   carrito.forEach(it => {
