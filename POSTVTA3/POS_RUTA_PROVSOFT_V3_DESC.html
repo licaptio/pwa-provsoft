@@ -697,7 +697,97 @@ document.getElementById("btnCobrar").addEventListener("click", ()=>{
   document.getElementById("modalCobro").style.display = "flex";
   actualizarTotalesCobro();
 });
+// =======================================================
+// 🔍 BUSCAR PRODUCTO Y AGREGAR AL CARRITO
+// =======================================================
+const inputBuscador = document.getElementById("buscador");
+const inputCantidad = document.getElementById("cantidadInput");
+const resultados = document.getElementById("resultados");
 
+inputBuscador.addEventListener("input", () => {
+  const texto = inputBuscador.value.trim().toLowerCase();
+  if (texto.length < 2) {
+    resultados.style.display = "none";
+    return;
+  }
+
+  const coincidencias = catalogo.filter(p =>
+    (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
+    (p.codigo && p.codigo.toLowerCase().includes(texto))
+  ).slice(0, 10);
+
+  if (coincidencias.length === 0) {
+    resultados.style.display = "none";
+    return;
+  }
+
+  resultados.innerHTML = coincidencias.map(p => `
+    <div class="result-item" data-id="${p.id}">
+      <span>${p.nombre}</span><small>$${p.precioPublico.toFixed(2)}</small>
+    </div>
+  `).join('');
+  resultados.style.display = "block";
+});
+
+resultados.addEventListener("click", (e) => {
+  const item = e.target.closest(".result-item");
+  if (!item) return;
+  const id = item.dataset.id;
+  const prod = catalogo.find(p => p.id === id);
+  const cantidad = parseFloat(inputCantidad.value) || 1;
+  addProduct(prod, cantidad);
+  resultados.style.display = "none";
+  inputBuscador.value = "";
+  inputCantidad.value = 1;
+  inputBuscador.focus();
+});
+// =======================================================
+// 📷 ESCÁNER CÓDIGO DE BARRAS / QR
+// =======================================================
+const btnCam = document.getElementById("btnCam");
+let scannerActivo = false;
+let html5Qr;
+
+btnCam.addEventListener("click", async () => {
+  if (!scannerActivo) {
+    const contenedor = document.createElement("div");
+    contenedor.id = "lectorQR";
+    contenedor.style.position = "fixed";
+    contenedor.style.top = "0";
+    contenedor.style.left = "0";
+    contenedor.style.width = "100%";
+    contenedor.style.height = "100%";
+    contenedor.style.background = "rgba(0,0,0,0.8)";
+    contenedor.style.display = "flex";
+    contenedor.style.alignItems = "center";
+    contenedor.style.justifyContent = "center";
+    contenedor.style.zIndex = "4000";
+    document.body.appendChild(contenedor);
+
+    html5Qr = new Html5Qrcode("lectorQR");
+    const cameras = await Html5Qrcode.getCameras();
+    const idCam = cameras[0]?.id;
+    await html5Qr.start(idCam, { fps: 10, qrbox: 250 },
+      async text => {
+        const codigo = text.trim();
+        const idProd = codeIndex.get(codigo);
+        if (!idProd) {
+          mostrarToast("Producto no encontrado");
+          return;
+        }
+        const prod = catalogo.find(p => p.id === idProd);
+        addProduct(prod, 1);
+        await html5Qr.stop();
+        document.getElementById("lectorQR").remove();
+        scannerActivo = false;
+      });
+    scannerActivo = true;
+  } else {
+    await html5Qr.stop();
+    document.getElementById("lectorQR").remove();
+    scannerActivo = false;
+  }
+});
 </script>
 </body>
 </html>
