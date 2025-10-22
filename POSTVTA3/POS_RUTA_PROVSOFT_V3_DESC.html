@@ -262,7 +262,7 @@ async function loginUsuario(){
     localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
   }catch(e){ msg.textContent="Error de conexión"; console.error(e);}
 }
-$("#btnLogin").onclick=loginUsuario;
+document.getElementById("btnLogin").onclick = loginUsuario;
 
 // =======================================================
 // 🔁 CACHE / INDEXEDDB
