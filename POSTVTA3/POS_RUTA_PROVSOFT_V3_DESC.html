@@ -833,34 +833,44 @@ inputCantidad.addEventListener("keydown", (e) => {
   }
 });
 // =======================================================
-// 📷 ESCÁNER CÓDIGO DE BARRAS / QR
+// 📸 ESCÁNER QR / CÓDIGO DE BARRAS MEJORADO
 // =======================================================
-const btnCam = document.getElementById("btnCam");
+let html5Qr = null;
 let scannerActivo = false;
-let html5Qr;
 
 btnCam.addEventListener("click", async () => {
   try {
     if (!scannerActivo) {
+      // 🔳 Contenedor flotante con fondo oscuro
       const contenedor = document.createElement("div");
       contenedor.id = "lectorQR";
       Object.assign(contenedor.style, {
-        position: "fixed", inset: "0",
-        background: "rgba(0,0,0,0.85)",
-        display: "flex", alignItems: "center", justifyContent: "center",
+        position: "fixed",
+        inset: "0",
+        background: "rgba(0,0,0,0.9)",
+        display: "flex",
         flexDirection: "column",
-        zIndex: "4000"
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: "5000"
       });
 
-      // Botón cerrar flotante
+      // 🔴 Botón cerrar
       const btnCerrar = document.createElement("button");
       btnCerrar.textContent = "✖ Cerrar cámara";
       Object.assign(btnCerrar.style, {
-        position: "absolute", top: "12px", right: "12px",
-        background: "#c0392b", color: "#fff",
-        border: "none", borderRadius: "8px",
-        padding: "8px 12px", fontSize: "14px",
-        cursor: "pointer", fontWeight: "600", zIndex: "4100"
+        position: "absolute",
+        top: "12px",
+        right: "12px",
+        background: "#c0392b",
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        padding: "8px 12px",
+        fontSize: "14px",
+        fontWeight: "600",
+        cursor: "pointer",
+        zIndex: "5100"
       });
       btnCerrar.onclick = async () => {
         try { await html5Qr.stop(); } catch {}
@@ -868,29 +878,47 @@ btnCam.addEventListener("click", async () => {
         scannerActivo = false;
       };
 
+      // 🟩 Área de visión + marco guía
+      const visor = document.createElement("div");
+      visor.id = "visorCam";
+      visor.style.position = "relative";
+      visor.style.width = "90%";
+      visor.style.maxWidth = "340px";
+      visor.style.background = "#000";
+      visor.style.borderRadius = "12px";
+      visor.style.overflow = "hidden";
+
+      const marco = document.createElement("div");
+      Object.assign(marco.style, {
+        position: "absolute",
+        top: "50%", left: "50%",
+        width: "180px", height: "180px",
+        transform: "translate(-50%,-50%)",
+        border: "3px solid #00ff88",
+        borderRadius: "8px",
+        boxShadow: "0 0 20px rgba(0,255,136,0.6)"
+      });
+      visor.appendChild(marco);
+
+      contenedor.appendChild(visor);
       contenedor.appendChild(btnCerrar);
       document.body.appendChild(contenedor);
 
-      html5Qr = new Html5Qrcode("lectorQR");
-
-      const cameras = await Html5Qrcode.getCameras();
-      if (!cameras.length) {
+      // 🚀 Inicializa cámara trasera
+      html5Qr = new Html5Qrcode("visorCam");
+      const cams = await Html5Qrcode.getCameras();
+      if (!cams.length) {
         mostrarToast("No se detectaron cámaras disponibles");
         contenedor.remove();
         return;
       }
-
-      // ✅ prioriza cámara trasera (environment)
-      const camTrasera =
-        cameras.find(c => /back|rear|environment/i.test(c.label)) ||
-        cameras[cameras.length - 1];
-      const camId = camTrasera.id;
+      const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
 
       await html5Qr.start(
-        camId,
+        camTrasera.id,
         { fps: 10, qrbox: 250, aspectRatio: 1.333 },
-        async text => {
-          const codigo = text.trim();
+        async (texto) => {
+          const codigo = texto.trim();
           const idProd = codeIndex.get(codigo);
           if (!idProd) {
             mostrarToast("Producto no encontrado");
@@ -903,7 +931,7 @@ btnCam.addEventListener("click", async () => {
           contenedor.remove();
           scannerActivo = false;
         },
-        err => console.warn("📷 Lectura fallida:", err)
+        (err) => console.warn("📷 Error lectura:", err)
       );
 
       scannerActivo = true;
@@ -913,8 +941,8 @@ btnCam.addEventListener("click", async () => {
       scannerActivo = false;
     }
   } catch (err) {
-    console.error("❌ Error al abrir cámara:", err);
-    mostrarToast("Error al iniciar la cámara");
+    console.error("❌ Error iniciando cámara:", err);
+    mostrarToast("No se pudo acceder a la cámara");
     scannerActivo = false;
   }
 });
