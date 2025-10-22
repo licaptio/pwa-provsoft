@@ -717,10 +717,13 @@ inputBuscador.addEventListener("input", () => {
     return;
   }
 
-  const coincidencias = catalogo.filter(p =>
-    (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
-    (p.codigo && p.codigo.toLowerCase().includes(texto))
-  ).slice(0, 10);
+  const normalizar = s => s?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+  const coincidencias = catalogo.filter(p => {
+    const nombre = normalizar(p.nombre || "");
+    const codigo = normalizar(p.codigo || "");
+    return nombre.includes(texto) || codigo.includes(texto);
+  }).slice(0, 15);
 
   if (coincidencias.length === 0) {
     resultados.style.display = "none";
@@ -729,7 +732,8 @@ inputBuscador.addEventListener("input", () => {
 
   resultados.innerHTML = coincidencias.map(p => `
     <div class="result-item" data-id="${p.id}">
-      <span>${p.nombre}</span><small>$${p.precioPublico.toFixed(2)}</small>
+      <span>${p.nombre}</span>
+      <small>$${p.precioPublico.toFixed(2)}</small>
     </div>
   `).join('');
   resultados.style.display = "block";
