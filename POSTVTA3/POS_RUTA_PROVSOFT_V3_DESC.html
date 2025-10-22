@@ -527,6 +527,10 @@ async function confirmarCobro() {
     const ref = collection(db, "rutas_venta");
     await addDoc(ref, venta);
     console.log("✅ Venta registrada:", venta.folio);
+    // 🧾 Generar ticket físico
+window.ULTIMA_VENTA = venta;
+rellenarTicket(venta);
+imprimirTicketEstilado();
 
     // =======================================================
     // 📄 Ticket PDF + Telegram
@@ -562,7 +566,6 @@ async function confirmarCobro() {
    // Generar y mostrar ticket en nueva pestaña
 const pdfBlob = pdf.output("blob");
 const url = URL.createObjectURL(pdfBlob);
-window.open(url, "_blank"); // ✅ abre el ticket listo para imprimir
 
     // Enviar a LOBA Telegram
     try {
@@ -863,7 +866,124 @@ btnCam.addEventListener("click", async () => {
     scannerActivo = false;
   }
 });
+  function rellenarTicket(venta) {
+  document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
+  document.getElementById('tFecha').textContent = venta.fecha_txt;
+  document.getElementById('tAtendio').textContent = `Atendió: ${venta.atendio}`;
+  document.getElementById('tCliente').textContent = `Cliente: ${venta.cliente || "Mostrador"}`;
+
+  const tLineas = document.getElementById('tLineas');
+  tLineas.innerHTML = '';
+  (venta.detalle || []).forEach(it => {
+    const fila = document.createElement('div');
+    fila.style.display = 'flex';
+    fila.style.justifyContent = 'space-between';
+    fila.innerHTML = `<span>${it.cantidad.toFixed(2)} ${it.nombre}</span><span>$${it.importe.toFixed(2)}</span>`;
+    tLineas.appendChild(fila);
+  });
+
+  const rf = venta.resumen_financiero || {};
+  document.getElementById('tSubtotal').textContent = money(rf.subtotal);
+  document.getElementById('tDesc').textContent = `-${money(rf.descuento_monto || 0)}`;
+  document.getElementById('tImpuestos').textContent = money(rf.impuestos);
+  document.getElementById('tTotal').textContent = money(rf.total_final || rf.total);
+
+  document.getElementById('tMetodo').textContent = venta.metodo_pago;
+  document.getElementById('tRecibido').textContent = money(venta.recibido || 0);
+  document.getElementById('tCambio').textContent = money(venta.cambio || 0);
+}
+
+function imprimirTicketEstilado() {
+  const ticket = document.getElementById("ticketArea");
+
+  // 🖨️ Impresora interna H10 / Sunmi
+  if (window.InnerPrinter && typeof window.InnerPrinter.printHtml === "function") {
+    try {
+      const html = `<html><head><meta charset="utf-8"><style>
+        body{font-family:'Courier New',monospace;font-size:14px;margin:0;padding:0;}
+        #ticket{width:72mm;margin:0 auto;}
+      </style></head><body>${ticket.innerHTML}</body></html>`;
+      window.InnerPrinter.printHtml(html);
+      return;
+    } catch(e){ console.error("Error InnerPrinter:", e); }
+  }
+
+  // 🖨️ RawBT
+  try {
+    if (/Android/i.test(navigator.userAgent)) {
+      const texto = generarTextoSimpleRawBT(window.ULTIMA_VENTA || {});
+      window.open("rawbt:print?data=" + encodeURIComponent(texto + "\n\n\n"), "_blank");
+      return;
+    }
+  } catch(e){ console.error("Error RawBT:", e); }
+
+  // 🖨️ Fallback navegador
+  ticket.style.display = "block";
+  window.print();
+  ticket.style.display = "none";
+}
+
+function generarTextoSimpleRawBT(venta){
+  const formatoNum = n => (Number(n||0)).toLocaleString("es-MX",{minimumFractionDigits:2});
+  let texto = `
+PROVEEDORA MATRIZ
+RUTA DE VENTA 3.0 DESCUENTO LIBRE
+--------------------------------
+Folio: ${venta.folio}
+Fecha: ${venta.fecha_txt}
+--------------------------------
+`;
+  (venta.detalle||[]).forEach(it=>{
+    texto += `${it.nombre}\nCant:${it.cantidad.toFixed(3)}  ${it.precio_unit.toFixed(2)}  ${it.importe.toFixed(2)}\n--------------------------------\n`;
+  });
+  texto += `
+Subtotal: ${formatoNum(venta.resumen_financiero?.subtotal||0)}
+Desc.: -${formatoNum(venta.resumen_financiero?.descuento_monto||0)}
+Total: ${formatoNum(venta.resumen_financiero?.total_final||0)}
+Pago: ${formatoNum(venta.recibido||0)}  Cambio: ${formatoNum(venta.cambio||0)}
+--------------------------------
+¡Gracias por su compra!
+`;
+  return texto;
+}
+
 </script>
+  <!-- 🔹 Área Ticket Imprimible -->
+<div id="ticketArea" style="display:none;">
+  <div id="ticket" class="ticket">
+    <div style="text-align:center;">
+      <img src="logo_proveedora.webp" alt="Logo" style="max-width:140px; height:auto;">
+      <div style="font-weight:700;">PROVEEDORA MATRIZ</div>
+      <div style="font-size:13px;">RUTA DE VENTA 3.0 – DESCUENTO LIBRE</div>
+    </div>
+    <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+
+    <div id="tFolio" style="font-size:12px;"></div>
+    <div id="tFecha" style="font-size:12px;"></div>
+    <div id="tAtendio" style="font-size:12px;"></div>
+    <div id="tCliente" style="font-size:12px;"></div>
+
+    <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+    <div id="tLineas"></div>
+
+    <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+    <div style="text-align:right; font-size:12px;">
+      <div>Subtotal: <span id="tSubtotal"></span></div>
+      <div>Descuento: <span id="tDesc"></span></div>
+      <div>Impuestos: <span id="tImpuestos"></span></div>
+      <div style="font-weight:bold;">Total: <span id="tTotal"></span></div>
+    </div>
+
+    <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
+    <div style="font-size:12px;">Método: <span id="tMetodo"></span></div>
+    <div style="font-size:12px;">Pago: <span id="tRecibido"></span> · Cambio: <span id="tCambio"></span></div>
+
+    <div style="text-align:center; margin-top:8px; font-size:12px;">
+      ¡Gracias por su compra!
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 
