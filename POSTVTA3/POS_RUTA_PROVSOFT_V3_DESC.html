@@ -840,45 +840,85 @@ let scannerActivo = false;
 let html5Qr;
 
 btnCam.addEventListener("click", async () => {
-  if (!scannerActivo) {
-    const contenedor = document.createElement("div");
-    contenedor.id = "lectorQR";
-    contenedor.style.position = "fixed";
-    contenedor.style.top = "0";
-    contenedor.style.left = "0";
-    contenedor.style.width = "100%";
-    contenedor.style.height = "100%";
-    contenedor.style.background = "rgba(0,0,0,0.8)";
-    contenedor.style.display = "flex";
-    contenedor.style.alignItems = "center";
-    contenedor.style.justifyContent = "center";
-    contenedor.style.zIndex = "4000";
-    document.body.appendChild(contenedor);
-
-    html5Qr = new Html5Qrcode("lectorQR");
-    const cameras = await Html5Qrcode.getCameras();
-    const idCam = cameras[0]?.id;
-    await html5Qr.start(idCam, { fps: 10, qrbox: 250 },
-      async text => {
-        const codigo = text.trim();
-        const idProd = codeIndex.get(codigo);
-        if (!idProd) {
-          mostrarToast("Producto no encontrado");
-          return;
-        }
-        const prod = catalogo.find(p => p.id === idProd);
-        addProduct(prod, 1);
-        await html5Qr.stop();
-        document.getElementById("lectorQR").remove();
-        scannerActivo = false;
+  try {
+    if (!scannerActivo) {
+      const contenedor = document.createElement("div");
+      contenedor.id = "lectorQR";
+      Object.assign(contenedor.style, {
+        position: "fixed", inset: "0",
+        background: "rgba(0,0,0,0.85)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexDirection: "column",
+        zIndex: "4000"
       });
-    scannerActivo = true;
-  } else {
-    await html5Qr.stop();
-    document.getElementById("lectorQR").remove();
+
+      // Botón cerrar flotante
+      const btnCerrar = document.createElement("button");
+      btnCerrar.textContent = "✖ Cerrar cámara";
+      Object.assign(btnCerrar.style, {
+        position: "absolute", top: "12px", right: "12px",
+        background: "#c0392b", color: "#fff",
+        border: "none", borderRadius: "8px",
+        padding: "8px 12px", fontSize: "14px",
+        cursor: "pointer", fontWeight: "600", zIndex: "4100"
+      });
+      btnCerrar.onclick = async () => {
+        try { await html5Qr.stop(); } catch {}
+        contenedor.remove();
+        scannerActivo = false;
+      };
+
+      contenedor.appendChild(btnCerrar);
+      document.body.appendChild(contenedor);
+
+      html5Qr = new Html5Qrcode("lectorQR");
+
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras.length) {
+        mostrarToast("No se detectaron cámaras disponibles");
+        contenedor.remove();
+        return;
+      }
+
+      // ✅ prioriza cámara trasera (environment)
+      const camTrasera =
+        cameras.find(c => /back|rear|environment/i.test(c.label)) ||
+        cameras[cameras.length - 1];
+      const camId = camTrasera.id;
+
+      await html5Qr.start(
+        camId,
+        { fps: 10, qrbox: 250, aspectRatio: 1.333 },
+        async text => {
+          const codigo = text.trim();
+          const idProd = codeIndex.get(codigo);
+          if (!idProd) {
+            mostrarToast("Producto no encontrado");
+            return;
+          }
+          const prod = catalogo.find(p => p.id === idProd);
+          addProduct(prod, 1);
+
+          await html5Qr.stop();
+          contenedor.remove();
+          scannerActivo = false;
+        },
+        err => console.warn("📷 Lectura fallida:", err)
+      );
+
+      scannerActivo = true;
+    } else {
+      await html5Qr.stop();
+      document.getElementById("lectorQR")?.remove();
+      scannerActivo = false;
+    }
+  } catch (err) {
+    console.error("❌ Error al abrir cámara:", err);
+    mostrarToast("Error al iniciar la cámara");
     scannerActivo = false;
   }
 });
+
   function rellenarTicket(venta) {
   document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
   document.getElementById('tFecha').textContent = venta.fecha_txt;
