@@ -429,7 +429,7 @@ function actualizarTotalesCobro() {
   document.getElementById('cobroTotal').textContent = money(totalConDescuento);
   document.getElementById('montoCambio').textContent = money(cambio);
 }
-
+window.actualizarTotalesCobro = actualizarTotalesCobro;
 // =======================================================
 // 🧾 COBRO Y REGISTRO DE VENTA
 // =======================================================
