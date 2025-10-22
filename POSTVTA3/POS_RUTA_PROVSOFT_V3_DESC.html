@@ -239,6 +239,7 @@ let clientes = [];
 window.catalogo = []; // 👉 visible desde consola
 window.codeIndex = new Map();
 const money = (n)=>'$'+(Number(n)||0).toFixed(2);
+  window.money = money; // ✅ hace visible la función en todos los scripts
 
 // =======================================================
 // 🔐 LOGIN
