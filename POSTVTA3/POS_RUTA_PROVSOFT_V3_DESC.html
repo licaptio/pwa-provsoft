@@ -401,32 +401,45 @@ window.addProduct = addProduct; // ✅ permite usarla desde fuera
   
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
-  carrito.forEach(it => {
-    const imp = it.cantidad * it.precioUnit;
-    let base = imp, iva = 0, ieps = 0;
-    const dep = departamentos[it.departamento_id?.toString()] || { iva:0, ieps:0 };
-    const ivaTasa = dep.iva/100, iepsTasa = dep.ieps/100;
 
+  carrito.forEach(it => {
+    const importe = it.cantidad * it.precioUnit;
+    const dep = departamentos[it.departamento_id?.toString()] || { iva: 0, ieps: 0 };
+    const ivaTasa = dep.iva / 100;
+    const iepsTasa = dep.ieps / 100;
+
+    let base = importe, iva = 0, ieps = 0;
+
+    // Calcular desglose con impuestos incluidos
     if (iepsTasa > 0 && ivaTasa > 0) {
-      base = imp / (1 + iepsTasa + ivaTasa * (1 + iepsTasa));
+      base = importe / (1 + iepsTasa + ivaTasa * (1 + iepsTasa));
       ieps = base * iepsTasa;
       iva = (base + ieps) * ivaTasa;
     } else if (iepsTasa > 0) {
-      base = imp / (1 + iepsTasa);
+      base = importe / (1 + iepsTasa);
       ieps = base * iepsTasa;
     } else if (ivaTasa > 0) {
-      base = imp / (1 + ivaTasa);
+      base = importe / (1 + ivaTasa);
       iva = base * ivaTasa;
-    } else { base = imp; }
+    }
 
-    subtotal += base; totalIva += iva; totalIeps += ieps; total += imp;
+    subtotal += base;
+    totalIva += iva;
+    totalIeps += ieps;
+    total += importe;
   });
+
+  const impuestosTotales = totalIva + totalIeps;
+
   return {
-    subtotal:+subtotal.toFixed(2),
-    impuestos:+(totalIva+totalIeps).toFixed(2),
-    total:+total.toFixed(2)
+    subtotal: +subtotal.toFixed(2),
+    iva: +totalIva.toFixed(2),
+    ieps: +totalIeps.toFixed(2),
+    impuestos: +impuestosTotales.toFixed(2),
+    total: +total.toFixed(2)
   };
 }
+
   window.calcularTotalesConImpuestosIncluidos = calcularTotalesConImpuestosIncluidos;
 
 // =======================================================
@@ -886,6 +899,8 @@ btnCam.addEventListener("click", async () => {
   document.getElementById('tSubtotal').textContent = money(rf.subtotal);
   document.getElementById('tDesc').textContent = `-${money(rf.descuento_monto || 0)}`;
   document.getElementById('tImpuestos').textContent = money(rf.impuestos);
+    document.getElementById('tIva').textContent = money(rf.iva || 0);
+document.getElementById('tIeps').textContent = money(rf.ieps || 0);
   document.getElementById('tTotal').textContent = money(rf.total_final || rf.total);
 
   document.getElementById('tMetodo').textContent = venta.metodo_pago;
@@ -925,25 +940,43 @@ function imprimirTicketEstilado() {
 
 function generarTextoSimpleRawBT(venta){
   const formatoNum = n => (Number(n||0)).toLocaleString("es-MX",{minimumFractionDigits:2});
+  const rf = venta.resumen_financiero || {};
+  const impuestos = formatoNum(rf.impuestos || 0);
+  const totalFinal = formatoNum(rf.total_final || rf.total || 0);
+  const recibido = formatoNum(venta.recibido || 0);
+  const cambio = formatoNum(venta.cambio || 0);
+  const totalArt = (venta.detalle || []).length;
+
   let texto = `
 PROVEEDORA MATRIZ
-RUTA DE VENTA 3.0 DESCUENTO LIBRE
+MADERO 690 SUR, CENTRO
+LINARES, NUEVO LEON, 67700
+RFC: PDD-031204-KL5
+TEL: (821) 2121805
+RÉGIMEN GENERAL DE LEY
+PERSONAS MORALES
 --------------------------------
-Folio: ${venta.folio}
+# Venta: RV-${String(venta.folio).padStart(6,"0")}
 Fecha: ${venta.fecha_txt}
 --------------------------------
 `;
+
   (venta.detalle||[]).forEach(it=>{
-    texto += `${it.nombre}\nCant:${it.cantidad.toFixed(3)}  ${it.precio_unit.toFixed(2)}  ${it.importe.toFixed(2)}\n--------------------------------\n`;
+    texto += `${it.nombre}\nCant:${it.cantidad.toFixed(2)}  ${it.precio_unit.toFixed(2)}  ${it.importe.toFixed(2)}\n`;
   });
-  texto += `
-Subtotal: ${formatoNum(venta.resumen_financiero?.subtotal||0)}
-Desc.: -${formatoNum(venta.resumen_financiero?.descuento_monto||0)}
-Total: ${formatoNum(venta.resumen_financiero?.total_final||0)}
-Pago: ${formatoNum(venta.recibido||0)}  Cambio: ${formatoNum(venta.cambio||0)}
+
+  texto += `--------------------------------
+Total : ${totalFinal}
+Su Pago: ${recibido}
+Cambio : ${cambio}
+--------------------------------
+Artículos vendidos: ${totalArt}
+Incluye ${impuestos} de Impuestos
+Cajero : ${venta.atendio}
 --------------------------------
 ¡Gracias por su compra!
 `;
+
   return texto;
 }
 
@@ -972,6 +1005,8 @@ Pago: ${formatoNum(venta.recibido||0)}  Cambio: ${formatoNum(venta.cambio||0)}
       <div>Descuento: <span id="tDesc"></span></div>
       <div>Impuestos: <span id="tImpuestos"></span></div>
       <div style="font-weight:bold;">Total: <span id="tTotal"></span></div>
+      <div>IVA: <span id="tIva"></span></div>
+<div>IEPS: <span id="tIeps"></span></div>
     </div>
 
     <hr style="border:none; border-top:1px dashed #999; margin:6px 0;">
