@@ -1,7 +1,7 @@
 const CACHE_NAME = 'provsoft-pos-v1';
 const STATIC_ASSETS = [
   './',
-  './index.html',
+  './POS_RUTA_PROVSOFT_V3_DESC.html',
   './app.js', // 👈 agrega esta línea
   './manifest.json',
   './logo_proveedora.webp',
