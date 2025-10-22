@@ -965,18 +965,18 @@ Fecha: ${venta.fecha_txt}
     texto += `${it.nombre}\nCant:${it.cantidad.toFixed(2)}  ${it.precio_unit.toFixed(2)}  ${it.importe.toFixed(2)}\n`;
   });
 
-  texto += `--------------------------------
-Total : ${totalFinal}
-Su Pago: ${recibido}
-Cambio : ${cambio}
+texto += `
+Subtotal: ${formatoNum(rf.subtotal || 0)}
+Desc.: -${formatoNum(rf.descuento_monto || 0)}
+Total : ${formatoNum(rf.total_final || rf.total || 0)}
+Pago  : ${formatoNum(venta.recibido || 0)}   Cambio: ${formatoNum(venta.cambio || 0)}
 --------------------------------
-Artículos vendidos: ${totalArt}
-Incluye ${impuestos} de Impuestos
-Cajero : ${venta.atendio}
+Artículos vendidos: ${(venta.detalle || []).length}
+Incluye ${formatoNum(rf.impuestos || 0)} de Impuestos
+Cajero: ${venta.atendio}
 --------------------------------
 ¡Gracias por su compra!
 `;
-
   return texto;
 }
 
