@@ -51,7 +51,10 @@
       background:#fff; outline:none;
     }
 
-    .searchbox{ position:relative; z-index:auto; }
+.searchbox{
+  position:relative;
+  z-index:2000; /* 👈 sube la prioridad del contenedor */
+}
 .search-results{
   position:absolute;
   left:90px;
@@ -59,11 +62,11 @@
   top:calc(100% + 6px);
   background:#fff;
   border-radius:12px;
-  box-shadow:0 8px 20px rgba(0,0,0,.25);
-  max-height:240px;
+  box-shadow:0 6px 14px rgba(0,0,0,.25);
+  max-height:260px;
   overflow-y:auto;
   display:none;
-  z-index:9999; /* 🔺 asegura que quede sobre todo */
+  z-index:3000; /* 👈 encima del resto */
   color:#111;
   font-size:14px;
 }
@@ -74,8 +77,8 @@
   justify-content:space-between;
   align-items:center;
   border-bottom:1px solid #eee;
+  background:#fff;
 }
-.result-item:last-child{border-bottom:none;}
 .result-item:hover{
   background:#0c6cbd;
   color:#fff;
