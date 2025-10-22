@@ -559,7 +559,10 @@ async function confirmarCobro() {
     pdf.text(`Total : ${formatoNum(venta.descuento.total_con_descuento)}`, 10, y);
     y += 10; pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
 
-    const pdfBlob = pdf.output("blob");
+   // Generar y mostrar ticket en nueva pestaña
+const pdfBlob = pdf.output("blob");
+const url = URL.createObjectURL(pdfBlob);
+window.open(url, "_blank"); // ✅ abre el ticket listo para imprimir
 
     // Enviar a LOBA Telegram
     try {
