@@ -632,9 +632,24 @@ async function render() {
 async function sincronizarVentasPendientes() {
   console.log("Sincronizando ventas pendientes...");
 }
-
-async function fijarClientePublico() {
-  console.log("Cliente público fijado");
+  async function fijarClientePublico() {
+  try {
+    const ref = collection(db, "clientes");
+    const q = query(ref, where("nombre", "==", "PUBLICO EN GENERAL"));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const data = snap.docs[0].data();
+      const input = document.getElementById("cliente");
+      input.value = data.nombre;
+      input.dataset.id = snap.docs[0].id;
+      input.readOnly = true; // ✅ bloquea edición
+      console.log("✅ Cliente público fijado:", data.nombre);
+    } else {
+      console.warn("⚠️ Cliente público no encontrado");
+    }
+  } catch (err) {
+    console.error("❌ Error fijando cliente público:", err);
+  }
 }
 
 async function getNextFolio() {
@@ -732,14 +747,16 @@ document.getElementById("btnCobrar").addEventListener("click", ()=>{
 
 
 // =======================================================
-// 🔍 BUSCAR PRODUCTO Y AGREGAR AL CARRITO
+// 🔍 BÚSQUEDA DE PRODUCTO + CANTIDAD + ENTER AGREGA
 // =======================================================
 const inputBuscador = document.getElementById("buscador");
 const inputCantidad = document.getElementById("cantidadInput");
 const resultados = document.getElementById("resultados");
+let productoSeleccionado = null;
 
 inputBuscador.addEventListener("input", () => {
   const texto = inputBuscador.value.trim().toLowerCase();
+  productoSeleccionado = null;
   if (texto.length < 2) {
     resultados.style.display = "none";
     return;
@@ -771,13 +788,22 @@ resultados.addEventListener("click", (e) => {
   const item = e.target.closest(".result-item");
   if (!item) return;
   const id = item.dataset.id;
-  const prod = catalogo.find(p => p.id === id);
-  const cantidad = parseFloat(inputCantidad.value) || 1;
-  addProduct(prod, cantidad);
+  productoSeleccionado = catalogo.find(p => p.id === id);
+  inputBuscador.value = productoSeleccionado.nombre;
   resultados.style.display = "none";
-  inputBuscador.value = "";
-  inputCantidad.value = 1;
-  inputBuscador.focus();
+  inputCantidad.focus();
+});
+
+// 👉 ENTER en cantidad agrega al carrito
+inputCantidad.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && productoSeleccionado) {
+    const cantidad = parseFloat(inputCantidad.value) || 1;
+    addProduct(productoSeleccionado, cantidad);
+    productoSeleccionado = null;
+    inputBuscador.value = "";
+    inputCantidad.value = 1;
+    inputBuscador.focus();
+  }
 });
 // =======================================================
 // 📷 ESCÁNER CÓDIGO DE BARRAS / QR
