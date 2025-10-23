@@ -1142,6 +1142,18 @@ btnCam.addEventListener("click", async () => {
     }
   }
 });
+// Si viene de escaneo TeaCapps
+const codigoEscaneado = localStorage.getItem("ultimoCodigoEscaneado");
+if (codigoEscaneado) {
+  const resultados = buscarLocal(codigoEscaneado);
+  if (resultados.length) {
+    addProduct(resultados[0], resultados[0]._pesoDetectado || 1);
+    mostrarToast(`✅ ${resultados[0].nombre} agregado`);
+  } else {
+    mostrarToast(`⚠️ Código no encontrado (${codigoEscaneado})`);
+  }
+  localStorage.removeItem("ultimoCodigoEscaneado");
+}
 
 </script>
 
