@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+f<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
@@ -977,38 +977,55 @@ btnCam.addEventListener("click", async () => {
           Html5QrcodeSupportedFormats?.CODE_128
         ].filter(Boolean)
       });
-      const cams = await Html5Qrcode.getCameras();
-      if (!cams.length) {
-        mostrarToast("No se detectaron cámaras disponibles");
-        contenedor.remove();
-        return;
-      }
+const cams = await Html5Qrcode.getCameras();
+if (!cams.length) {
+  mostrarToast("No se detectaron cámaras disponibles");
+  contenedor.remove();
+  return;
+}
 
-      const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
-      await html5Qr.start(
-        camTrasera.id,
-        { fps: 10, qrbox: 250 },
-        async (texto) => {
-          const codigo = texto.trim();
-          console.log("📦 Escaneado:", codigo);
+// ✅ seleccionar solo una vez la cámara
+const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
 
-          try {
-            const prod = await resolverProducto(codigo);
-            const cantidad = prod._pesoDetectado || 1;
-            addProduct(prod, cantidad);
-            mostrarToast(`✅ ${prod.nombre}`);
-          } catch {
-            mostrarToast(`⚠️ No encontrado (${codigo})`);
-          }
+// ✅ mostrar video manualmente para evitar pantalla negra
+const constraints = { video: { deviceId: { exact: camTrasera.id }, facingMode: "environment" } };
+const stream = await navigator.mediaDevices.getUserMedia(constraints);
+const videoEl = document.createElement("video");
+videoEl.autoplay = true;
+videoEl.playsInline = true;
+videoEl.muted = true;
+videoEl.style.width = "100%";
+videoEl.srcObject = stream;
+visor.innerHTML = "";
+visor.appendChild(videoEl);
 
-          try { await html5Qr.stop(); } catch {}
-          contenedor.remove();
-          scannerActivo = false;
-        },
-        (err) => console.warn("📷 Error lectura:", err)
-      );
+// ✅ iniciar html5-qrcode después de confirmar video activo
+await html5Qr.start(
+  camTrasera.id,
+  { fps: 10, qrbox: 250 },
+  async (texto) => {
+    const codigo = texto.trim();
+    console.log("📦 Escaneado:", codigo);
 
-      scannerActivo = true;
+    try {
+      const prod = await resolverProducto(codigo);
+      const cantidad = prod._pesoDetectado || 1;
+      addProduct(prod, cantidad);
+      mostrarToast(`✅ ${prod.nombre}`);
+    } catch {
+      mostrarToast(`⚠️ No encontrado (${codigo})`);
+    }
+
+    // detener todo
+    try { await html5Qr.stop(); } catch {}
+    stream.getTracks().forEach(t => t.stop());
+    contenedor.remove();
+    scannerActivo = false;
+  },
+  (err) => console.warn("📷 Error lectura:", err)
+);
+scannerActivo = true;
+
     } else {
       await html5Qr.stop();
       document.getElementById("lectorQR")?.remove();
