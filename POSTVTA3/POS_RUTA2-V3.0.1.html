@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>POS – Ruta de Venta (con Descuento)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --azul:#00416A; --resalte:#0c6cbd; --ok:#1e8e3e;
+      --bg-grad:linear-gradient(to right,#00416A,#E4E5E6);
+      --card:rgba(255,255,255,.9); --muted:rgba(0,0,0,.55);
+      --shadow:0 6px 18px rgba(0,0,0,.18); --radius:14px; --radius-sm:10px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Poppins',system-ui,Arial;background:var(--bg-grad);color:#111;display:flex;flex-direction:column}
+    header{position:sticky;top:0;background:rgba(0,0,0,.6);color:#fff;padding:10px;display:flex;justify-content:center;align-items:center;font-weight:700}
+    header img{height:60px}
+    .wrap{flex:1;padding:12px;max-width:720px;margin:auto;display:flex;flex-direction:column;gap:12px}
+    .field{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.12);padding:10px;border-radius:var(--radius-sm)}
+    .field label{min-width:78px;color:#fff;font-size:13px}
+    .field input{flex:1;padding:10px;border:none;border-radius:8px;font-size:15px}
+    .btn{border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:700;color:#fff;background:linear-gradient(180deg,var(--resalte),#094d85);cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+    @media print{body *{visibility:hidden}#ticketArea,#ticketArea *{visibility:visible}#ticket{width:72mm}}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#00416A;color:#fff">
+  <img src="logo_proveedora.webp" style="width:120px;height:120px;margin-bottom:20px">
+  <h2>Acceso Ruta de Venta</h2>
+  <input id="loginUsuario" placeholder="Usuario">
+  <input id="loginPassword" type="password" placeholder="Contraseña">
+  <button id="btnLogin" class="btn">Entrar</button>
+  <div id="loginMsg"></div>
+</div>
+
+<!-- APP -->
+<div id="posApp" style="display:none">
+  <header>
+    <span>POS – Ruta de Venta</span>
+    <img src="logo_proveedora.webp">
+  </header>
+
+  <main class="wrap">
+    <section class="controls">
+      <div class="field"><label>Cliente</label><input id="cliente" type="text" readonly></div>
+      <div class="field"><label>Buscar</label><input id="buscador" placeholder="Escribe o escanea"></div>
+      <div class="field"><label>Cantidad</label><input id="cantidadInput" type="number" step="0.01" value="1"></div>
+    </section>
+
+    <section class="card" style="background:var(--card);border-radius:var(--radius);padding:10px">
+      <table style="width:100%">
+        <thead><tr><th>Producto</th><th>Cant.</th><th>Importe</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div style="padding:10px;background:#fff">
+        <div>Subtotal: <span id="lblSubtotal">$0.00</span></div>
+        <div>Impuestos: <span id="lblImpuestos">$0.00</span></div>
+        <div style="font-weight:700">Total: <span id="lblTotal">$0.00</span></div>
+      </div>
+    </section>
+
+    <section class="actions" style="display:flex;gap:8px">
+      <button id="btnCobrar" class="btn">Cobrar</button>
+      <button id="btnResumen" class="btn" style="background:linear-gradient(180deg,#0c6cbd,#00416A)">📊 Resumen</button>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL COBRO -->
+<div id="modalCobro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);align-items:center;justify-content:center;z-index:1200">
+  <div style="width:min(420px,92vw);background:#fff;border-radius:14px;overflow:hidden">
+    <div style="padding:12px 16px;background:#0c6cbd;color:#fff;font-weight:700">Cobro</div>
+    <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;justify-content:space-between;font-weight:700">
+        <span>Total a pagar:</span><span id="cobroTotal">$0.00</span>
+      </div>
+
+      <label for="descuentoPorcentaje">Descuento (%)</label>
+      <input id="descuentoPorcentaje" type="number" min="0" max="100" step="0.01" placeholder="">
+
+      <label>Método de pago</label>
+      <select id="metodoPago">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+        <option value="mixto">Mixto</option>
+      </select>
+
+      <label>Monto recibido</label>
+      <input id="montoRecibido" type="number" step="0.01" min="0">
+      <div style="display:flex;justify-content:space-between">
+        <span>Cambio:</span><span id="montoCambio">$0.00</span>
+      </div>
+
+      <label>Notas</label>
+      <textarea id="notasCobro" rows="2"></textarea>
+
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button id="btnCancelarCobro" class="btn" style="background:#aaa">Cancelar</button>
+        <button id="btnConfirmarCobro" class="btn">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+  <script type="module">
+"use strict";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, doc, getDocs, query, where,
+  serverTimestamp, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { obtenerUbicacionRobusta } from "./geoHelper.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+enableIndexedDbPersistence(db).catch(()=>{});
+const $ = s => document.querySelector(s);
+
+let USUARIO_LOGUEADO=null, rutaId=null, carrito=[], catalogo=[], departamentos={};
+const money=n=>'$'+(Number(n)||0).toFixed(2);
+
+// ==== Login ====
+$("#btnLogin").onclick=async()=>{
+  const u=$("#loginUsuario").value.trim(),p=$("#loginPassword").value.trim();
+  const q=query(collection(db,"usuarios_ruta"),where("usuario","==",u),where("password","==",p),where("activo","==",true));
+  const snap=await getDocs(q);
+  if(snap.empty){$("#loginMsg").textContent="Credenciales inválidas";return;}
+  USUARIO_LOGUEADO={id:snap.docs[0].id,...snap.docs[0].data()};
+  rutaId=USUARIO_LOGUEADO.rutaId;
+  $("#loginScreen").style.display="none";$("#posApp").style.display="block";
+  await cargarCatalogo();await cargarDepartamentos();await fijarClientePublico();
+};
+
+// ==== Catálogo ====
+async function cargarCatalogo(){
+  const ref=collection(db,"productos");
+  const q=query(ref,where("activo","==",true));
+  const snap=await getDocs(q);
+  catalogo=snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+
+// ==== Departamentos ====
+async function cargarDepartamentos(){
+  const snap=await getDocs(collection(db,"departamentos_venta"));
+  snap.forEach(d=>departamentos[d.id]={...d.data()});
+}
+
+// ==== Cliente público ====
+async function fijarClientePublico(){
+  $("#cliente").value="PUBLICO EN GENERAL";
+}
+
+// ==== Carrito ====
+function render(){
+  const tb=$("#tbody");tb.innerHTML="";
+  carrito.forEach(it=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${it.nombre}</td><td>${it.cantidad}</td><td>${money(it.importe)}</td>`;
+    tb.appendChild(tr);
+  });
+  const t=calcularTotales();
+  $("#lblSubtotal").textContent=money(t.subtotal);
+  $("#lblImpuestos").textContent=money(t.impuestos);
+  $("#lblTotal").textContent=money(t.total);
+}
+function addProductoDummy(){
+  carrito.push({id:"1",nombre:"Ejemplo",cantidad:1,precioUnit:10,importe:10});
+  render();
+}
+addProductoDummy();
+
+// ==== Totales con descuento global antes de impuestos ====
+function calcularTotales(){
+  let subtotal=0,iva=0,ieps=0;
+  carrito.forEach(it=>{
+    const dep=departamentos[it.departamento_id]||{iva:0,ieps:0};
+    const base=it.importe/(1+(dep.iva||0)/100+(dep.ieps||0)/100);
+    subtotal+=base;
+    iva+=base*(dep.iva||0)/100;
+    ieps+=base*(dep.ieps||0)/100;
+  });
+  let descuentoPorc=Number($("#descuentoPorcentaje").value||0);
+  if(descuentoPorc<0)descuentoPorc=0;if(descuentoPorc>100)descuentoPorc=100;
+  const descuentoMonto=subtotal*(descuentoPorc/100);
+  const subtotalDesc=subtotal-descuentoMonto;
+  const ivaDesc=iva*(subtotalDesc/subtotal||0);
+  const iepsDesc=ieps*(subtotalDesc/subtotal||0);
+  const impuestos=ivaDesc+iepsDesc;
+  const total=subtotalDesc+impuestos;
+  return {subtotal,descuentoPorc,descuentoMonto,subtotalDesc,ivaDesc,iepsDesc,impuestos,total};
+}
+
+// ==== Cobro ====
+$("#btnCobrar").onclick=()=>{$("#modalCobro").style.display="flex";actualizarCobro();};
+$("#btnCancelarCobro").onclick=()=>{$("#modalCobro").style.display="none";};
+$("#descuentoPorcentaje,#montoRecibido").oninput=()=>actualizarCobro();
+
+function actualizarCobro(){
+  const t=calcularTotales();
+  $("#cobroTotal").textContent=money(t.total);
+  const recibido=Number($("#montoRecibido").value||0);
+  $("#montoCambio").textContent=money(Math.max(0,recibido-t.total));
+}
+
+// ==== Confirmar cobro ====
+$("#btnConfirmarCobro").onclick=async()=>{
+  const t=calcularTotales();
+  const venta={
+    rutaId,
+    usuario:USUARIO_LOGUEADO?.usuario||"",
+    atendio:USUARIO_LOGUEADO?.nombre||"",
+    fecha:serverTimestamp(),
+    cliente:$("#cliente").value,
+    detalle:carrito,
+    resumen_financiero:{
+      subtotal:t.subtotal,
+      descuento_porcentaje:t.descuentoPorc,
+      descuento_monto:+t.descuentoMonto.toFixed(2),
+      subtotal_descuento:+t.subtotalDesc.toFixed(2),
+      impuestos:+t.impuestos.toFixed(2),
+      total:+t.total.toFixed(2)
+    }
+  };
+  await guardarVenta(venta);
+  generarPDFyTelegram(venta);
+  rellenarTicket(venta);
+  window.print();
+  carrito=[];render();$("#modalCobro").style.display="none";
+};
+
+// ==== Guardar venta Firestore ====
+async function getNextFolio(){
+  const ref=doc(db,'consecutivos',rutaId);
+  const f=await runTransaction(db,async tx=>{
+    const s=await tx.get(ref);
+    if(!s.exists()){tx.set(ref,{valor:1});return 1;}
+    const val=s.data().valor+1;tx.update(ref,{valor:val});return val;
+  });
+  return `RV-${String(f).padStart(6,"0")}`;
+}
+async function guardarVenta(v){
+  v.folio=await getNextFolio();
+  await addDoc(collection(db,"rutas_venta"),v);
+}
+
+// ==== Ticket ====
+function rellenarTicket(v){
+  let html=`<div style="font-family:monospace;text-align:center">
+  <h3>La Proveedora</h3><hr>
+  <div>Folio: ${v.folio}</div>
+  <div>Cliente: ${v.cliente}</div><hr>`;
+  v.detalle.forEach(d=>{html+=`${d.nombre}  ${d.cantidad}x${money(d.precioUnit||10)}<br>`});
+  const r=v.resumen_financiero;
+  html+=`<hr>Subtotal: ${money(r.subtotal)}<br>`;
+  if(r.descuento_porcentaje>0)
+    html+=`Desc ${r.descuento_porcentaje}%: -${money(r.descuento_monto)}<br>`;
+  html+=`Total: ${money(r.total)}<br><hr>¡Gracias por su compra!</div>`;
+  const div=document.createElement("div");
+  div.id="ticketArea";div.innerHTML=`<div id="ticket">${html}</div>`;
+  document.body.appendChild(div);
+}
+
+// ==== PDF + Telegram ====
+async function generarPDFyTelegram(v){
+  const { jsPDF } = await import("https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js");
+  const pdf=new jsPDF();
+  pdf.text("La Proveedora - Venta",105,10,{align:"center"});
+  pdf.text(`Folio: ${v.folio}`,10,20);
+  let y=30;
+  v.detalle.forEach(it=>{
+    pdf.text(`${it.nombre}  ${it.cantidad}x${(it.precioUnit||10).toFixed(2)}`,10,y);
+    y+=5;
+  });
+  const r=v.resumen_financiero;
+  y+=5;pdf.text(`Subtotal: ${r.subtotal.toFixed(2)}`,10,y);y+=5;
+  if(r.descuento_porcentaje>0){pdf.text(`Desc ${r.descuento_porcentaje}%: -${r.descuento_monto.toFixed(2)}`,10,y);y+=5;}
+  pdf.text(`Total: ${r.total.toFixed(2)}`,10,y);
+  const blob=pdf.output("blob");
+  const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+  const CHAT="6617988297";
+  const msg=`🧾 Venta ${v.folio}\n💰 Total: $${r.total.toFixed(2)}\n💸 Descuento: ${r.descuento_porcentaje || 0}%`;
+  await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({chat_id:CHAT,text:msg})
+  });
+  const fd=new FormData();fd.append("chat_id",CHAT);fd.append("document",blob,`Venta_${v.folio}.pdf`);
+  await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`,{method:"POST",body:fd});
+}
+</script>
+</body>
+</html>
+
