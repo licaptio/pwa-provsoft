@@ -921,6 +921,7 @@ inputCantidad.addEventListener("keydown", (e) => {
 // =======================================================
 // 📸 ESCÁNER QR / CÓDIGO DE BARRAS CON BALANZA Y EQUIVALENTES
 // =======================================================
+const btnCam = document.getElementById("btnCam");
 let html5Qr = null;
 let scannerActivo = false;
 
@@ -961,7 +962,19 @@ btnCam.addEventListener("click", async () => {
       contenedor.appendChild(btnCerrar);
       document.body.appendChild(contenedor);
 
-      html5Qr = new Html5Qrcode("visorCam");
+      const { Html5QrcodeSupportedFormats } = window;
+      html5Qr = new Html5Qrcode("visorCam", {
+            formatsToSupport: [
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E
+        ]
+      });
+
       const cams = await Html5Qrcode.getCameras();
       if (!cams.length) {
         mostrarToast("No se detectaron cámaras disponibles");
@@ -977,24 +990,14 @@ btnCam.addEventListener("click", async () => {
           const codigo = texto.trim();
           console.log("📦 Escaneado:", codigo);
 
-          // 🔹 Búsqueda avanzada: balanza, equivalentes y código directo
-let prod = null;
-try {
-  prod = await resolverProducto(codigo);
-} catch {
-  mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
-  return;
-}
-
-          if (prod._pesoDetectado) {
-            cantidad = prod._pesoDetectado;
-            delete prod._pesoDetectado;
-            mostrarToast(`⚖️ ${prod.nombre} (${cantidad.toFixed(3)} kg)`);
-          } else {
+          try {
+            const prod = await resolverProducto(codigo);
+            const cantidad = prod._pesoDetectado || 1;
+            addProduct(prod, cantidad);
             mostrarToast(`✅ ${prod.nombre}`);
+          } catch {
+            mostrarToast(`⚠️ No encontrado (${codigo})`);
           }
-
-          addProduct(prod, cantidad);
 
           try { await html5Qr.stop(); } catch {}
           contenedor.remove();
