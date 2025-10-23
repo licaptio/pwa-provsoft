@@ -438,9 +438,13 @@ async function resolverProducto(codigoInput) {
   if (!codigoStr) throw new Error("Código vacío");
 
   // 1️⃣ Detectar código de balanza
-  const det = decodificarCodigoBalanza(codigoStr);
-  if (det) {
-    const eq = await buscarPorEquivalente(db, det.base);
+  if (codigoStr.startsWith("2") && codigoStr.length >= 13) {
+    const codigoBase = codigoStr.substring(0, 7);
+    const pesoStr = codigoStr.substring(7, 12);
+    const peso = parseFloat(pesoStr) / 1000;
+
+    // Buscar por código base en equivalentes
+    const eq = await buscarPorEquivalente(db, codigoBase);
     if (eq) {
       return {
         id: eq.id,
@@ -450,25 +454,19 @@ async function resolverProducto(codigoInput) {
         costoUnit: eq.costoUnit,
         ivaTasa: eq.ivaTasa,
         iepsTasa: eq.iepsTasa,
-        _pesoDetectado: det.peso
+        _pesoDetectado: peso
       };
     }
   }
 
-  // 2️⃣ Buscar en catálogo local
-  let idByCode = codeIndex.get(codigoStr);
-  if (!idByCode) {
-    const prodEq = catalogo.find(p =>
-      (p.equivalentes || []).some(eq => eq.trim() === codigoStr)
-    );
-    idByCode = prodEq ? prodEq.id : null;
-  }
+  // 2️⃣ Buscar por código directo en el índice local
+  const idByCode = codeIndex.get(codigoStr);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p || null;
   }
 
-  // 3️⃣ Buscar remoto por equivalentes
+  // 3️⃣ Buscar remoto por equivalentes directos
   const remoto = await buscarPorEquivalente(db, codigoStr);
   if (remoto) {
     return {
