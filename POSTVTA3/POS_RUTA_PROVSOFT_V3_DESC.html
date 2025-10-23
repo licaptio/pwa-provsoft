@@ -430,73 +430,61 @@ function decodificarCodigoBalanza(codigo) {
 
   return { base, peso };
 }
+// =======================================================
+// 🔍 RESOLVER PRODUCTO (detecta peso y equivalentes)
+// =======================================================
+async function resolverProducto(codigoInput) {
+  const codigoStr = String(codigoInput).trim();
+  if (!codigoStr) throw new Error("Código vacío");
 
-async function buscarLocal(qraw) {
-  const q = (qraw || "").trim();
-  if (!q) return [];
-
-  const bal = decodificarCodigoBalanza(q);
-  if (bal) {
-    const posibles = [
-      bal.base,
-      bal.base.padStart(6, "0"),
-      ("000000" + bal.base).slice(-6),
-      "2" + bal.base.padStart(6, "0"),
-      "20000" + bal.base
-    ];
-
-    for (const key of posibles) {
-      const prodId =
-        codeIndex.get(key) ||
-        catalogo.find(p => (p.equivalentes || []).some(eq => eq === key))?.id;
-
-      if (prodId) {
-        const p = catalogo.find(x => x.id === prodId);
-        if (p) {
-          p._pesoDetectado = bal.peso;
-          return [p];
-        }
-      }
+  // 1️⃣ Detectar código de balanza
+  const det = decodificarCodigoBalanza(codigoStr);
+  if (det) {
+    const eq = await buscarPorEquivalente(db, det.base);
+    if (eq) {
+      return {
+        id: eq.id,
+        nombre: eq.concepto,
+        codigo: eq.codigoBarra,
+        precioPublico: eq.precioPublico,
+        costoUnit: eq.costoUnit,
+        ivaTasa: eq.ivaTasa,
+        iepsTasa: eq.iepsTasa,
+        _pesoDetectado: det.peso
+      };
     }
   }
 
-  let idByCode = codeIndex.get(q);
+  // 2️⃣ Buscar en catálogo local
+  let idByCode = codeIndex.get(codigoStr);
   if (!idByCode) {
     const prodEq = catalogo.find(p =>
-      (p.equivalentes || []).some(eq => eq.trim() === q)
+      (p.equivalentes || []).some(eq => eq.trim() === codigoStr)
     );
     idByCode = prodEq ? prodEq.id : null;
   }
-
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
-    return p ? [p] : [];
+    return p || null;
   }
 
-  const matchEq = catalogo.find(p =>
-    (p.equivalentes || []).some(eq => q.includes(eq))
-  );
-  if (matchEq) return [matchEq];
-  
-// 🔹 Si no se encontró localmente, buscar en Firestore equivalentes
-const remoto = await buscarPorEquivalente(db, q);
-if (remoto) {
-  return [{
-    id: remoto.id,
-    nombre: remoto.concepto,
-    codigo: remoto.codigoBarra,
-    precioPublico: remoto.precioPublico,
-    costoUnit: remoto.costoUnit,
-    ivaTasa: remoto.ivaTasa,
-    iepsTasa: remoto.iepsTasa
-  }];
-}
+  // 3️⃣ Buscar remoto por equivalentes
+  const remoto = await buscarPorEquivalente(db, codigoStr);
+  if (remoto) {
+    return {
+      id: remoto.id,
+      nombre: remoto.concepto,
+      codigo: remoto.codigoBarra,
+      precioPublico: remoto.precioPublico,
+      costoUnit: remoto.costoUnit,
+      ivaTasa: remoto.ivaTasa,
+      iepsTasa: remoto.iepsTasa
+    };
+  }
 
-  return catalogo.filter(p =>
-    (p.nombre || "").toLowerCase().includes(q.toLowerCase())
-  );
+  // 4️⃣ Nada encontrado
+  throw new Error("Producto no encontrado");
 }
-  
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
 
@@ -990,15 +978,13 @@ btnCam.addEventListener("click", async () => {
           console.log("📦 Escaneado:", codigo);
 
           // 🔹 Búsqueda avanzada: balanza, equivalentes y código directo
-          const resultados = await buscarLocal(codigo);
-
-          if (!resultados.length) {
-            mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
-            return;
-          }
-
-          const prod = resultados[0];
-          let cantidad = 1;
+let prod = null;
+try {
+  prod = await resolverProducto(codigo);
+} catch {
+  mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
+  return;
+}
 
           if (prod._pesoDetectado) {
             cantidad = prod._pesoDetectado;
