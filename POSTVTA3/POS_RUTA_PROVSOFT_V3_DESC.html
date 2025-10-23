@@ -935,8 +935,8 @@ btnCam.addEventListener("click", async () => {
 
       const visor = document.createElement("div");
       visor.id = "visorCam";
-      visor.style.width = "90%";
-      visor.style.maxWidth = "340px";
+      visor.style.width = "100%";
+      visor.style.maxWidth = "380px";
       visor.style.borderRadius = "12px";
       visor.style.overflow = "hidden";
       visor.style.background = "#000";
@@ -946,24 +946,28 @@ btnCam.addEventListener("click", async () => {
       document.body.appendChild(contenedor);
 
       html5Qr = new Html5Qrcode("visorCam");
-      const cams = await Html5Qrcode.getCameras();
-      if (!cams.length) {
-        mostrarToast("No se detectaron cámaras disponibles");
-        contenedor.remove();
-        return;
-      }
 
+      const cams = await Html5Qrcode.getCameras();
       const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
+
+      // 🔧 Ajuste: agranda el área de escaneo y activa formatos lineales
       await html5Qr.start(
         camTrasera.id,
-        { fps: 10, qrbox: 250 },
+        {
+          fps: 10,
+          qrbox: { width: 350, height: 200 },
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39
+          ]
+        },
         async (texto) => {
           const codigo = texto.trim();
           console.log("📦 Escaneado:", codigo);
 
-          // 🔹 Búsqueda avanzada: balanza, equivalentes y código directo
           const resultados = buscarLocal(codigo);
-
           if (!resultados.length) {
             mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
             return;
@@ -981,19 +985,14 @@ btnCam.addEventListener("click", async () => {
           }
 
           addProduct(prod, cantidad);
-
           try { await html5Qr.stop(); } catch {}
           contenedor.remove();
           scannerActivo = false;
         },
-        (err) => console.warn("📷 Error lectura:", err)
+        err => console.warn("📷 Error lectura:", err)
       );
 
       scannerActivo = true;
-    } else {
-      await html5Qr.stop();
-      document.getElementById("lectorQR")?.remove();
-      scannerActivo = false;
     }
   } catch (err) {
     console.error("❌ Error iniciando cámara:", err);
@@ -1001,6 +1000,7 @@ btnCam.addEventListener("click", async () => {
     scannerActivo = false;
   }
 });
+
 
   function rellenarTicket(venta) {
   document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
