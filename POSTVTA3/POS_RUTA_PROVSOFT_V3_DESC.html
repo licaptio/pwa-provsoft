@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>PROVEEDORA MATRIZ – RUTA DE VENTA 3.0 </title>
+  <title>PROVEEDORA MATRIZ – RUTA DE VENTA 3.0 DESCUENTO LIBRE</title>
   <meta name="theme-color" content="#0c6cbd">
   <link rel="manifest" href="./manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
@@ -142,7 +142,7 @@
 <!-- 🔑 LOGIN -->
 <div id="loginScreen">
   <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
-  <h2>PROVEEDORA MATRIZ – RUTA DE VENTA 3.0 </h2>
+  <h2>PROVEEDORA MATRIZ – RUTA DE VENTA 3.0 DESCUENTO LIBRE</h2>
   <input id="loginUsuario" type="text" placeholder="Usuario"/>
   <input id="loginPassword" type="password" placeholder="Contraseña"/>
   <button id="btnLogin" class="btn">Entrar</button>
@@ -152,7 +152,7 @@
 <!-- 📦 POS -->
 <div id="posApp" style="display:none;">
   <header>
-    <span>PROVEEDORA MATRIZ – RUTA DE VENTA 3.0 </span>
+    <span>PROVEEDORA MATRIZ – RUTA DE VENTA 3.0 DESCUENTO LIBRE</span>
     <img src="logo_proveedora.webp" alt="Logo">
     <button id="btnLogout" 
       style="position:absolute; right:10px; top:10px; background:#c0392b; color:white;
@@ -173,27 +173,7 @@
       <div class="field searchbox">
         <label>Buscar</label>
         <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-        <!-- 📱 Cámara nativa -->
-<button id="btnCamTeaCapps" class="cam-btn" type="button"
-  style="background:#0c6cbd; color:white; border:none; border-radius:8px; padding:8px 12px; font-weight:600;">
-  📷 Escanear (TeaCapps)
-</button>
-
-<script>
-document.getElementById("btnCamTeaCapps").addEventListener("click", () => {
-  try {
-    // TeaCapps usa "%s" como placeholder real del código
-    const returnUrl = encodeURIComponent("https://licaptio.github.io/pwa-provsoft/POSVTAV2/resultado_scan.html?codigo=%s");
-    const intentUrl = `intent://scan/?ret=${returnUrl}#Intent;scheme=zxing;package=com.teacapps.barcodescanner;end`;
-    window.location.href = intentUrl;
-  } catch (e) {
-    console.error("❌ Error al intentar abrir TeaCapps:", e);
-    mostrarToast("No se pudo abrir el escáner");
-  }
-});
-
-</script>
-
+        <button id="btnCam" class="cam-btn" type="button">📷</button>
         <div id="resultados" class="search-results"></div>
       </div>
 
@@ -233,6 +213,8 @@ document.getElementById("btnCamTeaCapps").addEventListener("click", () => {
   </main>
 </div>
 
+<!-- 📸 Librería QR -->
+<script src="./html5-qrcode.min.js"></script>
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
@@ -434,22 +416,16 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim();
   if (!q) return [];
 
-  // 📦 1️⃣ Intentar decodificar código de balanza
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
-    const base = bal.base; // ej. "000099"
-    const peso = bal.peso;
-
-    // Posibles variaciones del código base (para coincidir con tus equivalentes)
     const posibles = [
-      base,
-      base.padStart(6, "0"),
-      "20000" + base,
-      "200000" + base,
-      "2" + base.padStart(6, "0")
+      bal.base,
+      bal.base.padStart(6, "0"),
+      ("000000" + bal.base).slice(-6),
+      "2" + bal.base.padStart(6, "0"),
+      "20000" + bal.base
     ];
 
-    // Buscar coincidencia directa o por equivalentes
     for (const key of posibles) {
       const prodId =
         codeIndex.get(key) ||
@@ -458,16 +434,13 @@ function buscarLocal(qraw) {
       if (prodId) {
         const p = catalogo.find(x => x.id === prodId);
         if (p) {
-          // 💡 Agregamos el peso detectado directamente al producto
-          p._pesoDetectado = peso;
-          console.log(`⚖️ Código de báscula detectado → ${p.nombre} (${peso} kg)`);
+          p._pesoDetectado = bal.peso;
           return [p];
         }
       }
     }
   }
 
-  // 🔍 2️⃣ Buscar coincidencia directa o por equivalentes normales
   let idByCode = codeIndex.get(q);
   if (!idByCode) {
     const prodEq = catalogo.find(p =>
@@ -480,12 +453,15 @@ function buscarLocal(qraw) {
     return p ? [p] : [];
   }
 
-  // 🧠 3️⃣ Buscar por nombre parcial
+  const matchEq = catalogo.find(p =>
+    (p.equivalentes || []).some(eq => q.includes(eq))
+  );
+  if (matchEq) return [matchEq];
+
   return catalogo.filter(p =>
     (p.nombre || "").toLowerCase().includes(q.toLowerCase())
   );
 }
-
   
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
@@ -920,6 +896,105 @@ inputCantidad.addEventListener("keydown", (e) => {
     inputBuscador.focus();
   }
 });
+// =======================================================
+// 📸 ESCÁNER QR / CÓDIGO DE BARRAS CON BALANZA Y EQUIVALENTES
+// =======================================================
+let html5Qr = null;
+let scannerActivo = false;
+
+btnCam.addEventListener("click", async () => {
+  try {
+    if (!scannerActivo) {
+      const contenedor = document.createElement("div");
+      contenedor.id = "lectorQR";
+      Object.assign(contenedor.style, {
+        position: "fixed", inset: "0", background: "rgba(0,0,0,0.9)",
+        display: "flex", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", zIndex: "5000"
+      });
+
+      const btnCerrar = document.createElement("button");
+      btnCerrar.textContent = "✖ Cerrar cámara";
+      Object.assign(btnCerrar.style, {
+        position: "absolute", top: "12px", right: "12px",
+        background: "#c0392b", color: "#fff", border: "none",
+        borderRadius: "8px", padding: "8px 12px",
+        fontSize: "14px", fontWeight: "600", cursor: "pointer"
+      });
+      btnCerrar.onclick = async () => {
+        try { await html5Qr.stop(); } catch {}
+        contenedor.remove();
+        scannerActivo = false;
+      };
+
+      const visor = document.createElement("div");
+      visor.id = "visorCam";
+      visor.style.width = "90%";
+      visor.style.maxWidth = "340px";
+      visor.style.borderRadius = "12px";
+      visor.style.overflow = "hidden";
+      visor.style.background = "#000";
+
+      contenedor.appendChild(visor);
+      contenedor.appendChild(btnCerrar);
+      document.body.appendChild(contenedor);
+
+      html5Qr = new Html5Qrcode("visorCam");
+      const cams = await Html5Qrcode.getCameras();
+      if (!cams.length) {
+        mostrarToast("No se detectaron cámaras disponibles");
+        contenedor.remove();
+        return;
+      }
+
+      const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
+      await html5Qr.start(
+        camTrasera.id,
+        { fps: 10, qrbox: 250 },
+        async (texto) => {
+          const codigo = texto.trim();
+          console.log("📦 Escaneado:", codigo);
+
+          // 🔹 Búsqueda avanzada: balanza, equivalentes y código directo
+          const resultados = buscarLocal(codigo);
+
+          if (!resultados.length) {
+            mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
+            return;
+          }
+
+          const prod = resultados[0];
+          let cantidad = 1;
+
+          if (prod._pesoDetectado) {
+            cantidad = prod._pesoDetectado;
+            delete prod._pesoDetectado;
+            mostrarToast(`⚖️ ${prod.nombre} (${cantidad.toFixed(3)} kg)`);
+          } else {
+            mostrarToast(`✅ ${prod.nombre}`);
+          }
+
+          addProduct(prod, cantidad);
+
+          try { await html5Qr.stop(); } catch {}
+          contenedor.remove();
+          scannerActivo = false;
+        },
+        (err) => console.warn("📷 Error lectura:", err)
+      );
+
+      scannerActivo = true;
+    } else {
+      await html5Qr.stop();
+      document.getElementById("lectorQR")?.remove();
+      scannerActivo = false;
+    }
+  } catch (err) {
+    console.error("❌ Error iniciando cámara:", err);
+    mostrarToast("No se pudo acceder a la cámara");
+    scannerActivo = false;
+  }
+});
 
   function rellenarTicket(venta) {
   document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
@@ -1061,22 +1136,5 @@ Cajero: ${venta.atendio}
   </div>
 </div>
 
-<script>
-window.addEventListener("DOMContentLoaded", () => {
-  const codigoEscaneado = localStorage.getItem("ultimoCodigoEscaneado");
-  if (!codigoEscaneado || typeof buscarLocal !== "function") return;
-  
-  const resultados = buscarLocal(codigoEscaneado);
-  if (resultados.length) {
-    addProduct(resultados[0], resultados[0]._pesoDetectado || 1);
-    mostrarToast(`✅ ${resultados[0].nombre} agregado`);
-  } else {
-    mostrarToast(`⚠️ Código no encontrado (${codigoEscaneado})`, "error");
-  }
-  localStorage.removeItem("ultimoCodigoEscaneado");
-});
-</script>
-
 </body>
 </html>
-
