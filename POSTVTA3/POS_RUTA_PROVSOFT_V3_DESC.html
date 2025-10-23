@@ -1055,106 +1055,19 @@ Cajero: ${venta.atendio}
 </div>
 
 <script>
-</script>
-<!-- =======================================================
- 📷 CÁMARA DE ALTA DEFINICIÓN (ZXing JS integrado)
-======================================================= -->
-<script type="module">
-import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/library@1.4.0/esm5/index.min.js";
-
-const btnCam = document.getElementById("btnCamGoogle");
-const video = document.createElement("video");
-video.setAttribute("playsinline", true);
-video.style.width = "100%";
-video.style.maxWidth = "300px";
-video.style.borderRadius = "12px";
-video.style.display = "none";
-video.style.position = "fixed";
-video.style.bottom = "80px";
-video.style.left = "50%";
-video.style.transform = "translateX(-50%)";
-video.style.zIndex = "5000";
-video.style.boxShadow = "0 4px 14px rgba(0,0,0,.4)";
-document.body.appendChild(video);
-
-const codeReader = new BrowserMultiFormatReader();
-
-async function abrirCamaraAltaDefinicion() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "environment",
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      }
-    });
-
-    video.srcObject = stream;
-    video.style.display = "block";
-    await video.play();
-
-    mostrarToast("📸 Escaneando... apunta al código");
-    const result = await codeReader.decodeOnceFromVideoDevice(undefined, video);
-
-    if (result && result.text) {
-      const codigo = result.text.trim();
-      console.log("📦 Detectado:", codigo);
-
-      const resultados = buscarLocal(codigo);
-      if (resultados.length) {
-        const prod = resultados[0];
-        const cantidad = prod._pesoDetectado || 1;
-        addProduct(prod, cantidad);
-        mostrarToast(`✅ ${prod.nombre} agregado`);
-      } else {
-        mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
-      }
-    } else {
-      mostrarToast("❌ No se detectó código");
-    }
-
-  } catch (err) {
-    console.error("❌ Error cámara:", err);
-    mostrarToast("⚠️ No se pudo acceder a la cámara");
-  } finally {
-    video.style.display = "none";
-    const tracks = video.srcObject?.getTracks() || [];
-    tracks.forEach(t => t.stop());
-  }
-}
-
-btnCam.addEventListener("click", async () => {
-  try {
-    // ✅ 1️⃣ Si el navegador soporta cámara web (PWA)
-    if (navigator.mediaDevices?.getUserMedia) {
-      await abrirCamaraAltaDefinicion();
-      return;
-    }
-
-    // ⚙️ 2️⃣ Intentar abrir ZXing App
-    window.location.href = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end";
-  } catch (e1) {
-    try {
-      // 🔁 3️⃣ Fallback: intentar Google Lens
-      window.location.href = "google.lens://";
-    } catch (e2) {
-      mostrarToast("⚠️ No se pudo abrir cámara ni Google Lens");
-    }
-  }
-});
-// Si viene de escaneo TeaCapps
-const codigoEscaneado = localStorage.getItem("ultimoCodigoEscaneado");
-if (codigoEscaneado) {
+window.addEventListener("DOMContentLoaded", () => {
+  const codigoEscaneado = localStorage.getItem("ultimoCodigoEscaneado");
+  if (!codigoEscaneado || typeof buscarLocal !== "function") return;
+  
   const resultados = buscarLocal(codigoEscaneado);
   if (resultados.length) {
     addProduct(resultados[0], resultados[0]._pesoDetectado || 1);
     mostrarToast(`✅ ${resultados[0].nombre} agregado`);
   } else {
-    mostrarToast(`⚠️ Código no encontrado (${codigoEscaneado})`);
+    mostrarToast(`⚠️ Código no encontrado (${codigoEscaneado})`, "error");
   }
   localStorage.removeItem("ultimoCodigoEscaneado");
-}
-
+});
 </script>
 
 </body>
