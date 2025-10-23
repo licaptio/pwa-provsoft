@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Escaneo</title></head>
+<body>
+<script>
+const params = new URLSearchParams(window.location.search);
+const codigo = params.get("codigo");
+
+if (codigo) {
+  // Guarda el código en localStorage y vuelve al POS
+  localStorage.setItem("ultimoCodigoEscaneado", codigo);
+  window.location.href = "index.html";
+} else {
+  document.body.innerHTML = "<h3>No se detectó ningún código</h3>";
+}
+</script>
+</body>
+</html>
