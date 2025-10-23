@@ -1116,7 +1116,15 @@ Cajero: ${venta.atendio}
 `;
   return texto;
 }
-window.decodificarCodigoBalanza = decodificarCodigoBalanza;
+window.decodificarCodigoBalanza = (window.decodificarCodigoBalanza || function(codigo){
+    if (!codigo || codigo.length < 13) return null;
+  if (!codigo.startsWith("2")) return null;
+  const base = codigo.substring(0,7);
+  const pesoStr = codigo.substring(7,12);
+  const peso = parseFloat(pesoStr) / 1000;
+  return { base, peso };
+});
+console.log("✅ Función global lista para pruebas");
 </script>
   <!-- 🔹 Área Ticket Imprimible -->
 <div id="ticketArea" style="display:none;">
