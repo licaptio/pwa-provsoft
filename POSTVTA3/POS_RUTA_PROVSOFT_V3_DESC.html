@@ -174,10 +174,18 @@
         <label>Buscar</label>
         <input id="buscador" type="text" placeholder="Escribe o escanea código…">
         <!-- 📱 Cámara nativa -->
-<button id="btnCamGoogle" class="cam-btn" type="button" 
+<button id="btnCamTeaCapps" class="cam-btn" type="button"
   style="background:#0c6cbd; color:white; border:none; border-radius:8px; padding:8px 12px; font-weight:600;">
-  📷 Google
+  📷 Escanear (TeaCapps)
 </button>
+
+<script>
+document.getElementById("btnCamTeaCapps").addEventListener("click", () => {
+  // URL de retorno a tu POS (ajústala si tu ruta es distinta)
+  const returnUrl = encodeURIComponent("https://licaptio.github.io/pwa-provsoft/POSVTAV2/resultado_scan.html?codigo={CODE}");
+  window.location.href = `intent://scan/?ret=${returnUrl}#Intent;scheme=zxing;package=com.teacapps.barcodescanner;end`;
+});
+</script>
 
         <div id="resultados" class="search-results"></div>
       </div>
