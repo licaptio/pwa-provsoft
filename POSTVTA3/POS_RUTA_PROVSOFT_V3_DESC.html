@@ -1141,6 +1141,82 @@ Cajero: ${venta.atendio}
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script>
+async function iniciarScannerBalanza() {
+  const contenedor = document.createElement("div");
+  contenedor.id = "lectorBalanza";
+  Object.assign(contenedor.style, {
+    position: "fixed", inset: "0", background: "rgba(0,0,0,0.9)",
+    display: "flex", flexDirection: "column", alignItems: "center",
+    justifyContent: "center", zIndex: "5000"
+  });
+
+  const btnCerrar = document.createElement("button");
+  btnCerrar.textContent = "✖ Cerrar cámara";
+  Object.assign(btnCerrar.style, {
+    position: "absolute", top: "12px", right: "12px",
+    background: "#c0392b", color: "#fff", border: "none",
+    borderRadius: "8px", padding: "8px 12px",
+    fontSize: "14px", fontWeight: "600", cursor: "pointer"
+  });
+  btnCerrar.onclick = () => {
+    Quagga.stop();
+    contenedor.remove();
+  };
+
+  const visor = document.createElement("div");
+  visor.id = "visorQuagga";
+  visor.style.width = "100%";
+  visor.style.maxWidth = "400px";
+  visor.style.aspectRatio = "16/9";
+  contenedor.appendChild(visor);
+  contenedor.appendChild(btnCerrar);
+  document.body.appendChild(contenedor);
+
+  Quagga.init({
+    inputStream: {
+      type: "LiveStream",
+      target: document.querySelector('#visorQuagga'),
+      constraints: {
+        facingMode: "environment",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }
+    },
+    decoder: {
+      readers: ["ean_reader", "ean_13_reader", "code_128_reader", "code_39_reader"]
+    },
+    locate: true
+  }, function(err) {
+    if (err) { console.error(err); mostrarToast("Error iniciando cámara"); return; }
+    Quagga.start();
+    mostrarToast("📷 Cámara lista para leer códigos de báscula");
+  });
+
+  Quagga.onDetected(data => {
+    const codigo = data.codeResult.code.trim();
+    console.log("📦 Escaneado:", codigo);
+    const resultados = buscarLocal(codigo);
+    if (!resultados.length) { mostrarToast(`⚠️ No encontrado (${codigo})`); return; }
+
+    const prod = resultados[0];
+    let cantidad = 1;
+    if (prod._pesoDetectado) {
+      cantidad = prod._pesoDetectado;
+      delete prod._pesoDetectado;
+      mostrarToast(`⚖️ ${prod.nombre} (${cantidad.toFixed(3)} kg)`);
+    } else {
+      mostrarToast(`✅ ${prod.nombre}`);
+    }
+
+    addProduct(prod, cantidad);
+    Quagga.stop();
+    contenedor.remove();
+  });
+}
+btnCam.onclick = iniciarScannerBalanza;
+</script>
 
 </body>
 </html>
