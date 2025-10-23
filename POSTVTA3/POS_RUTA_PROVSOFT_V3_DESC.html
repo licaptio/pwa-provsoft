@@ -1050,24 +1050,31 @@ Cajero: ${venta.atendio}
 </script>
 <script>
 // =======================================================
-// 📱 CÁMARA NATIVA (Google Lens / ZXing)
+// 📱 CÁMARA NATIVA (ZXing + Google Lens fallback)
 // =======================================================
 document.getElementById("btnCamGoogle").addEventListener("click", () => {
   try {
-    // Abre la app de cámara/lector (ZXing o Barcode Scanner)
+    // Intent nativo ZXing (lector clásico)
     window.location.href = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end";
-  } catch (err) {
-    console.error("No se pudo abrir la cámara nativa:", err);
-    mostrarToast("⚠️ No se pudo abrir la cámara de Google");
+  } catch (e1) {
+    try {
+      // Intent alternativo Google Lens (algunos Android)
+      window.location.href = "google.lens://";
+    } catch (e2) {
+      console.error("No se pudo abrir la cámara nativa:", e2);
+      mostrarToast("⚠️ No se pudo abrir la cámara de Google ni ZXing");
+    }
   }
 });
 
-// ✅ Si el lector regresa un código por URL (?codigo=XXXXXXXXXXXX)
+// ✅ Detecta si el lector devuelve un código por URL (?codigo=XXXXXXXXXXXX)
 const params = new URLSearchParams(window.location.search);
 const codigoEscaneado = params.get("codigo");
 
 if (codigoEscaneado) {
   console.log("📦 Código leído desde cámara externa:", codigoEscaneado);
+  history.replaceState({}, document.title, location.pathname); // limpia la URL 👈
+
   const resultados = buscarLocal(codigoEscaneado);
   if (resultados.length) {
     const prod = resultados[0];
@@ -1079,7 +1086,6 @@ if (codigoEscaneado) {
   }
 }
 </script>
-
 </body>
 </html>
 
