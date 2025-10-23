@@ -1115,7 +1115,26 @@ async function abrirCamaraAltaDefinicion() {
   }
 }
 
-btnCam.addEventListener("click", abrirCamaraAltaDefinicion);
+btnCam.addEventListener("click", async () => {
+  try {
+    // ✅ 1️⃣ Si el navegador soporta cámara web (PWA)
+    if (navigator.mediaDevices?.getUserMedia) {
+      await abrirCamaraAltaDefinicion();
+      return;
+    }
+
+    // ⚙️ 2️⃣ Intentar abrir ZXing App
+    window.location.href = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end";
+  } catch (e1) {
+    try {
+      // 🔁 3️⃣ Fallback: intentar Google Lens
+      window.location.href = "google.lens://";
+    } catch (e2) {
+      mostrarToast("⚠️ No se pudo abrir cámara ni Google Lens");
+    }
+  }
+});
+
 </script>
 
 </body>
