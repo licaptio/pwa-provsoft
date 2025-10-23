@@ -431,23 +431,8 @@ function decodificarCodigoBalanza(codigo) {
   return { base, peso };
 }
 
-function buscarLocal(qraw) {
+async function buscarLocal(qraw) {
   const q = (qraw || "").trim();
-  // Si no se encontró localmente, buscar en Firestore equivalentes
-if (!idByCode && q) {
-  const remoto = await buscarPorEquivalente(db, q);
-  if (remoto) {
-    return [{
-      id: remoto.id,
-      nombre: remoto.concepto,
-      codigo: remoto.codigoBarra,
-      precioPublico: remoto.precioPublico,
-      costoUnit: remoto.costoUnit,
-      ivaTasa: remoto.ivaTasa,
-      iepsTasa: remoto.iepsTasa
-    }];
-  }
-}
   if (!q) return [];
 
   const bal = decodificarCodigoBalanza(q);
@@ -482,6 +467,7 @@ if (!idByCode && q) {
     );
     idByCode = prodEq ? prodEq.id : null;
   }
+
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
@@ -491,6 +477,20 @@ if (!idByCode && q) {
     (p.equivalentes || []).some(eq => q.includes(eq))
   );
   if (matchEq) return [matchEq];
+
+  // 🔹 Si no se encontró localmente, buscar en Firestore equivalentes
+  const remoto = await buscarPorEquivalente(db, q);
+  if (remoto) {
+    return [{
+      id: remoto.id,
+      nombre: remoto.concepto,
+      codigo: remoto.codigoBarra,
+      precioPublico: remoto.precioPublico,
+      costoUnit: remoto.costoUnit,
+      ivaTasa: remoto.ivaTasa,
+      iepsTasa: remoto.iepsTasa
+    }];
+  }
 
   return catalogo.filter(p =>
     (p.nombre || "").toLowerCase().includes(q.toLowerCase())
