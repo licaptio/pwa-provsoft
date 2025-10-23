@@ -214,7 +214,7 @@
 </div>
 
 <!-- 📸 Librería QR -->
-<script src="./html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.9/html5-qrcode.min.js"></script>
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
@@ -962,19 +962,21 @@ btnCam.addEventListener("click", async () => {
       contenedor.appendChild(btnCerrar);
       document.body.appendChild(contenedor);
 
+      // 🔹 AQUI VA EL BLOQUE NUEVO
+      if (!window.Html5Qrcode) {
+        mostrarToast("Librería de cámara no cargada");
+        contenedor.remove();
+        return;
+      }
+
       const { Html5QrcodeSupportedFormats } = window;
       html5Qr = new Html5Qrcode("visorCam", {
-            formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E
-        ]
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats?.QR_CODE,
+          Html5QrcodeSupportedFormats?.EAN_13,
+          Html5QrcodeSupportedFormats?.CODE_128
+        ].filter(Boolean)
       });
-
       const cams = await Html5Qrcode.getCameras();
       if (!cams.length) {
         mostrarToast("No se detectaron cámaras disponibles");
