@@ -416,16 +416,22 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim();
   if (!q) return [];
 
+  // 📦 1️⃣ Intentar decodificar código de balanza
   const bal = decodificarCodigoBalanza(q);
   if (bal) {
+    const base = bal.base; // ej. "000099"
+    const peso = bal.peso;
+
+    // Posibles variaciones del código base (para coincidir con tus equivalentes)
     const posibles = [
-      bal.base,
-      bal.base.padStart(6, "0"),
-      ("000000" + bal.base).slice(-6),
-      "2" + bal.base.padStart(6, "0"),
-      "20000" + bal.base
+      base,
+      base.padStart(6, "0"),
+      "20000" + base,
+      "200000" + base,
+      "2" + base.padStart(6, "0")
     ];
 
+    // Buscar coincidencia directa o por equivalentes
     for (const key of posibles) {
       const prodId =
         codeIndex.get(key) ||
@@ -434,13 +440,16 @@ function buscarLocal(qraw) {
       if (prodId) {
         const p = catalogo.find(x => x.id === prodId);
         if (p) {
-          p._pesoDetectado = bal.peso;
+          // 💡 Agregamos el peso detectado directamente al producto
+          p._pesoDetectado = peso;
+          console.log(`⚖️ Código de báscula detectado → ${p.nombre} (${peso} kg)`);
           return [p];
         }
       }
     }
   }
 
+  // 🔍 2️⃣ Buscar coincidencia directa o por equivalentes normales
   let idByCode = codeIndex.get(q);
   if (!idByCode) {
     const prodEq = catalogo.find(p =>
@@ -453,15 +462,12 @@ function buscarLocal(qraw) {
     return p ? [p] : [];
   }
 
-  const matchEq = catalogo.find(p =>
-    (p.equivalentes || []).some(eq => q.includes(eq))
-  );
-  if (matchEq) return [matchEq];
-
+  // 🧠 3️⃣ Buscar por nombre parcial
   return catalogo.filter(p =>
     (p.nombre || "").toLowerCase().includes(q.toLowerCase())
   );
 }
+
   
 function calcularTotalesConImpuestosIncluidos() {
   let subtotal = 0, totalIva = 0, totalIeps = 0, total = 0;
