@@ -991,40 +991,28 @@ btnCam.addEventListener("click", async () => {
       return;
     }
 
-    const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
+const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
 
-    // vista previa real antes de iniciar lector
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: camTrasera.id } } });
-    const videoEl = document.createElement("video");
-    videoEl.autoplay = true;
-    videoEl.playsInline = true;
-    videoEl.muted = true;
-    videoEl.style.width = "100%";
-    videoEl.srcObject = stream;
-    visor.innerHTML = "";
-    visor.appendChild(videoEl);
-
-    await html5Qr.start(
-      camTrasera.id,
-      { fps: 10, qrbox: 250 },
-      async texto => {
-        const codigo = texto.trim();
-        console.log("📦 Escaneado:", codigo);
-        try {
-          const prod = await resolverProducto(codigo);
-          const cantidad = prod._pesoDetectado || 1;
-          addProduct(prod, cantidad);
-          mostrarToast(`✅ ${prod.nombre}`);
-        } catch {
-          mostrarToast(`⚠️ No encontrado (${codigo})`);
-        }
-        try { await html5Qr.stop(); } catch {}
-        stream.getTracks().forEach(t => t.stop());
-        contenedor.remove();
-        scannerActivo = false;
-      },
-      err => console.warn("📷 Error lectura:", err)
-    );
+await html5Qr.start(
+  camTrasera.id,
+  { fps: 10, qrbox: 250 },
+  async texto => {
+    const codigo = texto.trim();
+    console.log("📦 Escaneado:", codigo);
+    try {
+      const prod = await resolverProducto(codigo);
+      const cantidad = prod._pesoDetectado || 1;
+      addProduct(prod, cantidad);
+      mostrarToast(`✅ ${prod.nombre}`);
+    } catch {
+      mostrarToast(`⚠️ No encontrado (${codigo})`);
+    }
+    await html5Qr.stop();
+    contenedor.remove();
+    scannerActivo = false;
+  },
+  err => console.warn("📷 Error lectura:", err)
+);
 
     scannerActivo = true;
   } catch (err) {
