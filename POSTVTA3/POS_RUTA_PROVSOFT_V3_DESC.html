@@ -181,10 +181,17 @@
 
 <script>
 document.getElementById("btnCamTeaCapps").addEventListener("click", () => {
-  // URL de retorno a tu POS (ajústala si tu ruta es distinta)
-  const returnUrl = encodeURIComponent("https://licaptio.github.io/pwa-provsoft/POSVTAV2/resultado_scan.html?codigo={CODE}");
-  window.location.href = `intent://scan/?ret=${returnUrl}#Intent;scheme=zxing;package=com.teacapps.barcodescanner;end`;
+  try {
+    // TeaCapps usa "%s" como placeholder real del código
+    const returnUrl = encodeURIComponent("https://licaptio.github.io/pwa-provsoft/POSVTAV2/resultado_scan.html?codigo=%s");
+    const intentUrl = `intent://scan/?ret=${returnUrl}#Intent;scheme=zxing;package=com.teacapps.barcodescanner;end`;
+    window.location.href = intentUrl;
+  } catch (e) {
+    console.error("❌ Error al intentar abrir TeaCapps:", e);
+    mostrarToast("No se pudo abrir el escáner");
+  }
 });
+
 </script>
 
         <div id="resultados" class="search-results"></div>
