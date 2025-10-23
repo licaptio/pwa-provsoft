@@ -217,7 +217,7 @@ f<!DOCTYPE html>
 
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
+<script src="https://unpkg.com/html5-qrcode@2.3.9/html5-qrcode.min.js"></script>
 <!-- 🧠 SCRIPT PRINCIPAL -->
 <script type="module">
 "use strict";
@@ -927,120 +927,112 @@ let scannerActivo = false;
 
 btnCam.addEventListener("click", async () => {
   try {
-    if (!scannerActivo) {
-      const contenedor = document.createElement("div");
-      contenedor.id = "lectorQR";
-      Object.assign(contenedor.style, {
-        position: "fixed", inset: "0", background: "rgba(0,0,0,0.9)",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", zIndex: "5000"
-      });
-
-      const btnCerrar = document.createElement("button");
-      btnCerrar.textContent = "✖ Cerrar cámara";
-      Object.assign(btnCerrar.style, {
-        position: "absolute", top: "12px", right: "12px",
-        background: "#c0392b", color: "#fff", border: "none",
-        borderRadius: "8px", padding: "8px 12px",
-        fontSize: "14px", fontWeight: "600", cursor: "pointer"
-      });
-      btnCerrar.onclick = async () => {
-        try { await html5Qr.stop(); } catch {}
-        contenedor.remove();
-        scannerActivo = false;
-      };
-
-      const visor = document.createElement("div");
-      visor.id = "visorCam";
-      visor.style.width = "90%";
-      visor.style.maxWidth = "340px";
-      visor.style.borderRadius = "12px";
-      visor.style.overflow = "hidden";
-      visor.style.background = "#000";
-
-      contenedor.appendChild(visor);
-      contenedor.appendChild(btnCerrar);
-      document.body.appendChild(contenedor);
-
-      // 🔹 AQUI VA EL BLOQUE NUEVO
-      if (!window.Html5Qrcode) {
-        mostrarToast("Librería de cámara no cargada");
-        contenedor.remove();
-        return;
-      }
-
-      const { Html5QrcodeSupportedFormats } = window;
-      html5Qr = new Html5Qrcode("visorCam", {
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats?.QR_CODE,
-          Html5QrcodeSupportedFormats?.EAN_13,
-          Html5QrcodeSupportedFormats?.CODE_128
-        ].filter(Boolean)
-      });
-      console.log("📷 window.Html5Qrcode =", window.Html5Qrcode);
-console.log("📷 window.navigator.mediaDevices =", navigator.mediaDevices);
-
-const cams = await Html5Qrcode.getCameras();
-if (!cams.length) {
-  mostrarToast("No se detectaron cámaras disponibles");
-  contenedor.remove();
-  return;
-}
-
-// ✅ seleccionar solo una vez la cámara
-const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
-
-// ✅ mostrar video manualmente para evitar pantalla negra
-const constraints = { video: { deviceId: { exact: camTrasera.id }, facingMode: "environment" } };
-const stream = await navigator.mediaDevices.getUserMedia(constraints);
-const videoEl = document.createElement("video");
-videoEl.autoplay = true;
-videoEl.playsInline = true;
-videoEl.muted = true;
-videoEl.style.width = "100%";
-videoEl.srcObject = stream;
-visor.innerHTML = "";
-visor.appendChild(videoEl);
-
-// ✅ iniciar html5-qrcode después de confirmar video activo
-await html5Qr.start(
-  camTrasera.id,
-  { fps: 10, qrbox: 250 },
-  async (texto) => {
-    const codigo = texto.trim();
-    console.log("📦 Escaneado:", codigo);
-
-    try {
-      const prod = await resolverProducto(codigo);
-      const cantidad = prod._pesoDetectado || 1;
-      addProduct(prod, cantidad);
-      mostrarToast(`✅ ${prod.nombre}`);
-    } catch {
-      mostrarToast(`⚠️ No encontrado (${codigo})`);
-    }
-
-    // detener todo
-    try { await html5Qr.stop(); } catch {}
-    stream.getTracks().forEach(t => t.stop());
-    contenedor.remove();
-    scannerActivo = false;
-  },
-  (err) => console.warn("📷 Error lectura:", err)
-);
-scannerActivo = true;
-
-    } else {
-      await html5Qr.stop();
+    if (scannerActivo) {
+      try { await html5Qr.stop(); } catch {}
       document.getElementById("lectorQR")?.remove();
       scannerActivo = false;
+      return;
     }
+
+    const contenedor = document.createElement("div");
+    contenedor.id = "lectorQR";
+    Object.assign(contenedor.style, {
+      position: "fixed", inset: "0",
+      background: "rgba(0,0,0,0.9)",
+      display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      zIndex: "5000"
+    });
+
+    const visor = document.createElement("div");
+    visor.id = "visorCam";
+    visor.style.width = "90%";
+    visor.style.maxWidth = "340px";
+    visor.style.borderRadius = "12px";
+    visor.style.overflow = "hidden";
+    visor.style.background = "#000";
+
+    const btnCerrar = document.createElement("button");
+    btnCerrar.textContent = "✖ Cerrar cámara";
+    Object.assign(btnCerrar.style, {
+      position: "absolute", top: "12px", right: "12px",
+      background: "#c0392b", color: "#fff", border: "none",
+      borderRadius: "8px", padding: "8px 12px",
+      fontSize: "14px", fontWeight: "600", cursor: "pointer"
+    });
+    btnCerrar.onclick = async () => {
+      try { await html5Qr.stop(); } catch {}
+      contenedor.remove();
+      scannerActivo = false;
+    };
+
+    contenedor.append(visor, btnCerrar);
+    document.body.appendChild(contenedor);
+
+    if (!window.Html5Qrcode) {
+      mostrarToast("Librería de cámara no cargada");
+      contenedor.remove();
+      return;
+    }
+
+    const { Html5QrcodeSupportedFormats } = window;
+    html5Qr = new Html5Qrcode("visorCam", {
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.CODE_128
+      ]
+    });
+
+    const cams = await Html5Qrcode.getCameras();
+    if (!cams.length) {
+      mostrarToast("No se detectaron cámaras disponibles");
+      contenedor.remove();
+      return;
+    }
+
+    const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
+
+    // vista previa real antes de iniciar lector
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: camTrasera.id } } });
+    const videoEl = document.createElement("video");
+    videoEl.autoplay = true;
+    videoEl.playsInline = true;
+    videoEl.muted = true;
+    videoEl.style.width = "100%";
+    videoEl.srcObject = stream;
+    visor.innerHTML = "";
+    visor.appendChild(videoEl);
+
+    await html5Qr.start(
+      camTrasera.id,
+      { fps: 10, qrbox: 250 },
+      async texto => {
+        const codigo = texto.trim();
+        console.log("📦 Escaneado:", codigo);
+        try {
+          const prod = await resolverProducto(codigo);
+          const cantidad = prod._pesoDetectado || 1;
+          addProduct(prod, cantidad);
+          mostrarToast(`✅ ${prod.nombre}`);
+        } catch {
+          mostrarToast(`⚠️ No encontrado (${codigo})`);
+        }
+        try { await html5Qr.stop(); } catch {}
+        stream.getTracks().forEach(t => t.stop());
+        contenedor.remove();
+        scannerActivo = false;
+      },
+      err => console.warn("📷 Error lectura:", err)
+    );
+
+    scannerActivo = true;
   } catch (err) {
     console.error("❌ Error iniciando cámara:", err);
     mostrarToast("No se pudo acceder a la cámara");
     scannerActivo = false;
   }
 });
-
   function rellenarTicket(venta) {
   document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
   document.getElementById('tFecha').textContent = venta.fecha_txt;
@@ -1188,6 +1180,6 @@ console.log("✅ Función global lista para pruebas");
     </div>
   </div>
 </div>
-<script src="https://unpkg.com/html5-qrcode@2.3.9/html5-qrcode.min.js"></script>
+
 </body>
 </html>
