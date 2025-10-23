@@ -1147,18 +1147,30 @@ async function iniciarScannerBalanza() {
   const contenedor = document.createElement("div");
   contenedor.id = "lectorBalanza";
   Object.assign(contenedor.style, {
-    position: "fixed", inset: "0", background: "rgba(0,0,0,0.9)",
-    display: "flex", flexDirection: "column", alignItems: "center",
-    justifyContent: "center", zIndex: "5000"
+    position: "fixed",
+    inset: "0",
+    background: "rgba(0,0,0,0.3)", // 🔆 más claro
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: "5000"
   });
 
   const btnCerrar = document.createElement("button");
   btnCerrar.textContent = "✖ Cerrar cámara";
   Object.assign(btnCerrar.style, {
-    position: "absolute", top: "12px", right: "12px",
-    background: "#c0392b", color: "#fff", border: "none",
-    borderRadius: "8px", padding: "8px 12px",
-    fontSize: "14px", fontWeight: "600", cursor: "pointer"
+    position: "absolute",
+    top: "12px",
+    right: "12px",
+    background: "#c0392b",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    fontSize: "14px",
+    fontWeight: "600",
+    cursor: "pointer"
   });
   btnCerrar.onclick = () => {
     Quagga.stop();
@@ -1167,9 +1179,16 @@ async function iniciarScannerBalanza() {
 
   const visor = document.createElement("div");
   visor.id = "visorQuagga";
-  visor.style.width = "100%";
-  visor.style.maxWidth = "400px";
-  visor.style.aspectRatio = "16/9";
+  Object.assign(visor.style, {
+    width: "95%",
+    maxWidth: "480px",
+    aspectRatio: "4/3",
+    borderRadius: "10px",
+    overflow: "hidden",
+    background: "#000",
+    filter: "brightness(1.5) contrast(1.4)", // 🔆 más luz
+  });
+
   contenedor.appendChild(visor);
   contenedor.appendChild(btnCerrar);
   document.body.appendChild(contenedor);
@@ -1177,28 +1196,40 @@ async function iniciarScannerBalanza() {
   Quagga.init({
     inputStream: {
       type: "LiveStream",
-      target: document.querySelector('#visorQuagga'),
+      target: document.querySelector("#visorQuagga"),
       constraints: {
         facingMode: "environment",
         width: { ideal: 1280 },
-        height: { ideal: 720 }
+        height: { ideal: 720 },
+        advanced: [{ focusMode: "continuous", torch: true }] // 🔍 autoenfoque + flash (si disponible)
       }
     },
     decoder: {
       readers: ["ean_reader", "ean_13_reader", "code_128_reader", "code_39_reader"]
     },
-    locate: true
-  }, function(err) {
-    if (err) { console.error(err); mostrarToast("Error iniciando cámara"); return; }
+    locate: true,
+    locator: {
+      patchSize: "medium",
+      halfSample: true
+    }
+  }, function (err) {
+    if (err) {
+      console.error(err);
+      mostrarToast("Error iniciando cámara");
+      return;
+    }
     Quagga.start();
-    mostrarToast("📷 Cámara lista para leer códigos de báscula");
+    mostrarToast("📷 Cámara lista (modo báscula activado)");
   });
 
   Quagga.onDetected(data => {
     const codigo = data.codeResult.code.trim();
     console.log("📦 Escaneado:", codigo);
     const resultados = buscarLocal(codigo);
-    if (!resultados.length) { mostrarToast(`⚠️ No encontrado (${codigo})`); return; }
+    if (!resultados.length) {
+      mostrarToast(`⚠️ No encontrado (${codigo})`);
+      return;
+    }
 
     const prod = resultados[0];
     let cantidad = 1;
@@ -1214,8 +1245,17 @@ async function iniciarScannerBalanza() {
     Quagga.stop();
     contenedor.remove();
   });
+
+  // 🧩 Feedback visual
+  Quagga.onProcessed(result => {
+    if (result && result.boxes) {
+      console.log("📷 Procesando frames...");
+    }
+  });
 }
+
 btnCam.onclick = iniciarScannerBalanza;
+
 </script>
 
 </body>
