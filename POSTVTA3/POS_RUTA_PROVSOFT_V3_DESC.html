@@ -977,6 +977,9 @@ btnCam.addEventListener("click", async () => {
           Html5QrcodeSupportedFormats?.CODE_128
         ].filter(Boolean)
       });
+      console.log("📷 window.Html5Qrcode =", window.Html5Qrcode);
+console.log("📷 window.navigator.mediaDevices =", navigator.mediaDevices);
+
 const cams = await Html5Qrcode.getCameras();
 if (!cams.length) {
   mostrarToast("No se detectaron cámaras disponibles");
