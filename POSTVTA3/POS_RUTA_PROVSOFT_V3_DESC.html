@@ -477,20 +477,20 @@ async function buscarLocal(qraw) {
     (p.equivalentes || []).some(eq => q.includes(eq))
   );
   if (matchEq) return [matchEq];
-
-  // 🔹 Si no se encontró localmente, buscar en Firestore equivalentes
-  const remoto = await buscarPorEquivalente(db, q);
-  if (remoto) {
-    return [{
-      id: remoto.id,
-      nombre: remoto.concepto,
-      codigo: remoto.codigoBarra,
-      precioPublico: remoto.precioPublico,
-      costoUnit: remoto.costoUnit,
-      ivaTasa: remoto.ivaTasa,
-      iepsTasa: remoto.iepsTasa
-    }];
-  }
+  
+// 🔹 Si no se encontró localmente, buscar en Firestore equivalentes
+const remoto = await buscarPorEquivalente(db, q);
+if (remoto) {
+  return [{
+    id: remoto.id,
+    nombre: remoto.concepto,
+    codigo: remoto.codigoBarra,
+    precioPublico: remoto.precioPublico,
+    costoUnit: remoto.costoUnit,
+    ivaTasa: remoto.ivaTasa,
+    iepsTasa: remoto.iepsTasa
+  }];
+}
 
   return catalogo.filter(p =>
     (p.nombre || "").toLowerCase().includes(q.toLowerCase())
@@ -990,7 +990,7 @@ btnCam.addEventListener("click", async () => {
           console.log("📦 Escaneado:", codigo);
 
           // 🔹 Búsqueda avanzada: balanza, equivalentes y código directo
-          const resultados = buscarLocal(codigo);
+          const resultados = await buscarLocal(codigo);
 
           if (!resultados.length) {
             mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
