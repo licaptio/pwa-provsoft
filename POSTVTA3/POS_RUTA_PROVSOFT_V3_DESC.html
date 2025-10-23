@@ -173,7 +173,12 @@
       <div class="field searchbox">
         <label>Buscar</label>
         <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-        <button id="btnCam" class="cam-btn" type="button">📷</button>
+        <!-- 📱 Cámara nativa -->
+<button id="btnCamGoogle" class="cam-btn" type="button" 
+  style="background:#0c6cbd; color:white; border:none; border-radius:8px; padding:8px 12px; font-weight:600;">
+  📷 Google
+</button>
+
         <div id="resultados" class="search-results"></div>
       </div>
 
@@ -213,8 +218,6 @@
   </main>
 </div>
 
-<!-- 📸 Librería QR -->
-<script src="./html5-qrcode.min.js"></script>
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
@@ -902,105 +905,6 @@ inputCantidad.addEventListener("keydown", (e) => {
     inputBuscador.focus();
   }
 });
-// =======================================================
-// 📸 ESCÁNER QR / CÓDIGO DE BARRAS CON BALANZA Y EQUIVALENTES
-// =======================================================
-let html5Qr = null;
-let scannerActivo = false;
-
-btnCam.addEventListener("click", async () => {
-  try {
-    if (!scannerActivo) {
-      const contenedor = document.createElement("div");
-      contenedor.id = "lectorQR";
-      Object.assign(contenedor.style, {
-        position: "fixed", inset: "0", background: "rgba(0,0,0,0.9)",
-        display: "flex", flexDirection: "column", alignItems: "center",
-        justifyContent: "center", zIndex: "5000"
-      });
-
-      const btnCerrar = document.createElement("button");
-      btnCerrar.textContent = "✖ Cerrar cámara";
-      Object.assign(btnCerrar.style, {
-        position: "absolute", top: "12px", right: "12px",
-        background: "#c0392b", color: "#fff", border: "none",
-        borderRadius: "8px", padding: "8px 12px",
-        fontSize: "14px", fontWeight: "600", cursor: "pointer"
-      });
-      btnCerrar.onclick = async () => {
-        try { await html5Qr.stop(); } catch {}
-        contenedor.remove();
-        scannerActivo = false;
-      };
-
-      const visor = document.createElement("div");
-      visor.id = "visorCam";
-      visor.style.width = "100%";
-      visor.style.maxWidth = "380px";
-      visor.style.borderRadius = "12px";
-      visor.style.overflow = "hidden";
-      visor.style.background = "#000";
-
-      contenedor.appendChild(visor);
-      contenedor.appendChild(btnCerrar);
-      document.body.appendChild(contenedor);
-
-      html5Qr = new Html5Qrcode("visorCam");
-
-      const cams = await Html5Qrcode.getCameras();
-      const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
-
-      // 🔧 Ajuste: agranda el área de escaneo y activa formatos lineales
-      await html5Qr.start(
-        camTrasera.id,
-        {
-          fps: 10,
-          qrbox: { width: 350, height: 200 },
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.QR_CODE,
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39
-          ]
-        },
-        async (texto) => {
-          const codigo = texto.trim();
-          console.log("📦 Escaneado:", codigo);
-
-          const resultados = buscarLocal(codigo);
-          if (!resultados.length) {
-            mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
-            return;
-          }
-
-          const prod = resultados[0];
-          let cantidad = 1;
-
-          if (prod._pesoDetectado) {
-            cantidad = prod._pesoDetectado;
-            delete prod._pesoDetectado;
-            mostrarToast(`⚖️ ${prod.nombre} (${cantidad.toFixed(3)} kg)`);
-          } else {
-            mostrarToast(`✅ ${prod.nombre}`);
-          }
-
-          addProduct(prod, cantidad);
-          try { await html5Qr.stop(); } catch {}
-          contenedor.remove();
-          scannerActivo = false;
-        },
-        err => console.warn("📷 Error lectura:", err)
-      );
-
-      scannerActivo = true;
-    }
-  } catch (err) {
-    console.error("❌ Error iniciando cámara:", err);
-    mostrarToast("No se pudo acceder a la cámara");
-    scannerActivo = false;
-  }
-});
-
 
   function rellenarTicket(venta) {
   document.getElementById('tFolio').textContent = `Folio: ${venta.folio}`;
@@ -1141,121 +1045,39 @@ Cajero: ${venta.atendio}
     </div>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+
 <script>
-async function iniciarScannerBalanza() {
-  const contenedor = document.createElement("div");
-  contenedor.id = "lectorBalanza";
-  Object.assign(contenedor.style, {
-    position: "fixed",
-    inset: "0",
-    background: "rgba(0,0,0,0.3)", // 🔆 más claro
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: "5000"
-  });
+</script>
+<script>
+// =======================================================
+// 📱 CÁMARA NATIVA (Google Lens / ZXing)
+// =======================================================
+document.getElementById("btnCamGoogle").addEventListener("click", () => {
+  try {
+    // Abre la app de cámara/lector (ZXing o Barcode Scanner)
+    window.location.href = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end";
+  } catch (err) {
+    console.error("No se pudo abrir la cámara nativa:", err);
+    mostrarToast("⚠️ No se pudo abrir la cámara de Google");
+  }
+});
 
-  const btnCerrar = document.createElement("button");
-  btnCerrar.textContent = "✖ Cerrar cámara";
-  Object.assign(btnCerrar.style, {
-    position: "absolute",
-    top: "12px",
-    right: "12px",
-    background: "#c0392b",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    padding: "8px 12px",
-    fontSize: "14px",
-    fontWeight: "600",
-    cursor: "pointer"
-  });
-  btnCerrar.onclick = () => {
-    Quagga.stop();
-    contenedor.remove();
-  };
+// ✅ Si el lector regresa un código por URL (?codigo=XXXXXXXXXXXX)
+const params = new URLSearchParams(window.location.search);
+const codigoEscaneado = params.get("codigo");
 
-  const visor = document.createElement("div");
-  visor.id = "visorQuagga";
-  Object.assign(visor.style, {
-    width: "95%",
-    maxWidth: "480px",
-    aspectRatio: "4/3",
-    borderRadius: "10px",
-    overflow: "hidden",
-    background: "#000",
-    filter: "brightness(1.5) contrast(1.4)", // 🔆 más luz
-  });
-
-  contenedor.appendChild(visor);
-  contenedor.appendChild(btnCerrar);
-  document.body.appendChild(contenedor);
-
-  Quagga.init({
-    inputStream: {
-      type: "LiveStream",
-      target: document.querySelector("#visorQuagga"),
-      constraints: {
-        facingMode: "environment",
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        advanced: [{ focusMode: "continuous", torch: true }] // 🔍 autoenfoque + flash (si disponible)
-      }
-    },
-    decoder: {
-      readers: ["ean_reader", "ean_13_reader", "code_128_reader", "code_39_reader"]
-    },
-    locate: true,
-    locator: {
-      patchSize: "medium",
-      halfSample: true
-    }
-  }, function (err) {
-    if (err) {
-      console.error(err);
-      mostrarToast("Error iniciando cámara");
-      return;
-    }
-    Quagga.start();
-    mostrarToast("📷 Cámara lista (modo báscula activado)");
-  });
-
-  Quagga.onDetected(data => {
-    const codigo = data.codeResult.code.trim();
-    console.log("📦 Escaneado:", codigo);
-    const resultados = buscarLocal(codigo);
-    if (!resultados.length) {
-      mostrarToast(`⚠️ No encontrado (${codigo})`);
-      return;
-    }
-
+if (codigoEscaneado) {
+  console.log("📦 Código leído desde cámara externa:", codigoEscaneado);
+  const resultados = buscarLocal(codigoEscaneado);
+  if (resultados.length) {
     const prod = resultados[0];
-    let cantidad = 1;
-    if (prod._pesoDetectado) {
-      cantidad = prod._pesoDetectado;
-      delete prod._pesoDetectado;
-      mostrarToast(`⚖️ ${prod.nombre} (${cantidad.toFixed(3)} kg)`);
-    } else {
-      mostrarToast(`✅ ${prod.nombre}`);
-    }
-
+    const cantidad = prod._pesoDetectado || 1;
     addProduct(prod, cantidad);
-    Quagga.stop();
-    contenedor.remove();
-  });
-
-  // 🧩 Feedback visual
-  Quagga.onProcessed(result => {
-    if (result && result.boxes) {
-      console.log("📷 Procesando frames...");
-    }
-  });
+    mostrarToast(`✅ ${prod.nombre} agregado`);
+  } else {
+    mostrarToast(`⚠️ Producto no encontrado (${codigoEscaneado})`);
+  }
 }
-
-btnCam.onclick = iniciarScannerBalanza;
-
 </script>
 
 </body>
