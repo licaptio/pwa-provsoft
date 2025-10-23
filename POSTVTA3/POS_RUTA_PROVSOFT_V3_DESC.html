@@ -1048,44 +1048,76 @@ Cajero: ${venta.atendio}
 
 <script>
 </script>
-<script>
-// =======================================================
-// 📱 CÁMARA NATIVA (ZXing + Google Lens fallback)
-// =======================================================
-document.getElementById("btnCamGoogle").addEventListener("click", () => {
+<!-- =======================================================
+ 📷 CÁMARA DE ALTA DEFINICIÓN (ZXing JS integrado)
+======================================================= -->
+<script type="module">
+import { BrowserMultiFormatReader } from "https://cdn.jsdelivr.net/npm/@zxing/library@latest/esm/index.min.js";
+
+const btnCam = document.getElementById("btnCamGoogle");
+const video = document.createElement("video");
+video.setAttribute("playsinline", true);
+video.style.width = "100%";
+video.style.maxWidth = "300px";
+video.style.borderRadius = "12px";
+video.style.display = "none";
+video.style.position = "fixed";
+video.style.bottom = "80px";
+video.style.left = "50%";
+video.style.transform = "translateX(-50%)";
+video.style.zIndex = "5000";
+video.style.boxShadow = "0 4px 14px rgba(0,0,0,.4)";
+document.body.appendChild(video);
+
+const codeReader = new BrowserMultiFormatReader();
+
+async function abrirCamaraAltaDefinicion() {
   try {
-    // Intent nativo ZXing (lector clásico)
-    window.location.href = "intent://scan/#Intent;scheme=zxing;package=com.google.zxing.client.android;end";
-  } catch (e1) {
-    try {
-      // Intent alternativo Google Lens (algunos Android)
-      window.location.href = "google.lens://";
-    } catch (e2) {
-      console.error("No se pudo abrir la cámara nativa:", e2);
-      mostrarToast("⚠️ No se pudo abrir la cámara de Google ni ZXing");
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "environment",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
+
+    video.srcObject = stream;
+    video.style.display = "block";
+    await video.play();
+
+    mostrarToast("📸 Escaneando... apunta al código");
+    const result = await codeReader.decodeOnceFromVideoDevice(undefined, video);
+
+    if (result && result.text) {
+      const codigo = result.text.trim();
+      console.log("📦 Detectado:", codigo);
+
+      const resultados = buscarLocal(codigo);
+      if (resultados.length) {
+        const prod = resultados[0];
+        const cantidad = prod._pesoDetectado || 1;
+        addProduct(prod, cantidad);
+        mostrarToast(`✅ ${prod.nombre} agregado`);
+      } else {
+        mostrarToast(`⚠️ Producto no encontrado (${codigo})`);
+      }
+    } else {
+      mostrarToast("❌ No se detectó código");
     }
-  }
-});
 
-// ✅ Detecta si el lector devuelve un código por URL (?codigo=XXXXXXXXXXXX)
-const params = new URLSearchParams(window.location.search);
-const codigoEscaneado = params.get("codigo");
-
-if (codigoEscaneado) {
-  console.log("📦 Código leído desde cámara externa:", codigoEscaneado);
-  history.replaceState({}, document.title, location.pathname); // limpia la URL 👈
-
-  const resultados = buscarLocal(codigoEscaneado);
-  if (resultados.length) {
-    const prod = resultados[0];
-    const cantidad = prod._pesoDetectado || 1;
-    addProduct(prod, cantidad);
-    mostrarToast(`✅ ${prod.nombre} agregado`);
-  } else {
-    mostrarToast(`⚠️ Producto no encontrado (${codigoEscaneado})`);
+  } catch (err) {
+    console.error("❌ Error cámara:", err);
+    mostrarToast("⚠️ No se pudo acceder a la cámara");
+  } finally {
+    video.style.display = "none";
+    const tracks = video.srcObject?.getTracks() || [];
+    tracks.forEach(t => t.stop());
   }
 }
+
+btnCam.addEventListener("click", abrirCamaraAltaDefinicion);
 </script>
+
 </body>
 </html>
 
