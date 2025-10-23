@@ -244,6 +244,25 @@ enableIndexedDbPersistence(db).catch(err => {
   console.warn("⚠️ Firestore offline persistence desactivado:", err);
 });
 
+async function buscarPorEquivalente(db, codigo) {
+  const q = query(collection(db, "productos"),
+                  where("codigosEquivalentes", "array-contains", String(codigo).trim()));
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const docu = snap.docs[0];
+    const d = docu.data();
+    return {
+      id: docu.id,
+      concepto: d.concepto || "Sin descripción",
+      codigoBarra: d.codigoBarra || "",
+      precioPublico: Number(d.precioPublico || 0),
+      costoUnit: Number(d.costoSinImpuesto || d.costo || 0),
+      ivaTasa: Number(d.ivaTasa || 0),
+      iepsTasa: Number(d.iepsTasa || 0)
+    };
+  }
+  return null;
+}
 // 🔹 Variables globales
 window.USUARIO_LOGUEADO = null;
 window.UBICACION_ACTUAL = { lat: null, lon: null, precision: null, direccion: null };
@@ -360,7 +379,7 @@ async function cargarCatalogoDesdeFirestore() {
       };
       catalogo.push(prod);
       if (prod.codigo) codeIndex.set(prod.codigo.trim(), prod.id);
-      prod.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq.trim(), prod.id); });
+      prod.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq.trim(), prod.id); });  // ✅ AGREGA ESTA LÍNEA
     });
     localStorage.setItem("catalogo_cache", JSON.stringify(catalogo));
     localStorage.setItem("catalogo_fecha", hoy);
@@ -414,6 +433,21 @@ function decodificarCodigoBalanza(codigo) {
 
 function buscarLocal(qraw) {
   const q = (qraw || "").trim();
+  // Si no se encontró localmente, buscar en Firestore equivalentes
+if (!idByCode && q) {
+  const remoto = await buscarPorEquivalente(db, q);
+  if (remoto) {
+    return [{
+      id: remoto.id,
+      nombre: remoto.concepto,
+      codigo: remoto.codigoBarra,
+      precioPublico: remoto.precioPublico,
+      costoUnit: remoto.costoUnit,
+      ivaTasa: remoto.ivaTasa,
+      iepsTasa: remoto.iepsTasa
+    }];
+  }
+}
   if (!q) return [];
 
   const bal = decodificarCodigoBalanza(q);
