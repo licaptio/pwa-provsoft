@@ -190,7 +190,7 @@
 </div>
 
 <!-- 📸 Librería QR -->
-<script src="./html5-qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
@@ -603,10 +603,12 @@ function imprimirTicketEstilado(){
   const t = document.getElementById("ticketArea");
 
   // Si el POS usa InnerPrinter (por ejemplo TechZone POS)
-  if(window.InnerPrinter && typeof window.InnerPrinter.printHtml === "function"){
-    window.InnerPrinter.printHtml(`<html><body>${t.innerHTML}</body></html>`);
-    return;
-  }
+if(window.InnerPrinter && typeof window.InnerPrinter.printText === "function"){
+  const texto = t.innerText;
+  window.InnerPrinter.printText(texto);
+  return;
+}
+
 
 if (/Android/i.test(navigator.userAgent)) {
   const html = `<html><head><meta charset="utf-8"></head><body>${t.innerHTML}</body></html>`;
@@ -722,6 +724,49 @@ document.addEventListener("DOMContentLoaded",()=>{
       alert("Sesión cerrada correctamente.");
     });
   }
+});
+</script>
+  <!-- 📷 Control de escáner QR -->
+<script>
+window.addEventListener("load", () => {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  let html5QrCode = null;
+
+  btnCam.addEventListener("click", () => {
+    camDiv.style.display = "flex";
+    const readerDiv = document.getElementById("reader");
+    if (!readerDiv) {
+      alert("No se encontró el contenedor del lector (#reader)");
+      return;
+    }
+
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        console.log("📦 Código detectado:", decodedText);
+        const buscador = document.getElementById("buscador");
+        buscador.value = decodedText;
+        camDiv.style.display = "none";
+        html5QrCode.stop().then(() => {
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          buscador.dispatchEvent(enterEvent);
+        });
+      },
+      (errorMessage) => console.log("⚠️", errorMessage)
+    ).catch((err) => {
+      alert("No se pudo abrir la cámara: " + err);
+      camDiv.style.display = "none";
+    });
+  });
+
+  cerrarCam.addEventListener("click", () => {
+    if (html5QrCode) html5QrCode.stop().then(() => camDiv.style.display = "none");
+    else camDiv.style.display = "none";
+  });
 });
 </script>
 </body>
