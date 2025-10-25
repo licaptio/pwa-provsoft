@@ -406,30 +406,61 @@ function render(){
   $("#lblImpuestos").textContent=money(impuestos);
   $("#lblTotal").textContent=money(total);
 }
-  $("#buscador").addEventListener("input", () => {
-  const val = $("#buscador").value.trim();
+// ==== Búsqueda en vivo y selección ====
+window.addProduct = addProduct;
+window.render = render;
+
+$("#buscador").addEventListener("input", () => {
+  const val = $("#buscador").value.trim().toLowerCase();
   const cont = $("#resultados");
-  if (!val) { cont.style.display = "none"; cont.innerHTML = ""; return; }
+  if (!val) {
+    cont.style.display = "none";
+    cont.innerHTML = "";
+    return;
+  }
   const res = buscarLocal(val);
-  if (res.length === 0) { cont.style.display = "none"; cont.innerHTML = ""; return; }
-  cont.innerHTML = res.slice(0, 20).map(p =>
-    `<div class="result-item" onclick="addProduct(${JSON.stringify(p)}, Number($('#cantidadInput').value||1)); $('#buscador').value=''; $('#resultados').style.display='none'; render();">
-      <span>${p.nombre}</span><small>${p.codigo}</small>
-    </div>`
-  ).join("");
+  if (res.length === 0) {
+    cont.style.display = "none";
+    cont.innerHTML = "";
+    return;
+  }
+  cont.innerHTML = res
+    .slice(0, 20)
+    .map(
+      (p, i) => `
+      <div class="result-item" data-id="${p.id}" data-index="${i}">
+        <span>${p.nombre}</span>
+        <small>${p.codigo}</small>
+      </div>`
+    )
+    .join("");
   cont.style.display = "block";
+
+  // al hacer clic en un resultado
+  cont.querySelectorAll(".result-item").forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.id;
+      const prod = catalogo.find(x => x.id === id);
+      if (prod) {
+        addProduct(prod, Number($("#cantidadInput").value || 1));
+        $("#buscador").value = "";
+        $("#cantidadInput").value = 1;
+        cont.style.display = "none";
+      }
+    };
+  });
 });
 
-$("#buscador").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){
-    const res=buscarLocal($("#buscador").value.trim());
-    if(res.length){addProduct(res[0],Number($("#cantidadInput").value||1));$("#buscador").value="";$("#cantidadInput").value=1;}
-  }
-});
-$("#cantidadInput").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){
-    const res=buscarLocal($("#buscador").value.trim());
-    if(res.length){addProduct(res[0],Number($("#cantidadInput").value||1));$("#buscador").value="";$("#cantidadInput").value=1;}
+// ==== Buscar directo con Enter ====
+$("#buscador").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const res = buscarLocal($("#buscador").value.trim());
+    if (res.length) {
+      addProduct(res[0], Number($("#cantidadInput").value || 1));
+      $("#buscador").value = "";
+      $("#cantidadInput").value = 1;
+      $("#resultados").style.display = "none";
+    }
   }
 });
 
