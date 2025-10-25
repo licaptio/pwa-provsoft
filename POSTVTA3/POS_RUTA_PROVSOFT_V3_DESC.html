@@ -177,7 +177,6 @@
     </div>
     <div class="totals">
       <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-      <div class="row muted"><span>Descuento</span><span id="lblDescuento">$0.00</span></div>
       <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
       <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
     </div>
@@ -402,7 +401,6 @@ function render(){
   const desc=Number(localStorage.getItem("desc_porcentaje")||0);
   const {subtotal,descuento,impuestos,total}=calcularTotales(desc);
   $("#lblSubtotal").textContent=money(subtotal);
-  $("#lblDescuento").textContent=money(descuento);
   $("#lblImpuestos").textContent=money(impuestos);
   $("#lblTotal").textContent=money(total);
 }
@@ -478,6 +476,7 @@ function abrirCobro(){
   cobroTotal.textContent=money(tot.total);
   descuentoMonto.textContent=`Descuento aplicado: ${money(tot.descuento)}`;
   modalCobro.style.display="flex";
+   $("#montoRecibido").focus(); // ← agrega esto
 }
 function cerrarCobro(){modalCobro.style.display="none";document.body.classList.remove("modal-open");}
 $("#btnCobrar").onclick=abrirCobro;
@@ -492,6 +491,17 @@ descuentoInput.addEventListener("input",()=>{
   const t=calcularTotales(val);
   cobroTotal.textContent=money(t.total);
   descuentoMonto.textContent=`Descuento aplicado: ${money(t.descuento)}`;
+});
+// ==== Calcular cambio automáticamente ====
+const montoRecibido = $("#montoRecibido");
+const montoCambio = $("#montoCambio");
+
+montoRecibido.addEventListener("input", () => {
+  const valRec = parseFloat(montoRecibido.value) || 0;
+  const desc = Number(descuentoInput.value) || 0;
+  const tot = calcularTotales(desc);
+  const cambio = valRec - tot.total;
+  montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
 
 // ==== Confirmar cobro ====
