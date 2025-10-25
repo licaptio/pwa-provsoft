@@ -330,14 +330,28 @@ async function cargarDepartamentos(){
   });
 }
 
-// ==== Buscar local ====
-function buscarLocal(codigo){
-  const id=codeIndex.get(codigo.trim());
-  if(!id)return [];
-  const p=catalogo.find(x=>x.id===id);
-  return p?[p]:[];
-}
+function buscarLocal(qraw) {
+  const q = (qraw || "").trim().toLowerCase();
+  if (!q) return [];
 
+  // 1️⃣ Buscar coincidencia exacta por código de barra o equivalente
+  const idByCode = codeIndex.get(q);
+  if (idByCode) {
+    const p = catalogo.find(x => x.id === idByCode);
+    return p ? [p] : [];
+  }
+
+  // 2️⃣ Buscar por coincidencia parcial en códigos equivalentes
+  const matchEq = catalogo.find(p =>
+    (p.equivalentes || []).some(eq => eq.toLowerCase().includes(q))
+  );
+  if (matchEq) return [matchEq];
+
+  // 3️⃣ Buscar por nombre del producto
+  return catalogo.filter(p =>
+    (p.nombre || "").toLowerCase().includes(q)
+  );
+}
 // ==== Carrito ====
 function addProduct(prod,cant=1){
   if(!prod)return;
@@ -392,6 +406,20 @@ function render(){
   $("#lblImpuestos").textContent=money(impuestos);
   $("#lblTotal").textContent=money(total);
 }
+  $("#buscador").addEventListener("input", () => {
+  const val = $("#buscador").value.trim();
+  const cont = $("#resultados");
+  if (!val) { cont.style.display = "none"; cont.innerHTML = ""; return; }
+  const res = buscarLocal(val);
+  if (res.length === 0) { cont.style.display = "none"; cont.innerHTML = ""; return; }
+  cont.innerHTML = res.slice(0, 20).map(p =>
+    `<div class="result-item" onclick="addProduct(${JSON.stringify(p)}, Number($('#cantidadInput').value||1)); $('#buscador').value=''; $('#resultados').style.display='none'; render();">
+      <span>${p.nombre}</span><small>${p.codigo}</small>
+    </div>`
+  ).join("");
+  cont.style.display = "block";
+});
+
 $("#buscador").addEventListener("keydown",e=>{
   if(e.key==="Enter"){
     const res=buscarLocal($("#buscador").value.trim());
