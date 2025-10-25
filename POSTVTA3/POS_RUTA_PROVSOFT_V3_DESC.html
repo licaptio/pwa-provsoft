@@ -949,6 +949,7 @@ btnCam.addEventListener("click", async () => {
     visor.style.borderRadius = "12px";
     visor.style.overflow = "hidden";
     visor.style.background = "#000";
+    visor.style.height = "320px";   // <— necesario para mostrar video
 
     const btnCerrar = document.createElement("button");
     btnCerrar.textContent = "✖ Cerrar cámara";
@@ -989,7 +990,7 @@ btnCam.addEventListener("click", async () => {
       return;
     }
 
-const camTrasera = cams.find(c => /back|rear|environment/i.test(c.label)) || cams[0];
+const camTrasera = cams.length > 1 ? cams[cams.length - 1] : cams[0];
 
 await html5Qr.start(
   camTrasera.id,
