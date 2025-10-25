@@ -333,24 +333,47 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim().toLowerCase();
   if (!q) return [];
 
-  // 1️⃣ Buscar coincidencia exacta por código de barra o equivalente
+  // 1️⃣ Si es código de báscula (empieza con 2 y tiene longitud típica 13)
+  if (q.startsWith("2") && q.length >= 12) {
+    const prefijo = q.substring(1, 6); // base de producto
+    const pesoStr = q.substring(6, 11); // 5 dígitos de peso
+    const peso = parseFloat(pesoStr) / 1000; // ej. 01234 → 1.234 kg
+
+    const idByPrefijo = Array.from(codeIndex.entries()).find(([cod]) =>
+      cod.startsWith(prefijo)
+    );
+    if (idByPrefijo) {
+      const p = catalogo.find(x => x.id === idByPrefijo[1]);
+      if (p) {
+        // asignar cantidad detectada automáticamente
+        $("#cantidadInput").value = peso;
+        return [p];
+      }
+    }
+  }
+
+  // 2️⃣ Coincidencia exacta por código de barra o equivalente
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
   }
 
-  // 2️⃣ Buscar por coincidencia parcial en códigos equivalentes
-  const matchEq = catalogo.find(p =>
-    (p.equivalentes || []).some(eq => eq.toLowerCase().includes(q))
-  );
+  // 3️⃣ Coincidencia parcial por codigosEquivalentes
+  const matchEq = catalogo.find(p => {
+    if (!Array.isArray(p.equivalentes)) return false;
+    return p.equivalentes.some(eq => {
+      if (!eq) return false;
+      const eqLower = eq.toLowerCase();
+      return q.startsWith(eqLower) || eqLower.startsWith(q) || eqLower.includes(q);
+    });
+  });
   if (matchEq) return [matchEq];
 
-  // 3️⃣ Buscar por nombre del producto
-  return catalogo.filter(p =>
-    (p.nombre || "").toLowerCase().includes(q)
-  );
+  // 4️⃣ Coincidencia por nombre
+  return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
+
 // ==== Carrito ====
 function addProduct(prod,cant=1){
   if(!prod)return;
