@@ -407,6 +407,25 @@ function render(){
 // ==== Búsqueda en vivo y selección ====
 window.addProduct = addProduct;
 window.render = render;
+  // ==== Flujo de entrada mejorado ====
+let productoTemporal = null;
+
+// Cuando seleccionas un producto del buscador
+function seleccionarProducto(prod) {
+  productoTemporal = prod;
+  $("#cantidadInput").focus();
+}
+
+// Al escribir cantidad y presionar Enter
+$("#cantidadInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && productoTemporal) {
+    const cant = parseFloat($("#cantidadInput").value) || 1;
+    addProduct(productoTemporal, cant);
+    productoTemporal = null;
+    $("#cantidadInput").value = 1;
+    $("#buscador").focus();
+  }
+});
 
 $("#buscador").addEventListener("input", () => {
   const val = $("#buscador").value.trim().toLowerCase();
@@ -434,20 +453,18 @@ $("#buscador").addEventListener("input", () => {
     .join("");
   cont.style.display = "block";
 
-  // al hacer clic en un resultado
-  cont.querySelectorAll(".result-item").forEach(el => {
-    el.onclick = () => {
-      const id = el.dataset.id;
-      const prod = catalogo.find(x => x.id === id);
-      if (prod) {
-        addProduct(prod, Number($("#cantidadInput").value || 1));
-        $("#buscador").value = "";
-        $("#cantidadInput").value = 1;
-        cont.style.display = "none";
-      }
-    };
-  });
+cont.querySelectorAll(".result-item").forEach(el => {
+  el.onclick = () => {
+    const id = el.dataset.id;
+    const prod = catalogo.find(x => x.id === id);
+    if (prod) {
+      seleccionarProducto(prod);
+      cont.style.display = "none";
+      $("#buscador").value = "";
+    }
+  };
 });
+
 
 // ==== Buscar directo con Enter ====
 $("#buscador").addEventListener("keydown", e => {
@@ -582,17 +599,24 @@ function rellenarTicket(v){
   });
 }
 
-// ==== Impresión ====
 function imprimirTicketEstilado(){
-  const t=document.getElementById("ticketArea");
-  if(window.InnerPrinter&&typeof window.InnerPrinter.printHtml==="function"){
-    window.InnerPrinter.printHtml(`<html><body>${t.innerHTML}</body></html>`);return;
+  const t = document.getElementById("ticketArea");
+
+  // Si el POS usa InnerPrinter (por ejemplo TechZone POS)
+  if(window.InnerPrinter && typeof window.InnerPrinter.printHtml === "function"){
+    window.InnerPrinter.printHtml(`<html><body>${t.innerHTML}</body></html>`);
+    return;
   }
+
+  // Si usa la app RAWBT para Android (permite imprimir HTML completo)
   if(/Android/i.test(navigator.userAgent)){
-    const texto=`Venta con descuento ${localStorage.getItem("desc_porcentaje")||0}%\nGracias.`;
-    const encoded=encodeURIComponent(texto+"\n\n");
-    window.open("rawbt:print?data="+encoded,"_blank");return;
+    const html = `<html><body>${t.innerHTML}</body></html>`;
+    const encoded = encodeURIComponent(html);
+    window.location.href = `rawbt:print?html=${encoded}`;
+    return;
   }
+
+  // Si es navegador normal
   window.print();
 }
 
