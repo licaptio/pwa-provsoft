@@ -551,15 +551,35 @@ async function enviarTelegram(v){
   }catch(e){console.error("Telegram:",e);}
 }
 
-// ==== Ticket simple ====
 function rellenarTicket(v){
-  document.getElementById("tFolio").textContent="Folio: "+v.folio;
-  document.getElementById("tFecha").textContent=v.fecha_txt;
-  const t=v.resumen_financiero;
-  document.getElementById("tSubtotal").textContent=money(t.subtotal);
-  document.getElementById("tImpuestos").textContent=money(t.impuestos);
-  document.getElementById("tTotal").textContent=money(t.total);
-  document.getElementById("tNotas").textContent="Descuento "+v.descuento_porcentaje+"%: "+money(v.descuento_monto);
+  const t = v.resumen_financiero;
+  const pago = parseFloat($("#montoRecibido").value) || 0;
+  const cambio = pago - t.total;
+
+  $("#tFolio").textContent = v.folio;
+  $("#tFecha").textContent = v.fecha_txt;
+  $("#tCliente").textContent = v.cliente || "PÚBLICO EN GENERAL";
+  $("#tSubtotal").textContent = money(t.subtotal);
+  $("#tDescPorc").textContent = v.descuento_porcentaje + "%";
+  $("#tDescMonto").textContent = money(v.descuento_monto);
+  $("#tTotal").textContent = money(t.total);
+  $("#tPago").textContent = money(pago);
+  $("#tCambio").textContent = money(cambio > 0 ? cambio : 0);
+  $("#tImpuestos").textContent = money(t.impuestos);
+  $("#tArticulos").textContent = carrito.reduce((a,b)=>a+b.cantidad,0);
+  $("#tCajero").textContent = USUARIO_LOGUEADO?.nombre || "—";
+
+  const tbody = document.getElementById("tLineas");
+  tbody.innerHTML = "";
+  v.detalle.forEach(p=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.nombre}</td>
+      <td style="text-align:center">${p.cantidad.toFixed(2)}</td>
+      <td style="text-align:right">${p.precioUnit.toFixed(2)}</td>
+      <td style="text-align:right">${(p.cantidad * p.precioUnit).toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 // ==== Impresión ====
@@ -590,29 +610,60 @@ async function fijarClientePublico(){
   }catch(e){console.warn("Cliente público no encontrado");}
 }
 </script>
-<!-- 🔹 Área Ticket Imprimible -->
 <div id="ticketArea" style="display:none;">
-  <div id="ticket" class="ticket">
-    <div style="text-align:center;margin:4px 0;">
-      <img src="logo_proveedora.webp" alt="Logo" style="max-width:140px;height:auto;">
+  <div id="ticket" class="ticket" style="font-family:monospace;width:72mm;">
+    <div style="text-align:center;margin-bottom:4px;">
+      <div style="font-weight:bold;font-size:16px;">PROVEEDORA MATRIZ</div>
+      <div style="font-size:13px;">MADERO 690 SUR, CENTRO</div>
+      <div style="font-size:13px;">LINARES, NUEVO LEON, 67700</div>
+      <div style="font-size:13px;">RFC: PDD-031204-KL5</div>
+      <div style="font-size:13px;">TEL: (821) 212-1805</div>
+      <div style="font-size:13px;">RÉGIMEN GENERAL DE LEY</div>
+      <div style="font-size:13px;">PERSONAS MORALES</div>
     </div>
-    <div style="text-align:center;font-weight:700;">La Proveedora</div>
-    <div style="text-align:center;font-weight:700;">Ruta de Venta</div>
-    <hr style="border:none;border-top:1px dashed #999;margin:6px 0;">
-    <div id="tFolio" style="font-size:12px;"></div>
-    <div id="tFecha" style="font-size:12px;"></div>
-    <div id="tCliente" style="font-size:12px;">Cliente: Público en general</div>
-    <hr style="border:none;border-top:1px dashed #999;margin:6px 0;">
-    <div id="tLineas"></div>
-    <hr style="border:none;border-top:1px dashed #999;margin:6px 0;">
-    <div style="font-size:12px;text-align:right;">
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;">
+      <div># Venta: <span id="tFolio"></span></div>
+      <div>Fecha: <span id="tFecha"></span></div>
+      <div>Cliente: <span id="tCliente">PÚBLICO EN GENERAL</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <table style="width:100%;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Descripción</th>
+          <th style="text-align:center;">Cant</th>
+          <th style="text-align:right;">P.Unit</th>
+          <th style="text-align:right;">Importe</th>
+        </tr>
+      </thead>
+      <tbody id="tLineas"></tbody>
+    </table>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;text-align:right;">
       <div>Subtotal: <span id="tSubtotal">$0.00</span></div>
-      <div>Impuestos: <span id="tImpuestos">$0.00</span></div>
-      <div>Descuento: <span id="tNotas">$0.00</span></div>
-      <div style="font-weight:700;">Total: <span id="tTotal">$0.00</span></div>
+      <div>Descuento <span id="tDescPorc">0%</span>: <span id="tDescMonto">$0.00</span></div>
+      <div>Total: <span id="tTotal">$0.00</span></div>
+      <div>Su Pago: <span id="tPago">$0.00</span></div>
+      <div>Cambio: <span id="tCambio">$0.00</span></div>
     </div>
-    <hr style="border:none;border-top:1px dashed #999;margin:6px 0;">
-    <div style="text-align:center;font-size:12px;">¡Gracias por su compra!</div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;">
+      <div>Artículos vendidos: <span id="tArticulos">0</span></div>
+      <div>Incluye <span id="tImpuestos">$0.00</span> de Impuestos</div>
+      <div>Cajero: <span id="tCajero">—</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+    <div style="text-align:center;font-size:13px;">¡Gracias por su compra!</div>
   </div>
 </div>
 
@@ -646,6 +697,5 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 });
 </script>
-
 </body>
 </html>
