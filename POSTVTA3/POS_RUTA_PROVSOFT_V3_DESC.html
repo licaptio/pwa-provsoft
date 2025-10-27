@@ -333,33 +333,42 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim().toLowerCase();
   if (!q) return [];
 
-  // 1️⃣ Si es código de báscula (empieza con 2 y tiene longitud típica 13)
+  // 1️⃣ Códigos de báscula (inician con 2 y tienen longitud >=12)
   if (q.startsWith("2") && q.length >= 12) {
-    const prefijo = q.substring(1, 6); // base de producto
+    const prefijo = q.substring(1, 6); // base del producto
     const pesoStr = q.substring(6, 11); // 5 dígitos de peso
     const peso = parseFloat(pesoStr) / 1000; // ej. 01234 → 1.234 kg
 
-    const idByPrefijo = Array.from(codeIndex.entries()).find(([cod]) =>
-      cod.startsWith(prefijo)
-    );
-    if (idByPrefijo) {
-      const p = catalogo.find(x => x.id === idByPrefijo[1]);
+    // Buscar producto por prefijo dentro de los códigos equivalentes o código base
+    const idMatch = Array.from(codeIndex.entries()).find(([cod]) => cod.startsWith(prefijo));
+    if (idMatch) {
+      const p = catalogo.find(x => x.id === idMatch[1]);
       if (p) {
-        // asignar cantidad detectada automáticamente
-        $("#cantidadInput").value = peso;
+        $("#cantidadInput").value = peso; // ✅ asigna el peso detectado
         return [p];
       }
     }
   }
 
-  // 2️⃣ Coincidencia exacta por código de barra o equivalente
+  // 2️⃣ Coincidencia exacta por código o equivalente
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
-    return p ? [p] : [];
+    if (p) {
+      // ⚙️ si el código es de báscula pero no empieza con '2' (por ejemplo, reetiquetado)
+      if (q.length >= 12 && /^\d+$/.test(q)) {
+        const prefijo = q.substring(1, 6);
+        const pesoStr = q.substring(6, 11);
+        const peso = parseFloat(pesoStr) / 1000;
+        if (!isNaN(peso) && peso > 0) {
+          $("#cantidadInput").value = peso; // ✅ usa el peso real
+        }
+      }
+      return [p];
+    }
   }
 
-  // 3️⃣ Coincidencia parcial por codigosEquivalentes
+  // 3️⃣ Coincidencia parcial por equivalentes
   const matchEq = catalogo.find(p => {
     if (!Array.isArray(p.equivalentes)) return false;
     return p.equivalentes.some(eq => {
@@ -368,7 +377,18 @@ function buscarLocal(qraw) {
       return q.startsWith(eqLower) || eqLower.startsWith(q) || eqLower.includes(q);
     });
   });
-  if (matchEq) return [matchEq];
+  if (matchEq) {
+    // Intenta detectar peso si la etiqueta viene con estructura tipo báscula
+    if (q.length >= 12 && /^\d+$/.test(q)) {
+      const prefijo = q.substring(1, 6);
+      const pesoStr = q.substring(6, 11);
+      const peso = parseFloat(pesoStr) / 1000;
+      if (!isNaN(peso) && peso > 0) {
+        $("#cantidadInput").value = peso; // ✅ peso real desde equivalente
+      }
+    }
+    return [matchEq];
+  }
 
   // 4️⃣ Coincidencia por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
