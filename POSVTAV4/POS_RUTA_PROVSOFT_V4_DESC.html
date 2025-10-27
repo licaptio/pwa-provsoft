@@ -299,6 +299,7 @@ async function loginUsuario(){
     await cargarDepartamentos();
     fijarClientePublico();
     localStorage.setItem("usuario_ruta",JSON.stringify(USUARIO_LOGUEADO));
+    await restaurarFolioDesdeFirestore(USUARIO_LOGUEADO.usuario);
   }catch(e){msg.textContent="Error de conexión";console.error(e);}
 }
 $("#btnLogin").onclick=loginUsuario;
@@ -536,13 +537,42 @@ montoRecibido.addEventListener("input", () => {
   const cambio = valRec - tot.total;
   montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
+// ==== FOLIADOR LOCAL Y SINCRONIZACIÓN ====
+function generarFolio(usuario) {
+  const clave = `folio_interno_${usuario}`;
+  let num = parseInt(localStorage.getItem(clave) || "0", 10) + 1;
+  localStorage.setItem(clave, num);
+  const folioTxt = `RUTA-${usuario.toUpperCase()}-${String(num).padStart(5, "0")}`;
+  return folioTxt;
+}
+
+// ✅ Restaurar contador de folios desde Firestore si existe
+async function restaurarFolioDesdeFirestore(usuario) {
+  try {
+    const ref = doc(db, "folios_usuarios", usuario);
+    const snap = await getDocs(query(collection(db,"folios_usuarios"), where("usuario","==",usuario), limit(1)));
+    if (!snap.empty) {
+      const data = snap.docs[0].data();
+      const num = parseInt(data.ultimo_folio || "0", 10);
+      const clave = `folio_interno_${usuario}`;
+      localStorage.setItem(clave, num);
+      console.log(`♻️ Foliador restaurado (${usuario}) → ${num}`);
+    } else {
+      console.log("ℹ️ No había historial previo de folios para", usuario);
+    }
+  } catch (e) {
+    console.warn("⚠️ Error restaurando folio:", e);
+  }
+}
+
+
 <!-- 🧩 BLOQUE 5 – CONFIRMAR COBRO, GUARDAR VENTA, TELEGRAM, TICKET E IMPRESIÓN -->
 
 // ==== Confirmar cobro ====
 $("#btnConfirmarCobro").onclick=async()=>{
   const desc=Number(descuentoInput.value)||0;
   const tot=calcularTotales(desc);
-  const folio="TEMP-"+Date.now();
+  const folio = generarFolio(USUARIO_LOGUEADO?.usuario || "anon");
   const venta={
     folio,
     rutaId,
@@ -571,6 +601,26 @@ async function guardarVentaEnFirestore(v){
     await addDoc(ref,v);
     console.log("Venta guardada",v.folio);
   }catch(e){console.error("Error guardando:",e);}
+}
+// ==== Registrar/actualizar historial de folios ====
+async function actualizarHistorialFolio(usuario, folioTxt) {
+  try {
+    const clave = `folio_interno_${usuario}`;
+    const folioNum = parseInt(localStorage.getItem(clave) || "0", 10);
+    const refHist = doc(db, "folios_usuarios", usuario);
+
+    await setDoc(refHist, {
+      usuario,
+      ultimo_folio: folioNum,
+      folio_actual: folioTxt,
+      ultima_fecha: new Date().toISOString(),
+      dispositivo: navigator.userAgent,
+    }, { merge: true });
+
+    console.log(`📘 Historial actualizado para ${usuario}: ${folioTxt}`);
+  } catch (e) {
+    console.warn("⚠️ Error actualizando historial:", e);
+  }
 }
 
 // ==== Enviar venta a Telegram ====
