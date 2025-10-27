@@ -647,19 +647,38 @@ async function actualizarHistorialFolio(usuario, folioTxt) {
   }
 }
 
-// ==== Enviar venta a Telegram ====
+// ==== Enviar venta a Telegram (con mapa y nombre del usuario) ====
 async function enviarTelegram(v){
   try{
-    const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT="6617988297";
-    const total=v.resumen_financiero.total.toFixed(2);
-    const msg=`🧾 *Venta registrada*\n💰 *Total:* $${total}\n💸 *Descuento:* ${v.descuento_porcentaje}% – $${v.descuento_monto.toFixed(2)}\n📄 *Folio:* ${v.folio}`;
+    const BOT = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+    const CHAT = "6617988297";
+
+    const total = v.resumen_financiero.total.toFixed(2);
+    const usuario = v.usuarioNombre || v.usuario || "—";
+    const lat = v.ubicacion?.lat || null;
+    const lon = v.ubicacion?.lon || null;
+    const linkMapa = (lat && lon)
+      ? `📍 [Ver ubicación](https://maps.google.com/?q=${lat},${lon})`
+      : "📍 Sin ubicación";
+
+    const msg =
+`🧾 *Venta registrada*
+👤 *${usuario}*
+💰 *Total:* $${total}
+💸 *Descuento:* ${v.descuento_porcentaje}% – $${v.descuento_monto.toFixed(2)}
+📄 *Folio:* ${v.folio}
+${linkMapa}`;
+
     await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:CHAT,text:msg,parse_mode:"Markdown"})
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({chat_id: CHAT, text: msg, parse_mode: "Markdown"})
     });
-  }catch(e){console.error("Telegram:",e);}
+
+    console.log("📡 Venta enviada a Telegram con mapa");
+  }catch(e){
+    console.error("Telegram error:", e);
+  }
 }
 
 // ==== Rellenar ticket ====
