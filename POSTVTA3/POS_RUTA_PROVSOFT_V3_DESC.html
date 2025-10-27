@@ -436,6 +436,7 @@ let productoTemporal = null;
 // Cuando seleccionas un producto del buscador
 function seleccionarProducto(prod) {
   productoTemporal = prod;
+   $("#cantidadInput").value = ""; // ✅ limpia el campo cantidad
   $("#cantidadInput").focus();
 }
 
@@ -483,11 +484,11 @@ cont.querySelectorAll(".result-item").forEach(el => {
     if (prod) {
       seleccionarProducto(prod);
       cont.style.display = "none";
-      $("#buscador").value = "";
+      // ✅ Ya no vacía el buscador para mantener visible el texto
     }
   };
 });
-}); // ← ESTE CIERRE FALTABA
+
 
 // ==== Buscar directo con Enter ====
 $("#buscador").addEventListener("keydown", e => {
