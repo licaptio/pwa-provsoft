@@ -623,20 +623,71 @@ function rellenarTicket(v){
 }
 
 function imprimirTicketEstilado() {
-  const t = document.getElementById("ticketArea");
+  const v = {
+    folio: document.getElementById("tFolio").textContent,
+    fecha: document.getElementById("tFecha").textContent,
+    cliente: document.getElementById("tCliente").textContent,
+    subtotal: document.getElementById("tSubtotal").textContent,
+    descuentoPorc: document.getElementById("tDescPorc").textContent,
+    descuentoMonto: document.getElementById("tDescMonto").textContent,
+    total: document.getElementById("tTotal").textContent,
+    pago: document.getElementById("tPago").textContent,
+    cambio: document.getElementById("tCambio").textContent,
+    impuestos: document.getElementById("tImpuestos").textContent,
+    articulos: document.getElementById("tArticulos").textContent,
+    cajero: document.getElementById("tCajero").textContent
+  };
 
-  // 🔸 1. Si el POS usa InnerPrinter (TechZone, Sunmi, etc.)
+  // Generar texto plano con diseño alineado
+  let ticket = "";
+  ticket += "    PROVEEDORA MATRIZ\n";
+  ticket += "MADERO 690 SUR, CENTRO\n";
+  ticket += "LINARES, NUEVO LEON, 67700\n";
+  ticket += "RFC: PDD-031204-KL5\n";
+  ticket += "TEL: (821) 212-1805\n";
+  ticket += "REGIMEN GENERAL DE LEY\n";
+  ticket += "PERSONAS MORALES\n";
+  ticket += "--------------------------------\n";
+  ticket += `# Venta: ${v.folio}\n`;
+  ticket += `Fecha: ${v.fecha}\n`;
+  ticket += `Cliente: ${v.cliente}\n`;
+  ticket += "--------------------------------\n";
+  ticket += "Descripcion           Cant  Importe\n";
+  ticket += "--------------------------------\n";
+
+  const filas = document.querySelectorAll("#tLineas tr");
+  filas.forEach(f => {
+    const cols = f.querySelectorAll("td");
+    if (cols.length >= 4) {
+      const nombre = (cols[0].textContent || "").substring(0, 18).padEnd(18);
+      const cant = (cols[1].textContent || "").padStart(5);
+      const total = (cols[3].textContent || "").padStart(9);
+      ticket += `${nombre}${cant}${total}\n`;
+    }
+  });
+
+  ticket += "--------------------------------\n";
+  ticket += `Subtotal:     ${v.subtotal}\n`;
+  ticket += `Descuento ${v.descuentoPorc}: ${v.descuentoMonto}\n`;
+  ticket += `Total:        ${v.total}\n`;
+  ticket += `Su Pago:      ${v.pago}\n`;
+  ticket += `Cambio:       ${v.cambio}\n`;
+  ticket += "--------------------------------\n";
+  ticket += `Artículos vendidos: ${v.articulos}\n`;
+  ticket += `Incluye ${v.impuestos} de impuestos\n`;
+  ticket += `Cajero: ${v.cajero}\n`;
+  ticket += "--------------------------------\n";
+  ticket += " ¡Gracias por su compra!\n\n\n";
+
+  // 🔸 Prioridad 1: InnerPrinter (POS integrados)
   if (window.InnerPrinter) {
     try {
       if (typeof window.InnerPrinter.printText === "function") {
-        const texto = t.innerText.replace(/\n\s*\n/g, "\n");
-        window.InnerPrinter.printText(texto);
+        window.InnerPrinter.printText(ticket);
         return;
       }
       if (typeof window.InnerPrinter.printHtml === "function") {
-        // algunos POS solo interpretan HTML básico
-        const html = `<html><head><meta charset='utf-8'></head><body>${t.innerHTML}</body></html>`;
-        window.InnerPrinter.printHtml(html);
+        window.InnerPrinter.printHtml(`<pre>${ticket}</pre>`);
         return;
       }
     } catch (e) {
@@ -644,25 +695,23 @@ function imprimirTicketEstilado() {
     }
   }
 
-// 🔸 2. Si usa la app RawBT (Android)
-if (/Android/i.test(navigator.userAgent)) {
-  try {
-    const textoPlano = t.innerText
-      .replace(/\n\s*\n/g, "\n")
-      .replace(/\t/g, " ")        // limpia tabulaciones
-      .normalize("NFC");          // normaliza acentos
-    const encoded = encodeURIComponent(textoPlano);
-    window.location.href = `rawbt:text,${encoded}`; // texto plano codificado en URL
-    return;
-  } catch (e) {
-    console.error("Error RawBT:", e);
+  // 🔸 Prioridad 2: Android + RawBT
+  if (/Android/i.test(navigator.userAgent)) {
+    try {
+      const encoded = encodeURIComponent(ticket);
+      window.location.href = `rawbt:text,${encoded}`;
+      return;
+    } catch (e) {
+      console.error("Error RawBT:", e);
+    }
   }
-}
 
-  // 🔸 3. Si es navegador normal (PC o laptop)
-  window.print();
+  // 🔸 PC / laptop
+  const w = window.open("", "_blank");
+  w.document.write(`<pre style="font-family:monospace">${ticket}</pre>`);
+  w.document.close();
+  w.print();
 }
-
 
 // ==== Cliente público ====
 async function fijarClientePublico(){
