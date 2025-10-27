@@ -497,18 +497,17 @@ $("#buscador").addEventListener("input", () => {
     .join("");
   cont.style.display = "block";
 
-cont.querySelectorAll(".result-item").forEach(el => {
-  el.onclick = () => {
-    const id = el.dataset.id;
-    const prod = catalogo.find(x => x.id === id);
-    if (prod) {
-      seleccionarProducto(prod);
-      cont.style.display = "none";
-      // ✅ Ya no vacía el buscador para mantener visible el texto
-    }
-  };
-});
-
+  cont.querySelectorAll(".result-item").forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.id;
+      const prod = catalogo.find(x => x.id === id);
+      if (prod) {
+        seleccionarProducto(prod);
+        cont.style.display = "none";
+      }
+    };
+  });
+}); // ✅ ESTA LÍNEA FALTABA
 
 // ==== Buscar directo con Enter ====
 $("#buscador").addEventListener("keydown", e => {
