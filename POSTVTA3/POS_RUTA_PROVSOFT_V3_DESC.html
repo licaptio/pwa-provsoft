@@ -644,23 +644,20 @@ function imprimirTicketEstilado() {
     }
   }
 
-  // 🔸 2. Si usa la app RawBT (Android)
-  if (/Android/i.test(navigator.userAgent)) {
-    try {
-      const textoPlano = t.innerText.replace(/\n\s*\n/g, "\n");
-      const blob = new Blob([textoPlano], { type: "text/plain" });
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(",")[1];
-        // ⚠️ Usa rawbt:text y no rawbt:base64, para modo texto
-        window.location.href = `rawbt:text,${base64}`;
-      };
-      reader.readAsDataURL(blob);
-      return;
-    } catch (e) {
-      console.error("Error RawBT:", e);
-    }
+// 🔸 2. Si usa la app RawBT (Android)
+if (/Android/i.test(navigator.userAgent)) {
+  try {
+    const textoPlano = t.innerText
+      .replace(/\n\s*\n/g, "\n")
+      .replace(/\t/g, " ")        // limpia tabulaciones
+      .normalize("NFC");          // normaliza acentos
+    const encoded = encodeURIComponent(textoPlano);
+    window.location.href = `rawbt:text,${encoded}`; // texto plano codificado en URL
+    return;
+  } catch (e) {
+    console.error("Error RawBT:", e);
   }
+}
 
   // 🔸 3. Si es navegador normal (PC o laptop)
   window.print();
