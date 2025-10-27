@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>POS – Ruta de Venta con Descuento</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --azul:#00416A;--resalte:#0c6cbd;--ok:#1e8e3e;
+      --bg-grad:linear-gradient(to right,#00416A,#E4E5E6);
+      --card:rgba(255,255,255,.9);--muted:rgba(0,0,0,.55);
+      --shadow:0 6px 18px rgba(0,0,0,.18);
+      --radius:14px;--radius-sm:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:'Poppins',system-ui,Arial;
+      color:#111;background:var(--bg-grad);
+      display:flex;flex-direction:column;
+      -webkit-font-smoothing:antialiased;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    header{
+      position:sticky;top:0;z-index:50;
+      background:rgba(0,0,0,.6);color:#fff;
+      padding:10px 14px;
+      display:flex;justify-content:center;align-items:center;gap:8px;
+      font-weight:700;font-size:18px;
+      backdrop-filter:saturate(120%) blur(4px);
+      height:50px;
+    }
+    header img{height:75px;object-fit:contain;}
+
+    .wrap{flex:1;padding:12px;display:flex;flex-direction:column;gap:12px;max-width:720px;margin:0 auto}
+    .controls{display:flex;flex-direction:column;gap:10px}
+    .field{
+      display:flex;gap:8px;background:rgba(255,255,255,.12);
+      padding:10px;border-radius:var(--radius-sm);
+      align-items:center;backdrop-filter:blur(2px);
+    }
+    .field label{min-width:78px;color:#fff;font-size:13px}
+    .field input{
+      flex:1;padding:10px 12px;border:none;
+      border-radius:8px;font-size:15px;
+      background:#fff;outline:none;
+    }
+
+    .searchbox{position:relative;z-index:300}
+    .search-results{
+      position:absolute;left:90px;right:10px;top:calc(100% + 6px);
+      background:#fff;border-radius:12px;box-shadow:var(--shadow);
+      max-height:260px;overflow:auto;display:none;z-index:310;
+    }
+    .result-item{padding:10px 12px;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
+    .result-item small{color:var(--muted)}
+    .result-item:hover{background:#f2f4f7}
+
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+    .table-wrap{max-height:260px;overflow:auto}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;}
+    thead th{
+      background:var(--azul);color:#fff;
+      padding:10px;font-size:13px;position:sticky;top:0;z-index:100;
+    }
+    thead th:nth-child(1){width:55%;text-align:left;}
+    thead th:nth-child(2){width:15%;text-align:center;}
+    thead th:nth-child(3){width:20%;text-align:right;}
+    thead th:nth-child(4){width:10%;text-align:center;}
+    td.del-col{text-align:center;}
+    td.del-col .del{
+      background:#e74c3c;color:#fff;border:none;border-radius:50%;
+      width:22px;height:22px;font-size:14px;line-height:20px;cursor:pointer;
+    }
+    td.del-col .del:hover{background:#c0392b;}
+
+    .totals{display:flex;flex-direction:column;gap:6px;padding:12px 14px;background:#fff}
+    .row{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+    .row.muted{color:var(--muted)}
+    .row.big{font-weight:700;font-size:18px}
+
+    .actions{padding:6px 0 12px;display:flex;gap:8px;justify-content:space-between;}
+    .actions .btn{flex:1;font-size:14px;padding:12px 6px;}
+
+    .btn{
+      width:100%;border:none;padding:14px;border-radius:12px;
+      font-size:18px;font-weight:700;color:#fff;
+      background:linear-gradient(180deg,var(--resalte),#094d85);
+      box-shadow:var(--shadow);cursor:pointer;
+    }
+    .btn:active{transform:translateY(1px)}
+
+    #loginScreen{
+      height:100vh;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      background:#00416A;color:#fff;
+    }
+    #loginScreen input{padding:10px;border-radius:8px;margin:5px;border:none}
+    #loginMsg{color:#fbb;border-radius:8px;margin-top:8px}
+
+    .cam-btn{
+      position:absolute;right:14px;top:50%;transform:translateY(-50%);
+      border:none;padding:8px 10px;border-radius:10px;cursor:pointer;
+      background:#0c6cbd;color:#fff;font-size:16px;
+    }
+    .cam-btn:active{transform:translateY(-49%);}
+    #loginLogo{width:120px;height:120px;margin-bottom:20px;animation:spinY 10s linear infinite;transform-style:preserve-3d;}
+    @keyframes spinY{from{transform:rotateY(0deg);}to{transform:rotateY(360deg);}}
+
+    @media print{
+      body *{visibility:hidden!important;}
+      #ticketArea,#ticketArea *{visibility:visible!important;}
+      #ticketArea{
+        display:block!important;position:relative!important;
+        margin:0 auto!important;padding:0;width:100%;background:#fff;
+      }
+      #ticket{
+        width:72mm!important;margin:0 auto!important;padding:0 2mm!important;
+        font-size:14px!important;line-height:1.45;color:#000;
+        transform:none!important;page-break-inside:avoid!important;
+      }
+      header,.btn,.actions,#loginScreen,#modalCobro,#qrReaderContainer{display:none!important;}
+    }
+    @page{size:72mm auto;margin:0;}
+  </style>
+</head>
+<body>
+<!-- 🔑 LOGIN -->
+<div id="loginScreen">
+  <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
+  <h2>Acceso Ruta de Venta</h2>
+  <input id="loginUsuario" type="text" placeholder="Usuario"/>
+  <input id="loginPassword" type="password" placeholder="Contraseña"/>
+  <button id="btnLogin" class="btn">Entrar</button>
+  <div id="loginMsg"></div>
+</div>
+
+<!-- 📦 POS -->
+<div id="posApp" style="display:none;">
+<header>
+  <span>POS – Ruta de Venta/DESCUENTO</span>
+  <img src="logo_proveedora.webp" alt="Logo">
+  <button id="btnLogout" style="position:absolute;right:10px;top:10px;background:#c0392b;color:white;border:none;padding:6px 10px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">🚪 Salir</button>
+</header>
+
+<main class="wrap">
+  <section class="controls">
+    <div class="field">
+      <label>Cliente</label>
+      <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+      <datalist id="clientesList"></datalist>
+    </div>
+
+    <div class="field searchbox">
+      <label>Buscar</label>
+      <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+      <button id="btnCam" class="cam-btn" type="button">📷</button>
+      <div id="resultados" class="search-results"></div>
+    </div>
+
+    <div class="field">
+      <label>Cantidad</label>
+      <input id="cantidadInput" type="number" step="0.01" min="0.01" value="1">
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Producto</th><th>Cant.</th><th>Importe</th><th></th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="totals">
+      <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+      <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+      <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+    </div>
+  </section>
+
+  <section class="actions">
+    <button class="btn" id="btnCobrar">Cobrar</button>
+    <button class="btn" id="btnResumen" style="background:linear-gradient(180deg,#0c6cbd,#00416A);">📊 Ver Resumen Diario</button>
+  </section>
+</main>
+</div>
+
+<!-- 📸 Librería QR -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<!-- 📦 Librería PDF -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<!-- ======= SCRIPT PRINCIPAL (continuará en BLOQUE 2) ======= -->
+<script type="module">
+// placeholder hasta continuar en el Bloque 2
+</script>
+
+<!-- 🔹 Modal de Cobro -->
+<div id="modalCobro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;align-items:center;justify-content:center;">
+  <div class="modal-card" style="width:min(420px,92vw);background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;">
+    <div class="modal-h" style="padding:12px 16px;background:#0c6cbd;color:#fff;font-weight:700;">Cobro</div>
+    <div class="modal-b" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+      <div class="row big" style="justify-content:space-between">
+        <span>Total a pagar:</span>
+        <span id="cobroTotal">$0.00</span>
+      </div>
+
+      <label for="metodoPago">Método de pago</label>
+      <select id="metodoPago">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="transferencia">Transferencia</option>
+        <option value="mixto">Mixto</option>
+      </select>
+
+      <!-- 🔹 Campo Descuento -->
+      <label for="descuentoInput">Descuento (%)</label>
+      <input id="descuentoInput" type="number" min="0" max="100" step="1" value="0" style="padding:10px;border-radius:8px;border:1px solid #ccc;">
+      <div id="descuentoMonto" style="font-size:14px;color:#00416A;font-weight:600;">Descuento aplicado: $0.00</div>
+
+      <div id="bloqueEfectivo">
+        <label for="montoRecibido">Monto recibido</label>
+        <input id="montoRecibido" type="number" step="0.01" min="0">
+        <div class="row" style="justify-content:space-between">
+          <span>Cambio:</span><span id="montoCambio">$0.00</span>
+        </div>
+      </div>
+
+      <label for="notasCobro">Notas</label>
+      <textarea id="notasCobro" rows="2" style="resize:none"></textarea>
+
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <button class="btn" id="btnCancelarCobro" style="background:#aaa;">Cancelar</button>
+        <button class="btn" id="btnConfirmarCobro">Confirmar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ======= SCRIPT PRINCIPAL (parte 2 de 2) ======= -->
+<script type="module">
+"use strict";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, setDoc, serverTimestamp,
+  runTransaction, doc, getDocs, query, where, limit
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { obtenerUbicacionRobusta } from "./geoHelper.js";
+
+// ==== Configuración Firebase ====
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off:", err));
+
+// ==== Variables globales ====
+const $ = s => document.querySelector(s);
+let carrito = [];
+let catalogo = [];
+let departamentos = {};
+let rutaId = null;
+let USUARIO_LOGUEADO = null;
+let clienteSeleccionado = null;
+const money = n => '$' + (Number(n) || 0).toFixed(2);
+const codeIndex = new Map();
+
+// ==== Login ====
+async function loginUsuario(){
+  const u=$("#loginUsuario").value.trim(), p=$("#loginPassword").value.trim();
+  const msg=$("#loginMsg"); msg.textContent="Verificando...";
+  try{
+    const q=query(collection(db,"usuarios_ruta"),where("usuario","==",u),where("password","==",p),where("activo","==",true));
+    const snap=await getDocs(q);
+    if(snap.empty){msg.textContent="Usuario o contraseña incorrectos";return;}
+    const data=snap.docs[0].data();
+    USUARIO_LOGUEADO={id:snap.docs[0].id,...data};
+    rutaId=data.rutaId;
+    $("#loginScreen").style.display="none";
+    $("#posApp").style.display="block";
+    await cargarCatalogo();
+    await cargarDepartamentos();
+    fijarClientePublico();
+    localStorage.setItem("usuario_ruta",JSON.stringify(USUARIO_LOGUEADO));
+  }catch(e){msg.textContent="Error de conexión";console.error(e);}
+}
+$("#btnLogin").onclick=loginUsuario;
+
+// ==== Cargar catálogo y departamentos ====
+async function cargarCatalogo(){
+  const ref=collection(db,"productos");
+  const q=query(ref,where("activo","==",true));
+  const snap=await getDocs(q);
+  catalogo=[];codeIndex.clear();
+  snap.forEach(d=>{
+    const x=d.data();
+    const p={
+      id:d.id,
+      nombre:x.concepto||"SIN NOMBRE",
+      codigo:String(x.codigoBarra||""),
+      precioPublico:Number(x.precioPublico||0),
+      costoUnit:Number(x.costoSinImpuesto||x.costo||0),
+      ivaTasa:Number(x.ivaTasa||0),
+      iepsTasa:Number(x.iepsTasa||0),
+      departamento_id:x.departamento_id||null,
+      equivalentes:Array.isArray(x.codigosEquivalentes)?x.codigosEquivalentes.map(String):[]
+    };
+    catalogo.push(p);
+    if(p.codigo)codeIndex.set(p.codigo,p.id);
+    p.equivalentes.forEach(eq=>{if(eq)codeIndex.set(eq,p.id);});
+  });
+  console.log("Catálogo cargado:",catalogo.length);
+}
+async function cargarDepartamentos(){
+  const snap=await getDocs(collection(db,"departamentos_venta"));
+  snap.forEach(d=>{
+    const x=d.data();
+    departamentos[d.id]={id:Number(x.id||d.id),nombre:x.nombre||"SIN DEP",iva:Number(x.iva||0),ieps:Number(x.ieps||0)};
+  });
+}
+
+function buscarLocal(qraw) {
+  const q = (qraw || "").trim().toLowerCase();
+  if (!q) return [];
+
+  // 1️⃣ Si es código de báscula (empieza con 2 y tiene longitud típica 13)
+  if (q.startsWith("2") && q.length >= 12) {
+    const prefijo = q.substring(1, 6); // base de producto
+    const pesoStr = q.substring(6, 11); // 5 dígitos de peso
+    const peso = parseFloat(pesoStr) / 1000; // ej. 01234 → 1.234 kg
+
+    const idByPrefijo = Array.from(codeIndex.entries()).find(([cod]) =>
+      cod.startsWith(prefijo)
+    );
+    if (idByPrefijo) {
+      const p = catalogo.find(x => x.id === idByPrefijo[1]);
+      if (p) {
+        // asignar cantidad detectada automáticamente
+        $("#cantidadInput").value = peso;
+        return [p];
+      }
+    }
+  }
+
+  // 2️⃣ Coincidencia exacta por código de barra o equivalente
+  const idByCode = codeIndex.get(q);
+  if (idByCode) {
+    const p = catalogo.find(x => x.id === idByCode);
+    return p ? [p] : [];
+  }
+
+  // 3️⃣ Coincidencia parcial por codigosEquivalentes
+  const matchEq = catalogo.find(p => {
+    if (!Array.isArray(p.equivalentes)) return false;
+    return p.equivalentes.some(eq => {
+      if (!eq) return false;
+      const eqLower = eq.toLowerCase();
+      return q.startsWith(eqLower) || eqLower.startsWith(q) || eqLower.includes(q);
+    });
+  });
+  if (matchEq) return [matchEq];
+
+  // 4️⃣ Coincidencia por nombre
+  return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
+}
+
+// ==== Carrito ====
+function addProduct(prod,cant=1){
+  if(!prod)return;
+  const ex=carrito.find(x=>x.id===prod.id);
+  const precio=prod.precioPublico;
+  if(ex){ex.cantidad+=cant;ex.importe=ex.cantidad*precio;}
+  else{carrito.push({...prod,cantidad:cant,precioUnit:precio,importe:cant*precio});}
+  render();
+}
+function delItem(id){carrito=carrito.filter(x=>x.id!==id);render();}
+window.delItem=delItem;
+
+// ==== Totales con descuento global ====
+function calcularTotales(descPorc=0){
+  let subtotal=0,iva=0,ieps=0,total=0;
+  carrito.forEach(it=>{
+    const imp=it.cantidad*it.precioUnit;
+    const dep=departamentos[it.departamento_id]||{iva:0,ieps:0};
+    const ivaT=dep.iva/100,iepsT=dep.ieps/100;
+    let base=imp;
+    if(iepsT>0&&ivaT>0){base=imp/(1+iepsT+ivaT*(1+iepsT));}
+    else if(iepsT>0){base=imp/(1+iepsT);}
+    else if(ivaT>0){base=imp/(1+ivaT);}
+    subtotal+=base;iva+=base*ivaT;ieps+=base*iepsT;total+=imp;
+  });
+  const descuento=Math.min(100,Math.max(0,descPorc||0))/100;
+  const montoDesc=subtotal*descuento;
+  const subDesc=subtotal-montoDesc;
+  const ivaDesc=iva*(1-descuento);
+  const iepsDesc=ieps*(1-descuento);
+  const totalDesc=subDesc+ivaDesc+iepsDesc;
+  return {
+    subtotal:+subtotal.toFixed(2),
+    descuento:+montoDesc.toFixed(2),
+    impuestos:+(ivaDesc+iepsDesc).toFixed(2),
+    total:+totalDesc.toFixed(2)
+  };
+}
+
+// ==== Render ====
+function render(){
+  const tbody=$("#tbody");tbody.innerHTML="";
+  carrito.forEach(it=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${it.nombre}</td><td style="text-align:center">${it.cantidad.toFixed(2)}</td><td style="text-align:right">${money(it.importe)}</td><td class='del-col'><button class='del' onclick="delItem('${it.id}')">×</button></td>`;
+    tbody.appendChild(tr);
+  });
+  const desc=Number(localStorage.getItem("desc_porcentaje")||0);
+  const {subtotal,descuento,impuestos,total}=calcularTotales(desc);
+  $("#lblSubtotal").textContent=money(subtotal);
+  $("#lblImpuestos").textContent=money(impuestos);
+  $("#lblTotal").textContent=money(total);
+}
+// ==== Búsqueda en vivo y selección ====
+window.addProduct = addProduct;
+window.render = render;
+  // ==== Flujo de entrada mejorado ====
+let productoTemporal = null;
+
+// Cuando seleccionas un producto del buscador
+function seleccionarProducto(prod) {
+  productoTemporal = prod;
+  $("#cantidadInput").focus();
+}
+
+// Al escribir cantidad y presionar Enter
+$("#cantidadInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && productoTemporal) {
+    const cant = parseFloat($("#cantidadInput").value) || 1;
+    addProduct(productoTemporal, cant);
+    productoTemporal = null;
+    $("#cantidadInput").value = 1;
+    $("#buscador").focus();
+  }
+});
+
+$("#buscador").addEventListener("input", () => {
+  const val = $("#buscador").value.trim().toLowerCase();
+  const cont = $("#resultados");
+  if (!val) {
+    cont.style.display = "none";
+    cont.innerHTML = "";
+    return;
+  }
+  const res = buscarLocal(val);
+  if (res.length === 0) {
+    cont.style.display = "none";
+    cont.innerHTML = "";
+    return;
+  }
+  cont.innerHTML = res
+    .slice(0, 20)
+    .map(
+      (p, i) => `
+      <div class="result-item" data-id="${p.id}" data-index="${i}">
+        <span>${p.nombre}</span>
+        <small>${p.codigo}</small>
+      </div>`
+    )
+    .join("");
+  cont.style.display = "block";
+
+cont.querySelectorAll(".result-item").forEach(el => {
+  el.onclick = () => {
+    const id = el.dataset.id;
+    const prod = catalogo.find(x => x.id === id);
+    if (prod) {
+      seleccionarProducto(prod);
+      cont.style.display = "none";
+      $("#buscador").value = "";
+    }
+  };
+});
+}); // ← ESTE CIERRE FALTABA
+
+// ==== Buscar directo con Enter ====
+$("#buscador").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const res = buscarLocal($("#buscador").value.trim());
+    if (res.length) {
+      addProduct(res[0], Number($("#cantidadInput").value || 1));
+      $("#buscador").value = "";
+      $("#cantidadInput").value = 1;
+      $("#resultados").style.display = "none";
+    }
+  }
+});
+
+// ==== Modal cobro y descuento dinámico ====
+const modalCobro=$("#modalCobro");
+const descuentoInput=$("#descuentoInput");
+const descuentoMonto=$("#descuentoMonto");
+const cobroTotal=$("#cobroTotal");
+function abrirCobro(){
+  if(carrito.length===0){alert("Agrega productos");return;}
+  document.body.classList.add("modal-open");
+  const descGuardado=Number(localStorage.getItem("desc_porcentaje")||0);
+  descuentoInput.value=descGuardado;
+  const tot=calcularTotales(descGuardado);
+  cobroTotal.textContent=money(tot.total);
+  descuentoMonto.textContent=`Descuento aplicado: ${money(tot.descuento)}`;
+  modalCobro.style.display="flex";
+   $("#montoRecibido").focus(); // ← agrega esto
+}
+function cerrarCobro(){modalCobro.style.display="none";document.body.classList.remove("modal-open");}
+$("#btnCobrar").onclick=abrirCobro;
+$("#btnCancelarCobro").onclick=cerrarCobro;
+
+// descuento dinámico
+descuentoInput.addEventListener("input",()=>{
+  let val=parseInt(descuentoInput.value)||0;
+  if(val<0)val=0;if(val>100)val=100;
+  descuentoInput.value=val;
+  localStorage.setItem("desc_porcentaje",val);
+  const t=calcularTotales(val);
+  cobroTotal.textContent=money(t.total);
+  descuentoMonto.textContent=`Descuento aplicado: ${money(t.descuento)}`;
+});
+// ==== Calcular cambio automáticamente ====
+const montoRecibido = $("#montoRecibido");
+const montoCambio = $("#montoCambio");
+
+montoRecibido.addEventListener("input", () => {
+  const valRec = parseFloat(montoRecibido.value) || 0;
+  const desc = Number(descuentoInput.value) || 0;
+  const tot = calcularTotales(desc);
+  const cambio = valRec - tot.total;
+  montoCambio.textContent = money(cambio > 0 ? cambio : 0);
+});
+
+// ==== Confirmar cobro ====
+$("#btnConfirmarCobro").onclick=async()=>{
+  const desc=Number(descuentoInput.value)||0;
+  const tot=calcularTotales(desc);
+  const folio="TEMP-"+Date.now();
+  const venta={
+    folio,
+    rutaId,
+    cliente:$("#cliente").value||"Mostrador",
+    detalle:carrito,
+    resumen_financiero:tot,
+    descuento_porcentaje:desc,
+    descuento_monto:tot.descuento,
+    fecha_txt:new Date().toLocaleString()
+  };
+  await guardarVentaEnFirestore(venta);
+  enviarTelegram(venta);
+  rellenarTicket(venta);
+  imprimirTicketEstilado();
+  carrito=[];render();cerrarCobro();
+};
+
+// ==== Guardar venta ====
+async function guardarVentaEnFirestore(v){
+  try{
+    v.fecha=serverTimestamp();v.cortado=false;v.usuarioId=USUARIO_LOGUEADO?.id||"";v.usuarioNombre=USUARIO_LOGUEADO?.nombre||"";
+    const ref=collection(db,"rutas_venta");
+    await addDoc(ref,v);
+    console.log("Venta guardada",v.folio);
+  }catch(e){console.error("Error guardando:",e);}
+}
+
+// ==== Telegram ====
+async function enviarTelegram(v){
+  try{
+    const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+    const CHAT="6617988297";
+    const total=v.resumen_financiero.total.toFixed(2);
+    const msg=`🧾 *Venta registrada*\n💰 *Total:* $${total}\n💸 *Descuento:* ${v.descuento_porcentaje}% – $${v.descuento_monto.toFixed(2)}\n📄 *Folio:* ${v.folio}`;
+    await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:CHAT,text:msg,parse_mode:"Markdown"})
+    });
+  }catch(e){console.error("Telegram:",e);}
+}
+
+function rellenarTicket(v){
+  const t = v.resumen_financiero;
+  const pago = parseFloat($("#montoRecibido").value) || 0;
+  const cambio = pago - t.total;
+
+  $("#tFolio").textContent = v.folio;
+  $("#tFecha").textContent = v.fecha_txt;
+  $("#tCliente").textContent = v.cliente || "PÚBLICO EN GENERAL";
+  $("#tSubtotal").textContent = money(t.subtotal);
+  $("#tDescPorc").textContent = v.descuento_porcentaje + "%";
+  $("#tDescMonto").textContent = money(v.descuento_monto);
+  $("#tTotal").textContent = money(t.total);
+  $("#tPago").textContent = money(pago);
+  $("#tCambio").textContent = money(cambio > 0 ? cambio : 0);
+  $("#tImpuestos").textContent = money(t.impuestos);
+  $("#tArticulos").textContent = carrito.reduce((a,b)=>a+b.cantidad,0);
+  $("#tCajero").textContent = USUARIO_LOGUEADO?.nombre || "—";
+
+  const tbody = document.getElementById("tLineas");
+  tbody.innerHTML = "";
+  v.detalle.forEach(p=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${p.nombre}</td>
+      <td style="text-align:center">${p.cantidad.toFixed(2)}</td>
+      <td style="text-align:right">${p.precioUnit.toFixed(2)}</td>
+      <td style="text-align:right">${(p.cantidad * p.precioUnit).toFixed(2)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function imprimirTicketEstilado() {
+  const t = document.getElementById("ticketArea");
+
+  // 🔸 1. Si el POS usa InnerPrinter (TechZone, Sunmi, etc.)
+  if (window.InnerPrinter) {
+    try {
+      if (typeof window.InnerPrinter.printText === "function") {
+        const texto = t.innerText.replace(/\n\s*\n/g, "\n");
+        window.InnerPrinter.printText(texto);
+        return;
+      }
+      if (typeof window.InnerPrinter.printHtml === "function") {
+        // algunos POS solo interpretan HTML básico
+        const html = `<html><head><meta charset='utf-8'></head><body>${t.innerHTML}</body></html>`;
+        window.InnerPrinter.printHtml(html);
+        return;
+      }
+    } catch (e) {
+      console.error("Error InnerPrinter:", e);
+    }
+  }
+
+  // 🔸 2. Si usa la app RawBT (Android)
+  if (/Android/i.test(navigator.userAgent)) {
+    try {
+      const textoPlano = t.innerText.replace(/\n\s*\n/g, "\n");
+      const blob = new Blob([textoPlano], { type: "text/plain" });
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result.split(",")[1];
+        // ⚠️ Usa rawbt:text y no rawbt:base64, para modo texto
+        window.location.href = `rawbt:text,${base64}`;
+      };
+      reader.readAsDataURL(blob);
+      return;
+    } catch (e) {
+      console.error("Error RawBT:", e);
+    }
+  }
+
+  // 🔸 3. Si es navegador normal (PC o laptop)
+  window.print();
+}
+
+
+// ==== Cliente público ====
+async function fijarClientePublico(){
+  try{
+    const q=query(collection(db,"clientes"),where("nombre","==","PUBLICO EN GENERAL"));
+    const snap=await getDocs(q);
+    if(!snap.empty){
+      const c=snap.docs[0].data();
+      clienteSeleccionado={id:snap.docs[0].id,nombre:c.nombre};
+      const el=$("#cliente");
+      el.value=c.nombre;el.readOnly=true;el.style.background="#e5e7eb";el.style.color="#555";
+    }
+  }catch(e){console.warn("Cliente público no encontrado");}
+}
+</script>
+<div id="ticketArea" style="display:none;">
+  <div id="ticket" class="ticket" style="font-family:monospace;width:72mm;">
+    <div style="text-align:center;margin-bottom:4px;">
+      <div style="font-weight:bold;font-size:16px;">PROVEEDORA MATRIZ</div>
+      <div style="font-size:13px;">MADERO 690 SUR, CENTRO</div>
+      <div style="font-size:13px;">LINARES, NUEVO LEON, 67700</div>
+      <div style="font-size:13px;">RFC: PDD-031204-KL5</div>
+      <div style="font-size:13px;">TEL: (821) 212-1805</div>
+      <div style="font-size:13px;">RÉGIMEN GENERAL DE LEY</div>
+      <div style="font-size:13px;">PERSONAS MORALES</div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;">
+      <div># Venta: <span id="tFolio"></span></div>
+      <div>Fecha: <span id="tFecha"></span></div>
+      <div>Cliente: <span id="tCliente">PÚBLICO EN GENERAL</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <table style="width:100%;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Descripción</th>
+          <th style="text-align:center;">Cant</th>
+          <th style="text-align:right;">P.Unit</th>
+          <th style="text-align:right;">Importe</th>
+        </tr>
+      </thead>
+      <tbody id="tLineas"></tbody>
+    </table>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;text-align:right;">
+      <div>Subtotal: <span id="tSubtotal">$0.00</span></div>
+      <div>Descuento <span id="tDescPorc">0%</span>: <span id="tDescMonto">$0.00</span></div>
+      <div>Total: <span id="tTotal">$0.00</span></div>
+      <div>Su Pago: <span id="tPago">$0.00</span></div>
+      <div>Cambio: <span id="tCambio">$0.00</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;">
+      <div>Artículos vendidos: <span id="tArticulos">0</span></div>
+      <div>Incluye <span id="tImpuestos">$0.00</span> de Impuestos</div>
+      <div>Cajero: <span id="tCajero">—</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+    <div style="text-align:center;font-size:13px;">¡Gracias por su compra!</div>
+  </div>
+</div>
+
+<!-- 🔹 Contenedor de cámara QR -->
+<div id="qrReaderContainer" style="display:none;flex-direction:column;align-items:center;justify-content:center;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;">
+  <div id="reader" style="width:90%;max-width:360px;margin:auto;background:#fff;border-radius:12px;padding:8px;"></div>
+  <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
+</div>
+
+<!-- 🔹 Service Worker y Logout -->
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js")
+  .then(r=>console.log("✅ SW registrado:",r.scope))
+  .catch(e=>console.error("❌ Error SW:",e));
+}
+document.addEventListener("DOMContentLoaded",()=>{
+  const b=document.getElementById("btnLogout");
+  if(b){
+    b.addEventListener("click",()=>{
+      localStorage.removeItem("usuario_ruta");
+      localStorage.removeItem("catalogo_cache");
+      localStorage.removeItem("catalogo_fecha");
+      document.getElementById("posApp").style.display="none";
+      document.getElementById("loginScreen").style.display="flex";
+      document.getElementById("loginUsuario").value="";
+      document.getElementById("loginPassword").value="";
+      document.getElementById("loginMsg").textContent="";
+      alert("Sesión cerrada correctamente.");
+    });
+  }
+});
+</script>
+  <!-- 📷 Control de escáner QR -->
+<script>
+window.addEventListener("load", () => {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  let html5QrCode = null;
+
+  btnCam.addEventListener("click", () => {
+    camDiv.style.display = "flex";
+    const readerDiv = document.getElementById("reader");
+    if (!readerDiv) {
+      alert("No se encontró el contenedor del lector (#reader)");
+      return;
+    }
+
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        console.log("📦 Código detectado:", decodedText);
+        const buscador = document.getElementById("buscador");
+        buscador.value = decodedText;
+        camDiv.style.display = "none";
+        html5QrCode.stop().then(() => {
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          buscador.dispatchEvent(enterEvent);
+        });
+      },
+      (errorMessage) => console.log("⚠️", errorMessage)
+    ).catch((err) => {
+      alert("No se pudo abrir la cámara: " + err);
+      camDiv.style.display = "none";
+    });
+  });
+
+  cerrarCam.addEventListener("click", () => {
+    if (html5QrCode) html5QrCode.stop().then(() => camDiv.style.display = "none");
+    else camDiv.style.display = "none";
+  });
+});
+</script>
+</body>
+</html>
