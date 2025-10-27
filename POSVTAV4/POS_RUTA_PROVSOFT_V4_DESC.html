@@ -1,3 +1,4 @@
+<!-- 🧩 BLOQUE 1 – ESTRUCTURA BASE Y ESTILOS -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -129,6 +130,7 @@
   </style>
 </head>
 <body>
+<!-- 🧩 BLOQUE 2 – LOGIN Y ESTRUCTURA PRINCIPAL DEL POS -->
 <!-- 🔑 LOGIN -->
 <div id="loginScreen">
   <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
@@ -188,16 +190,13 @@
   </section>
 </main>
 </div>
+<!-- 🧩 BLOQUE 3 – MODAL DE COBRO, DESCUENTO Y SCRIPT PRINCIPAL (Firebase + POS) -->
 
 <!-- 📸 Librería QR -->
 <script src="https://unpkg.com/html5-qrcode"></script>
+
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
-<!-- ======= SCRIPT PRINCIPAL (continuará en BLOQUE 2) ======= -->
-<script type="module">
-// placeholder hasta continuar en el Bloque 2
-</script>
 
 <!-- 🔹 Modal de Cobro -->
 <div id="modalCobro" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1200;align-items:center;justify-content:center;">
@@ -240,9 +239,12 @@
     </div>
   </div>
 </div>
-<!-- ======= SCRIPT PRINCIPAL (parte 2 de 2) ======= -->
+
+<!-- ======= SCRIPT PRINCIPAL POS (Firebase + lógica) ======= -->
 <script type="module">
 "use strict";
+
+// 🔹 Importar Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, addDoc, setDoc, serverTimestamp,
@@ -260,6 +262,7 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
+
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off:", err));
@@ -280,7 +283,11 @@ async function loginUsuario(){
   const u=$("#loginUsuario").value.trim(), p=$("#loginPassword").value.trim();
   const msg=$("#loginMsg"); msg.textContent="Verificando...";
   try{
-    const q=query(collection(db,"usuarios_ruta"),where("usuario","==",u),where("password","==",p),where("activo","==",true));
+    const q=query(collection(db,"usuarios_ruta"),
+      where("usuario","==",u),
+      where("password","==",p),
+      where("activo","==",true)
+    );
     const snap=await getDocs(q);
     if(snap.empty){msg.textContent="Usuario o contraseña incorrectos";return;}
     const data=snap.docs[0].data();
@@ -328,38 +335,35 @@ async function cargarDepartamentos(){
     departamentos[d.id]={id:Number(x.id||d.id),nombre:x.nombre||"SIN DEP",iva:Number(x.iva||0),ieps:Number(x.ieps||0)};
   });
 }
-
+<!-- 🧩 BLOQUE 4 – FUNCIONES DE BÚSQUEDA, CARRITO, TOTALES, RENDER Y COBRO COMPLETO -->
+// ==== Buscar producto local ====
 function buscarLocal(qraw) {
   const q = (qraw || "").trim().toLowerCase();
   if (!q) return [];
 
-  // 1️⃣ Si es código de báscula (empieza con 2 y tiene longitud típica 13)
+  // 1️⃣ Código de báscula
   if (q.startsWith("2") && q.length >= 12) {
-    const prefijo = q.substring(1, 6); // base de producto
-    const pesoStr = q.substring(6, 11); // 5 dígitos de peso
-    const peso = parseFloat(pesoStr) / 1000; // ej. 01234 → 1.234 kg
-
-    const idByPrefijo = Array.from(codeIndex.entries()).find(([cod]) =>
-      cod.startsWith(prefijo)
-    );
+    const prefijo = q.substring(1, 6);
+    const pesoStr = q.substring(6, 11);
+    const peso = parseFloat(pesoStr) / 1000;
+    const idByPrefijo = Array.from(codeIndex.entries()).find(([cod]) => cod.startsWith(prefijo));
     if (idByPrefijo) {
       const p = catalogo.find(x => x.id === idByPrefijo[1]);
       if (p) {
-        // asignar cantidad detectada automáticamente
         $("#cantidadInput").value = peso;
         return [p];
       }
     }
   }
 
-  // 2️⃣ Coincidencia exacta por código de barra o equivalente
+  // 2️⃣ Código exacto
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
     return p ? [p] : [];
   }
 
-  // 3️⃣ Coincidencia parcial por codigosEquivalentes
+  // 3️⃣ Código equivalente parcial
   const matchEq = catalogo.find(p => {
     if (!Array.isArray(p.equivalentes)) return false;
     return p.equivalentes.some(eq => {
@@ -370,7 +374,7 @@ function buscarLocal(qraw) {
   });
   if (matchEq) return [matchEq];
 
-  // 4️⃣ Coincidencia por nombre
+  // 4️⃣ Búsqueda por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
 
@@ -413,12 +417,15 @@ function calcularTotales(descPorc=0){
   };
 }
 
-// ==== Render ====
+// ==== Render principal ====
 function render(){
   const tbody=$("#tbody");tbody.innerHTML="";
   carrito.forEach(it=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${it.nombre}</td><td style="text-align:center">${it.cantidad.toFixed(2)}</td><td style="text-align:right">${money(it.importe)}</td><td class='del-col'><button class='del' onclick="delItem('${it.id}')">×</button></td>`;
+    tr.innerHTML=`<td>${it.nombre}</td>
+      <td style="text-align:center">${it.cantidad.toFixed(2)}</td>
+      <td style="text-align:right">${money(it.importe)}</td>
+      <td class='del-col'><button class='del' onclick="delItem('${it.id}')">×</button></td>`;
     tbody.appendChild(tr);
   });
   const desc=Number(localStorage.getItem("desc_porcentaje")||0);
@@ -427,19 +434,15 @@ function render(){
   $("#lblImpuestos").textContent=money(impuestos);
   $("#lblTotal").textContent=money(total);
 }
-// ==== Búsqueda en vivo y selección ====
 window.addProduct = addProduct;
 window.render = render;
-  // ==== Flujo de entrada mejorado ====
-let productoTemporal = null;
 
-// Cuando seleccionas un producto del buscador
+// ==== Flujo de entrada ====
+let productoTemporal = null;
 function seleccionarProducto(prod) {
   productoTemporal = prod;
   $("#cantidadInput").focus();
 }
-
-// Al escribir cantidad y presionar Enter
 $("#cantidadInput").addEventListener("keydown", e => {
   if (e.key === "Enter" && productoTemporal) {
     const cant = parseFloat($("#cantidadInput").value) || 1;
@@ -450,44 +453,31 @@ $("#cantidadInput").addEventListener("keydown", e => {
   }
 });
 
+// ==== Búsqueda en vivo ====
 $("#buscador").addEventListener("input", () => {
   const val = $("#buscador").value.trim().toLowerCase();
   const cont = $("#resultados");
-  if (!val) {
-    cont.style.display = "none";
-    cont.innerHTML = "";
-    return;
-  }
+  if (!val) {cont.style.display = "none";cont.innerHTML = "";return;}
   const res = buscarLocal(val);
-  if (res.length === 0) {
-    cont.style.display = "none";
-    cont.innerHTML = "";
-    return;
-  }
-  cont.innerHTML = res
-    .slice(0, 20)
-    .map(
-      (p, i) => `
+  if (res.length === 0) {cont.style.display = "none";cont.innerHTML = "";return;}
+  cont.innerHTML = res.slice(0, 20).map(
+    (p, i) => `
       <div class="result-item" data-id="${p.id}" data-index="${i}">
-        <span>${p.nombre}</span>
-        <small>${p.codigo}</small>
-      </div>`
-    )
-    .join("");
+        <span>${p.nombre}</span><small>${p.codigo}</small>
+      </div>`).join("");
   cont.style.display = "block";
-
-cont.querySelectorAll(".result-item").forEach(el => {
-  el.onclick = () => {
-    const id = el.dataset.id;
-    const prod = catalogo.find(x => x.id === id);
-    if (prod) {
-      seleccionarProducto(prod);
-      cont.style.display = "none";
-      $("#buscador").value = "";
-    }
-  };
+  cont.querySelectorAll(".result-item").forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.id;
+      const prod = catalogo.find(x => x.id === id);
+      if (prod) {
+        seleccionarProducto(prod);
+        cont.style.display = "none";
+        $("#buscador").value = "";
+      }
+    };
+  });
 });
-}); // ← ESTE CIERRE FALTABA
 
 // ==== Buscar directo con Enter ====
 $("#buscador").addEventListener("keydown", e => {
@@ -502,7 +492,7 @@ $("#buscador").addEventListener("keydown", e => {
   }
 });
 
-// ==== Modal cobro y descuento dinámico ====
+// ==== Modal Cobro ====
 const modalCobro=$("#modalCobro");
 const descuentoInput=$("#descuentoInput");
 const descuentoMonto=$("#descuentoMonto");
@@ -516,13 +506,16 @@ function abrirCobro(){
   cobroTotal.textContent=money(tot.total);
   descuentoMonto.textContent=`Descuento aplicado: ${money(tot.descuento)}`;
   modalCobro.style.display="flex";
-   $("#montoRecibido").focus(); // ← agrega esto
+  $("#montoRecibido").focus();
 }
-function cerrarCobro(){modalCobro.style.display="none";document.body.classList.remove("modal-open");}
+function cerrarCobro(){
+  modalCobro.style.display="none";
+  document.body.classList.remove("modal-open");
+}
 $("#btnCobrar").onclick=abrirCobro;
 $("#btnCancelarCobro").onclick=cerrarCobro;
 
-// descuento dinámico
+// ==== Descuento dinámico ====
 descuentoInput.addEventListener("input",()=>{
   let val=parseInt(descuentoInput.value)||0;
   if(val<0)val=0;if(val>100)val=100;
@@ -532,10 +525,10 @@ descuentoInput.addEventListener("input",()=>{
   cobroTotal.textContent=money(t.total);
   descuentoMonto.textContent=`Descuento aplicado: ${money(t.descuento)}`;
 });
-// ==== Calcular cambio automáticamente ====
+
+// ==== Calcular cambio ====
 const montoRecibido = $("#montoRecibido");
 const montoCambio = $("#montoCambio");
-
 montoRecibido.addEventListener("input", () => {
   const valRec = parseFloat(montoRecibido.value) || 0;
   const desc = Number(descuentoInput.value) || 0;
@@ -543,6 +536,7 @@ montoRecibido.addEventListener("input", () => {
   const cambio = valRec - tot.total;
   montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
+<!-- 🧩 BLOQUE 5 – CONFIRMAR COBRO, GUARDAR VENTA, TELEGRAM, TICKET E IMPRESIÓN -->
 
 // ==== Confirmar cobro ====
 $("#btnConfirmarCobro").onclick=async()=>{
@@ -566,17 +560,20 @@ $("#btnConfirmarCobro").onclick=async()=>{
   carrito=[];render();cerrarCobro();
 };
 
-// ==== Guardar venta ====
+// ==== Guardar venta en Firestore ====
 async function guardarVentaEnFirestore(v){
   try{
-    v.fecha=serverTimestamp();v.cortado=false;v.usuarioId=USUARIO_LOGUEADO?.id||"";v.usuarioNombre=USUARIO_LOGUEADO?.nombre||"";
+    v.fecha=serverTimestamp();
+    v.cortado=false;
+    v.usuarioId=USUARIO_LOGUEADO?.id||"";
+    v.usuarioNombre=USUARIO_LOGUEADO?.nombre||"";
     const ref=collection(db,"rutas_venta");
     await addDoc(ref,v);
     console.log("Venta guardada",v.folio);
   }catch(e){console.error("Error guardando:",e);}
 }
 
-// ==== Telegram ====
+// ==== Enviar venta a Telegram ====
 async function enviarTelegram(v){
   try{
     const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
@@ -591,6 +588,7 @@ async function enviarTelegram(v){
   }catch(e){console.error("Telegram:",e);}
 }
 
+// ==== Rellenar ticket ====
 function rellenarTicket(v){
   const t = v.resumen_financiero;
   const pago = parseFloat($("#montoRecibido").value) || 0;
@@ -622,10 +620,11 @@ function rellenarTicket(v){
   });
 }
 
+// ==== Impresión de ticket estilado ====
 function imprimirTicketEstilado() {
   const t = document.getElementById("ticketArea");
 
-  // 🔸 1. Si el POS usa InnerPrinter (TechZone, Sunmi, etc.)
+  // 🔸 1. InnerPrinter (POS Android)
   if (window.InnerPrinter) {
     try {
       if (typeof window.InnerPrinter.printText === "function") {
@@ -634,7 +633,6 @@ function imprimirTicketEstilado() {
         return;
       }
       if (typeof window.InnerPrinter.printHtml === "function") {
-        // algunos POS solo interpretan HTML básico
         const html = `<html><head><meta charset='utf-8'></head><body>${t.innerHTML}</body></html>`;
         window.InnerPrinter.printHtml(html);
         return;
@@ -644,7 +642,7 @@ function imprimirTicketEstilado() {
     }
   }
 
-  // 🔸 2. Si usa la app RawBT (Android)
+  // 🔸 2. RawBT (Android)
   if (/Android/i.test(navigator.userAgent)) {
     try {
       const textoPlano = t.innerText.replace(/\n\s*\n/g, "\n");
@@ -652,7 +650,6 @@ function imprimirTicketEstilado() {
       const reader = new FileReader();
       reader.onload = () => {
         const base64 = reader.result.split(",")[1];
-        // ⚠️ Usa rawbt:text y no rawbt:base64, para modo texto
         window.location.href = `rawbt:text,${base64}`;
       };
       reader.readAsDataURL(blob);
@@ -662,12 +659,11 @@ function imprimirTicketEstilado() {
     }
   }
 
-  // 🔸 3. Si es navegador normal (PC o laptop)
+  // 🔸 3. Impresión normal navegador
   window.print();
 }
 
-
-// ==== Cliente público ====
+// ==== Cliente público general ====
 async function fijarClientePublico(){
   try{
     const q=query(collection(db,"clientes"),where("nombre","==","PUBLICO EN GENERAL"));
@@ -676,11 +672,17 @@ async function fijarClientePublico(){
       const c=snap.docs[0].data();
       clienteSeleccionado={id:snap.docs[0].id,nombre:c.nombre};
       const el=$("#cliente");
-      el.value=c.nombre;el.readOnly=true;el.style.background="#e5e7eb";el.style.color="#555";
+      el.value=c.nombre;
+      el.readOnly=true;
+      el.style.background="#e5e7eb";
+      el.style.color="#555";
     }
   }catch(e){console.warn("Cliente público no encontrado");}
 }
 </script>
+<!-- 🧩 BLOQUE 6 – DISEÑO DEL TICKET, QR SCANNER, SERVICE WORKER Y LOGOUT -->
+
+<!-- 📜 Área del Ticket -->
 <div id="ticketArea" style="display:none;">
   <div id="ticket" class="ticket" style="font-family:monospace;width:72mm;">
     <div style="text-align:center;margin-bottom:4px;">
@@ -751,6 +753,7 @@ if("serviceWorker" in navigator){
   .then(r=>console.log("✅ SW registrado:",r.scope))
   .catch(e=>console.error("❌ Error SW:",e));
 }
+
 document.addEventListener("DOMContentLoaded",()=>{
   const b=document.getElementById("btnLogout");
   if(b){
@@ -768,7 +771,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 });
 </script>
-  <!-- 📷 Control de escáner QR -->
+
+<!-- 📷 Control de escáner QR -->
 <script>
 window.addEventListener("load", () => {
   const btnCam = document.getElementById("btnCam");
@@ -811,5 +815,6 @@ window.addEventListener("load", () => {
   });
 });
 </script>
+
 </body>
 </html>
