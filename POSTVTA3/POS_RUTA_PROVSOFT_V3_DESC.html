@@ -513,9 +513,19 @@ function abrirCobro(){
   modalCobro.style.display="flex";
    $("#montoRecibido").focus(); // ← agrega esto
 }
-function cerrarCobro(){modalCobro.style.display="none";document.body.classList.remove("modal-open");}
-$("#btnCobrar").onclick=abrirCobro;
-$("#btnCancelarCobro").onclick=cerrarCobro;
+  
+function cerrarCobro() {
+  // 🔹 Limpia todos los campos del modal
+  $("#montoRecibido").value = "";
+  $("#montoCambio").textContent = "$0.00";
+  $("#notasCobro").value = "";
+  $("#descuentoInput").value = 0;
+  $("#descuentoMonto").textContent = "Descuento aplicado: $0.00";
+  localStorage.removeItem("desc_porcentaje"); // opcional
+
+  modalCobro.style.display = "none";
+  document.body.classList.remove("modal-open");
+}
 
 // descuento dinámico
 descuentoInput.addEventListener("input",()=>{
