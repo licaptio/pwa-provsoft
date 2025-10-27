@@ -333,18 +333,20 @@ function buscarLocal(qraw) {
   const q = (qraw || "").trim().toLowerCase();
   if (!q) return [];
 
-  // 1️⃣ Códigos de báscula (inician con 2 y tienen longitud >=12)
-  if (q.startsWith("2") && q.length >= 12) {
-    const prefijo = q.substring(1, 6); // base del producto
-    const pesoStr = q.substring(6, 11); // 5 dígitos de peso
-    const peso = parseFloat(pesoStr) / 1000; // ej. 01234 → 1.234 kg
+  // 1️⃣ Etiquetas de báscula: 7 dígitos de código + 5 de peso + 1 verificador
+  if (/^2\d{12,}$/.test(q)) {
+    const codigoBase = q.substring(0, 7); // 2000191
+    const pesoStr = q.substring(7, 12);   // 00100
+    const peso = parseFloat(pesoStr) / 1000; // 0.100 kg
 
-    // Buscar producto por prefijo dentro de los códigos equivalentes o código base
-    const idMatch = Array.from(codeIndex.entries()).find(([cod]) => cod.startsWith(prefijo));
+    // Buscar producto por ese código base en equivalentes o códigoBarra
+    const idMatch = Array.from(codeIndex.entries()).find(([cod]) =>
+      cod.startsWith(codigoBase)
+    );
     if (idMatch) {
       const p = catalogo.find(x => x.id === idMatch[1]);
       if (p) {
-        $("#cantidadInput").value = peso; // ✅ asigna el peso detectado
+        $("#cantidadInput").value = peso.toFixed(3);
         return [p];
       }
     }
@@ -354,46 +356,19 @@ function buscarLocal(qraw) {
   const idByCode = codeIndex.get(q);
   if (idByCode) {
     const p = catalogo.find(x => x.id === idByCode);
-    if (p) {
-      // ⚙️ si el código es de báscula pero no empieza con '2' (por ejemplo, reetiquetado)
-      if (q.length >= 12 && /^\d+$/.test(q)) {
-        const prefijo = q.substring(1, 6);
-        const pesoStr = q.substring(6, 11);
-        const peso = parseFloat(pesoStr) / 1000;
-        if (!isNaN(peso) && peso > 0) {
-          $("#cantidadInput").value = peso; // ✅ usa el peso real
-        }
-      }
-      return [p];
-    }
+    if (p) return [p];
   }
 
   // 3️⃣ Coincidencia parcial por equivalentes
   const matchEq = catalogo.find(p => {
     if (!Array.isArray(p.equivalentes)) return false;
-    return p.equivalentes.some(eq => {
-      if (!eq) return false;
-      const eqLower = eq.toLowerCase();
-      return q.startsWith(eqLower) || eqLower.startsWith(q) || eqLower.includes(q);
-    });
+    return p.equivalentes.some(eq => eq && q.startsWith(eq.toLowerCase()));
   });
-  if (matchEq) {
-    // Intenta detectar peso si la etiqueta viene con estructura tipo báscula
-    if (q.length >= 12 && /^\d+$/.test(q)) {
-      const prefijo = q.substring(1, 6);
-      const pesoStr = q.substring(6, 11);
-      const peso = parseFloat(pesoStr) / 1000;
-      if (!isNaN(peso) && peso > 0) {
-        $("#cantidadInput").value = peso; // ✅ peso real desde equivalente
-      }
-    }
-    return [matchEq];
-  }
+  if (matchEq) return [matchEq];
 
   // 4️⃣ Coincidencia por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
-
 // ==== Carrito ====
 function addProduct(prod,cant=1){
   if(!prod)return;
