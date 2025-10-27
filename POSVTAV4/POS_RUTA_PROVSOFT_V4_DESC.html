@@ -300,6 +300,10 @@ async function loginUsuario(){
     fijarClientePublico();
     localStorage.setItem("usuario_ruta",JSON.stringify(USUARIO_LOGUEADO));
     await restaurarFolioDesdeFirestore(USUARIO_LOGUEADO.usuario);
+  if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+  navigator.serviceWorker.controller.postMessage({ type: "sincronizarVentas" });
+}
+
   }catch(e){msg.textContent="Error de conexión";console.error(e);}
 }
 $("#btnLogin").onclick=loginUsuario;
@@ -583,7 +587,7 @@ $("#btnConfirmarCobro").onclick=async()=>{
     descuento_monto:tot.descuento,
     fecha_txt:new Date().toLocaleString()
   };
-  await guardarVentaEnFirestore(venta);
+  await guardarVentaSeguro(venta);
   enviarTelegram(venta);
   rellenarTicket(venta);
   imprimirTicketEstilado();
@@ -602,6 +606,26 @@ async function guardarVentaEnFirestore(v){
     console.log("Venta guardada",v.folio);
   }catch(e){console.error("Error guardando:",e);}
 }
+// ==== Enviar venta al Service Worker si no hay red o Firestore falla ====
+async function guardarVentaSeguro(v) {
+  try {
+    // Intento normal de guardar venta
+    await guardarVentaEnFirestore(v);
+    console.log("✅ Venta guardada online:", v.folio);
+  } catch (err) {
+    console.warn("⚠️ Error al guardar online, guardando offline:", err);
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: "guardarVentaOffline",
+        venta: v
+      });
+      alert("💾 Sin conexión: venta guardada offline. Se sincronizará automáticamente.");
+    } else {
+      console.error("No hay SW activo para guardar offline.");
+    }
+  }
+}
+
 // ==== Registrar/actualizar historial de folios ====
 async function actualizarHistorialFolio(usuario, folioTxt) {
   try {
