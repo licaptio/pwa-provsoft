@@ -4,186 +4,81 @@
   <meta charset="UTF-8">
   <title>Panel de Control – Fijación de Artículos | PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Firebase -->
-<script type="module">
-  import { 
-    initializeApp 
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { 
-    getFirestore, collection, query, where, orderBy, getDocs, getDoc, setDoc, doc 
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // 🔧 Configuración Firebase
-  const firebaseConfig = {
-    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-    authDomain: "inventariopv-643f1.firebaseapp.com",
-    projectId: "inventariopv-643f1",
-    storageBucket: "inventariopv-643f1.firebasestorage.app",
-    messagingSenderId: "96242533231",
-    appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-  };
+  <!-- ===== BLOQUE 1: FIREBASE + CONTROL DE ORDEN ===== -->
+  <script type="module">
+    import { 
+      initializeApp 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+      getFirestore, collection, query, where, orderBy, limit,
+      getDocs, getDoc, setDoc, doc, deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
 
-  // ===== ELEMENTOS DOM =====
-  const busqueda = document.getElementById('busqueda');
-  const resultados = document.getElementById('resultados');
-  const codigo = document.getElementById('codigo');
-  const concepto = document.getElementById('concepto');
-  const inventario_fijado = document.getElementById('inventario_fijado');
-  const inventario_minimo = document.getElementById('inventario_minimo');
-  const usuario = document.getElementById('usuario');
-  const msg = document.getElementById('msg');
-  const tbody = document.getElementById('tbody');
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-  // ===== BUSCAR PRODUCTO =====
-  busqueda.addEventListener('input', async () => {
-    const texto = busqueda.value.trim().toLowerCase();
-    if (texto.length < 2) { resultados.style.display = 'none'; return; }
+    // ===== DOM ELEMENTOS =====
+    const busqueda = document.getElementById('busqueda');
+    const resultados = document.getElementById('resultados');
+    const codigo = document.getElementById('codigo');
+    const concepto = document.getElementById('concepto');
+    const inventario_fijado = document.getElementById('inventario_fijado');
+    const inventario_minimo = document.getElementById('inventario_minimo');
+    const usuario = document.getElementById('usuario');
+    const msg = document.getElementById('msg');
+    const tbody = document.getElementById('tbody');
+    const selectorOrden = document.getElementById('selectorOrden');
 
-    const productosRef = collection(db, "productos");
-    const q = query(productosRef, where("activo", "==", true));
-    const snap = await getDocs(q);
+    // ===== BLOQUE: FUNCIÓN DE CARGA (ahora ordenada) =====
+    async function cargarTabla() {
+      const orden = selectorOrden.value; // 'concepto' o 'codigoBarra'
+      const segRef = collection(db, "seguimiento_inventario");
+      const q = query(segRef, where("activo", "==", true), orderBy(orden));
+      const snap = await getDocs(q);
 
-    resultados.innerHTML = '';
-    let encontrados = 0;
-
-    snap.forEach(docSnap => {
-      const data = docSnap.data();
-      const codigoStr = String(data.codigoBarra || '').toLowerCase();
-      const conceptoStr = String(data.concepto || '').toLowerCase();
-      const coincide = codigoStr.includes(texto) || conceptoStr.includes(texto);
-
-      if (coincide) {
-        encontrados++;
-        const div = document.createElement('div');
-        div.textContent = `${data.codigoBarra} – ${data.concepto}`;
-        div.onclick = async () => {
+      tbody.innerHTML = "";
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${data.codigoBarra}</td>
+          <td>${data.concepto || "-"}</td>
+          <td>${data.inventario_fijado}</td>
+          <td>${data.inventario_minimo}</td>
+          <td>${data.inventario_teorico || data.inventario_fijado}</td>
+          <td>${data.actualizadoEn ? data.actualizadoEn.split("T")[0] : "-"}</td>
+        `;
+        tr.onclick = () => {
           codigo.value = data.codigoBarra;
           concepto.value = data.concepto;
-          busqueda.value = '';
-          resultados.style.display = 'none';
-
-          // Verificar si ya está fijado
-          const segRef = doc(db, "seguimiento_inventario", data.codigoBarra);
-          const segSnap = await getDoc(segRef);
-          if (segSnap.exists()) {
-            const s = segSnap.data();
-            inventario_fijado.value = s.inventario_fijado;
-            inventario_minimo.value = s.inventario_minimo;
-            msg.innerHTML = `🧭 Artículo ya fijado<br>
-              <small>Anterior: ${s.inventario_fijado} | Mínimo: ${s.inventario_minimo}</small>`;
-          } else {
-            msg.innerText = "✅ Nuevo artículo listo para fijar";
-          }
+          inventario_fijado.value = data.inventario_fijado;
+          inventario_minimo.value = data.inventario_minimo;
+          msg.innerText = "📝 Editando artículo " + data.codigoBarra;
+          msg.style.color = "white";
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         };
-        resultados.appendChild(div);
-      }
-    });
-
-    resultados.style.display = encontrados > 0 ? 'block' : 'none';
-  });
-
-  // ===== GUARDAR / ACTUALIZAR =====
-  window.guardarArticulo = async function guardarArticulo() {
-    const codigoVal = codigo.value.trim();
-    const conceptoVal = concepto.value.trim();
-    const fijadoVal = parseInt(inventario_fijado.value || 0);
-    const minimoVal = parseInt(inventario_minimo.value || 0);
-    const usuarioVal = usuario.value.trim() || "Desconocido";
-    const ahora = new Date().toISOString();
-
-    if (!codigoVal || isNaN(fijadoVal)) return alert("Completa código y cantidad fijada");
-
-    const segRef = doc(db, "seguimiento_inventario", codigoVal);
-    const segSnap = await getDoc(segRef);
-
-    let motivo = "fijación inicial";
-    let diferencia = 0;
-    let inventarioAnterior = 0;
-
-    if (segSnap.exists()) {
-      const dataPrev = segSnap.data();
-      inventarioAnterior = parseInt(dataPrev.inventario_fijado || 0);
-      diferencia = fijadoVal - inventarioAnterior;
-      motivo = diferencia > 0 ? "reabastecimiento" : (diferencia < 0 ? "ajuste manual" : "sin cambio");
+        tbody.appendChild(tr);
+      });
     }
 
-    // Guardar el documento actualizado
-    await setDoc(segRef, {
-      codigoBarra: codigoVal,
-      concepto: conceptoVal,
-      inventario_fijado: fijadoVal,
-      inventario_minimo: minimoVal,
-      activo: true,
-      fecha_inicio: segSnap.exists() ? segSnap.data().fecha_inicio : ahora,
-      actualizadoEn: ahora
-    });
+    // Cuando cambie el selector, recarga tabla
+    selectorOrden.addEventListener("change", cargarTabla);
 
-    // Registrar en historial
-    const histRef = doc(db, `seguimiento_inventario/${codigoVal}/historial`, ahora);
-    await setDoc(histRef, {
-      inventario_anterior: inventarioAnterior,
-      inventario_nuevo: fijadoVal,
-      diferencia: diferencia,
-      motivo: motivo,
-      usuario: usuarioVal,
-      fecha: ahora
-    });
+    // ===== FIN DEL SCRIPT =====
+    cargarTabla();
+  </script>
 
-    // Mensaje visual según tipo de cambio
-    if (diferencia > 0) {
-      msg.innerHTML = `✅ +${diferencia} reabastecimiento<br><small>Nuevo total: ${fijadoVal}</small>`;
-      msg.style.color = "limegreen";
-    } else if (diferencia < 0) {
-      msg.innerHTML = `⚠️ ${diferencia} ajuste manual<br><small>Nuevo total: ${fijadoVal}</small>`;
-      msg.style.color = "orange";
-    } else {
-      msg.innerHTML = "ℹ️ Sin cambio en el valor fijado";
-      msg.style.color = "gray";
-    }
-
-    inventario_fijado.value = '';
-    inventario_minimo.value = '';
-    codigo.value = '';
-    concepto.value = '';
-    await cargarTabla();
-  };
-
-  // ===== CARGAR TABLA =====
-  async function cargarTabla() {
-    const segRef = collection(db, "seguimiento_inventario");
-    const q = query(segRef, where("activo", "==", true), orderBy("codigoBarra"));
-    const snap = await getDocs(q);
-
-    tbody.innerHTML = "";
-    snap.forEach(docSnap => {
-      const data = docSnap.data();
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${data.codigoBarra}</td>
-        <td>${data.concepto || "-"}</td>
-        <td>${data.inventario_fijado}</td>
-        <td>${data.inventario_minimo}</td>
-        <td>${data.actualizadoEn ? data.actualizadoEn.split("T")[0] : "-"}</td>
-      `;
-      tr.onclick = () => {
-        codigo.value = data.codigoBarra;
-        concepto.value = data.concepto;
-        inventario_fijado.value = data.inventario_fijado;
-        inventario_minimo.value = data.inventario_minimo;
-        msg.innerText = "📝 Editando artículo " + data.codigoBarra;
-        msg.style.color = "white";
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      };
-      tbody.appendChild(tr);
-    });
-  }
-
-  cargarTabla();
-</script>
-
+  <!-- ===== BLOQUE 2: ESTILOS ===== -->
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -191,43 +86,31 @@
       color: white;
       padding: 20px;
     }
-    h2, h3 {
-      text-align: center;
-    }
     .card {
       background: rgba(255,255,255,0.1);
       padding: 20px;
       border-radius: 12px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      max-width: 700px;
+      max-width: 800px;
       margin: auto;
     }
-    input, button {
+    input, button, select {
       width: 100%;
       padding: 10px;
       margin-bottom: 10px;
       border-radius: 6px;
       border: none;
     }
+    select {
+      background: #fff;
+      color: #00416A;
+      font-weight: 600;
+    }
     button {
       cursor: pointer;
       font-weight: 600;
       background: #F5AF19;
     }
-    #resultados {
-      background: white;
-      color: black;
-      border-radius: 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      display: none;
-    }
-    #resultados div {
-      padding: 8px;
-      border-bottom: 1px solid #ccc;
-      cursor: pointer;
-    }
-    #resultados div:hover { background: #eee; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -235,20 +118,17 @@
       background: rgba(255,255,255,0.95);
       color: black;
       border-radius: 10px;
-      overflow: hidden;
     }
     th, td {
       padding: 8px 10px;
       text-align: left;
       border-bottom: 1px solid #ddd;
     }
-    th {
-      background: #00416A;
-      color: white;
-    }
+    th { background: #00416A; color: white; }
     tr:hover { background: #f0f0f0; cursor: pointer; }
   </style>
 </head>
+
 <body>
   <div class="card">
     <h2>📦 Panel de Control de Inventario Fijado</h2>
@@ -261,10 +141,19 @@
     <input id="inventario_fijado" type="number" placeholder="Inventario fijado">
     <input id="inventario_minimo" type="number" placeholder="Inventario mínimo (alerta)">
     <input id="usuario" placeholder="Usuario" value="Gerardo Ríos">
+
     <button onclick="guardarArticulo()">💾 Guardar / Actualizar</button>
     <p id="msg"></p>
 
     <h3>📋 Artículos Fijados Activos</h3>
+
+    <!-- 🔤 Nuevo selector de orden -->
+    <label>Ordenar por:</label>
+    <select id="selectorOrden">
+      <option value="concepto">🔤 Nombre (A → Z)</option>
+      <option value="codigoBarra">🏷️ Código</option>
+    </select>
+
     <table>
       <thead>
         <tr>
@@ -272,6 +161,7 @@
           <th>Concepto</th>
           <th>Fijado</th>
           <th>Mínimo</th>
+          <th>Teórico</th>
           <th>Última actualización</th>
         </tr>
       </thead>
