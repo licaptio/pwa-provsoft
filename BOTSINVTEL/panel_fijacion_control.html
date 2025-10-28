@@ -76,6 +76,63 @@
 
     // ===== FIN DEL SCRIPT =====
     cargarTabla();
+// =======================================================
+// 🔍 BLOQUE: BÚSQUEDA DINÁMICA DE ARTÍCULOS (por código o nombre)
+// =======================================================
+busqueda.addEventListener("input", async () => {
+  const texto = busqueda.value.trim().toUpperCase();
+  resultados.innerHTML = "";
+  tbody.innerHTML = "";
+
+  if (texto.length < 2) {
+    await cargarTabla(); // 🔄 si borras el texto, recarga todo
+    return;
+  }
+
+  const segRef = collection(db, "seguimiento_inventario");
+
+  try {
+    // 🔎 Buscar por código o por concepto (2 consultas paralelas)
+    const [snapCod, snapNom] = await Promise.all([
+      getDocs(query(segRef, where("codigoBarra", ">=", texto), where("codigoBarra", "<=", texto + "\uf8ff"))),
+      getDocs(query(segRef, where("concepto", ">=", texto), where("concepto", "<=", texto + "\uf8ff")))
+    ]);
+
+    const resultadosFinales = new Map(); // evitar duplicados
+    [...snapCod.docs, ...snapNom.docs].forEach(docu => resultadosFinales.set(docu.id, docu.data()));
+
+    if (resultadosFinales.size === 0) {
+      resultados.innerHTML = "<p style='color:yellow;'>⚠️ No se encontraron coincidencias</p>";
+      return;
+    }
+
+    resultadosFinales.forEach((data, id) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${data.codigoBarra}</td>
+        <td>${data.concepto || "-"}</td>
+        <td>${data.inventario_fijado}</td>
+        <td>${data.inventario_minimo}</td>
+        <td>${data.inventario_teorico || data.inventario_fijado}</td>
+        <td>${data.actualizadoEn ? data.actualizadoEn.split("T")[0] : "-"}</td>
+      `;
+      tr.onclick = () => {
+        codigo.value = data.codigoBarra;
+        concepto.value = data.concepto;
+        inventario_fijado.value = data.inventario_fijado;
+        inventario_minimo.value = data.inventario_minimo;
+        msg.innerText = "📝 Editando artículo " + data.codigoBarra;
+        msg.style.color = "white";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    console.error("❌ Error al buscar:", err);
+    resultados.innerHTML = "<p style='color:red;'>Error al buscar productos</p>";
+  }
+});
 
 // ===== BLOQUE: GUARDAR / ACTUALIZAR ARTÍCULO =====
 async function guardarArticulo() {
