@@ -94,15 +94,16 @@ async function guardarArticulo() {
   try {
     const docRef = doc(db, "seguimiento_inventario", codigoVal);
 
-    await setDoc(docRef, {
-      codigoBarra: codigoVal,
-      concepto: conceptoVal,
-      inventario_fijado: fijadoVal,
-      inventario_minimo: minimoVal || 0,
-      usuario,
-      actualizadoEn: new Date().toISOString(),
-      activo: true
-    }, { merge: true });
+await setDoc(docRef, {
+  codigoBarra: codigoVal,
+  concepto: conceptoVal,
+  inventario_fijado: fijadoVal,
+  inventario_minimo: minimoVal || 0,
+  usuario: usuarioVal, // ✅ corregido
+  actualizadoEn: new Date().toISOString(),
+  activo: true
+}, { merge: true });
+
 
     msg.innerText = "✅ Artículo guardado correctamente.";
     msg.style.color = "lightgreen";
