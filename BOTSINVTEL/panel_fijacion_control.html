@@ -76,6 +76,45 @@
 
     // ===== FIN DEL SCRIPT =====
     cargarTabla();
+
+// ===== BLOQUE: GUARDAR / ACTUALIZAR ARTÍCULO =====
+async function guardarArticulo() {
+  const codigoVal = codigo.value.trim();
+  const conceptoVal = concepto.value.trim();
+  const fijadoVal = parseFloat(inventario_fijado.value);
+  const minimoVal = parseFloat(inventario_minimo.value);
+  const usuarioVal = usuario.value.trim();
+
+  if (!codigoVal || !conceptoVal || isNaN(fijadoVal)) {
+    msg.innerText = "⚠️ Completa todos los campos antes de guardar.";
+    msg.style.color = "yellow";
+    return;
+  }
+
+  try {
+    const docRef = doc(db, "seguimiento_inventario", codigoVal);
+
+    await setDoc(docRef, {
+      codigoBarra: codigoVal,
+      concepto: conceptoVal,
+      inventario_fijado: fijadoVal,
+      inventario_minimo: minimoVal || 0,
+      usuario,
+      actualizadoEn: new Date().toISOString(),
+      activo: true
+    }, { merge: true });
+
+    msg.innerText = "✅ Artículo guardado correctamente.";
+    msg.style.color = "lightgreen";
+    await cargarTabla();
+  } catch (err) {
+    console.error(err);
+    msg.innerText = "❌ Error al guardar el artículo.";
+    msg.style.color = "red";
+  }
+}
+
+    
   </script>
 
   <!-- ===== BLOQUE 2: ESTILOS ===== -->
@@ -168,5 +207,6 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+
 </body>
 </html>
