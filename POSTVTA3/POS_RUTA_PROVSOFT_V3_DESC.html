@@ -527,6 +527,13 @@ function cerrarCobro() {
   document.body.classList.remove("modal-open");
 }
 $("#btnCobrar").onclick = abrirCobro;
+
+  
+// 🔹 Botón para abrir resumen diario
+const btnResumen = document.getElementById("btnResumen");
+btnResumen.addEventListener("click", () => {
+  window.location.href = "resumen.html";
+});
   
 // descuento dinámico
 descuentoInput.addEventListener("input",()=>{
