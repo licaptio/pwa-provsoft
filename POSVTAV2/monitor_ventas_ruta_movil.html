@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <title>Monitor de Ventas – Ruta Móvil | PROVSOFT</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <!-- =====================================================
-       🧩 BLOQUE 1: FUENTES + LIBRERÍAS FIREBASE
+       🧩 BLOQUE 1: FUENTES Y LIBRERÍAS FIREBASE
        ===================================================== -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
   <!-- =====================================================
-       🎨 BLOQUE 2: ESTILOS GENERALES DEL PANEL
+       🎨 BLOQUE 2: ESTILOS VISUALES DEL PANEL
        ===================================================== -->
   <style>
     body {
@@ -87,6 +87,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- =====================================================
@@ -100,15 +101,18 @@
   <div class="filtro-fecha">
     <label>📅 Fecha: </label>
     <input type="date" id="fechaFiltro">
+
     <label>👤 Usuario: </label>
     <select id="usuarioFiltro">
       <option value="">Todos</option>
+      <option value="FERNANDO FLORES DE LA CERDA">FERNANDO FLORES DE LA CERDA</option>
       <option value="ALAN">ALAN</option>
       <option value="CARLOS">CARLOS</option>
       <option value="DAVID">DAVID</option>
       <option value="GERARDO">GERARDO</option>
-      <!-- agrega aquí los usuarios que tengas en tu colección -->
+      <!-- 🔹 Puedes agregar más usuarios según Firestore -->
     </select>
+
     <button onclick="cargarVentas()">Filtrar</button>
   </div>
 
@@ -119,7 +123,7 @@
     <thead>
       <tr>
         <th>Cliente</th>
-        <th>Atendió</th>
+        <th>Usuario</th>
         <th>Total</th>
         <th>Fecha</th>
         <th>Acción</th>
@@ -134,7 +138,7 @@
   <div id="totalVentas"></div>
 
   <!-- =====================================================
-       🧩 BLOQUE 7: PIE DE PÁGINA / FIRMA PROVSOFT
+       🧩 BLOQUE 7: PIE DE PÁGINA
        ===================================================== -->
   <div class="footer">
     PROVSOFT © 2025 – Sistema Monitor de Ventas Ruta Móvil
@@ -173,19 +177,13 @@
       tablaBody.innerHTML = "<tr><td colspan='5'>Cargando ventas...</td></tr>";
       totalDiv.textContent = "";
 
-      const fecha = fechaInput.value;
-      const usuario = usuarioInput.value;
+      const fechaFiltro = fechaInput.value;
+      const usuarioFiltro = usuarioInput.value;
 
       let query = db.collection("rutas_venta");
 
-      // 📅 Filtrado por fecha (si se selecciona)
-      if (fecha) query = query.where("fecha", "==", fecha);
-
-      // 👤 Filtrado por usuario (si se selecciona)
-      if (usuario) query = query.where("atendio", "==", usuario);
-
-      // 📋 Orden descendente por fecha
-      query = query.orderBy("fecha", "desc");
+      // 🧩 Filtro por usuario (campo real: usuarioNombre)
+      if (usuarioFiltro) query = query.where("usuarioNombre", "==", usuarioFiltro);
 
       try {
         const snapshot = await query.get();
@@ -194,27 +192,41 @@
 
         snapshot.forEach((doc) => {
           const data = doc.data();
-          const total = parseFloat(data.total || 0);
+          
+          // ✅ Fecha tipo Timestamp → convertir a YYYY-MM-DD
+          let fechaDoc = "";
+          if (data.fecha && data.fecha.toDate) {
+            const d = data.fecha.toDate();
+            const año = d.getFullYear();
+            const mes = String(d.getMonth() + 1).padStart(2, "0");
+            const dia = String(d.getDate()).padStart(2, "0");
+            fechaDoc = `${año}-${mes}-${dia}`;
+          }
+
+          // 📅 Filtrar si coincide con la fecha seleccionada
+          if (fechaFiltro && fechaDoc !== fechaFiltro) return;
+
+          const total = parseFloat(data.total || data.resumen_financiero?.total || 0);
           totalGeneral += total;
 
           // 🧱 Crear fila dinámica
           const row = document.createElement("tr");
           row.innerHTML = `
-            <td>${data.cliente || "—"}</td>
-            <td>${data.atendio || "—"}</td>
+            <td>${data.cliente || data.nombre || "—"}</td>
+            <td>${data.usuarioNombre || data.usuario || "—"}</td>
             <td>$${total.toFixed(2)}</td>
-            <td>${data.fecha || "—"}</td>
+            <td>${fechaDoc || "—"}</td>
             <td><button class="btn-delete" onclick="eliminarVenta('${doc.id}')">Eliminar</button></td>
           `;
           tablaBody.appendChild(row);
         });
 
-        // 🔎 Sin resultados
+        // 🧾 Si no hay registros visibles
         if (tablaBody.innerHTML === "") {
           tablaBody.innerHTML = "<tr><td colspan='5'>No hay ventas registradas</td></tr>";
         }
 
-        // 💰 Mostrar total
+        // 💰 Mostrar total final
         totalDiv.textContent = `💰 Total general: $${totalGeneral.toFixed(2)}`;
       } catch (error) {
         console.error(error);
@@ -237,7 +249,7 @@
         cargarVentas();
       } catch (e) {
         console.error(e);
-        alert("❌ Error al eliminar");
+        alert("❌ Error al eliminar la venta");
       }
     }
 
