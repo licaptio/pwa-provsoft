@@ -526,7 +526,8 @@ function cerrarCobro() {
   modalCobro.style.display = "none";
   document.body.classList.remove("modal-open");
 }
-
+$("#btnCobrar").onclick = abrirCobro;
+  
 // descuento dinámico
 descuentoInput.addEventListener("input",()=>{
   let val=parseInt(descuentoInput.value)||0;
