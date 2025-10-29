@@ -96,28 +96,22 @@
   <h2>🧾 Monitor de Ventas – Ruta Móvil | PROVSOFT</h2>
 
   <!-- =====================================================
-       🔍 BLOQUE 4: FILTROS DE BÚSQUEDA (FECHA + USUARIO)
+       🔍 BLOQUE 4: FILTROS (FECHA ➜ USUARIO ➜ RESULTADOS)
        ===================================================== -->
   <div class="filtro-fecha">
     <label>📅 Fecha: </label>
     <input type="date" id="fechaFiltro">
 
     <label>👤 Usuario: </label>
-    <select id="usuarioFiltro">
-      <option value="">Todos</option>
-      <option value="FERNANDO FLORES DE LA CERDA">FERNANDO FLORES DE LA CERDA</option>
-      <option value="ALAN">ALAN</option>
-      <option value="CARLOS">CARLOS</option>
-      <option value="DAVID">DAVID</option>
-      <option value="GERARDO">GERARDO</option>
-      <!-- 🔹 Puedes agregar más usuarios según Firestore -->
+    <select id="usuarioFiltro" disabled>
+      <option value="">Seleccione una fecha primero</option>
     </select>
 
-    <button onclick="cargarVentas()">Filtrar</button>
+    <button id="btnFiltrar" disabled>Filtrar Ventas</button>
   </div>
 
   <!-- =====================================================
-       📋 BLOQUE 5: TABLA PRINCIPAL DE VENTAS
+       📋 BLOQUE 5: TABLA DE RESULTADOS DE VENTAS
        ===================================================== -->
   <table id="tablaVentas">
     <thead>
@@ -133,7 +127,7 @@
   </table>
 
   <!-- =====================================================
-       💰 BLOQUE 6: TOTAL GENERAL MOSTRADO ABAJO
+       💰 BLOQUE 6: TOTAL INFORMATIVO
        ===================================================== -->
   <div id="totalVentas"></div>
 
@@ -163,102 +157,138 @@
     const db = firebase.firestore();
 
     // =====================================================
-    // 🧠 SECCIÓN 2: REFERENCIAS DEL DOM (ELEMENTOS HTML)
+    // 🧠 SECCIÓN 2: REFERENCIAS DEL DOM
     // =====================================================
     const tablaBody = document.querySelector("#tablaVentas tbody");
     const fechaInput = document.getElementById("fechaFiltro");
-    const usuarioInput = document.getElementById("usuarioFiltro");
+    const usuarioSelect = document.getElementById("usuarioFiltro");
     const totalDiv = document.getElementById("totalVentas");
+    const btnFiltrar = document.getElementById("btnFiltrar");
 
     // =====================================================
-    // 📦 SECCIÓN 3: FUNCIÓN PRINCIPAL cargarVentas()
+    // 🧾 SECCIÓN 3: OBTENER USUARIOS POR FECHA SELECCIONADA
     // =====================================================
+    fechaInput.addEventListener("change", async () => {
+      const fechaSeleccionada = fechaInput.value;
+      usuarioSelect.innerHTML = "<option value=''>Cargando usuarios...</option>";
+      usuarioSelect.disabled = true;
+      btnFiltrar.disabled = true;
+
+      if (!fechaSeleccionada) return;
+
+      // Limpiar tabla y total
+      tablaBody.innerHTML = "";
+      totalDiv.textContent = "";
+
+      const snapshot = await db.collection("rutas_venta").get();
+      const usuariosUnicos = new Set();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.fecha && data.fecha.toDate) {
+          const fechaDoc = data.fecha.toDate();
+          const año = fechaDoc.getFullYear();
+          const mes = String(fechaDoc.getMonth() + 1).padStart(2, "0");
+          const dia = String(fechaDoc.getDate()).padStart(2, "0");
+          const fechaStr = `${año}-${mes}-${dia}`;
+
+          if (fechaStr === fechaSeleccionada) {
+            usuariosUnicos.add(data.usuarioNombre || data.usuario || "—");
+          }
+        }
+      });
+
+      // Mostrar lista de usuarios
+      usuarioSelect.innerHTML = "<option value=''>Seleccione un usuario</option>";
+      usuariosUnicos.forEach(usuario => {
+        const opt = document.createElement("option");
+        opt.value = usuario;
+        opt.textContent = usuario;
+        usuarioSelect.appendChild(opt);
+      });
+
+      usuarioSelect.disabled = usuariosUnicos.size === 0;
+      btnFiltrar.disabled = usuariosUnicos.size === 0;
+
+      if (usuariosUnicos.size === 0) {
+        usuarioSelect.innerHTML = "<option value=''>Sin ventas en esa fecha</option>";
+      }
+    });
+
+    // =====================================================
+    // 📦 SECCIÓN 4: CARGAR VENTAS POR USUARIO Y FECHA
+    // =====================================================
+    btnFiltrar.addEventListener("click", cargarVentas);
+
     async function cargarVentas() {
+      const fechaFiltro = fechaInput.value;
+      const usuarioFiltro = usuarioSelect.value;
+
+      if (!fechaFiltro || !usuarioFiltro) {
+        alert("Seleccione una fecha y un usuario");
+        return;
+      }
+
       tablaBody.innerHTML = "<tr><td colspan='5'>Cargando ventas...</td></tr>";
       totalDiv.textContent = "";
 
-      const fechaFiltro = fechaInput.value;
-      const usuarioFiltro = usuarioInput.value;
+      let totalGeneral = 0;
+      tablaBody.innerHTML = "";
 
-      let query = db.collection("rutas_venta");
+      const snapshot = await db.collection("rutas_venta")
+        .where("usuarioNombre", "==", usuarioFiltro)
+        .get();
 
-      // 🧩 Filtro por usuario (campo real: usuarioNombre)
-      if (usuarioFiltro) query = query.where("usuarioNombre", "==", usuarioFiltro);
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (!data.fecha || !data.fecha.toDate) return;
 
-      try {
-        const snapshot = await query.get();
-        let totalGeneral = 0;
-        tablaBody.innerHTML = "";
+        const fechaDoc = data.fecha.toDate();
+        const año = fechaDoc.getFullYear();
+        const mes = String(fechaDoc.getMonth() + 1).padStart(2, "0");
+        const dia = String(fechaDoc.getDate()).padStart(2, "0");
+        const fechaStr = `${año}-${mes}-${dia}`;
 
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          
-          // ✅ Fecha tipo Timestamp → convertir a YYYY-MM-DD
-          let fechaDoc = "";
-          if (data.fecha && data.fecha.toDate) {
-            const d = data.fecha.toDate();
-            const año = d.getFullYear();
-            const mes = String(d.getMonth() + 1).padStart(2, "0");
-            const dia = String(d.getDate()).padStart(2, "0");
-            fechaDoc = `${año}-${mes}-${dia}`;
-          }
+        if (fechaStr !== fechaFiltro) return;
 
-          // 📅 Filtrar si coincide con la fecha seleccionada
-          if (fechaFiltro && fechaDoc !== fechaFiltro) return;
+        const total = parseFloat(data.total || data.resumen_financiero?.total || 0);
+        totalGeneral += total;
 
-          const total = parseFloat(data.total || data.resumen_financiero?.total || 0);
-          totalGeneral += total;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${data.cliente || data.nombre || "—"}</td>
+          <td>${data.usuarioNombre || data.usuario || "—"}</td>
+          <td>$${total.toFixed(2)}</td>
+          <td>${fechaStr}</td>
+          <td><button class="btn-delete" onclick="eliminarVenta('${doc.id}')">Eliminar</button></td>
+        `;
+        tablaBody.appendChild(row);
+      });
 
-          // 🧱 Crear fila dinámica
-          const row = document.createElement("tr");
-          row.innerHTML = `
-            <td>${data.cliente || data.nombre || "—"}</td>
-            <td>${data.usuarioNombre || data.usuario || "—"}</td>
-            <td>$${total.toFixed(2)}</td>
-            <td>${fechaDoc || "—"}</td>
-            <td><button class="btn-delete" onclick="eliminarVenta('${doc.id}')">Eliminar</button></td>
-          `;
-          tablaBody.appendChild(row);
-        });
-
-        // 🧾 Si no hay registros visibles
-        if (tablaBody.innerHTML === "") {
-          tablaBody.innerHTML = "<tr><td colspan='5'>No hay ventas registradas</td></tr>";
-        }
-
-        // 💰 Mostrar total final
-        totalDiv.textContent = `💰 Total general: $${totalGeneral.toFixed(2)}`;
-      } catch (error) {
-        console.error(error);
-        tablaBody.innerHTML = "<tr><td colspan='5'>❌ Error al cargar ventas</td></tr>";
+      if (tablaBody.innerHTML === "") {
+        tablaBody.innerHTML = "<tr><td colspan='5'>No hay ventas para ese usuario</td></tr>";
       }
+
+      totalDiv.textContent = `💰 Subtotal del usuario ${usuarioFiltro}: $${totalGeneral.toFixed(2)}`;
     }
 
     // =====================================================
-    // 🗑️ SECCIÓN 4: FUNCIÓN eliminarVenta(id)
+    // 🗑️ SECCIÓN 5: FUNCIÓN ELIMINAR VENTA
     // =====================================================
     async function eliminarVenta(id) {
-      const conf1 = confirm("¿Seguro que deseas eliminar esta venta?");
-      if (!conf1) return;
-      const conf2 = confirm("Esta acción no se puede deshacer. Confirmar eliminación definitiva.");
-      if (!conf2) return;
-
-      try {
-        await db.collection("rutas_venta").doc(id).delete();
-        alert("✅ Venta eliminada correctamente");
-        cargarVentas();
-      } catch (e) {
-        console.error(e);
-        alert("❌ Error al eliminar la venta");
-      }
+      const conf = confirm("¿Seguro que deseas eliminar esta venta?");
+      if (!conf) return;
+      await db.collection("rutas_venta").doc(id).delete();
+      alert("✅ Venta eliminada correctamente");
+      cargarVentas();
     }
 
     // =====================================================
-    // ⚡ SECCIÓN 5: EVENTOS AUTOMÁTICOS
+    // ⚡ SECCIÓN 6: INICIALIZACIÓN AUTOMÁTICA
     // =====================================================
-    fechaInput.addEventListener("change", cargarVentas);
-    usuarioInput.addEventListener("change", cargarVentas);
-    window.onload = cargarVentas;
+    window.onload = () => {
+      tablaBody.innerHTML = "<tr><td colspan='5'>Seleccione una fecha para comenzar</td></tr>";
+    };
   </script>
 </body>
 </html>
