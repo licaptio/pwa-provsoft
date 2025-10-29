@@ -3,332 +3,203 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Resumen de Ventas – Ruta</title>
-
-  <p id="fechaDia" style="
-    text-align:center;
-    color:white;
-    font-weight:600;
-    margin-top:-6px;
-    margin-bottom:12px;
-  "></p>
-
+  <title>Resumen de Ventas – Ruta de Venta</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
-      background: linear-gradient(to right, #00416A, #E4E5E6);
-      margin: 0; padding: 20px;
-      color: #111;
+      font-family:'Poppins',sans-serif;
+      background:linear-gradient(to right,#00416A,#E4E5E6);
+      margin:0;padding:20px;color:#111;
     }
-    h2 { color: white; text-align: center; margin-bottom: 10px; }
-    .card {
-      background: rgba(255,255,255,0.9);
-      border-radius: 14px;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.2);
-      padding: 16px; max-width: 700px; margin: 0 auto;
+    h2{color:white;text-align:center;margin-bottom:8px;}
+    #fechaDia{color:#fff;text-align:center;margin:0 0 14px;font-weight:600;}
+    .card{
+      background:rgba(255,255,255,0.9);
+      border-radius:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.2);
+      padding:16px;max-width:720px;margin:0 auto;
     }
-    table {
-      width: 100%; border-collapse: collapse; margin-top: 12px;
+    table{width:100%;border-collapse:collapse;margin-top:10px;}
+    th,td{padding:8px;border-bottom:1px solid #ddd;font-size:14px;}
+    th{background:#00416A;color:#fff;}
+    tr:hover{background:#f1f5f9;}
+    .btnReimp{
+      background:#0c6cbd;color:#fff;border:none;
+      padding:6px 10px;border-radius:8px;font-weight:600;
+      cursor:pointer;transition:.15s;
     }
-    th, td {
-      padding: 8px; text-align: left; font-size: 14px;
-      border-bottom: 1px solid #ccc;
+    .btnReimp:hover{background:#0078d4;transform:scale(1.05);}
+    .volver{
+      display:block;text-align:center;margin:20px auto 0;
+      background:#0c6cbd;color:#fff;padding:10px 16px;
+      border-radius:10px;text-decoration:none;font-weight:600;max-width:720px;
     }
-    th { background: #00416A; color: #fff; }
-    tr:hover { background: #f1f5f9; }
-    .total {
-      font-weight: bold; text-align: right;
-      margin-top: 10px; font-size: 18px;
+    .dashboard{
+      max-width:720px;margin:0 auto 10px;
+      background:rgba(255,255,255,0.9);
+      border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.15);
+      display:flex;justify-content:space-around;align-items:center;
+      padding:12px;font-weight:600;font-size:16px;
     }
-    .volver {
-      display:block; text-align:center; margin-top:20px;
-      background:#0c6cbd; color:#fff; padding:10px 16px;
-      border-radius:10px; text-decoration:none; font-weight:600;
-    }
-    #loading {
-      text-align:center; padding:10px; font-weight:600;
-      color:#00416A;
-    }
-    .btnReimp {
-      background:#0c6cbd;
-      color:#fff;
-      border:none;
-      padding:6px 10px;
-      border-radius:8px;
-      font-weight:600;
-      cursor:pointer;
-      transition: all 0.15s ease;
-    }
-    .btnReimp:hover {
-      background:#0078d4;
-      transform: scale(1.05);
-    }
+    #loading{text-align:center;padding:10px;color:#00416A;font-weight:600;}
+    .total{font-weight:bold;text-align:right;margin-top:12px;font-size:18px;}
   </style>
 </head>
 <body>
+  <h2>📋 Resumen de Ventas</h2>
+  <p id="fechaDia"></p>
 
-<h2>📋 Resumen de Ventas</h2>
-<p id="filtroAviso" style="
-  text-align:center;
-  color:#e0f7ff;
-  font-weight:600;
-  margin-top:-4px;
-  margin-bottom:14px;
-  font-size:15px;
-">
-  🔄 Mostrando ventas pendientes de corte del día
-</p>
+  <div class="dashboard">
+    <div>🧾 Ventas del día: <span id="lblConteo">0</span></div>
+    <div>💰 Total acumulado: <span id="lblTotalDash">$0.00</span></div>
+  </div>
 
-<div id="dashboard" style="
-  max-width:700px; margin:0 auto 10px;
-  background:rgba(255,255,255,0.9);
-  border-radius:14px; box-shadow:0 6px 18px rgba(0,0,0,0.15);
-  display:flex; justify-content:space-around; align-items:center;
-  padding:12px; font-weight:600; font-size:16px;
-">
-  <div>🧾 Ventas del día: <span id="lblConteo">0</span></div>
-  <div>💰 Total acumulado: <span id="lblTotalDash">$0.00</span></div>
-</div>
+  <div class="card">
+    <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
+    <table id="tabla">
+      <thead>
+        <tr><th>Folio</th><th>Hora</th><th>Total</th><th>Reimpresión</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="loading">Cargando ventas...</div>
+    <div class="total">Total del Día: <span id="lblTotal">$0.00</span></div>
+  </div>
 
-<div class="card">
-  <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
-  
-  <table id="tabla">
-    <thead>
-      <tr>
-        <th>Folio</th>
-        <th>Hora</th>
-        <th>Total</th>
-        <th>Reimpresión</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <a class="volver" href="index.html">⬅️ Volver al POS</a>
 
-  <div id="loading">Cargando ventas...</div>
-  <div class="total">Total del Día: <span id="lblTotal">$0.00</span></div>
-</div>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-<a class="volver" href="index.html">⬅️ Volver al POS</a>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    const { jsPDF } = window.jspdf;
 
-<!-- ✅ jsPDF debe cargarse como script normal -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    // 🔧 Configuración Firebase (misma del POS)
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.appspot.com",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore, collection, query, where, getDocs, doc, getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    // Usuario actual
+    const user = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
+    const nombreUsuario = user?.nombre || "Desconocido";
+    document.getElementById("lblUsuario").textContent = nombreUsuario;
 
-// ✅ Usa jsPDF desde el objeto global
-const { jsPDF } = window.jspdf;
+    // Fecha actual
+    const hoy = new Date();
+    const fechaMX = hoy.toLocaleDateString("es-MX",{day:'2-digit',month:'2-digit',year:'numeric'});
+    document.getElementById("fechaDia").textContent = `🗓️ Ventas del día ${fechaMX}`;
 
-// 🔧 Configuración Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.appspot.com",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+    // === Cargar ventas del día ===
+    async function cargarVentas() {
+      const tabla = document.querySelector("#tabla tbody");
+      const totalEl = document.getElementById("lblTotal");
+      const totalDash = document.getElementById("lblTotalDash");
+      const conteoEl = document.getElementById("lblConteo");
+      const loading = document.getElementById("loading");
+      tabla.innerHTML = ""; totalEl.textContent = "$0.00"; totalDash.textContent = "$0.00"; conteoEl.textContent="0";
+      loading.style.display = "block"; loading.textContent = "Cargando ventas...";
 
-// 👤 Usuario actual
-const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
-const nombre = u?.nombre || "Desconocido";
-document.getElementById("lblUsuario").textContent = nombre;
+      try {
+        const ventasRef = collection(db, "rutas_venta");
+        const q = query(ventasRef, where("usuarioNombre", "==", nombreUsuario), where("cortado","==",false));
+        const snap = await getDocs(q);
 
-// 📆 Fecha actual
-const hoy = new Date();
-const offset = hoy.getTimezoneOffset();
-const hoyLocal = new Date(hoy.getTime() - offset * 60000);
-const fechaFormateada = hoyLocal.toLocaleDateString("es-MX", { day: '2-digit', month: '2-digit', year: 'numeric' });
-document.getElementById("fechaDia").textContent = `🗓️ Ventas del día: ${fechaFormateada}`;
+        let ventas = [];
+        snap.forEach(d=>{
+          const v=d.data();
+          if(v.fecha_txt && v.resumen_financiero?.total && v.fecha_txt.includes(fechaMX)){
+            ventas.push({id:d.id,...v});
+          }
+        });
 
-// 🚀 Cargar ventas del día
-cargarVentas();
+        // ordenar por hora descendente
+        ventas.sort((a,b)=>{
+          const hA=a.fecha_txt.split(",")[1]?.trim()||"";
+          const hB=b.fecha_txt.split(",")[1]?.trim()||"";
+          return hB.localeCompare(hA);
+        });
 
-async function cargarVentas() {
-  const tabla = document.querySelector("#tabla tbody");
-  const totalEl = document.getElementById("lblTotal");
-  const totalDash = document.getElementById("lblTotalDash");
-  const conteoEl = document.getElementById("lblConteo");
-  const loading = document.getElementById("loading");
+        let totalDia=0;
+        ventas.forEach(v=>{
+          const hora=v.fecha_txt.split(",")[1]?.trim()||"";
+          const tot=Number(v.resumen_financiero.total||0);
+          totalDia+=tot;
+          const tr=document.createElement("tr");
+          tr.innerHTML=`
+            <td>${v.folio}</td>
+            <td>${hora}</td>
+            <td style="text-align:right">$${tot.toFixed(2)}</td>
+            <td style="text-align:center"><button class="btnReimp">🖨️ Reimprimir</button></td>`;
+          tabla.appendChild(tr);
+          tr.querySelector(".btnReimp").addEventListener("click",()=>reimprimirTicket(v.id));
+        });
 
-  tabla.innerHTML = "";
-  totalEl.textContent = "$0.00";
-  totalDash.textContent = "$0.00";
-  conteoEl.textContent = "0";
-  loading.style.display = "block";
-  loading.textContent = "Cargando ventas...";
-
-  try {
-    const ventasRef = collection(db, "rutas_venta");
-    const q = query(
-      ventasRef,
-      where("usuarioNombre", "==", nombre),
-      where("cortado", "==", false)
-    );
-    const snap = await getDocs(q);
-
-    // Convertir a arreglo y filtrar por fecha del día
-    let ventas = [];
-    snap.forEach(docSnap => {
-      const v = docSnap.data();
-      if (v.fecha_txt && v.resumen_financiero?.total && v.fecha_txt.includes(fechaFormateada)) {
-        ventas.push({ id: docSnap.id, ...v });
+        totalEl.textContent="$"+totalDia.toFixed(2);
+        totalDash.textContent="$"+totalDia.toFixed(2);
+        conteoEl.textContent=ventas.length;
+        loading.textContent = ventas.length ? "" : "Sin ventas registradas.";
+      }catch(e){
+        console.error(e);
+        loading.textContent="⚠️ Error al cargar ventas.";
       }
-    });
-
-    // Ordenar por hora (extraída del texto de fecha)
-ventas.sort((a, b) => {
-  const horaA = a.fecha_txt.split(",")[1]?.trim() || "";
-  const horaB = b.fecha_txt.split(",")[1]?.trim() || "";
-  return horaB.localeCompare(horaA); // descendente
-});
-
-
-    let totalDia = 0;
-    ventas.forEach(v => {
-      const hora = v.fecha_txt.split(",")[1]?.trim() || "";
-      const total = Number(v.resumen_financiero.total || 0);
-      totalDia += total;
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${v.folio}</td>
-        <td>${hora}</td>
-        <td style="text-align:right">$${total.toFixed(2)}</td>
-        <td style="text-align:center">
-          <button class="btnReimp">🖨️ Reimprimir</button>
-        </td>
-      `;
-      tabla.appendChild(row);
-      row.querySelector(".btnReimp").addEventListener("click", () => reimprimirTicket(v.id));
-    });
-
-    loading.style.display = ventas.length ? "none" : "block";
-    loading.textContent = ventas.length ? "" : "Sin ventas registradas en esta fecha.";
-    totalEl.textContent = "$" + totalDia.toFixed(2);
-    totalDash.textContent = "$" + totalDia.toFixed(2);
-    conteoEl.textContent = ventas.length.toString();
-  } catch (e) {
-    loading.textContent = "⚠️ Error al cargar ventas: " + e.message;
-  }
-}
-
-// 🖨️ Reimpresión RawBT (Android) o PDF (PC)
-async function reimprimirTicket(id) {
-  try {
-    const docRef = doc(db, "rutas_venta", id);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      alert("No se encontró la venta.");
-      return;
     }
-    const venta = snap.data();
 
-    let totalIva = 0, totalIeps = 0;
-    (venta.detalle || []).forEach(det => {
-      const ivaPct = det.departamento_info?.iva || 0;
-      const iepsPct = det.departamento_info?.ieps || 0;
-      const importe = det.importe || (det.precio_unit * det.cantidad) || 0;
+    cargarVentas();
 
-      if (ivaPct > 0 || iepsPct > 0) {
-        const base = importe / (1 + ivaPct / 100 + iepsPct / 100);
-        totalIva += base * (ivaPct / 100);
-        totalIeps += base * (iepsPct / 100);
+    // === Reimpresión ===
+    async function reimprimirTicket(id){
+      try{
+        const docRef=doc(db,"rutas_venta",id);
+        const snap=await getDoc(docRef);
+        if(!snap.exists()){alert("Venta no encontrada.");return;}
+        const v=snap.data();
+        const total=v.resumen_financiero.total||0;
+        const sub=v.resumen_financiero.subtotal||0;
+        const desc=v.descuento_monto||0;
+        const imp=v.resumen_financiero.impuestos||0;
+        const folio=v.folio;
+        const cliente=v.cliente||"PÚBLICO EN GENERAL";
+        const cajero=v.usuarioNombre||"—";
+        const fecha=v.fecha_txt;
+
+        let ticket="";
+        ticket+="PROVEEDORA MATRIZ\n";
+        ticket+="MADERO 690 SUR, CENTRO\n";
+        ticket+="LINARES, N.L. 67700\n";
+        ticket+="RFC: PDD031204KL5\n";
+        ticket+="TEL: (821) 212-1805\n";
+        ticket+="--------------------------------\n";
+        ticket+=`# Venta: ${folio}\nFecha: ${fecha}\nCliente: ${cliente}\n--------------------------------\n`;
+        (v.detalle||[]).forEach(it=>{
+          ticket+=`${(it.nombre||"").substring(0,18).padEnd(18)}${it.cantidad.toFixed(2).padStart(5)}${(it.importe||0).toFixed(2).padStart(9)}\n`;
+        });
+        ticket+="--------------------------------\n";
+        ticket+=`Subtotal: ${sub.toFixed(2)}\nDescuento: ${desc.toFixed(2)}\nImpuestos: ${imp.toFixed(2)}\nTotal: ${total.toFixed(2)}\n--------------------------------\nCajero: ${cajero}\n¡Gracias por su compra!\n\n`;
+
+        if(/Android/i.test(navigator.userAgent)){
+          const encoded=encodeURIComponent(ticket);
+          window.location.href=`rawbt:text,${encoded}`;
+        }else{
+          const pdf=new jsPDF({unit:"mm",format:[80,297]});
+          pdf.setFont("courier","normal");
+          let y=10;
+          ticket.split("\n").forEach(line=>{pdf.text(line,4,y);y+=5;});
+          pdf.output("dataurlnewwindow");
+        }
+      }catch(e){
+        console.error(e);
+        alert("Error al reimprimir.");
       }
-    });
-
-    const impuestosIncluidos = (totalIva + totalIeps).toFixed(2);
-    const total = venta?.resumen_financiero?.total || 0;
-    const recibido = venta.recibido || 0;
-    const cambio = venta.cambio || 0;
-
-    let texto = `
-PROVEEDORA MATRIZ
-MADERO 690 SUR, CENTRO
-LINARES, NUEVO LEÓN, 67700
-RFC: PDD-031204-KL5
-TEL: (821) 2121805
-RÉGIMEN GENERAL DE LEY
-PERSONAS MORALES
---------------------------------
-# Venta : ${venta.folio}
-Fecha : ${venta.fecha_txt}
---------------------------------
-`;
-
-    (venta.detalle || []).forEach(it => {
-      texto += `${(it.nombre || "").substring(0, 35)}\n`;
-      texto += `Cant:${it.cantidad.toFixed(3).padStart(6," ")}  ${it.precio_unit.toFixed(2).padStart(8," ")}  ${it.importe.toFixed(2).padStart(8," ")}\n`;
-      texto += `--------------------------------\n`;
-    });
-
-    texto += `
-Total : ${total.toFixed(2)}
-Su Pago : ${recibido.toFixed(2)}
-Cambio : ${cambio.toFixed(2)}
---------------------------------
-Artículos vendidos : ${venta.detalle.length}
-Incluye ${impuestosIncluidos} de Impuestos
-Cajero : ${venta.atendio || "—"}
---------------------------------
-¡Gracias por su compra!
-`;
-
-    // === Detectar dispositivo ===
-    if (/Android/i.test(navigator.userAgent)) {
-      const encoded = encodeURIComponent(texto + "\n\n\n");
-      const rawbtIntent = `intent://print?data=${encoded}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
-      window.location.href = rawbtIntent;
-    } else {
-      const pdf = new jsPDF();
-      pdf.setFont("courier", "bold");
-      pdf.setFontSize(12);
-      pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
-      pdf.setFont("courier", "normal");
-      pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
-      pdf.text("LINARES, NUEVO LEÓN, 67700", 105, 27, { align: "center" });
-      pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
-      pdf.text("TEL: (821) 2121805", 105, 39, { align: "center" });
-      pdf.text("RÉGIMEN GENERAL DE LEY", 105, 45, { align: "center" });
-      pdf.text("PERSONAS MORALES", 105, 51, { align: "center" });
-      pdf.line(10, 54, 200, 54);
-      pdf.text(`# Venta : ${venta.folio}`, 10, 60);
-      pdf.text(`Fecha : ${venta.fecha_txt}`, 130, 60);
-      pdf.line(10, 63, 200, 63);
-
-      let y = 70;
-      (venta.detalle || []).forEach(it => {
-        pdf.text((it.nombre || "").substring(0, 40), 10, y); y += 5;
-        const linea = `Cant: ${it.cantidad.toFixed(3)}   ${it.precio_unit.toFixed(2)}   ${it.importe.toFixed(2)}`;
-        pdf.text(linea, 10, y); y += 4;
-        pdf.text("--------------------------------", 10, y); y += 6;
-        if (y > 270) { pdf.addPage(); y = 20; }
-      });
-
-      pdf.line(10, y, 200, y); y += 8;
-      pdf.text(`Total : ${total.toFixed(2)}`, 10, y); y += 5;
-      pdf.text(`Su Pago : ${recibido.toFixed(2)}`, 10, y); y += 5;
-      pdf.text(`Cambio : ${cambio.toFixed(2)}`, 10, y); y += 5;
-      pdf.line(10, y, 200, y); y += 8;
-      pdf.text(`Artículos vendidos : ${venta.detalle.length}`, 10, y); y += 5;
-      pdf.text(`Incluye ${impuestosIncluidos} de Impuestos`, 10, y); y += 5;
-      pdf.text(`Cajero : ${venta.atendio || "—"}`, 10, y); y += 10;
-      pdf.setFont("courier", "bold");
-      pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
-      pdf.output("dataurlnewwindow");
     }
-  } catch (err) {
-    console.error("Error reimprimiendo ticket:", err);
-    alert("Error al generar reimpresión.");
-  }
-}
-</script>
+  </script>
 </body>
 </html>
