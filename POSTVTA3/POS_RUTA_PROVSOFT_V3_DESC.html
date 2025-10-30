@@ -650,18 +650,113 @@ async function guardarVentaEnFirestore(v){
 }
 
 // ==== Telegram ====
-async function enviarTelegram(v){
-  try{
-    const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT="6617988297";
-    const total=v.resumen_financiero.total.toFixed(2);
-    const msg=`🧾 *Venta registrada*\n💰 *Total:* $${total}\n💸 *Descuento:* ${v.descuento_porcentaje}% – $${v.descuento_monto.toFixed(2)}\n📄 *Folio:* ${v.folio}`;
-    await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:CHAT,text:msg,parse_mode:"Markdown"})
+// ==== Telegram con PDF y ubicación (igual que el primer POS) ====
+async function enviarTelegram(v) {
+  try {
+    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+    const CHAT_ID = "6617988297";
+
+    // 📍 Intentar obtener ubicación robusta
+    const ubicacion = await obtenerUbicacionRobusta();
+    v.ubicacion = ubicacion;
+
+    // === Generar PDF Ticket ===
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    pdf.setFont("courier", "bold");
+    pdf.setFontSize(12);
+
+    pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
+    pdf.setFont("courier", "normal");
+    pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
+    pdf.text("LINARES, NUEVO LEÓN, 67700", 105, 27, { align: "center" });
+    pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
+    pdf.text("TEL: (821) 2121805", 105, 39, { align: "center" });
+    pdf.text("RÉGIMEN GENERAL DE LEY", 105, 45, { align: "center" });
+    pdf.text("PERSONAS MORALES", 105, 51, { align: "center" });
+
+    pdf.line(10, 54, 200, 54);
+    pdf.setFont("courier", "bold");
+    pdf.text(`# Venta : ${v.folio}`, 10, 60);
+    pdf.text(`Fecha : ${v.fecha_txt}`, 130, 60);
+    pdf.line(10, 63, 200, 63);
+    let y = 70;
+
+    // === Detalle de productos ===
+    pdf.setFont("courier", "normal");
+    (v.detalle || []).forEach(it => {
+      const nombre = (it.nombre || "").substring(0, 40);
+      pdf.text(nombre, 10, y); y += 5;
+      const linea = `Cant: ${it.cantidad.toFixed(3)}   ${it.precioUnit.toFixed(2)}   ${(it.cantidad*it.precioUnit).toFixed(2)}`;
+      pdf.text(linea, 10, y); y += 4;
+      pdf.text("--------------------------------", 10, y); y += 6;
+      if (y > 270) { pdf.addPage(); y = 20; }
     });
-  }catch(e){console.error("Telegram:",e);}
+
+    // === Totales ===
+    pdf.line(10, y, 200, y); y += 8;
+    const total = v.resumen_financiero?.total || 0;
+    const desc = v.descuento_monto || 0;
+    const impuestos = v.resumen_financiero?.impuestos || 0;
+
+    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});
+    pdf.setFont("courier", "bold");
+    pdf.text(`Total : ${formatoNum(total)}`, 10, y); y += 5;
+    pdf.text(`Descuento : ${formatoNum(desc)}`, 10, y); y += 5;
+    pdf.text(`Impuestos : ${formatoNum(impuestos)}`, 10, y); y += 8;
+    pdf.setFont("courier", "bold");
+    pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
+
+    if (ubicacion.lat) {
+      y += 10;
+      pdf.setTextColor(0, 0, 255);
+      pdf.textWithLink("📍 Ver ubicación en mapa", 10, y, {
+        url: `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lon}`,
+      });
+      pdf.setTextColor(0, 0, 0);
+    }
+
+    const pdfBlob = pdf.output("blob");
+
+    // === Enviar mensaje + PDF ===
+    const mapUrl = ubicacion.lat
+      ? `https://www.google.com/maps?q=${ubicacion.lat},${ubicacion.lon}`
+      : "Sin ubicación";
+
+    const mensaje = `
+🧾 *Nueva Venta con Descuento*
+👤 *Vendedor:* ${USUARIO_LOGUEADO?.nombre || "Desconocido"}
+💰 *Total:* $${formatoNum(total)}
+💸 *Descuento:* ${v.descuento_porcentaje}% ($${formatoNum(desc)})
+📍 *Ubicación:* ${ubicacion.direccion || "Sin dirección"}
+🌎 [Ver mapa](${mapUrl})
+📄 *Folio:* ${v.folio}
+🕓 *Fecha:* ${v.fecha_txt}
+`.trim();
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: mensaje,
+        parse_mode: "Markdown"
+      }),
+    });
+
+    const formData = new FormData();
+    formData.append("chat_id", CHAT_ID);
+    formData.append("document", pdfBlob, `Ticket_${v.folio}.pdf`);
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+      method: "POST",
+      body: formData,
+    });
+
+    console.log("✅ Ticket PDF y mensaje enviados a Telegram:", v.folio);
+  } catch (err) {
+    console.error("❌ Error enviando a Telegram:", err);
+  }
 }
 
 function rellenarTicket(v){
