@@ -275,6 +275,31 @@ let clienteSeleccionado = null;
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
 
+// === 🧾 Lista de cigarros con precio de mayoreo ===
+const productosMayoreo = [
+  "75035259","75068738","75068745","75021597","75001322","75001315",
+  "75025271","75068776","75016777","75068783","75071295","8346917",
+  "75064648","75052836","7503040150115","7502252634314","7503040150115",
+  "75046521","75031053","75018627","75027766","7502252631313","7503040150023"
+];
+
+// === 🧮 Determina el precio correcto según cantidad ===
+function obtenerPrecioSegunCantidad(prod, cantidad) {
+  // Solo aplica si el producto está en la lista de mayoreo
+  if (!productosMayoreo.includes(String(prod.codigo))) {
+    return Number(prod.precioPublico || 0);
+  }
+
+  // Si el producto está en la lista y la cantidad es 5 o más → precio de mayoreo
+  if (cantidad >= 5 && prod.mayoreo) {
+    console.log("💸 Mayoreo aplicado:", prod.nombre);
+    return Number(prod.mayoreo);
+  }
+
+  // En cualquier otro caso → precio público
+  return Number(prod.precioPublico || 0);
+}
+  
 // ==== Login ====
 async function loginUsuario(){
   const u=$("#loginUsuario").value.trim(), p=$("#loginPassword").value.trim();
@@ -370,12 +395,28 @@ function buscarLocal(qraw) {
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
 // ==== Carrito ====
-function addProduct(prod,cant=1){
-  if(!prod)return;
-  const ex=carrito.find(x=>x.id===prod.id);
-  const precio=prod.precioPublico;
-  if(ex){ex.cantidad+=cant;ex.importe=ex.cantidad*precio;}
-  else{carrito.push({...prod,cantidad:cant,precioUnit:precio,importe:cant*precio});}
+function addProduct(prod, cant = 1) {
+  if (!prod) return;
+
+  const existente = carrito.find(x => x.id === prod.id);
+  const cantidadNueva = existente ? existente.cantidad + cant : cant;
+
+  // 🧮 Determinar precio según cantidad (solo para cigarros de la lista)
+  const precioUnit = obtenerPrecioSegunCantidad(prod, cantidadNueva);
+
+  if (existente) {
+    existente.cantidad = cantidadNueva;
+    existente.precioUnit = precioUnit;
+    existente.importe = existente.cantidad * precioUnit;
+  } else {
+    carrito.push({
+      ...prod,
+      cantidad: cant,
+      precioUnit,
+      importe: cant * precioUnit
+    });
+  }
+
   render();
 }
 function delItem(id){carrito=carrito.filter(x=>x.id!==id);render();}
