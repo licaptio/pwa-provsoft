@@ -334,6 +334,7 @@ async function cargarCatalogo(){
       nombre:x.concepto||"SIN NOMBRE",
       codigo:String(x.codigoBarra||""),
       precioPublico:Number(x.precioPublico||0),
+      mayoreo:Number(x.mayoreo || 0),
       costoUnit:Number(x.costoSinImpuesto||x.costo||0),
       ivaTasa:Number(x.ivaTasa||0),
       iepsTasa:Number(x.iepsTasa||0),
