@@ -930,5 +930,31 @@ window.addEventListener("load", () => {
   });
 });
 </script>
+  <script>
+let bloqueoSalida = true;
+
+// Bloquea F5, Ctrl+R, y clics accidentales de recarga
+window.addEventListener("keydown", e => {
+  if ((e.key === "F5") || 
+      (e.ctrlKey && e.key.toLowerCase() === "r")) {
+    e.preventDefault();
+    alert("Usa el botón 🚪 Salir para cerrar sesión correctamente.");
+  }
+});
+
+// Previene salir o recargar con confirmación
+window.addEventListener("beforeunload", e => {
+  if (bloqueoSalida) {
+    e.preventDefault();
+    e.returnValue = "¿Deseas salir del sistema?";
+    return "¿Deseas salir del sistema?";
+  }
+});
+
+// Cuando el usuario cierre sesión se permite salir
+document.getElementById("btnLogout").addEventListener("click", () => {
+  bloqueoSalida = false;
+});
+</script>
 </body>
 </html>
