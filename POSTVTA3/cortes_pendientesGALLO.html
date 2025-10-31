@@ -308,15 +308,17 @@ const resumen = {
 };
 
 
-  await addDoc(collection(db, "cortes_globales"), {
-    rutaId,
-    fecha: serverTimestamp(),
-    fecha_corte: fechaSeleccionada,
-    creado_en: new Date().toISOString(),
-    realizado_por: resumen.nombreCorte,
-    total_registros: resumen.totalTickets,
-    resumen
-  });
+await addDoc(collection(db, "cortes_globales"), {
+  rutaId,
+  fecha: serverTimestamp(),
+  fecha_corte: fechaSeleccionada,
+  creado_en: new Date().toISOString(),
+  realizado_por: resumen.nombreCorte,
+  total_registros: resumen.totalTickets,
+  descuentos_total: resumen.descuentoTotal || 0,
+  resumen
+});
+
 
   for (const v of ventasDia) {
     await updateDoc(doc(db, "rutas_venta", v.id), { cortado: true });
@@ -400,8 +402,10 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
   pdf.text(`Fecha: ${fecha}`, 15, 32);
   pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad (neto): $${r.utilidadTotal.toFixed(2)}`, 15, 39);
+  pdf.text(`Descuento aplicado total: $${(r.descuentoTotal || 0).toFixed(2)}`, 15, 45);
 
-  let y = 50;
+
+  let y = 52;
   pdf.setFontSize(10);
   pdf.text("Departamento", 10, y);
   pdf.text("Venta", 60, y);
