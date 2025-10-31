@@ -141,15 +141,16 @@
        📋 BLOQUE 5: TABLA DE RESULTADOS DE VENTAS
        ===================================================== -->
   <table id="tablaVentas">
-    <thead>
-      <tr>
-        <th>Cliente</th>
-        <th>Usuario</th>
-        <th>Total</th>
-        <th>Fecha</th>
-        <th>Acción</th>
-      </tr>
-    </thead>
+<thead>
+  <tr>
+    <th>Cliente</th>
+    <th>Usuario</th>
+    <th>Total</th>
+    <th>Fecha</th>
+    <th>Hora</th>
+    <th>Acción</th>
+  </tr>
+</thead>
     <tbody></tbody>
   </table>
 
@@ -325,16 +326,20 @@
         const total = parseFloat(data.total || data.resumen_financiero?.total || 0);
         totalGeneral += total;
 
-        const row = document.createElement("tr");
-        // Nota: onclick ahora abre el modal que pide contraseña
-        row.innerHTML = `
-          <td>${data.cliente || data.nombre || "—"}</td>
-          <td>${data.usuarioNombre || data.usuario || "—"}</td>
-          <td>$${total.toFixed(2)}</td>
-          <td>${fechaStr}</td>
-          <td><button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button></td>
-        `;
-        tablaBody.appendChild(row);
+const horaStr = fechaDoc.toLocaleTimeString("es-MX", {
+  hour: "2-digit", minute: "2-digit", second: "2-digit"
+});
+
+const row = document.createElement("tr");
+row.innerHTML = `
+  <td>${data.cliente || data.nombre || "—"}</td>
+  <td>${data.usuarioNombre || data.usuario || "—"}</td>
+  <td>$${total.toFixed(2)}</td>
+  <td>${fechaStr}</td>
+  <td>${horaStr}</td>
+  <td><button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button></td>
+`;
+tablaBody.appendChild(row);
       });
 
       if (tablaBody.innerHTML === "") {
