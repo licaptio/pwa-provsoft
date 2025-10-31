@@ -242,6 +242,7 @@
 
     // Variable para almacenar temporalmente el id a eliminar
     let pendingDeleteId = null;
+    let pendingAction = null;
 
     // =====================================================
     // 🧾 SECCIÓN 3: OBTENER USUARIOS POR FECHA SELECCIONADA
@@ -355,9 +356,6 @@ row.innerHTML = `
   <button class="btn-undo" onclick="solicitarPwAccion('${doc.id}', ${data.cortado ? `'descortar'` : `'cortar'`})">
     ${data.cortado ? 'Descortar' : 'Cortar'}
   </button>
-</td>
-
-  <button class="btn-undo" onclick="descortarVenta('${doc.id}')">Descortar</button>
 </td>
 
 `;
