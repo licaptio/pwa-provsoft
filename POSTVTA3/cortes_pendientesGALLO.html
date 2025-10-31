@@ -237,8 +237,8 @@ for (const v of ventasDia) {
 
   for (const det of (v.detalle || [])) {
     const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
-    const ivaPct = det.ivaTasa || det.departamento_info?.iva || 0;
-    const iepsPct = det.iepsTasa || det.departamento_info?.ieps || 0;
+const ivaPct = (det.ivaTasa || det.departamento_info?.iva || 0) / 100;
+const iepsPct = (det.iepsTasa || det.departamento_info?.ieps || 0) / 100;
 
     const importe = det.importe || det.precioUnit * (det.cantidad || 1) || 0;
     let ventaSinImpuestos = importe;
