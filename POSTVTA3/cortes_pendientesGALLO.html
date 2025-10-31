@@ -430,7 +430,13 @@ r.margenGlobal = ventaTotalNeta > 0 ? ((utilidadTotalReal / ventaTotalNeta) * 10
   pdf.text(`PROVSOFT – CORTE ${rutaId}`, 15, 15);
   pdf.setFontSize(12);
   pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
-  pdf.text(`Fecha: ${fecha}`, 15, 32);
+  // 🕓 Fecha legible como título
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(14);
+pdf.text(`Corte del ${r.porNota[0]?.fecha_txt || fecha}`, 15, 20);
+pdf.setFontSize(12);
+pdf.setFont("helvetica", "normal");
+
 pdf.text(`Total ventas (neto): $${r.totalDia.toFixed(2)}`, 15, 39);
 pdf.text(`Costo total: $${r.totalCostoDia.toFixed(2)}   Utilidad real: $${r.utilidadTotal.toFixed(2)}`, 15, 45);
 pdf.text(`Margen global: ${r.margenGlobal}`, 15, 51);
@@ -530,25 +536,28 @@ pdf.text(`Margen global: ${r.margenGlobal}`, 15, 51);
 tickets.forEach((t) => {
   if (y > 270) { pdf.addPage(); y = 20; }
 
-  // Folio corto y limpio
-  const folio = (t.folio || "").replace("TEMP-", "").substring(0, 10);
-  const hora = (t.hora || "").substring(0, 5);
+  // 🧾 Folio limpio sin prefijo TEMP-
+  const folio = (t.folio || "—").replace(/^TEMP-/, "");
+
+  // 🕒 Solo la hora del campo fecha_txt
+  const hora = t.fecha_txt
+    ? t.fecha_txt.split(",")[1]?.trim() || ""
+    : (t.hora || "").trim();
+
   const venta = t.venta || (t.total / 1.16) || 0;
   const impuestos = t.total - venta;
   const costo = t.costo || 0;
   const utilidad = t.utilidad || venta - costo;
   const pct = venta > 0 ? ((utilidad / venta) * 100).toFixed(1) + "%" : "—";
 
-  // Columnas ordenadas y más aire entre textos
-  pdf.text(folio, 12, y);             // Folio recortado
-  pdf.text(hora, 38, y);              // Hora corta
+  pdf.text(folio, 15, y);
+  pdf.text(hora, 50, y);
   pdf.text(`$${venta.toFixed(2)}`, 70, y);
   pdf.text(`$${impuestos.toFixed(2)}`, 95, y);
   pdf.text(`$${(venta + impuestos).toFixed(2)}`, 115, y);
   pdf.text(`$${costo.toFixed(2)}`, 140, y);
   pdf.text(`$${utilidad.toFixed(2)}`, 165, y);
   pdf.text(pct, 190, y);
-
   y += 6;
 });
 
