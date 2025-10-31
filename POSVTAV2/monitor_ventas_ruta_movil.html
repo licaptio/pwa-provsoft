@@ -350,7 +350,13 @@ row.innerHTML = `
   <td>${fechaStr}</td>
   <td>${horaStr}</td>
   <td>
+  <td>
   <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
+  <button class="btn-undo" onclick="solicitarPwAccion('${doc.id}', ${data.cortado ? `'descortar'` : `'cortar'`})">
+    ${data.cortado ? 'Descortar' : 'Cortar'}
+  </button>
+</td>
+
   <button class="btn-undo" onclick="descortarVenta('${doc.id}')">Descortar</button>
 </td>
 
@@ -378,6 +384,15 @@ tablaBody.appendChild(row);
       pwOverlay.setAttribute('aria-hidden','false');
       pwInput.focus();
     }
+    function solicitarPwAccion(id, accion) {
+  pendingDeleteId = id;
+  pendingAction = accion; // "cortar" o "descortar"
+  pwInput.value = "";
+  pwError.classList.add('hidden');
+  pwOverlay.style.display = 'flex';
+  pwOverlay.setAttribute('aria-hidden','false');
+  pwInput.focus();
+}
 
     // Ocultar modal
     function esconderModal() {
@@ -392,23 +407,31 @@ tablaBody.appendChild(row);
     pwCancel.addEventListener('click', esconderModal);
 
     // Evento submit del modal (intentar eliminar)
-    pwSubmit.addEventListener('click', async () => {
-      const pw = pwInput.value || "";
-      if (pw === ADMIN_PASSWORD) {
-        // contraseña correcta -> borrar
-        pwError.classList.add('hidden');
-        const id = pendingDeleteId;
-        esconderModal();
-        if (id) {
-          await eliminarVentaConfirmada(id);
-        }
-      } else {
-        // contraseña incorrecta
-        pwError.classList.remove('hidden');
-        pwError.textContent = "Contraseña incorrecta";
-        pwInput.focus();
-      }
-    });
+pwSubmit.addEventListener('click', async () => {
+  const pw = pwInput.value || "";
+  if (pw !== ADMIN_PASSWORD) {
+    pwError.classList.remove('hidden');
+    pwError.textContent = "Contraseña incorrecta";
+    pwInput.focus();
+    return;
+  }
+
+  pwError.classList.add('hidden');
+  esconderModal();
+
+  if (pendingDeleteId) {
+    if (pendingAction === 'descortar') {
+      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: false });
+      alert("✅ Venta marcada como NO cortada.");
+    } else if (pendingAction === 'cortar') {
+      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: true });
+      alert("📦 Venta marcada como CORTADA.");
+    } else {
+      await eliminarVentaConfirmada(pendingDeleteId);
+    }
+    cargarVentas(); // refrescar
+  }
+});
 
     // Permitir Enter para enviar
     pwInput.addEventListener('keydown', (e) => {
