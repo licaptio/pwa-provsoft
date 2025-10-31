@@ -516,9 +516,9 @@ pdf.text(`Margen global: ${r.margenGlobal}`, 15, 51);
   pdf.setFillColor(230, 230, 230);
   pdf.rect(8, 25, 194, 8, "F");
   pdf.setFont("helvetica", "bold");
-  pdf.text("Folio", 10, 30);
-  pdf.text("Fecha", 35, 30);
-  pdf.text("Venta", 70, 30);
+pdf.text("Folio", 10, 30);
+pdf.text("Hora", 35, 30);
+pdf.text("Venta", 70, 30);
   pdf.text("Imp.", 95, 30);
   pdf.text("Total", 115, 30);
   pdf.text("Costo", 140, 30);
@@ -540,9 +540,20 @@ tickets.forEach((t) => {
   const folio = (t.folio || "—").replace(/^TEMP-/, "");
 
   // 🕒 Solo la hora del campo fecha_txt
-  const hora = t.fecha_txt
-    ? t.fecha_txt.split(",")[1]?.trim() || ""
-    : (t.hora || "").trim();
+  // 🕒 Extraer solo hora legible (sin segundos ni zona)
+let hora = "";
+if (t.fecha_txt) {
+  const partes = t.fecha_txt.split(",");
+  if (partes.length > 1) {
+    hora = partes[1]
+      .trim()
+      .replace(/(\d{1,2}:\d{2})(:\d{2})?/, "$1") // elimina segundos
+      .replace(/\s*UTC.*/i, "") // elimina zona horaria
+      .replace(/\s+/g, " "); // limpia espacios
+  }
+} else if (t.hora) {
+  hora = t.hora.replace(/(\d{1,2}:\d{2})(:\d{2})?/, "$1");
+}
 
   const venta = t.venta || (t.total / 1.16) || 0;
   const impuestos = t.total - venta;
