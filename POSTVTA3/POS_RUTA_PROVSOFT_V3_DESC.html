@@ -618,35 +618,63 @@ montoRecibido.addEventListener("input", () => {
 });
 
 // ==== Confirmar cobro ====
-$("#btnConfirmarCobro").onclick=async()=>{
-  const desc=Number(descuentoInput.value)||0;
-  const tot=calcularTotales(desc);
-  const folio="TEMP-"+Date.now();
-  const venta={
+$("#btnConfirmarCobro").onclick = async () => {
+  const desc = Number(descuentoInput.value) || 0;
+  const tot = calcularTotales(desc);
+  const folio = "TEMP-" + Date.now();
+
+  const detalle = carrito.map(it => {
+    const dep = departamentos[it.departamento_id] || { iva: 0, ieps: 0 };
+    return {
+      id: it.id,
+      codigo: String(it.codigo || ""),
+      nombre: it.nombre,
+      cantidad: Number(it.cantidad),
+      precioPublico: Number(it.precioPublico || 0),
+      mayoreo: Number(it.mayoreo || 0),
+      precioUnit: Number(it.precioUnit || 0),
+      importe: Number(it.importe || 0),
+      costoUnit: Number(it.costoUnit || 0),
+      departamento_id: String(it.departamento_id || "0"),
+      ivaTasa: Number(dep.iva || 0) / 100,
+      iepsTasa: Number(dep.ieps || 0) / 100,
+      equivalentes: Array.isArray(it.equivalentes) ? it.equivalentes : []
+    };
+  });
+
+  const venta = {
     folio,
     rutaId,
-    cliente:$("#cliente").value||"Mostrador",
-    detalle:carrito,
-    resumen_financiero:tot,
-    descuento_porcentaje:desc,
-    descuento_monto:tot.descuento,
-    fecha_txt:new Date().toLocaleString()
+    cliente: $("#cliente").value || "PUBLICO EN GENERAL",
+    cortado: false, // 🔹 Venta abierta (pendiente de corte)
+    descuento_porcentaje: desc,
+    descuento_monto: tot.descuento,
+    detalle,
+    resumen_financiero: tot,
+    fecha: serverTimestamp(),
+    fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+    usuarioId: USUARIO_LOGUEADO?.id || "",
+    usuarioNombre: USUARIO_LOGUEADO?.nombre || ""
   };
+
   await guardarVentaEnFirestore(venta);
   enviarTelegram(venta);
   rellenarTicket(venta);
   imprimirTicketEstilado();
-  carrito=[];render();cerrarCobro();
+  carrito = [];
+  render();
+  cerrarCobro();
 };
 
 // ==== Guardar venta ====
-async function guardarVentaEnFirestore(v){
-  try{
-    v.fecha=serverTimestamp();v.cortado=false;v.usuarioId=USUARIO_LOGUEADO?.id||"";v.usuarioNombre=USUARIO_LOGUEADO?.nombre||"";
-    const ref=collection(db,"rutas_venta");
-    await addDoc(ref,v);
-    console.log("Venta guardada",v.folio);
-  }catch(e){console.error("Error guardando:",e);}
+async function guardarVentaEnFirestore(v) {
+  try {
+    const ref = collection(db, "rutas_venta");
+    await addDoc(ref, v);
+    console.log("✅ Venta guardada:", v.folio);
+  } catch (e) {
+    console.error("❌ Error guardando:", e);
+  }
 }
 
 // ==== Telegram ====
