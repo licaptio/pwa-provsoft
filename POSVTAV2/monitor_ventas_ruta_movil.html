@@ -422,22 +422,31 @@ pwSubmit.addEventListener('click', async () => {
   pwError.classList.add('hidden');
   esconderModal();
 
-if (pendingDeleteId) {
-  if (pendingAction === 'descortar') {
-    await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: false });
-    alert("✅ Venta marcada como NO cortada.");
-  } else if (pendingAction === 'cortar') {
-    await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: true });
-    alert("📦 Venta marcada como CORTADA.");
-  } else {
-    await eliminarVentaConfirmada(pendingDeleteId);
+  if (!pendingDeleteId) return;
+
+  try {
+    if (pendingAction === 'cortar') {
+      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: true });
+      alert("📦 Venta marcada como CORTADA.");
+    } else if (pendingAction === 'descortar') {
+      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: false });
+      alert("✅ Venta marcada como NO cortada.");
+    } else {
+      await db.collection("rutas_venta").doc(pendingDeleteId).delete();
+      alert("✅ Venta eliminada correctamente.");
+    }
+
+    // 🔁 limpiar variables y recargar
+    pendingDeleteId = null;
+    pendingAction = null;
+    await new Promise(r => setTimeout(r, 300));
+    cargarVentas();
+  } catch (err) {
+    console.error("Error en la acción:", err);
+    alert("❌ No se pudo completar la acción.");
   }
-
-  await new Promise(r => setTimeout(r, 500)); // ⏳ Esperar medio segundo
-  cargarVentas(); // refrescar
-}
-
 });
+
 
     // Permitir Enter para enviar
     pwInput.addEventListener('keydown', (e) => {
