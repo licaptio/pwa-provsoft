@@ -406,6 +406,22 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   const { jsPDF } = window.jspdf || {};
   if (!jsPDF) { console.error("jsPDF no cargado"); return; }
   const pdf = new jsPDF({ format: "letter", unit: "mm" });
+// 🧮 Recalcular totales para asegurar que PDF muestre utilidad real
+let ventaTotalNeta = 0;
+let costoTotalNeto = 0;
+let utilidadTotalReal = 0;
+
+for (const dep in r.porDepto) {
+  const d = r.porDepto[dep];
+  ventaTotalNeta += d.venta || 0;
+  costoTotalNeto += d.costo || 0;
+  utilidadTotalReal += d.utilidad || 0;
+}
+
+r.totalDia = ventaTotalNeta;
+r.totalCostoDia = costoTotalNeto;
+r.utilidadTotal = utilidadTotalReal;
+r.margenGlobal = ventaTotalNeta > 0 ? ((utilidadTotalReal / ventaTotalNeta) * 100).toFixed(2) + "%" : "0%";
 
   // =============================
   // 📄 PAGINA 1: RESUMEN GENERAL
@@ -415,8 +431,9 @@ async function generarPDFyEnviar(r, rutaId, fecha) {
   pdf.setFontSize(12);
   pdf.text(`Usuario: ${r.nombreCorte}`, 15, 25);
   pdf.text(`Fecha: ${fecha}`, 15, 32);
-  pdf.text(`Total: $${r.totalDia.toFixed(2)}   Utilidad (neto): $${r.utilidadTotal.toFixed(2)}`, 15, 39);
-  pdf.text(`Descuento aplicado total: $${(r.descuentoTotal || 0).toFixed(2)}`, 15, 45);
+pdf.text(`Total ventas (neto): $${r.totalDia.toFixed(2)}`, 15, 39);
+pdf.text(`Costo total: $${r.totalCostoDia.toFixed(2)}   Utilidad real: $${r.utilidadTotal.toFixed(2)}`, 15, 45);
+pdf.text(`Margen global: ${r.margenGlobal}`, 15, 51);
 
 
   let y = 52;
