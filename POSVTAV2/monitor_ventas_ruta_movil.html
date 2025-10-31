@@ -427,6 +427,13 @@ pwSubmit.addEventListener('click', async () => {
     } else {
       await eliminarVentaConfirmada(pendingDeleteId);
     }
+
+    // 👇 AQUI PEGAS ESTO:
+    const boton = document.querySelector(`button[onclick*="${pendingDeleteId}"][class*="btn-undo"]`);
+    if (boton) {
+      boton.textContent = pendingAction === 'cortar' ? 'Descortar' : 'Cortar';
+    }
+
     cargarVentas(); // refrescar
   }
 });
@@ -490,6 +497,8 @@ async function descortarVenta(id) {
 
     // Hacemos disponible la función solicitarPwYEliminar en global para onclick inline
     window.solicitarPwYEliminar = solicitarPwYEliminar;
+    window.solicitarPwAccion = solicitarPwAccion;
+
   </script>
 </body>
 </html>
