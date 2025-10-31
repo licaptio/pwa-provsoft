@@ -357,6 +357,12 @@ row.innerHTML = `
     </button>
   </td>
 `;
+if (data.cortado) {
+  row.style.backgroundColor = "#d1ffd6"; // verde claro para cortadas
+} else {
+  row.style.backgroundColor = "#ffe6e6"; // rojo claro para no cortadas
+}
+
 tablaBody.appendChild(row);
 
       });
