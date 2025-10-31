@@ -416,25 +416,21 @@ pwSubmit.addEventListener('click', async () => {
   pwError.classList.add('hidden');
   esconderModal();
 
-  if (pendingDeleteId) {
-    if (pendingAction === 'descortar') {
-      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: false });
-      alert("✅ Venta marcada como NO cortada.");
-    } else if (pendingAction === 'cortar') {
-      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: true });
-      alert("📦 Venta marcada como CORTADA.");
-    } else {
-      await eliminarVentaConfirmada(pendingDeleteId);
-    }
-
-    // 👇 AQUI PEGAS ESTO:
-    const boton = document.querySelector(`button[onclick*="${pendingDeleteId}"][class*="btn-undo"]`);
-    if (boton) {
-      boton.textContent = pendingAction === 'cortar' ? 'Descortar' : 'Cortar';
-    }
-
-    cargarVentas(); // refrescar
+if (pendingDeleteId) {
+  if (pendingAction === 'descortar') {
+    await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: false });
+    alert("✅ Venta marcada como NO cortada.");
+  } else if (pendingAction === 'cortar') {
+    await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: true });
+    alert("📦 Venta marcada como CORTADA.");
+  } else {
+    await eliminarVentaConfirmada(pendingDeleteId);
   }
+
+  await new Promise(r => setTimeout(r, 500)); // ⏳ Esperar medio segundo
+  cargarVentas(); // refrescar
+}
+
 });
 
     // Permitir Enter para enviar
