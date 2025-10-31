@@ -112,6 +112,18 @@
     .modal input[type="password"] { flex:1; }
     .modal .small { font-size:12px; color:#666; margin-top:8px; }
     .hidden { display:none; }
+.btn-undo {
+  background: #0c6cbd;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  margin-left: 5px;
+  transition: 0.2s;
+}
+.btn-undo:hover { background: #00416A; }
+
   </style>
 </head>
 
@@ -337,7 +349,11 @@ row.innerHTML = `
   <td>$${total.toFixed(2)}</td>
   <td>${fechaStr}</td>
   <td>${horaStr}</td>
-  <td><button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button></td>
+  <td>
+  <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
+  <button class="btn-undo" onclick="descortarVenta('${doc.id}')">Descortar</button>
+</td>
+
 `;
 tablaBody.appendChild(row);
       });
@@ -425,6 +441,24 @@ tablaBody.appendChild(row);
         alert("❌ Error al eliminar la venta");
       }
     }
+// =====================================================
+// 🔄 SECCIÓN 6.1: FUNCIÓN PARA DESCORTAR UNA VENTA
+// =====================================================
+async function descortarVenta(id) {
+  const confirmar = confirm("¿Seguro que deseas DESCORTAR esta venta?");
+  if (!confirmar) return;
+
+  try {
+    await db.collection("rutas_venta").doc(id).update({
+      cortado: false
+    });
+    alert("✅ Venta marcada como NO cortada (descortada).");
+    cargarVentas(); // refrescar vista
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al descortar la venta.");
+  }
+}
 
     // =====================================================
     // ⚡ SECCIÓN 7: INICIALIZACIÓN AUTOMÁTICA
