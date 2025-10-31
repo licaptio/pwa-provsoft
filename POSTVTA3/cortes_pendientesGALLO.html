@@ -527,24 +527,33 @@ pdf.text(`Margen global: ${r.margenGlobal}`, 15, 51);
     pdf.setFont("helvetica", "italic");
     pdf.text("No hay tickets detallados disponibles en este corte.", 15, 45);
   } else {
-    tickets.forEach((t) => {
-      if (y > 270) { pdf.addPage(); y = 20; }
-      const venta = t.venta || (t.total / 1.16) || 0;
-      const impuestos = t.total - venta;
-      const costo = t.costo || 0;
-      const utilidad = t.utilidad || venta - costo;
-      const pct = venta > 0 ? ((utilidad / venta) * 100).toFixed(1) + "%" : "—";
+tickets.forEach((t) => {
+  if (y > 270) { pdf.addPage(); y = 20; }
 
-      pdf.text(String(t.folio || "—"), 10, y);
-      pdf.text(String(t.hora || ""), 35, y);
-      pdf.text(`$${venta.toFixed(2)}`, 70, y);
-      pdf.text(`$${impuestos.toFixed(2)}`, 95, y);
-      pdf.text(`$${(venta + impuestos).toFixed(2)}`, 115, y);
-      pdf.text(`$${costo.toFixed(2)}`, 140, y);
-      pdf.text(`$${utilidad.toFixed(2)}`, 165, y);
-      pdf.text(pct, 190, y);
-      y += 6;
-    });
+  // ✂️ Recortar folio y darle formato limpio
+  const folio = (t.folio || "—").replace("TEMP-", "").substring(0, 10);
+  const venta = t.venta || (t.total / 1.16) || 0;
+  const impuestos = t.total - venta;
+  const costo = t.costo || 0;
+  const utilidad = t.utilidad || venta - costo;
+  const pct = venta > 0 ? ((utilidad / venta) * 100).toFixed(1) + "%" : "—";
+
+  // 🕒 Fecha y hora simplificada
+  const fechaTxt = (t.hora || "").substring(0, 5);
+
+  // 🧾 Imprimir fila ordenada y espaciada
+  pdf.text(folio, 12, y);              // folio corto
+  pdf.text(fechaTxt, 38, y);           // hora o fecha breve
+  pdf.text(`$${venta.toFixed(2)}`, 68, y);
+  pdf.text(`$${impuestos.toFixed(2)}`, 93, y);
+  pdf.text(`$${(venta + impuestos).toFixed(2)}`, 113, y);
+  pdf.text(`$${costo.toFixed(2)}`, 138, y);
+  pdf.text(`$${utilidad.toFixed(2)}`, 163, y);
+  pdf.text(pct, 187, y);
+
+  y += 6;
+});
+
   }
 
   // =============================
