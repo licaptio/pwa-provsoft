@@ -224,11 +224,15 @@ async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
   }
 
   const porDepto = {}, porArticulo = {}, porNota = [];
-  let totalDia = 0, utilidadTotal = 0;
+  let totalDia = 0, utilidadTotal = 0, descuentoTotal = 0;
 
-  for (const v of ventasDia) {
-    const totalVenta = v.resumen_financiero?.total || v.total || 0;
-    totalDia += totalVenta;
+for (const v of ventasDia) {
+  const totalVenta = v.resumen_financiero?.total || v.total || 0;
+  const descuentoVenta = v.descuento_monto || v.resumen_financiero?.descuento || 0;
+  
+  totalDia += totalVenta;
+  descuentoTotal += descuentoVenta;
+
 
     let utilidadVentaRecalc = 0;
 
@@ -292,15 +296,17 @@ porNota.push({
 });
   }
 
-  const resumen = {
-    nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
-    totalDia,
-    utilidadTotal,
-    totalTickets: ventasDia.length,
-    porDepto,
-    porArticulo,
-    porNota
-  };
+const resumen = {
+  nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
+  totalDia,
+  descuentoTotal,
+  utilidadTotal,
+  totalTickets: ventasDia.length,
+  porDepto,
+  porArticulo,
+  porNota
+};
+
 
   await addDoc(collection(db, "cortes_globales"), {
     rutaId,
