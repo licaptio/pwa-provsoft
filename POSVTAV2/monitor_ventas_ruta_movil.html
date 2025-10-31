@@ -351,10 +351,10 @@ row.innerHTML = `
   <td>${fechaStr}</td>
   <td>${horaStr}</td>
   <td>
-  <td>
+<td>
   <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
-  <button class="btn-undo" onclick="solicitarPwAccion('${doc.id}', ${data.cortado ? `'descortar'` : `'cortar'`})">
-    ${data.cortado ? 'Descortar' : 'Cortar'}
+  <button class="btn-undo" onclick="solicitarPwAccion('${doc.id}', '${data.cortado ? "descortar" : "cortar"}')">
+    ${data.cortado ? "Descortar" : "Cortar"}
   </button>
 </td>
 
