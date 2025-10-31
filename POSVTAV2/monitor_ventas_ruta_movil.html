@@ -374,96 +374,98 @@ tablaBody.appendChild(row);
       totalDiv.textContent = `💰 Subtotal del usuario ${usuarioFiltro}: $${totalGeneral.toFixed(2)}`;
     }
 
-    // =====================================================
-    // 🔐 SECCIÓN 5: CONTROL MODAL CONTRASEÑA + ELIMINACIÓN
-    // =====================================================
+// =====================================================
+// 🔐 SECCIÓN 5 REVISADA: CONTROL MODAL Y ACCIONES
+// =====================================================
 
-    // Mostrar modal y guardar id pendiente
-    function solicitarPwYEliminar(id) {
-      pendingDeleteId = id;
-      pwInput.value = "";
-      pwError.classList.add('hidden');
-      pwOverlay.style.display = 'flex';
-      pwOverlay.setAttribute('aria-hidden','false');
-      pwInput.focus();
-    }
-    function solicitarPwAccion(id, accion) {
+// Mostrar modal según acción (eliminar, cortar o descortar)
+function solicitarPwYEliminar(id) {
+  pendingDeleteId = id;
+  pendingAction = "eliminar";
+  mostrarModal("Confirmar eliminación", "Ingrese la contraseña para eliminar la venta.");
+}
+
+function solicitarPwAccion(id, accion) {
   pendingDeleteId = id;
   pendingAction = accion; // "cortar" o "descortar"
+  const textoAccion = accion === "cortar"
+    ? "Confirmar corte de venta"
+    : "Confirmar descorte de venta";
+  const textoDetalle = accion === "cortar"
+    ? "Ingrese la contraseña para marcar la venta como CORTADA."
+    : "Ingrese la contraseña para marcar la venta como NO cortada.";
+  mostrarModal(textoAccion, textoDetalle);
+}
+
+// Mostrar modal dinámico
+function mostrarModal(titulo, mensaje) {
+  document.getElementById("pwTitle").textContent = titulo;
+  document.querySelector("#pwOverlay p").textContent = mensaje;
   pwInput.value = "";
-  pwError.classList.add('hidden');
-  pwOverlay.style.display = 'flex';
-  pwOverlay.setAttribute('aria-hidden','false');
+  pwError.classList.add("hidden");
+  pwOverlay.style.display = "flex";
+  pwOverlay.setAttribute("aria-hidden", "false");
   pwInput.focus();
 }
 
-    // Ocultar modal
-    function esconderModal() {
-      pendingDeleteId = null;
-      pwInput.value = "";
-      pwError.classList.add('hidden');
-      pwOverlay.style.display = 'none';
-      pwOverlay.setAttribute('aria-hidden','true');
-    }
+// Ocultar modal
+function esconderModal() {
+  pwOverlay.style.display = "none";
+  pwOverlay.setAttribute("aria-hidden", "true");
+}
 
-    // Evento cancelar
-    pwCancel.addEventListener('click', esconderModal);
+// Botón cancelar
+pwCancel.addEventListener("click", esconderModal);
 
-    // Evento submit del modal (intentar eliminar)
-pwSubmit.addEventListener('click', async () => {
-  const pw = pwInput.value || "";
+// Confirmar contraseña y ejecutar acción
+pwSubmit.addEventListener("click", async () => {
+  const pw = pwInput.value.trim();
   if (pw !== ADMIN_PASSWORD) {
-    pwError.classList.remove('hidden');
+    pwError.classList.remove("hidden");
     pwError.textContent = "Contraseña incorrecta";
     pwInput.focus();
     return;
   }
 
-  pwError.classList.add('hidden');
   esconderModal();
 
   if (!pendingDeleteId) return;
 
   try {
-    if (pendingAction === 'cortar') {
-      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: true });
+    const ref = db.collection("rutas_venta").doc(pendingDeleteId);
+
+    if (pendingAction === "cortar") {
+      await ref.update({ cortado: true });
       alert("📦 Venta marcada como CORTADA.");
-    } else if (pendingAction === 'descortar') {
-      await db.collection("rutas_venta").doc(pendingDeleteId).update({ cortado: false });
+    } else if (pendingAction === "descortar") {
+      await ref.update({ cortado: false });
       alert("✅ Venta marcada como NO cortada.");
-    } else {
-      await db.collection("rutas_venta").doc(pendingDeleteId).delete();
-      alert("✅ Venta eliminada correctamente.");
+    } else if (pendingAction === "eliminar") {
+      await ref.delete();
+      alert("🗑️ Venta eliminada correctamente.");
     }
 
-    // 🔁 limpiar variables y recargar
+    // 🔄 Limpiar y refrescar
     pendingDeleteId = null;
     pendingAction = null;
+
     await new Promise(r => setTimeout(r, 300));
     cargarVentas();
   } catch (err) {
-    console.error("Error en la acción:", err);
+    console.error("Error ejecutando acción:", err);
     alert("❌ No se pudo completar la acción.");
   }
 });
 
-
-    // Permitir Enter para enviar
-    pwInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        pwSubmit.click();
-      } else if (e.key === 'Escape') {
-        esconderModal();
-      }
-    });
-
-    // Cerrar modal con Escape desde overlay
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && pwOverlay.style.display === 'flex') {
-        esconderModal();
-      }
-    });
+// Permitir ENTER o ESC
+pwInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    pwSubmit.click();
+  } else if (e.key === "Escape") {
+    esconderModal();
+  }
+});
 
     // =====================================================
     // 🗑️ SECCIÓN 6: FUNCIÓN QUE BORRA REALMENTE (CONFIRMADA)
