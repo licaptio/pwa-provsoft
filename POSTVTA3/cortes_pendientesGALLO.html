@@ -223,90 +223,104 @@ async function generarCorteAnalitico(rutaId, fechaSeleccionada) {
     return;
   }
 
-  const porDepto = {}, porArticulo = {}, porNota = [];
-  let totalDia = 0, utilidadTotal = 0, descuentoTotal = 0;
+let totalDia = 0, utilidadTotal = 0, descuentoTotal = 0, totalCostoDia = 0;
+const porDepto = {}, porArticulo = {}, porNota = [];
 
 for (const v of ventasDia) {
   const totalVenta = v.resumen_financiero?.total || v.total || 0;
   const descuentoVenta = v.descuento_monto || v.resumen_financiero?.descuento || 0;
-  
   totalDia += totalVenta;
   descuentoTotal += descuentoVenta;
 
+  let utilidadVentaRecalc = 0;
+  let costoVenta = 0;
 
-    let utilidadVentaRecalc = 0;
+  for (const det of (v.detalle || [])) {
+    const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
+    const ivaPct = det.ivaTasa || det.departamento_info?.iva || 0;
+    const iepsPct = det.iepsTasa || det.departamento_info?.ieps || 0;
 
-for (const det of (v.detalle || [])) {
-  const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
-  const ivaPct = det.departamento_info?.iva || 0;
-  const iepsPct = det.departamento_info?.ieps || 0;
-  const importe = det.importe || det.precio_unit * det.cantidad || 0;
+    const importe = det.importe || det.precioUnit * (det.cantidad || 1) || 0;
+    let ventaSinImpuestos = importe;
+    let impuestos = 0;
 
-  // 👇 Desglose correcto de venta, impuestos y costo
-let ventaSinImpuestos = importe;
-let impuestos = 0;
+    if (ivaPct > 0 || iepsPct > 0) {
+      const base = importe / (1 + ivaPct + iepsPct);
+      impuestos = importe - base;
+      ventaSinImpuestos = base;
+    }
 
-// Calcular IVA e IEPS solo si existen porcentajes válidos
-if (ivaPct > 0 || iepsPct > 0) {
-  const base = importe / (1 + ivaPct / 100 + iepsPct / 100);
-  const iva = base * (ivaPct / 100);
-  const ieps = base * (iepsPct / 100);
-  ventaSinImpuestos = base;
-  impuestos = iva + ieps;
-}
-  const costo = det.costo_total || det.costo_unit * det.cantidad || 0;
-  const utilidad = ventaSinImpuestos - costo;
+    // 💰 COSTEO GORDO REAL
+    const costoUnit = det.costoUnit || det.costo_unit || det.costo || 0;
+    const costo = costoUnit * (det.cantidad || 1);
+    const utilidad = ventaSinImpuestos - costo;
 
-  // Acumuladores globales
-  utilidadVentaRecalc += utilidad;
+    // Acumuladores globales
+    utilidadVentaRecalc += utilidad;
+    costoVenta += costo;
 
-  // 👇 Registro por departamento completo
-  if (!porDepto[dep]) {
-    porDepto[dep] = { venta: 0, impuestos: 0, costo: 0, utilidad: 0 };
-  }
-  porDepto[dep].venta += ventaSinImpuestos;
-  porDepto[dep].impuestos += impuestos;
-  porDepto[dep].costo += costo;
-  porDepto[dep].utilidad += utilidad;
+    // === ACUMULADORES POR DEPARTAMENTO ===
+    if (!porDepto[dep]) {
+      porDepto[dep] = { venta: 0, impuestos: 0, costo: 0, utilidad: 0 };
+    }
+    porDepto[dep].venta += ventaSinImpuestos;
+    porDepto[dep].impuestos += impuestos;
+    porDepto[dep].costo += costo;
+    porDepto[dep].utilidad += utilidad;
 
-  const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
-  if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0, costo: 0 };
-  porArticulo[art].cantidad += det.cantidad || 0;
-  porArticulo[art].importe += ventaSinImpuestos;
-  porArticulo[art].costo += det.costo_total || det.costo_unit * (det.cantidad || 0) || 0;
-}
-
-
-    utilidadTotal += utilidadVentaRecalc;
-
-    const hora = v.fecha_txt?.split("T")[1]?.substring(0,5) || v.fecha_txt || "";
-let costoVenta = 0;
-for (const det of (v.detalle || [])) {
-  const costoItem = det.costo_total || det.costo_unit * det.cantidad || 0;
-  costoVenta += costoItem;
-}
-
-porNota.push({
-  folio: v.folio || v.id,
-  hora,
-  total: totalVenta,
-  costo: costoVenta,
-  utilidad: utilidadVentaRecalc,
-  ubicacion: v.ubicacion || null
-});
+    // === ACUMULADORES POR ARTÍCULO ===
+    const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
+    if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0, costo: 0 };
+    porArticulo[art].cantidad += det.cantidad || 0;
+    porArticulo[art].importe += ventaSinImpuestos;
+    porArticulo[art].costo += costo;
   }
 
+  utilidadTotal += utilidadVentaRecalc;
+  totalCostoDia += costoVenta;
+
+  // === ACUMULADORES POR NOTA ===
+  const hora = v.fecha_txt?.split("T")[1]?.substring(0,5) || v.fecha_txt || "";
+  porNota.push({
+    folio: v.folio || v.id,
+    hora,
+    total: totalVenta,
+    costo: costoVenta,
+    utilidad: utilidadVentaRecalc,
+    ubicacion: v.ubicacion || null
+  });
+}
+
+// === CIERRE DEL CORTE ===
 const resumen = {
   nombreCorte: ventasDia[0]?.usuarioNombre || ventasDia[0]?.atendio || "Desconocido",
   totalDia,
   descuentoTotal,
   utilidadTotal,
   totalTickets: ventasDia.length,
+  totalCostoDia,
+  margenGlobal: totalDia > 0 ? ((utilidadTotal / totalDia) * 100).toFixed(2) + "%" : "0%",
   porDepto,
   porArticulo,
   porNota
 };
-
+const dataCorte = {
+  rutaId,
+  fecha: serverTimestamp(),
+  fecha_corte: fechaSeleccionada,
+  creado_en: new Date().toISOString(),
+  realizado_por: resumen.nombreCorte,
+  total_registros: resumen.totalTickets,
+  descuentos_total: resumen.descuentoTotal || 0,
+  resumen_completo: resumen,
+  costo_global: {
+    totalVenta: resumen.totalDia,
+    totalCosto: resumen.totalCostoDia,
+    utilidadReal: resumen.utilidadTotal,
+    margenGlobal: resumen.margenGlobal
+  },
+  version: "2.2"
+};
 
 await addDoc(collection(db, "cortes_globales"), {
   rutaId,
