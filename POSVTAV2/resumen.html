@@ -178,9 +178,14 @@ async function cargarVentas() {
     let ventas = [];
     snap.forEach(docSnap => {
       const v = docSnap.data();
-      if (v.fecha_txt && v.resumen_financiero?.total && v.fecha_txt.includes(fechaFormateada)) {
-        ventas.push({ id: docSnap.id, ...v });
-      }
+if (v.fecha_txt && v.resumen_financiero?.total) {
+  const fechaVenta = v.fecha_txt.split(",")[0].trim(); // "1/11/2025"
+  const [diaVenta, mesVenta, anioVenta] = fechaVenta.split("/").map(x => parseInt(x));
+  const hoy = new Date();
+  if (diaVenta === hoy.getDate() && mesVenta === (hoy.getMonth() + 1) && anioVenta === hoy.getFullYear()) {
+    ventas.push({ id: docSnap.id, ...v });
+  }
+}
     });
 
     // Ordenar por hora (extraída del texto de fecha)
