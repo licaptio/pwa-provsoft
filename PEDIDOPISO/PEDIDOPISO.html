@@ -167,6 +167,29 @@
       <button id="guardar">Guardar Pedido</button>
       <p id="msg"></p>
     </section>
+<!-- 💾 Botones de acción -->
+<section style="display:flex; gap:10px; justify-content:space-between;">
+  <button id="agregar" style="flex:1; background:#00629b;">➕ Agregar al pedido</button>
+  <button id="guardar" style="flex:1;">💾 Guardar Pedido</button>
+</section>
+
+<!-- 🛒 Carrito de productos -->
+<section>
+  <h4 style="color:#00416A; margin-top:10px;">🛒 Pedido actual</h4>
+  <table id="carrito" style="width:100%; border-collapse:collapse; background:#f9f9f9; border-radius:8px;">
+    <thead>
+      <tr style="background:#00416A; color:white;">
+        <th style="padding:6px;">Producto</th>
+        <th style="padding:6px;">Cant.</th>
+        <th style="padding:6px;">🗑️</th>
+      </tr>
+    </thead>
+    <tbody id="carritoBody"></tbody>
+  </table>
+</section>
+
+<p id="msg"></p>
+
   </main>
 
   <footer>PROVSOFT © 2025 — Sistema de pedidos móviles</footer>
@@ -250,29 +273,7 @@
       }
     });
 
-    // === GUARDAR PEDIDO EN FIRESTORE ===
-    document.getElementById("guardar").addEventListener("click", async () => {
-      const cliente = document.getElementById("cliente").value.trim();
-      const cantidad = parseFloat(document.getElementById("cantidad").value);
-      const fechaHora = new Date();
-
-      msg.textContent = "";
-
-if (!cliente || !productoSeleccionado || !cantidad) {await addDoc(collection(db, "pedidopiso"), {
-  msg.textContent = "⚠️ Completa todos los campos y selecciona un producto.";
-  msg.style.color = "orange";
-  return;
-}
-
-
-      try {
-        await addDoc(collection(db, "pedidopiso"), {
-          fechaHora,
-          cliente,
-          producto: productoSeleccionado.concepto,
-          codigoBarra: productoSeleccionado.codigoBarra,
-          cantidad
-        });
+ocument.getElementById("guardar").addEventListener("click", async (
         msg.textContent = "✅ Pedido guardado correctamente.";
         msg.style.color = "green";
 
@@ -286,7 +287,54 @@ if (!cliente || !productoSeleccionado || !cantidad) {await addDoc(collection(db,
         msg.style.color = "red";
       }
     });
+// === 🛒 CARRITO DE PRODUCTOS ===
+let carrito = [];
+const carritoBody = document.getElementById("carritoBody");
+
+function renderCarrito() {
+  carritoBody.innerHTML = "";
+  carrito.forEach((item, index) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="padding:6px;">${item.producto}</td>
+      <td style="padding:6px; text-align:center;">${item.cantidad}</td>
+      <td style="text-align:center; color:red; cursor:pointer; font-weight:bold;" onclick="eliminarItem(${index})">✖</td>
+    `;
+    carritoBody.appendChild(tr);
+  });
+}
+
+window.eliminarItem = (index) => {
+  carrito.splice(index, 1);
+  renderCarrito();
+};
+
+// === Evento Agregar ===
+document.getElementById("agregar").addEventListener("click", () => {
+  const cliente = document.getElementById("cliente").value.trim();
+  const cantidad = parseFloat(document.getElementById("cantidad").value);
+
+  if (!productoSeleccionado || !cantidad) {
+    msg.textContent = "⚠️ Selecciona un producto y cantidad.";
+    msg.style.color = "orange";
+    return;
+  }
+
+  carrito.push({
+    producto: productoSeleccionado.concepto,
+    codigoBarra: productoSeleccionado.codigoBarra,
+    cantidad
+  });
+
+  renderCarrito();
+  buscarInput.value = "";
+  document.getElementById("cantidad").value = "";
+  productoSeleccionado = null;
+  msg.textContent = "";
+});
+
   </script>
 </body>
 </html>
+
 
