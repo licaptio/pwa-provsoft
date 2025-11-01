@@ -114,12 +114,17 @@
         const snap = await getDocs(q);
 
         let ventas = [];
-        snap.forEach(d=>{
-          const v=d.data();
-          if(v.fecha_txt && v.resumen_financiero?.total && v.fecha_txt.includes(fechaMX)){
-            ventas.push({id:d.id,...v});
-          }
-        });
+snap.forEach(d => {
+  const v = d.data();
+  if (v.fecha_txt && v.resumen_financiero?.total) {
+    const fechaVenta = v.fecha_txt.split(",")[0].trim(); // "1/11/2025"
+    const [dia, mes, año] = fechaVenta.split("/").map(n => parseInt(n));
+    const hoy = new Date();
+    if (dia === hoy.getDate() && mes === hoy.getMonth() + 1 && año === hoy.getFullYear()) {
+      ventas.push({ id: d.id, ...v });
+    }
+  }
+});
 
         // ordenar por hora descendente
         ventas.sort((a,b)=>{
