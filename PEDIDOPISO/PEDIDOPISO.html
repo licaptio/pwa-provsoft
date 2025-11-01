@@ -153,19 +153,13 @@
     <section>
       <label for="buscarProducto">Producto:</label>
       <input type="text" id="buscarProducto" placeholder="Escribe para buscar...">
-      <ul id="resultados"></ul>
+      <ul id="resultados"></ul>const asignado = document.getElem
     </section>
 
     <!-- 📦 Cantidad -->
     <section>
       <label for="cantidad">Cantidad:</label>
       <input type="number" id="cantidad" min="1" placeholder="Ej. 10">
-    </section>
-
-    <!-- 👤 Asignado -->
-    <section>
-      <label for="asignado">Asignado a:</label>
-      <input type="text" id="asignado" placeholder="Nombre del asignado...">
     </section>
 
     <!-- 💾 Botón Guardar -->
@@ -260,16 +254,16 @@
     document.getElementById("guardar").addEventListener("click", async () => {
       const cliente = document.getElementById("cliente").value.trim();
       const cantidad = parseFloat(document.getElementById("cantidad").value);
-      const asignado = document.getElementById("asignado").value.trim();
       const fechaHora = new Date();
 
       msg.textContent = "";
 
-      if (!cliente || !productoSeleccionado || !cantidad || !asignado) {
-        msg.textContent = "⚠️ Completa todos los campos y selecciona un producto.";
-        msg.style.color = "orange";
-        return;
-      }
+if (!cliente || !productoSeleccionado || !cantidad) {await addDoc(collection(db, "pedidopiso"), {
+  msg.textContent = "⚠️ Completa todos los campos y selecciona un producto.";
+  msg.style.color = "orange";
+  return;
+}
+
 
       try {
         await addDoc(collection(db, "pedidopiso"), {
@@ -277,8 +271,7 @@
           cliente,
           producto: productoSeleccionado.concepto,
           codigoBarra: productoSeleccionado.codigoBarra,
-          cantidad,
-          asignado
+          cantidad
         });
         msg.textContent = "✅ Pedido guardado correctamente.";
         msg.style.color = "green";
@@ -286,7 +279,6 @@
         // Resetear formulario
         document.getElementById("cliente").value = "";
         document.getElementById("cantidad").value = "";
-        document.getElementById("asignado").value = "";
         buscarInput.value = "";
         productoSeleccionado = null;
       } catch (error) {
@@ -297,3 +289,4 @@
   </script>
 </body>
 </html>
+
