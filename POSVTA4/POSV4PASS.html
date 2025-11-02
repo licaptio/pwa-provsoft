@@ -251,33 +251,23 @@
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
-<!-- 💳 BLOQUE 4: MODAL DE COBRO CON DESCUENTO Y CAMBIO -->
+
+<!-- 💳 MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO -->
 <div id="modalCobro"
      style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
             z-index:1200;align-items:center;justify-content:center;">
-
-  <!-- 🧩 Tarjeta del modal -->
   <div class="modal-card"
        style="width:min(420px,92vw);background:#fff;border-radius:14px;
               box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;">
-
-    <!-- 🟦 Encabezado -->
     <div class="modal-h"
          style="padding:12px 16px;background:#0c6cbd;color:#fff;font-weight:700;">
       Cobro
     </div>
-
-    <!-- 📋 Cuerpo del modal -->
     <div class="modal-b"
          style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-
-      <!-- 💰 Total a pagar -->
       <div class="row big" style="justify-content:space-between">
-        <span>Total a pagar:</span>
-        <span id="cobroTotal">$0.00</span>
+        <span>Total a pagar:</span><span id="cobroTotal">$0.00</span>
       </div>
-
-      <!-- 💳 Método de pago -->
       <label for="metodoPago">Método de pago</label>
       <select id="metodoPago">
         <option value="efectivo">Efectivo</option>
@@ -285,41 +275,26 @@
         <option value="transferencia">Transferencia</option>
         <option value="mixto">Mixto</option>
       </select>
-
-      <!-- 🔽 Campo Descuento % -->
-      <label for="descuentoInput">Descuento (%)</label>
-      <input id="descuentoInput" type="number" min="0" max="100" step="1" value="0"
-             style="padding:10px;border-radius:8px;border:1px solid #ccc;">
-      <div id="descuentoMonto"
-           style="font-size:14px;color:#00416A;font-weight:600;">
-           Descuento aplicado: $0.00
+      <button id="btnSolicitarDescuento" class="btn" style="background:#888;">
+        🧾 Aplicar Descuento
+      </button>
+      <div id="descuentoInfo" style="font-size:14px;color:#00416A;font-weight:600;display:none;">
+        Descuento aplicado: <span id="descuentoResumen">$0.00</span>
       </div>
-
-      <!-- 💵 Monto recibido y cambio -->
-      <div id="bloqueEfectivo">
-        <label for="montoRecibido">Monto recibido</label>
-        <input id="montoRecibido" type="number" step="0.01" min="0">
-        <div class="row" style="justify-content:space-between">
-          <span>Cambio:</span><span id="montoCambio">$0.00</span>
-        </div>
+      <label for="montoRecibido">Monto recibido</label>
+      <input id="montoRecibido" type="number" step="0.01" min="0">
+      <div class="row" style="justify-content:space-between">
+        <span>Cambio:</span><span id="montoCambio">$0.00</span>
       </div>
-
-      <!-- 📝 Notas libres -->
       <label for="notasCobro">Notas</label>
       <textarea id="notasCobro" rows="2" style="resize:none"></textarea>
-
-      <!-- 🧩 Botones inferiores -->
       <div style="display:flex;gap:10px;margin-top:10px;">
-        <button class="btn" id="btnCancelarCobro" style="background:#aaa;">
-          Cancelar
-        </button>
-        <button class="btn" id="btnConfirmarCobro">
-          Confirmar
-        </button>
+        <button class="btn" id="btnCancelarCobro" style="background:#aaa;">Cancelar</button>
+        <button class="btn" id="btnConfirmarCobro">Confirmar</button>
       </div>
-    </div> <!-- /modal-b -->
-  </div> <!-- /modal-card -->
-</div> <!-- /modalCobro -->
+    </div>
+  </div>
+</div>
 
 <script type="text/javascript">
 "use strict";
