@@ -747,6 +747,10 @@ $("#btnConfirmarCobro").onclick = async () => {
   const tot = calcularTotales(descuentoAutorizado);
   const pago = parseFloat($("#montoRecibido").value) || 0;
   const cambio = pago - tot.total;
+if (cambio < 0) {
+  alert("⚠️ El monto recibido es menor al total a pagar.");
+  return;
+}
 
   const folio = "VENTA-" + Date.now();
 
