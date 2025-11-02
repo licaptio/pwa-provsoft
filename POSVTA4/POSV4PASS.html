@@ -778,22 +778,6 @@ if (cambio < 0) {
   render();
   cerrarCobro();
 };
-  // 👇 AGREGA ESTO:
-  detalle: carrito.map(x => ({
-    nombre: x.nombre,
-    cantidad: x.cantidad,
-    precioUnit: x.precioUnit,
-    importe: x.importe
-  }))
-};
-  // 👇 AGREGA ESTO:
-  detalle: carrito.map(x => ({
-    nombre: x.nombre,
-    cantidad: x.cantidad,
-    precioUnit: x.precioUnit,
-    importe: x.importe
-  }))
-};
 async function guardarVentaEnFirestore(v) {
   try {
     const ref = collection(db, "ventas_ruta");
