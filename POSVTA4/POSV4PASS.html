@@ -180,16 +180,7 @@
   <span>POS – Ruta de Venta / Descuento</span>
   <img src="logo_proveedora.webp" alt="Logo">
 
-  <div style="position:absolute;right:10px;top:10px;display:flex;gap:6px;">
-    <button id="btnResumen"
-      style="background:#0c6cbd;color:white;
-             border:none;padding:6px 10px;border-radius:8px;
-             font-size:14px;font-weight:600;cursor:pointer;">📊 Resumen</button>
-    <button id="btnLogout"
-      style="background:#c0392b;color:white;
-             border:none;padding:6px 10px;border-radius:8px;
-             font-size:14px;font-weight:600;cursor:pointer;">🚪 Salir</button>
-  </div>
+
 </header>
 
   <!-- 🧩 CUERPO PRINCIPAL -->
@@ -210,10 +201,6 @@
     <div id="resultados" class="search-results"></div>
   </div>
 
-  <!-- 🛒 BOTÓN PARA VER CARRITO -->
-  <button id="btnVerCarrito" class="btn" style="background:linear-gradient(180deg,#00416A,#0c6cbd);">
-    🛒 Ver Carrito
-  </button>
 </section>
 
 <!-- 🧾 BLOQUE NUEVO — CARRITO OCULTO -->
@@ -1465,6 +1452,51 @@ btnRegresar.addEventListener("click", () => {
     </div>
   </div>
 </div>
+<!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
+<div id="bottomBar">
+  <button id="btnVerCarrito" class="bar-btn">🛒 Ver Carrito</button>
+  <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
+  <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
+</div>
+
+<style>
+  /* 🎯 Barra inferior fija profesional */
+  #bottomBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(90deg, #003366, #0c6cbd);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.25);
+    z-index: 9999;
+  }
+  .bar-btn {
+    flex: 1;
+    margin: 0 6px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(180deg, #0c6cbd, #00416A);
+    font-size: 16px;
+    padding: 10px 8px;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  .bar-btn:active { transform: scale(0.95); opacity: 0.85; }
+  .bar-btn.azul { background: linear-gradient(180deg, #0c6cbd, #00416A); }
+  .bar-btn.rojo { background: linear-gradient(180deg, #c0392b, #8e2620); }
+  #btnVerCarrito { background: linear-gradient(180deg, #00416A, #0c6cbd); }
+  
+  /* 📱 Adaptación a móvil */
+  @media (max-width: 600px) {
+    #bottomBar { padding: 8px 0; }
+    .bar-btn { font-size: 14px; padding: 8px 4px; }
+  }
+</style>
 
 </body>
 </html>
