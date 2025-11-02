@@ -362,71 +362,229 @@ function obtenerPrecioSegunCantidad(prod, cantidad) {
 }
 
 /* ===========================================================
-   🔑 SECCIÓN 4: LOGIN Y CARGA INICIAL
+   🔑 SECCIÓN 4: LOGIN Y CARGA INICIAL (OPTIMIZADO)
    =========================================================== */
-async function loginUsuario(){
-  const u=$("#loginUsuario").value.trim(), p=$("#loginPassword").value.trim();
-  const msg=$("#loginMsg"); msg.textContent="Verificando...";
-  try{
-    const q=query(collection(db,"usuarios_ruta"),
-      where("usuario","==",u),
-      where("password","==",p),
-      where("activo","==",true)
+async function loginUsuario() {
+  const u = $("#loginUsuario").value.trim();
+  const p = $("#loginPassword").value.trim();
+  const msg = $("#loginMsg");
+
+  // 🔸 Validación básica
+  if (!u || !p) {
+    msg.textContent = "Por favor, introduce usuario y contraseña.";
+    return;
+  }
+
+  // 🎬 Animación visual de progreso
+  msg.textContent = "🔄 Verificando usuario...";
+  msg.style.background = "rgba(255,255,255,.15)";
+  msg.style.padding = "6px 10px";
+  msg.style.borderRadius = "6px";
+  msg.style.transition = "all 0.3s ease";
+
+  try {
+    const q = query(
+      collection(db, "usuarios_ruta"),
+      where("usuario", "==", u),
+      where("password", "==", p),
+      where("activo", "==", true)
     );
-    const snap=await getDocs(q);
-    if(snap.empty){msg.textContent="Usuario o contraseña incorrectos";return;}
-    const data=snap.docs[0].data();
-    USUARIO_LOGUEADO={id:snap.docs[0].id,...data};
-    rutaId=data.rutaId;
-    $("#loginScreen").style.display="none";
-    $("#posApp").style.display="block";
-    await cargarCatalogo();
-    await cargarDepartamentos();
-    fijarClientePublico();
-    localStorage.setItem("usuario_ruta",JSON.stringify(USUARIO_LOGUEADO));
-  }catch(e){msg.textContent="Error de conexión";console.error(e);}
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      msg.textContent = "❌ Usuario o contraseña incorrectos";
+      msg.style.background = "rgba(255,50,50,.3)";
+      return;
+    }
+
+    const data = snap.docs[0].data();
+    USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
+    rutaId = data.rutaId || null;
+
+    // 🧹 Limpia cache de catálogo al cambiar usuario
+    localStorage.removeItem("catalogo_cache");
+
+    // 💾 Guarda sesión para acceso rápido
+    localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+
+    // 🟢 Mostrar transición visual
+    msg.textContent = "✅ Bienvenido " + (data.nombre || u);
+    msg.style.background = "rgba(0,150,80,.4)";
+
+    // 🌀 Cargar datos principales
+    $("#loginScreen").style.display = "none";
+    $("#posApp").style.display = "block";
+
+    // Carga simultánea
+    await Promise.all([
+      cargarCatalogo(),
+      cargarDepartamentos(),
+      fijarClientePublico()
+    ]);
+
+    console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
+    msg.textContent = "";
+
+  } catch (e) {
+    console.error("❌ Error en login:", e);
+    msg.textContent = "⚠️ Error de conexión con el servidor.";
+    msg.style.background = "rgba(255,150,0,.3)";
+  }
 }
-$("#btnLogin").onclick=loginUsuario;
+
+$("#btnLogin").onclick = loginUsuario;
+/* ===========================================================
+   🔁 SECCIÓN 4.1: RECUPERAR SESIÓN AUTOMÁTICA
+   =========================================================== */
+window.addEventListener("DOMContentLoaded", async () => {
+  const guardado = localStorage.getItem("usuario_ruta");
+  if (!guardado) return;
+
+  try {
+    USUARIO_LOGUEADO = JSON.parse(guardado);
+    rutaId = USUARIO_LOGUEADO?.rutaId || null;
+    console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
+
+    $("#loginScreen").style.display = "none";
+    $("#posApp").style.display = "block";
+
+    await Promise.all([
+      cargarCatalogo(),
+      cargarDepartamentos(),
+      fijarClientePublico()
+    ]);
+  } catch (err) {
+    console.warn("⚠️ No se pudo restaurar sesión previa:", err);
+    localStorage.removeItem("usuario_ruta");
+  }
+});
 
 /* ===========================================================
-   🧾 SECCIÓN 5: CARGA DE CATÁLOGO Y DEPARTAMENTOS
+   🧾 SECCIÓN 5: CARGA DE CATÁLOGO Y DEPARTAMENTOS (OPTIMIZADO)
    =========================================================== */
-async function cargarCatalogo(){
-  const ref=collection(db,"productos");
-  const q=query(ref,where("activo","==",true));
-  const snap=await getDocs(q);
-  catalogo=[]; codeIndex.clear();
-  snap.forEach(d=>{
-    const x=d.data();
-    const p={
-      id:d.id,
-      nombre:x.concepto||"SIN NOMBRE",
-      codigo:String(x.codigoBarra||""),
-      precioPublico:Number(x.precioPublico||0),
-      mayoreo:Number(x.mayoreo || 0),
-      costoUnit:Number(x.costoSinImpuesto||x.costo||0),
-      ivaTasa:Number(x.ivaTasa||0),
-      iepsTasa:Number(x.iepsTasa||0),
-      departamento_id:x.departamento_id||null,
-      equivalentes:Array.isArray(x.codigosEquivalentes)?x.codigosEquivalentes.map(String):[]
-    };
-    catalogo.push(p);
-    if(p.codigo)codeIndex.set(p.codigo,p.id);
-    p.equivalentes.forEach(eq=>{if(eq)codeIndex.set(eq,p.id);});
-  });
-  console.log("Catálogo cargado:",catalogo.length);
+
+async function cargarCatalogo() {
+  const cacheKey = "catalogo_cache";
+  const cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+  const unDia = 24 * 60 * 60 * 1000;
+  const statusBox = document.createElement("div");
+
+  // 🟦 Muestra un mensaje flotante mientras carga
+  statusBox.textContent = "🔄 Cargando catálogo de productos...";
+  statusBox.style.cssText = `
+    position:fixed;top:10px;left:50%;transform:translateX(-50%);
+    background:#00416A;color:#fff;padding:10px 16px;
+    border-radius:10px;z-index:5000;font-size:14px;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);
+  `;
+  document.body.appendChild(statusBox);
+
+  try {
+    // ⚡ Si hay cache válido de menos de 24 h
+    if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.data)) {
+      catalogo = cache.data;
+      codeIndex.clear();
+
+      catalogo.forEach(p => {
+        if (p.codigo) codeIndex.set(p.codigo, p.id);
+        if (Array.isArray(p.equivalentes)) {
+          p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
+        }
+      });
+
+      console.log("⚡ Catálogo cargado desde cache:", catalogo.length);
+      statusBox.textContent = `⚡ Catálogo cargado (${catalogo.length} productos, desde cache)`;
+      setTimeout(() => statusBox.remove(), 2000);
+      return;
+    }
+
+    // 🔄 Cargar desde Firestore si no hay cache o está vencido
+    const ref = collection(db, "productos");
+    const q = query(ref, where("activo", "==", true));
+    const snap = await getDocs(q);
+    catalogo = [];
+    codeIndex.clear();
+
+    snap.forEach(d => {
+      const x = d.data();
+      const p = {
+        id: d.id,
+        nombre: x.concepto || "SIN NOMBRE",
+        codigo: String(x.codigoBarra || ""),
+        precioPublico: Number(x.precioPublico || 0),
+        mayoreo: Number(x.mayoreo || 0),
+        costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
+        ivaTasa: Number(x.ivaTasa || 0),
+        iepsTasa: Number(x.iepsTasa || 0),
+        departamento_id: x.departamento_id || null,
+        equivalentes: Array.isArray(x.codigosEquivalentes)
+          ? x.codigosEquivalentes.map(String)
+          : []
+      };
+      catalogo.push(p);
+      if (p.codigo) codeIndex.set(p.codigo, p.id);
+      if (Array.isArray(p.equivalentes)) {
+        p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
+      }
+    });
+
+    // 💾 Guardar cache local por 24 h
+    localStorage.setItem(cacheKey, JSON.stringify({
+      fecha: Date.now(),
+      data: catalogo
+    }));
+
+    console.log("📦 Catálogo cargado desde Firestore:", catalogo.length);
+    statusBox.textContent = `📦 Catálogo cargado (${catalogo.length} productos, guardado en cache)`;
+    setTimeout(() => statusBox.remove(), 2500);
+
+  } catch (err) {
+    console.error("❌ Error cargando catálogo:", err);
+    statusBox.textContent = "⚠️ Error al cargar catálogo. Intenta recargar o verifica conexión.";
+    statusBox.style.background = "#c0392b";
+  }
 }
 
-async function cargarDepartamentos(){
-  const snap=await getDocs(collection(db,"departamentos_venta"));
-  snap.forEach(d=>{
-    const x=d.data();
-    departamentos[d.id]={id:Number(x.id||d.id),
-                         nombre:x.nombre||"SIN DEP",
-                         iva:Number(x.iva||0),
-                         ieps:Number(x.ieps||0)};
-  });
+/* ===========================================================
+   🏷️ CARGA DE DEPARTAMENTOS (CON CONTROL DE ERRORES)
+   =========================================================== */
+async function cargarDepartamentos() {
+  const statusBox = document.createElement("div");
+  statusBox.textContent = "🔄 Cargando departamentos...";
+  statusBox.style.cssText = `
+    position:fixed;top:50px;left:50%;transform:translateX(-50%);
+    background:#0c6cbd;color:#fff;padding:8px 14px;
+    border-radius:10px;z-index:5000;font-size:13px;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);
+  `;
+  document.body.appendChild(statusBox);
+
+  try {
+    const snap = await getDocs(collection(db, "departamentos_venta"));
+    departamentos = {};
+
+    snap.forEach(d => {
+      const x = d.data();
+      departamentos[d.id] = {
+        id: Number(x.id || d.id),
+        nombre: x.nombre || "SIN DEP",
+        iva: Number(x.iva || 0),
+        ieps: Number(x.ieps || 0)
+      };
+    });
+
+    console.log("🏷️ Departamentos cargados:", Object.keys(departamentos).length);
+    statusBox.textContent = `🏷️ ${Object.keys(departamentos).length} departamentos cargados`;
+    setTimeout(() => statusBox.remove(), 1500);
+
+  } catch (err) {
+    console.error("❌ Error cargando departamentos:", err);
+    statusBox.textContent = "⚠️ Error al cargar departamentos";
+    statusBox.style.background = "#c0392b";
+  }
 }
+
 
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
@@ -744,6 +902,15 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
 
 // ✅ Confirmar y guardar venta con o sin descuento
 $("#btnConfirmarCobro").onclick = async () => {
+  // 🚧 VALIDACIONES PREVIAS A LA VENTA
+  if (carrito.length === 0) {
+    alert("No hay productos en el carrito.");
+    return;
+  }
+  if (!rutaId || !USUARIO_LOGUEADO) {
+    alert("⚠️ Usuario o ruta no detectados. Vuelve a iniciar sesión.");
+    return;
+  }
   const tot = calcularTotales(descuentoAutorizado);
   const pago = parseFloat($("#montoRecibido").value) || 0;
   const cambio = pago - tot.total;
@@ -958,6 +1125,41 @@ async function fijarClientePublico(){
   }catch(e){console.warn("Cliente público no encontrado");}
 }
 // 👇 AGREGA ESTO AL FINAL
+/* ===========================================================
+   🌐 SECCIÓN 16: CONTROL DE CONEXIÓN OFFLINE / ONLINE
+   =========================================================== */
+window.addEventListener("offline", () => {
+  const aviso = document.createElement("div");
+  aviso.textContent = "⚠️ Estás sin conexión. Las ventas se guardarán localmente.";
+aviso.style.cssText = `
+  position:fixed;top:0;left:0;right:0;
+  background:#c0392b;color:#fff;padding:8px;text-align:center;
+  font-size:13px;z-index:9999;transition:opacity .3s ease;
+`;
+  document.body.appendChild(aviso);
+  setTimeout(()=>aviso.style.opacity=1,50);
+  setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},4000);
+
+  console.warn("🚫 Sin conexión: las operaciones se almacenarán en IndexedDB");
+});
+
+window.addEventListener("online", () => {
+  const aviso = document.createElement("div");
+  aviso.textContent = "✅ Conexión restaurada. Sincronizando ventas pendientes...";
+  aviso.style.cssText = `
+    position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+    background:#1e8e3e;color:#fff;padding:10px 18px;
+    border-radius:10px;font-size:14px;z-index:9999;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);opacity:0;
+    transition:opacity .3s ease;
+  `;
+  document.body.appendChild(aviso);
+  setTimeout(()=>aviso.style.opacity=1,50);
+  setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},4000);
+
+  console.log("✅ Conexión restaurada, Firestore volverá a sincronizar automáticamente.");
+});
+
 })(); // ✅ cierre del async
 
 </script>
