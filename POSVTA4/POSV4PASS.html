@@ -650,40 +650,57 @@ function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
 window.delItem=delItem;
 
 /* ===========================================================
-   🧾 SECCIÓN 8: CÁLCULO DE TOTALES CON DESCUENTO
+   🧮 SECCIÓN 8: CÁLCULO DE TOTALES CON DESCUENTO (OPTIMIZADO)
    =========================================================== */
 function calcularTotales(descPorc = 0) {
-  let subtotal=0, iva=0, ieps=0, total=0;
-  let subtotalConDescuento=0, subtotalSinDescuento=0;
+  let subtotal = 0, iva = 0, ieps = 0, total = 0;
+  let subtotalElegible = 0, subtotalNoElegible = 0;
+
+  // 💰 Asegura que el porcentaje de descuento sea válido (0–100)
   const descuento = Math.min(100, Math.max(0, descPorc || 0)) / 100;
 
-  carrito.forEach(it=>{
+  // 🔢 Recorre todos los productos del carrito
+  carrito.forEach(it => {
     const imp = it.cantidad * it.precioUnit;
     const dep = departamentos[it.departamento_id] || { iva: 0, ieps: 0 };
-    const ivaT = dep.iva / 100, iepsT = dep.ieps / 100;
-    let base = imp;
-    if (iepsT>0 && ivaT>0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
-    else if (iepsT>0) base = imp / (1 + iepsT);
-    else if (ivaT>0) base = imp / (1 + ivaT);
-    subtotal += base; iva += base * ivaT; ieps += base * iepsT; total += imp;
 
-    if (productosMayoreo.includes(String(it.codigo))) subtotalSinDescuento += base;
-    else subtotalConDescuento += base;
+    const ivaT = dep.iva / 100;
+    const iepsT = dep.ieps / 100;
+    let base = imp;
+
+    // Descompone el precio si ya incluye IVA o IEPS
+    if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
+    else if (iepsT > 0) base = imp / (1 + iepsT);
+    else if (ivaT > 0) base = imp / (1 + ivaT);
+
+    subtotal += base;
+    iva += base * ivaT;
+    ieps += base * iepsT;
+    total += imp;
+
+    // Clasifica productos elegibles o no para descuento
+    if (productosMayoreo.includes(String(it.codigo))) subtotalNoElegible += base;
+    else subtotalElegible += base;
   });
 
-  const montoDesc = subtotalConDescuento * descuento;
+  // 🧮 Cálculo seguro de descuentos (sin dividir por cero)
+  const montoDesc = subtotalElegible * descuento;
+  const proporción = subtotal > 0 ? montoDesc / subtotal : 0;
+
+  // 💸 Totales finales
   const subtotalFinal = subtotal - montoDesc;
-  const ivaFinal = iva - (iva * (montoDesc / subtotal));
-  const iepsFinal = ieps - (ieps * (montoDesc / subtotal));
+  const ivaFinal = iva - (iva * proporción);
+  const iepsFinal = ieps - (ieps * proporción);
   const totalFinal = subtotalFinal + ivaFinal + iepsFinal;
 
   return {
-    subtotal:+subtotal.toFixed(2),
-    descuento:+montoDesc.toFixed(2),
-    impuestos:+(ivaFinal + iepsFinal).toFixed(2),
-    total:+totalFinal.toFixed(2)
+    subtotal: +subtotal.toFixed(2),
+    descuento: +montoDesc.toFixed(2),
+    impuestos: +(ivaFinal + iepsFinal).toFixed(2),
+    total: +totalFinal.toFixed(2)
   };
 }
+
 
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
