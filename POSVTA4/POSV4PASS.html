@@ -194,12 +194,6 @@
         <button id="btnCam" class="cam-btn" type="button">📷</button>
         <div id="resultados" class="search-results"></div>
       </div>
-
-      <!-- 🔢 CANTIDAD A AGREGAR -->
-      <div class="field">
-        <label>Cantidad</label>
-        <input id="cantidadInput" type="number" step="0.01" min="0.01" value="1">
-      </div>
     </section>
 
     <!-- 🧾 BLOQUE 3.2 — TABLA DEL CARRITO -->
@@ -578,16 +572,29 @@ function seleccionarProducto(prod) {
   $("#cantidadInput").focus();
 }
 
-// 💡 Confirmar cantidad al presionar Enter
-$("#cantidadInput").addEventListener("keydown", e => {
-  if (e.key === "Enter" && productoTemporal) {
-    const cant = parseFloat($("#cantidadInput").value) || 1;
-    addProduct(productoTemporal, cant);
-    productoTemporal = null;
-    $("#cantidadInput").value = 1;
-    $("#buscador").focus();
+
+// Reemplaza la lógica de cantidad por prompt() flotante
+function solicitarCantidadYAgregar(prod) {
+  let cantidadStr = prompt("Cantidad:", "1");
+  if (cantidadStr === null) return; // Cancelado
+  cantidadStr = cantidadStr.replace(",", "."); // Permitir coma decimal
+  const cantidad = parseFloat(cantidadStr);
+
+  if (isNaN(cantidad) || cantidad <= 0) {
+    alert("Introduce una cantidad válida (solo números).");
+    return;
   }
-});
+
+  addProduct(prod, cantidad);
+  $("#buscador").value = "";
+  $("#buscador").focus();
+}
+
+// Al seleccionar producto desde la búsqueda:
+function seleccionarProducto(prod) {
+  productoTemporal = null; // ya no se usa el input cantidad
+  solicitarCantidadYAgregar(prod);
+}
 
 // 🔎 Búsqueda en vivo
 $("#buscador").addEventListener("input", () => {
