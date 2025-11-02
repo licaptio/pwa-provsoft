@@ -147,6 +147,17 @@
       header, .btn, .actions, #loginScreen, #modalCobro, #qrReaderContainer { display:none!important; }
     }
     @page { size:72mm auto; margin:0; }
+#pantallaVenta, #pantallaCarrito {
+  transition: all 0.3s ease-in-out;
+}
+#pantallaCarrito {
+  margin-top: 10px;
+}
+#btnRegresar {
+  background: linear-gradient(180deg, #888, #666);
+  color: #fff;
+}
+
   </style>
 </head>
 
@@ -175,59 +186,56 @@
   </header>
 
   <!-- 🧩 CUERPO PRINCIPAL -->
-  <main class="wrap">
+  <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
+<section id="pantallaVenta" class="controls">
+  <!-- 🧍‍♂️ CAMPO CLIENTE -->
+  <div class="field">
+    <label>Cliente</label>
+    <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+    <datalist id="clientesList"></datalist>
+  </div>
 
-    <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
-    <section class="controls">
+  <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
+  <div class="field searchbox">
+    <label>Buscar</label>
+    <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+    <button id="btnCam" class="cam-btn" type="button">📷</button>
+    <div id="resultados" class="search-results"></div>
+  </div>
 
-      <!-- 🧍‍♂️ CAMPO CLIENTE -->
-      <div class="field">
-        <label>Cliente</label>
-        <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
-        <datalist id="clientesList"></datalist>
-      </div>
+  <!-- 🛒 BOTÓN PARA VER CARRITO -->
+  <button id="btnVerCarrito" class="btn" style="background:linear-gradient(180deg,#00416A,#0c6cbd);">
+    🛒 Ver Carrito
+  </button>
+</section>
 
-      <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
-      <div class="field searchbox">
-        <label>Buscar</label>
-        <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-        <button id="btnCam" class="cam-btn" type="button">📷</button>
-        <div id="resultados" class="search-results"></div>
-      </div>
-    </section>
+<!-- 🧾 BLOQUE NUEVO — CARRITO OCULTO -->
+<section id="pantallaCarrito" class="card" style="display:none;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cant.</th>
+          <th>Importe</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
 
-    <!-- 🧾 BLOQUE 3.2 — TABLA DEL CARRITO -->
-    <section class="card">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Cant.</th>
-              <th>Importe</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
+  <div class="totals">
+    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+  </div>
 
-      <!-- 💰 TOTALES DINÁMICOS -->
-      <div class="totals">
-        <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-        <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-        <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
-      </div>
-    </section>
-
-    <!-- ⚙️ BLOQUE 3.3 — BOTONES DE ACCIÓN -->
-    <section class="actions">
-      <button class="btn" id="btnCobrar">Cobrar</button>
-      <button class="btn" id="btnResumen"
-        style="background:linear-gradient(180deg,#0c6cbd,#00416A);">
-        📊 Ver Resumen Diario
-      </button>
-    </section>
+  <div class="actions">
+    <button class="btn" id="btnCobrar">Cobrar</button>
+    <button class="btn" id="btnRegresar" style="background:#aaa;">🔙 Regresar</button>
+  </div>
+</section>
 
   </main>
 </div>
@@ -1061,6 +1069,24 @@ window.addEventListener("beforeunload",e=>{
 document.getElementById("btnLogout").addEventListener("click",()=>{
   bloqueoSalida=false;
 });
+// 🎛️ Alternar entre Pantalla de Venta y Pantalla de Carrito
+const pantallaVenta = document.getElementById("pantallaVenta");
+const pantallaCarrito = document.getElementById("pantallaCarrito");
+const btnVerCarrito = document.getElementById("btnVerCarrito");
+const btnRegresar = document.getElementById("btnRegresar");
+
+btnVerCarrito.addEventListener("click", () => {
+  pantallaVenta.style.display = "none";
+  pantallaCarrito.style.display = "block";
+  render(); // Actualiza totales y productos
+});
+
+btnRegresar.addEventListener("click", () => {
+  pantallaCarrito.style.display = "none";
+  pantallaVenta.style.display = "flex";
+  document.getElementById("buscador").focus();
+});
+
 </script>
 
 </body>
