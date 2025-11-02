@@ -696,8 +696,6 @@ buscador.addEventListener("input", () => {
   resultadosDiv.style.display = "none";
 });
 
-const beep = (freq = 800) => {
-
 /* ===========================================================
    💳 SECCIÓN 11: MODAL DE COBRO Y DESCUENTO DINÁMICO
    =========================================================== */
@@ -968,6 +966,9 @@ async function fijarClientePublico(){
     }
   }catch(e){console.warn("Cliente público no encontrado");}
 }
+// 👇 AGREGA ESTO AL FINAL
+})(); // ✅ cierre del async
+
 </script>
 
 <!-- 🧾 BLOQUE 6: PLANTILLA DEL TICKET DE VENTA -->
