@@ -253,38 +253,58 @@
          style="padding:12px 16px;background:#0c6cbd;color:#fff;font-weight:700;">
       Cobro
     </div>
-    <div class="modal-b"
-         style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-      <div class="row big" style="justify-content:space-between">
-        <span>Total a pagar:</span><span id="cobroTotal">$0.00</span>
-      </div>
-      <label for="metodoPago">Método de pago</label>
-      <select id="metodoPago">
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="transferencia">Transferencia</option>
-        <option value="mixto">Mixto</option>
-      </select>
-      <button id="btnSolicitarDescuento" class="btn" 
-        style="background:linear-gradient(180deg,#888,#666);font-size:16px;">
-  
-        🧾 Aplicar Descuento
-      </button>
-      <div id="descuentoInfo" style="font-size:14px;color:#00416A;font-weight:600;display:none;">
-        Descuento aplicado: <span id="descuentoResumen">$0.00</span>
-      </div>
-      <label for="montoRecibido">Monto recibido</label>
-      <input id="montoRecibido" type="number" step="0.01" min="0">
-      <div class="row" style="justify-content:space-between">
-        <span>Cambio:</span><span id="montoCambio">$0.00</span>
-      </div>
-      <label for="notasCobro">Notas</label>
-      <textarea id="notasCobro" rows="2" style="resize:none"></textarea>
-      <div style="display:flex;gap:10px;margin-top:10px;">
-        <button class="btn" id="btnCancelarCobro" style="background:#aaa;">Cancelar</button>
-        <button class="btn" id="btnConfirmarCobro">Confirmar</button>
-      </div>
-    </div>
+<div class="modal-b"
+     style="padding:18px;display:flex;flex-direction:column;gap:14px;font-size:16px;">
+
+  <!-- 💰 Total -->
+  <div class="row big" style="justify-content:space-between;font-size:22px;">
+    <span>Total a pagar:</span>
+    <span id="cobroTotal" 
+          style="font-weight:700;color:#0c6cbd;font-size:24px;">$0.00</span>
+  </div>
+
+  <!-- 💵 Monto recibido -->
+  <label for="montoRecibido" style="font-weight:600;">Monto recibido</label>
+  <input id="montoRecibido" type="number" step="0.01" min="0" inputmode="decimal"
+         placeholder="Ej. 7000.00"
+         style="padding:16px 12px;border-radius:10px;border:1px solid #ccc;
+                font-size:22px;text-align:center;font-weight:700;
+                background:#f9f9f9;">
+
+  <!-- 💸 Cambio -->
+  <div class="row big" 
+       style="justify-content:space-between;align-items:center;
+              padding:10px 0;border-top:2px dashed #ddd;
+              border-bottom:2px dashed #ddd;">
+    <span style="font-size:22px;font-weight:700;color:#111;">Cambio:</span>
+    <span id="montoCambio"
+          style="font-size:26px;font-weight:800;color:#1e8e3e;">$0.00</span>
+  </div>
+
+  <!-- 🗒️ Notas -->
+  <label for="notasCobro" style="font-weight:600;">Notas (opcional)</label>
+  <textarea id="notasCobro" rows="2" style="resize:none;padding:10px;
+            border-radius:10px;border:1px solid #ccc;font-size:15px;"></textarea>
+
+  <!-- 🧾 Descuento aplicado -->
+  <div id="descuentoInfo"
+       style="font-size:15px;color:#00416A;font-weight:600;
+              text-align:right;display:none;">
+    Descuento aplicado: <span id="descuentoResumen">$0.00</span>
+  </div>
+
+  <!-- 🔘 Botones principales -->
+  <div style="display:flex;gap:10px;justify-content:space-between;margin-top:10px;">
+    <button class="btn" id="btnSolicitarDescuento"
+            style="flex:1;background:linear-gradient(180deg,#888,#666);
+                   font-size:16px;">🧾 Descuento</button>
+    <button class="btn" id="btnCancelarCobro" 
+            style="flex:1;background:#aaa;font-size:16px;">Cancelar</button>
+    <button class="btn" id="btnConfirmarCobro" 
+            style="flex:1;background:linear-gradient(180deg,#0c6cbd,#094d85);
+                   font-size:16px;">Confirmar</button>
+  </div>
+</div>
   </div>
 </div>
 
