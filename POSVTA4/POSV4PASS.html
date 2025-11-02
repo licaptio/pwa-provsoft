@@ -638,15 +638,15 @@ function addProduct(prod, cant = 1) {
   const precioUnit = obtenerPrecioSegunCantidad(prod, cantidadNueva);
 
   if (existente) {
-    existente.cantidad = cantidadNueva;
-    existente.precioUnit = precioUnit;
-    existente.importe = existente.cantidad * precioUnit;
-  } else {
-    carrito.push({...prod,cantidad:cant,precioUnit,importe:cant*precioUnit});
-  }
-  render();
+  existente.cantidad = cantidadNueva;
+  existente.precioUnit = precioUnit;
+  existente.importe = existente.cantidad * precioUnit;
+} else {
+  carrito.push({...prod,cantidad:cant,precioUnit,importe:cant*precioUnit});
 }
-function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+renderDebounced(); // 👈 Nueva versión optimizada
+}
+function delItem(id){ carrito=carrito.filter(x=>x.id!==id); renderDebounced(); }
 window.delItem=delItem;
 
 /* ===========================================================
@@ -721,6 +721,15 @@ function render(){
   $("#lblSubtotal").textContent=money(subtotal);
   $("#lblImpuestos").textContent=money(impuestos);
   $("#lblTotal").textContent=money(total);
+}
+/* ===========================================================
+   ⚙️ SECCIÓN 9.1: RENDER OPTIMIZADO CON DEBOUNCE
+   =========================================================== */
+let renderTimer;
+
+function renderDebounced() {
+  clearTimeout(renderTimer);      // Cancelar render pendiente
+  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
 }
 
 /* ===========================================================
@@ -1430,8 +1439,9 @@ const btnRegresar = document.getElementById("btnRegresar");
 btnVerCarrito.addEventListener("click", () => {
   pantallaVenta.style.display = "none";
   pantallaCarrito.style.display = "block";
-  render(); // Actualiza totales y productos
+  renderDebounced(); // Versión optimizada
 });
+
 
 btnRegresar.addEventListener("click", () => {
   pantallaCarrito.style.display = "none";
