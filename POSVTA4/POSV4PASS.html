@@ -230,10 +230,13 @@
     <button class="btn" id="btnRegresar" style="background:#aaa;">🔙 Regresar</button>
   </div>
 </section>
-
-  </main>
+<!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
+<div id="bottomBar">
+  <button id="btnVerCarrito" class="bar-btn">🛒 Ver Carrito</button>
+  <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
+  <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
 </div>
-
+</div> <!-- 👈 cierre de #posApp --> 
 <!-- 📸 LIBRERÍAS EXTERNAS -->
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -1452,12 +1455,6 @@ btnRegresar.addEventListener("click", () => {
     </div>
   </div>
 </div>
-<!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
-<div id="bottomBar">
-  <button id="btnVerCarrito" class="bar-btn">🛒 Ver Carrito</button>
-  <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
-  <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
-</div>
 
 <style>
   /* 🎯 Barra inferior fija profesional */
@@ -1496,6 +1493,11 @@ btnRegresar.addEventListener("click", () => {
     #bottomBar { padding: 8px 0; }
     .bar-btn { font-size: 14px; padding: 8px 4px; }
   }
+ /* 🚫 Ocultar barra inferior cuando el POS esté oculto */
+  #posApp[style*="display: none"] #bottomBar {
+    display: none !important;
+  }
+
 </style>
 
 </body>
