@@ -1,8 +1,7 @@
 const CACHE_NAME = 'provsoft-pos-v1';
 const STATIC_ASSETS = [
   './',
-  './POSV4PASS.html',
-  './app.js', // 👈 agrega esta línea
+  './POSV4PASS.html',     // ✅ Nombre real del archivo
   './manifest.json',
   './logo_proveedora.webp',
   './html5-qrcode.min.js',
@@ -13,54 +12,21 @@ const STATIC_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap'
 ];
 
-// 📦 INSTALACIÓN DEL SW: cachea todos los archivos base
+// 🧩 Instalación
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-  );
-});
-
-// ⚙️ ACTIVACIÓN: limpia versiones antiguas del cache
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(
+        STATIC_ASSETS.map(url =>
+          fetch(url)
+            .then(res => {
+              if (!res.ok) throw new Error(`❌ No se pudo cachear ${url}`);
+              return cache.put(url, res);
+            })
+            .catch(err => console.warn("⚠️", err.message))
+        )
+      )
     )
   );
-  self.clients.claim();
-});
-
-// ⚡️ ESTRATEGIA DE CACHE: “Network first, fallback to cache”
-self.addEventListener('fetch', (event) => {
-  const req = event.request;
-
-  // Ignorar llamadas a Firestore/Telegram (que requieren conexión)
-  if (req.url.includes('firestore') || req.url.includes('telegram')) return;
-
-  event.respondWith(
-    fetch(req)
-      .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
-        return res;
-      })
-      .catch(() => caches.match(req))
-  );
-});
-
-// 🛰️ Sincronización en segundo plano (ventas pendientes)
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'sync-ventas-pendientes') {
-    console.log('🔁 Sincronizando ventas pendientes...');
-    const clients = await self.clients.matchAll({ includeUncontrolled: true });
-    clients.forEach(client => client.postMessage({ action: 'sincronizar' }));
-  }
-});
-
-// 🔔 Notificación cuando vuelva la conexión
-self.addEventListener('online', async () => {
-  const clients = await self.clients.matchAll({ includeUncontrolled: true });
-  clients.forEach(client => client.postMessage({ action: 'sincronizar' }));
+  self.skipWaiting();
 });
