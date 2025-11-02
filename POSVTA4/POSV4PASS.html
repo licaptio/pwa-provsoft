@@ -588,11 +588,6 @@ function solicitarCantidadYAgregar(prod) {
   $("#buscador").focus();
 }
 
-// Al seleccionar producto desde la búsqueda:
-function seleccionarProducto(prod) {
-  productoTemporal = null; // ya no se usa el input cantidad
-  solicitarCantidadYAgregar(prod);
-}
 
 // 🔎 Búsqueda en vivo
 $("#buscador").addEventListener("input", () => {
