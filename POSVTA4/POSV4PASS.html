@@ -981,77 +981,146 @@ async function guardarVentaEnFirestore(v) {
   }
 }
 
-
 /* ===========================================================
-   📲 SECCIÓN 13: ENVÍO A TELEGRAM (Mensaje + PDF + Ubicación)
+   📲 SECCIÓN 13: ENVÍO A TELEGRAM (ROBUSTO CON FALLBACK)
    =========================================================== */
 async function enviarTelegram(v){
   try{
-    const BOT_TOKEN="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT_ID="6617988297";
+    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+    const CHAT_ID = "6617988297";
 
-    const ubicacion=await obtenerUbicacionRobusta();
-    v.ubicacion=ubicacion;
+    const ubicacion = await obtenerUbicacionRobusta().catch(() => null);
+    v.ubicacion = ubicacion;
 
     // 🧾 Generar PDF con jsPDF
     const { jsPDF } = window.jspdf;
-    const pdf=new jsPDF();
-    pdf.setFont("courier","bold");
+    const pdf = new jsPDF();
+    pdf.setFont("courier", "bold");
     pdf.setFontSize(12);
-    pdf.text("PROVEEDORA MATRIZ",105,15,{align:"center"});
-    pdf.setFont("courier","normal");
-    pdf.text("MADERO 690 SUR, CENTRO",105,21,{align:"center"});
-    pdf.text("LINARES, N.L. 67700",105,27,{align:"center"});
-    pdf.text("RFC: PDD-031204-KL5",105,33,{align:"center"});
-    pdf.line(10,36,200,36);
-    pdf.text(`# Venta: ${v.folio}`,10,42);
-    pdf.text(`Fecha: ${v.fecha_txt}`,130,42);
-    pdf.line(10,45,200,45);
-    let y=52;
+    pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
+    pdf.setFont("courier", "normal");
+    pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
+    pdf.text("LINARES, N.L. 67700", 105, 27, { align: "center" });
+    pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
+    pdf.line(10, 36, 200, 36);
+    pdf.text(`# Venta: ${v.folio}`, 10, 42);
+    pdf.text(`Fecha: ${v.fecha_txt}`, 130, 42);
+    pdf.line(10, 45, 200, 45);
 
-    // 🛍 Detalle de productos
-    (v.detalle||[]).forEach(it=>{
-      const nombre=(it.nombre||"").substring(0,40);
-      pdf.text(nombre,10,y); y+=5;
-      pdf.text(`Cant: ${it.cantidad.toFixed(3)}   $${it.precioUnit.toFixed(2)}   $${(it.cantidad*it.precioUnit).toFixed(2)}`,10,y);
-      y+=6; if(y>270){pdf.addPage();y=20;}
+    let y = 52;
+    (v.detalle || []).forEach(it => {
+      const nombre = (it.nombre || "").substring(0, 40);
+      pdf.text(nombre, 10, y); y += 5;
+      pdf.text(`Cant: ${it.cantidad.toFixed(3)}   $${it.precioUnit.toFixed(2)}   $${(it.cantidad * it.precioUnit).toFixed(2)}`, 10, y);
+      y += 6; if (y > 270) { pdf.addPage(); y = 20; }
     });
 
     // 💰 Totales
-    pdf.line(10,y,200,y); y+=8;
-    const total=v.resumen_financiero?.total||0;
-    const desc=v.descuento_monto||0;
-    const impuestos=v.resumen_financiero?.impuestos||0;
-    const formatoNum=n=>(Number(n||0)).toLocaleString("es-MX",{minimumFractionDigits:2});
-    pdf.setFont("courier","bold");
-    pdf.text(`Total: $${formatoNum(total)}`,10,y); y+=5;
-    pdf.text(`Desc:  $${formatoNum(desc)}`,10,y); y+=5;
-    pdf.text(`Imp:   $${formatoNum(impuestos)}`,10,y); y+=8;
-    pdf.text("¡Gracias por su compra!",105,y,{align:"center"});
+    pdf.line(10, y, 200, y); y += 8;
+    const total = v.resumen_financiero?.total || 0;
+    const desc = v.descuento_monto || 0;
+    const impuestos = v.resumen_financiero?.impuestos || 0;
+    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", { minimumFractionDigits: 2 });
+    pdf.setFont("courier", "bold");
+    pdf.text(`Total: $${formatoNum(total)}`, 10, y); y += 5;
+    pdf.text(`Desc:  $${formatoNum(desc)}`, 10, y); y += 5;
+    pdf.text(`Imp:   $${formatoNum(impuestos)}`, 10, y); y += 8;
+    pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
 
-    const pdfBlob=pdf.output("blob");
+    const pdfBlob = pdf.output("blob");
 
-    const mensaje=`
+    // 📨 Mensaje de texto
+    const mensaje = `
 🧾 *Nueva Venta con Descuento*
-👤 *Vendedor:* ${USUARIO_LOGUEADO?.nombre||"Desconocido"}
+👤 *Vendedor:* ${USUARIO_LOGUEADO?.nombre || "Desconocido"}
 💰 *Total:* $${formatoNum(total)}
 💸 *Descuento:* ${v.descuento_porcentaje}% ($${formatoNum(desc)})
 📄 *Folio:* ${v.folio}
 🕓 *Fecha:* ${v.fecha_txt}
 `.trim();
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({chat_id:CHAT_ID,text:mensaje,parse_mode:"Markdown"})
+    // 🟢 Enviar mensaje (con manejo de error)
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: CHAT_ID, text: mensaje, parse_mode: "Markdown" })
+    })
+    .catch(err => {
+      console.error("⚠️ Error al enviar mensaje a Telegram:", err);
+      alert("⚠️ No se pudo enviar el mensaje a Telegram (modo offline).");
     });
 
-    const formData=new FormData();
-    formData.append("chat_id",CHAT_ID);
-    formData.append("document",pdfBlob,`Ticket_${v.folio}.pdf`);
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,{method:"POST",body:formData});
-    console.log("✅ Enviado a Telegram:",v.folio);
-  }catch(err){console.error("❌ Telegram error:",err);}
+    // 🟢 Enviar PDF (con manejo de error independiente)
+    const formData = new FormData();
+    formData.append("chat_id", CHAT_ID);
+    formData.append("document", pdfBlob, `Ticket_${v.folio}.pdf`);
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+      method: "POST",
+      body: formData
+    })
+    .catch(err => {
+      console.error("⚠️ Error al enviar documento a Telegram:", err);
+      alert("⚠️ No se pudo enviar el ticket PDF a Telegram (modo offline).");
+    });
+
+    console.log("✅ Intento de envío a Telegram completado:", v.folio);
+
+  } catch (err) {
+    console.error("❌ Error global en enviarTelegram:", err);
+    alert("⚠️ No se pudo procesar el envío a Telegram (revisa conexión).");
+  }
 }
+/* ===========================================================
+   📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
+   =========================================================== */
+
+/**
+ * Guarda una venta pendiente de enviar a Telegram.
+ */
+function guardarVentaPendiente(v) {
+  try {
+    const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
+    pendientes.push(v);
+    localStorage.setItem("ventas_pendientes_telegram", JSON.stringify(pendientes));
+    console.warn("📦 Venta guardada en cola offline:", v.folio);
+  } catch (err) {
+    console.error("❌ Error guardando venta pendiente:", err);
+  }
+}
+
+/**
+ * Intenta reenviar todas las ventas pendientes cuando hay conexión.
+ */
+async function reenviarVentasPendientes() {
+  const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
+  if (pendientes.length === 0) return;
+
+  console.log(`📨 Intentando reenviar ${pendientes.length} ventas pendientes...`);
+
+  for (const v of pendientes) {
+    try {
+      await enviarTelegram(v);
+      console.log("✅ Venta reenviada:", v.folio);
+    } catch (err) {
+      console.error("⚠️ Fallo al reenviar:", v.folio, err);
+      // Si vuelve a fallar, no la eliminamos aún
+      return;
+    }
+  }
+
+  // Si todo salió bien, limpiamos la cola
+  localStorage.removeItem("ventas_pendientes_telegram");
+  console.log("🧹 Cola de ventas pendiente vaciada.");
+}
+
+/**
+ * Detecta cuando vuelve la conexión y reintenta los envíos.
+ */
+window.addEventListener("online", () => {
+  toast("✅ Conexión restaurada. Reenviando ventas pendientes...", "#1e8e3e");
+  setTimeout(reenviarVentasPendientes, 1000);
+});
 
 /* ===========================================================
    🧾 SECCIÓN 14: TICKET VISUAL E IMPRESIÓN
