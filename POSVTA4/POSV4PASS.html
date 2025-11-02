@@ -275,7 +275,9 @@
         <option value="transferencia">Transferencia</option>
         <option value="mixto">Mixto</option>
       </select>
-      <button id="btnSolicitarDescuento" class="btn" style="background:#888;">
+      <button id="btnSolicitarDescuento" class="btn" 
+        style="background:linear-gradient(180deg,#888,#666);font-size:16px;">
+  
         🧾 Aplicar Descuento
       </button>
       <div id="descuentoInfo" style="font-size:14px;color:#00416A;font-weight:600;display:none;">
@@ -772,6 +774,61 @@ $("#btnConfirmarCobro").onclick = async () => {
   render();
   cerrarCobro();
 };
+const venta = {
+  folio,
+  rutaId,
+  cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
+  cortado: false,
+  descuento_porcentaje: descuentoAutorizado,
+  descuento_monto: tot.descuento,
+  resumen_financiero: tot,
+  fecha: serverTimestamp(),
+  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+  usuarioId: USUARIO_LOGUEADO?.id || "",
+  usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
+  notas: $("#notasCobro").value || "",
+  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
+
+  // 👇 AGREGA ESTO:
+  detalle: carrito.map(x => ({
+    nombre: x.nombre,
+    cantidad: x.cantidad,
+    precioUnit: x.precioUnit,
+    importe: x.importe
+  }))
+};
+const venta = {
+  folio,
+  rutaId,
+  cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
+  cortado: false,
+  descuento_porcentaje: descuentoAutorizado,
+  descuento_monto: tot.descuento,
+  resumen_financiero: tot,
+  fecha: serverTimestamp(),
+  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+  usuarioId: USUARIO_LOGUEADO?.id || "",
+  usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
+  notas: $("#notasCobro").value || "",
+  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
+
+  // 👇 AGREGA ESTO:
+  detalle: carrito.map(x => ({
+    nombre: x.nombre,
+    cantidad: x.cantidad,
+    precioUnit: x.precioUnit,
+    importe: x.importe
+  }))
+};
+async function guardarVentaEnFirestore(v) {
+  try {
+    const ref = collection(db, "ventas_ruta");
+    await addDoc(ref, v);
+    console.log("✅ Venta guardada:", v.folio);
+  } catch (e) {
+    console.error("❌ Error guardando venta:", e);
+  }
+}
 
 
 /* ===========================================================
