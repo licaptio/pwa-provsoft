@@ -636,12 +636,11 @@ function solicitarCantidadYAgregar(prod) {
   });
 }
 /* ===========================================================
-   🔎 RESTAURAR BÚSQUEDA POR CÓDIGO Y NOMBRE
+   🔎 RESTAURAR BÚSQUEDA POR CÓDIGO, PALABRA Y ESCÁNER
    =========================================================== */
 const buscador = document.getElementById("buscador");
 const resultadosDiv = document.getElementById("resultados");
 
-// 🔍 Buscar al presionar ENTER
 buscador.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -650,7 +649,7 @@ buscador.addEventListener("keydown", e => {
 
     const resultados = buscarLocal(texto);
 
-    // 🎵 Beep al encontrar o error
+    // 🎵 Pequeño beep de feedback
     const beep = (freq = 800) => {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -659,44 +658,45 @@ buscador.addEventListener("keydown", e => {
         osc.connect(gain); gain.connect(ctx.destination);
         osc.type = "sine"; osc.frequency.value = freq;
         gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        osc.start(); osc.stop(ctx.currentTime + 0.12);
+        osc.start(); osc.stop(ctx.currentTime + 0.1);
       } catch (err) {}
     };
 
+    resultadosDiv.innerHTML = "";
+
     if (resultados.length === 1) {
-      beep(900);
+      beep(950);
       seleccionarProducto(resultados[0]);
       resultadosDiv.style.display = "none";
     } else if (resultados.length > 1) {
-      // Mostrar lista si hay más de un resultado
-      resultadosDiv.innerHTML = "";
+      // Mostrar lista de coincidencias
       resultados.forEach(p => {
         const item = document.createElement("div");
         item.className = "result-item";
-        item.innerHTML = `
-          <span>${p.nombre}</span>
-          <small>${money(p.precioPublico)}</small>
-        `;
+        item.innerHTML = `<span>${p.nombre}</span><small>${money(p.precioPublico)}</small>`;
         item.addEventListener("click", () => {
-          beep(900);
+          beep(950);
           seleccionarProducto(p);
           resultadosDiv.style.display = "none";
         });
         resultadosDiv.appendChild(item);
       });
       resultadosDiv.style.display = "block";
+      beep(700);
     } else {
-      beep(500); // No encontrado
-      resultadosDiv.innerHTML = "<div style='padding:10px;color:#999'>Sin coincidencias</div>";
+      resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
       resultadosDiv.style.display = "block";
+      beep(500);
     }
   }
 });
 
-// Ocultar resultados al escribir algo nuevo
+// Ocultar sugerencias al escribir de nuevo
 buscador.addEventListener("input", () => {
   resultadosDiv.style.display = "none";
 });
+
+const beep = (freq = 800) => {
 
 /* ===========================================================
    💳 SECCIÓN 11: MODAL DE COBRO Y DESCUENTO DINÁMICO
