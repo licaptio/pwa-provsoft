@@ -732,6 +732,11 @@ let productoTemporal = null;
 function seleccionarProducto(prod) {
   productoTemporal = null; // ya no se usa el input cantidad
   solicitarCantidadYAgregar(prod);
+
+  // 🧹 Limpieza visual y cierre de sugerencias
+  resultadosDiv.style.display = "none";
+  buscador.value = "";
+  buscador.focus();
 }
 
 // 📱 Modal con teclado numérico en móviles + beep al abrir
