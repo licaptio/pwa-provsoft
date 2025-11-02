@@ -585,33 +585,58 @@ function seleccionarProducto(prod) {
   solicitarCantidadYAgregar(prod);
 }
 
-
-// Reemplaza la lógica de cantidad por prompt() flotante
+// 📱 Modal con teclado numérico en móviles + beep al abrir
 function solicitarCantidadYAgregar(prod) {
-  let cantidadStr = prompt("Cantidad:", "1");
-  if (cantidadStr === null) return; // Cancelado
-  cantidadStr = cantidadStr.replace(",", "."); // Permitir coma decimal
-  const cantidad = parseFloat(cantidadStr);
+  const modal = document.getElementById("modalCantidad");
+  const input = document.getElementById("inputCantidadModal");
+  const btnAceptar = document.getElementById("btnAceptarCant");
+  const btnCancelar = document.getElementById("btnCancelarCant");
 
-  if (isNaN(cantidad) || cantidad <= 0) {
-    alert("Introduce una cantidad válida (solo números).");
-    return;
+  // 🎵 Beep al solicitar cantidad
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.value = 950;
+    osc.start(); gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (err) { console.warn("No se pudo reproducir beep:", err); }
+
+  modal.style.display = "flex";
+  input.value = "1";
+  input.focus();
+
+  function cerrar() {
+    modal.style.display = "none";
+    btnAceptar.removeEventListener("click", confirmar);
+    btnCancelar.removeEventListener("click", cancelar);
   }
 
-  addProduct(prod, cantidad);
-  $("#buscador").value = "";
-  $("#buscador").focus();
+  function confirmar() {
+    const cantidad = parseFloat(input.value.replace(",", "."));
+    if (isNaN(cantidad) || cantidad <= 0) {
+      alert("Introduce una cantidad válida (solo números).");
+      return;
+    }
+    addProduct(prod, cantidad);
+    $("#buscador").value = "";
+    $("#buscador").focus();
+    cerrar();
+  }
+
+  function cancelar() {
+    cerrar();
+    $("#buscador").focus();
+  }
+
+  btnAceptar.addEventListener("click", confirmar);
+  btnCancelar.addEventListener("click", cancelar);
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") confirmar();
+  });
 }
-
-// 🔎 Búsqueda en vivo (auto cantidad + beep al escanear)
-$("#buscador").addEventListener("input", () => {
-  const val = $("#buscador").value.trim().toLowerCase();
-  const cont = $("#resultados");
-  if (!val) {
-    cont.style.display = "none";
-    cont.innerHTML = "";
-    return;
-  }
 
   // 🎵 Función beep simple (frecuencia configurable)
   function beep(frequency = 1000, duration = 120) {
@@ -1163,6 +1188,21 @@ btnRegresar.addEventListener("click", () => {
 });
 
 </script>
+<!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
+<div id="modalCantidad" 
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+            z-index:4000;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:20px;border-radius:12px;width:80%;max-width:320px;
+              text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.2);">
+    <h3 style="margin-bottom:10px;color:#00416A;">Cantidad</h3>
+    <input id="inputCantidadModal" type="number" inputmode="decimal" min="0" step="0.01"
+           style="width:100%;padding:10px;font-size:18px;border-radius:8px;border:1px solid #ccc;text-align:center;">
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button id="btnCancelarCant" class="btn" style="background:#aaa;">Cancelar</button>
+      <button id="btnAceptarCant" class="btn">Aceptar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
