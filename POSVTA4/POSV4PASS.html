@@ -336,17 +336,6 @@
 
 // ⚙️ BLOQUE 5: SCRIPT PRINCIPAL (FIREBASE + LÓGICA POS)
 
-/* ===========================================================
-   📦 SECCIÓN 1: IMPORTS Y CONFIGURACIÓN DE FIREBASE
-   =========================================================== */
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, setDoc, serverTimestamp,
-  runTransaction, doc, getDocs, query, where, limit
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { obtenerUbicacionRobusta } from "./geoHelper.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
