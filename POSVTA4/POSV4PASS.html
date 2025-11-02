@@ -565,11 +565,9 @@ window.addProduct = addProduct;
 window.render = render;
 let productoTemporal = null;
 
-// ✅ Seleccionar producto del buscador
 function seleccionarProducto(prod) {
-  productoTemporal = prod;
-  $("#cantidadInput").value = "";
-  $("#cantidadInput").focus();
+  productoTemporal = null; // ya no se usa el input cantidad
+  solicitarCantidadYAgregar(prod);
 }
 
 
