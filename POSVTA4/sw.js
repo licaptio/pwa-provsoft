@@ -1,7 +1,14 @@
+/* ===========================================================
+   🛰️ SERVICE WORKER – PROVSOFT POS
+   Autor: Gerardo Ríos Quesada
+   Fecha: 02-Nov-2025
+   Descripción: Cache inteligente + sincronización ventas
+   =========================================================== */
+
 const CACHE_NAME = 'provsoft-pos-v1';
 const STATIC_ASSETS = [
   './',
-  './POSV4PASS.html',     // ✅ Nombre real del archivo
+  './POSV4PASS.html',                // HTML principal
   './manifest.json',
   './logo_proveedora.webp',
   './html5-qrcode.min.js',
@@ -12,21 +19,88 @@ const STATIC_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap'
 ];
 
-// 🧩 Instalación
+/* ===========================================================
+   📦 INSTALACIÓN: cachea los archivos base
+   =========================================================== */
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      Promise.all(
-        STATIC_ASSETS.map(url =>
-          fetch(url)
-            .then(res => {
-              if (!res.ok) throw new Error(`❌ No se pudo cachear ${url}`);
-              return cache.put(url, res);
-            })
-            .catch(err => console.warn("⚠️", err.message))
-        )
-      )
+    caches.open(CACHE_NAME)
+      .then(async (cache) => {
+        for (const url of STATIC_ASSETS) {
+          try {
+            const res = await fetch(url, { cache: 'no-cache' });
+            if (res.ok) await cache.put(url, res.clone());
+            else console.warn(`⚠️ No se pudo cachear: ${url} (${res.status})`);
+          } catch (err) {
+            console.warn(`⚠️ Error cacheando ${url}:`, err.message);
+          }
+        }
+      })
+      .then(() => self.skipWaiting())
+  );
+});
+
+/* ===========================================================
+   ⚙️ ACTIVACIÓN: limpia versiones antiguas
+   =========================================================== */
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
-  self.skipWaiting();
+  self.clients.claim();
 });
+
+/* ===========================================================
+   ⚡️ FETCH: “Network first, fallback to cache”
+   =========================================================== */
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+
+  // ⛔ Ignorar peticiones a Firestore, Telegram o HTTP externos no seguros
+  if (
+    req.url.includes('firestore') ||
+    req.url.includes('telegram') ||
+    req.url.startsWith('chrome-extension') ||
+    req.url.startsWith('data:')
+  ) return;
+
+  event.respondWith(
+    fetch(req)
+      .then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        return res;
+      })
+      .catch(() => caches.match(req))
+  );
+});
+
+/* ===========================================================
+   🔁 SINCRONIZACIÓN EN SEGUNDO PLANO
+   =========================================================== */
+self.addEventListener('sync', async (event) => {
+  if (event.tag === 'sync-ventas-pendientes') {
+    console.log('🔁 Sincronizando ventas pendientes...');
+    const clients = await self.clients.matchAll({ includeUncontrolled: true });
+    clients.forEach((client) =>
+      client.postMessage({ action: 'sincronizar' })
+    );
+  }
+});
+
+/* ===========================================================
+   📡 RECONEXIÓN AUTOMÁTICA
+   =========================================================== */
+self.addEventListener('online', async () => {
+  const clients = await self.clients.matchAll({ includeUncontrolled: true });
+  clients.forEach((client) =>
+    client.postMessage({ action: 'sincronizar' })
+  );
+});
+
+/* ===========================================================
+   ✅ CONFIRMACIÓN DE REGISTRO
+   =========================================================== */
+console.log("🛰️ Service Worker PROVSOFT POS activo:", CACHE_NAME);
