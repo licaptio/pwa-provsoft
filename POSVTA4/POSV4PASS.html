@@ -754,21 +754,30 @@ if (cambio < 0) {
 
   const folio = "VENTA-" + Date.now();
 
-  const venta = {
-    folio,
-    rutaId,
-    cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
-    cortado: false,
-    descuento_porcentaje: descuentoAutorizado,
-    descuento_monto: tot.descuento,
-    resumen_financiero: tot,
-    fecha: serverTimestamp(),
-    fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
-    usuarioId: USUARIO_LOGUEADO?.id || "",
-    usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
-    notas: $("#notasCobro").value || "",
-    autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null
-  };
+const venta = {
+  folio,
+  rutaId,
+  cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
+  cortado: false,
+  descuento_porcentaje: descuentoAutorizado,
+  descuento_monto: tot.descuento,
+  resumen_financiero: tot,
+  fecha: serverTimestamp(),
+  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+  usuarioId: USUARIO_LOGUEADO?.id || "",
+  usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
+  notas: $("#notasCobro").value || "",
+  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
+
+  // ✅ AGREGA ESTA PARTE AQUÍ (adentro del objeto)
+  detalle: carrito.map(x => ({
+    nombre: x.nombre,
+    cantidad: x.cantidad,
+    precioUnit: x.precioUnit,
+    importe: x.importe
+  }))
+};
+
 
   await guardarVentaEnFirestore(venta);
   enviarTelegram(venta);
