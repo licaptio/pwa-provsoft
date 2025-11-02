@@ -604,26 +604,72 @@ function solicitarCantidadYAgregar(prod) {
 }
 
 
-// 🔎 Búsqueda en vivo
+// 🔎 Búsqueda en vivo y por código de barras
 $("#buscador").addEventListener("input", () => {
   const val = $("#buscador").value.trim().toLowerCase();
   const cont = $("#resultados");
-  if (!val) { cont.style.display="none"; cont.innerHTML=""; return; }
+
+  if (!val) {
+    cont.style.display = "none";
+    cont.innerHTML = "";
+    return;
+  }
+
+  // 1️⃣ Buscar coincidencia exacta por código de barras
+  const idByCode = codeIndex.get(val);
+  if (idByCode) {
+    const prod = catalogo.find(x => x.id === idByCode);
+    if (prod) {
+      // Si coincide código exacto, pedir cantidad automáticamente
+      let cantidadStr = prompt("Cantidad:", "1");
+      if (cantidadStr !== null) {
+        cantidadStr = cantidadStr.replace(",", ".");
+        const cantidad = parseFloat(cantidadStr);
+        if (!isNaN(cantidad) && cantidad > 0) {
+          addProduct(prod, cantidad);
+          $("#buscador").value = "";
+          $("#resultados").style.display = "none";
+          return;
+        } else {
+          alert("Introduce una cantidad válida (solo números).");
+          $("#buscador").focus();
+          return;
+        }
+      } else {
+        $("#buscador").focus();
+        return;
+      }
+    }
+  }
+
+  // 2️⃣ Búsqueda parcial o por nombre (igual que antes)
   const res = buscarLocal(val);
-  if (res.length===0) { cont.style.display="none"; cont.innerHTML=""; return; }
-  cont.innerHTML = res.slice(0,20).map(
-    (p,i)=>`
-    <div class="result-item" data-id="${p.id}" data-index="${i}">
-      <span>${p.nombre}</span>
-      <small>${p.codigo}</small>
-    </div>`
+
+  if (res.length === 0) {
+    // Si no hay coincidencias, mostrar aviso
+    cont.innerHTML = `<div class="result-item" style="color:red;text-align:center;">Código no identificado</div>`;
+    cont.style.display = "block";
+    return;
+  }
+
+  // Mostrar lista de coincidencias por nombre
+  cont.innerHTML = res.slice(0, 20).map(
+    (p, i) => `
+      <div class="result-item" data-id="${p.id}" data-index="${i}">
+        <span>${p.nombre}</span>
+        <small>${p.codigo}</small>
+      </div>`
   ).join("");
-  cont.style.display="block";
-  cont.querySelectorAll(".result-item").forEach(el=>{
-    el.onclick=()=>{
+
+  cont.style.display = "block";
+  cont.querySelectorAll(".result-item").forEach(el => {
+    el.onclick = () => {
       const id = el.dataset.id;
-      const prod = catalogo.find(x=>x.id===id);
-      if (prod) { seleccionarProducto(prod); cont.style.display="none"; }
+      const prod = catalogo.find(x => x.id === id);
+      if (prod) {
+        solicitarCantidadYAgregar(prod);
+        cont.style.display = "none";
+      }
     };
   });
 });
