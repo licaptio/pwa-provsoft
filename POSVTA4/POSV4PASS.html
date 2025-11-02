@@ -778,21 +778,6 @@ if (cambio < 0) {
   render();
   cerrarCobro();
 };
-const venta = {
-  folio,
-  rutaId,
-  cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
-  cortado: false,
-  descuento_porcentaje: descuentoAutorizado,
-  descuento_monto: tot.descuento,
-  resumen_financiero: tot,
-  fecha: serverTimestamp(),
-  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
-  usuarioId: USUARIO_LOGUEADO?.id || "",
-  usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
-  notas: $("#notasCobro").value || "",
-  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
-
   // 👇 AGREGA ESTO:
   detalle: carrito.map(x => ({
     nombre: x.nombre,
@@ -801,21 +786,6 @@ const venta = {
     importe: x.importe
   }))
 };
-const venta = {
-  folio,
-  rutaId,
-  cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
-  cortado: false,
-  descuento_porcentaje: descuentoAutorizado,
-  descuento_monto: tot.descuento,
-  resumen_financiero: tot,
-  fecha: serverTimestamp(),
-  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
-  usuarioId: USUARIO_LOGUEADO?.id || "",
-  usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
-  notas: $("#notasCobro").value || "",
-  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
-
   // 👇 AGREGA ESTO:
   detalle: carrito.map(x => ({
     nombre: x.nombre,
