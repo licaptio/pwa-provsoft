@@ -176,14 +176,21 @@
 <div id="posApp" style="display:none;">
 
   <!-- 🧭 ENCABEZADO FIJO SUPERIOR -->
-  <header>
-    <span>POS – Ruta de Venta / Descuento</span>
-    <img src="logo_proveedora.webp" alt="Logo">
+<header>
+  <span>POS – Ruta de Venta / Descuento</span>
+  <img src="logo_proveedora.webp" alt="Logo">
+
+  <div style="position:absolute;right:10px;top:10px;display:flex;gap:6px;">
+    <button id="btnResumen"
+      style="background:#0c6cbd;color:white;
+             border:none;padding:6px 10px;border-radius:8px;
+             font-size:14px;font-weight:600;cursor:pointer;">📊 Resumen</button>
     <button id="btnLogout"
-      style="position:absolute;right:10px;top:10px;background:#c0392b;color:white;
-             border:none;padding:6px 10px;border-radius:8px;font-size:14px;
-             font-weight:600;cursor:pointer;">🚪 Salir</button>
-  </header>
+      style="background:#c0392b;color:white;
+             border:none;padding:6px 10px;border-radius:8px;
+             font-size:14px;font-weight:600;cursor:pointer;">🚪 Salir</button>
+  </div>
+</header>
 
   <!-- 🧩 CUERPO PRINCIPAL -->
   <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
@@ -1001,6 +1008,14 @@ document.addEventListener("DOMContentLoaded",()=>{
     });
   }
 });
+  // 📊 Acceso rápido al Resumen Diario
+const btnResumen = document.getElementById("btnResumen");
+if (btnResumen) {
+  btnResumen.addEventListener("click", () => {
+    window.location.href = "resumen.html";
+  });
+}
+
 </script>
 
 <!-- 📷 BLOQUE 9: CONTROL DE ESCÁNER QR -->
