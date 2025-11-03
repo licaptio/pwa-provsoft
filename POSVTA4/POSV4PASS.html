@@ -987,7 +987,35 @@ if (cambio < 0) {
   return;
 }
 
-const folio = "VENTA-" + Date.now();
+// 🧮 Folio incremental por usuario y fecha (reinicia cada día)
+let folio = "";
+const hoy = new Date();
+const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, ""); // ej: 20251102
+
+const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR")
+  .toUpperCase()
+  .replace(/\s+/g, "")
+  .slice(0, 8); // ej: MADERO
+
+// Documento: contadores/{usuarioTag_20251102}
+const folioId = `${usuarioTag}_${fechaTag}`;
+const folioRef = doc(db, "contadores", folioId);
+
+await runTransaction(db, async (tx) => {
+  const folioSnap = await tx.get(folioRef);
+  let consecutivo = 1;
+
+  if (folioSnap.exists()) {
+    consecutivo = (folioSnap.data().ultimo || 0) + 1;
+  }
+
+  // 🔢 Guardar el nuevo número consecutivo
+  tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
+
+  // 🧾 Formato: MADERO-20251102-0001
+  folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
+});
+
 
 // 🧾 Venta con detalle contable completo
 const venta = {
