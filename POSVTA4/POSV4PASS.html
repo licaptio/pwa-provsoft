@@ -1024,8 +1024,8 @@ const venta = {
 };
 async function guardarVentaEnFirestore(v) {
   try {
-    const ref = collection(db, "ventas_ruta");
-    await addDoc(ref, v);
+const ref = collection(db, "ventas_rutav2");
+await addDoc(ref, v);
     console.log("✅ Venta guardada:", v.folio);
   } catch (e) {
     console.error("❌ Error guardando venta:", e);
