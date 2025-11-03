@@ -1065,93 +1065,107 @@ await addDoc(ref, v);
 /* ===========================================================
    📲 SECCIÓN 13: ENVÍO A TELEGRAM (ROBUSTO CON FALLBACK)
    =========================================================== */
-async function enviarTelegram(v){
-  try{
+async function enviarTelegram(v) {
+  try {
     const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
     const CHAT_ID = "6617988297";
-
-    const ubicacion = await obtenerUbicacionRobusta().catch(() => null);
-    v.ubicacion = ubicacion;
-
-    // 🧾 Generar PDF con jsPDF
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    pdf.setFont("courier", "bold");
-    pdf.setFontSize(12);
-    pdf.text("PROVEEDORA MATRIZ", 105, 15, { align: "center" });
-    pdf.setFont("courier", "normal");
-    pdf.text("MADERO 690 SUR, CENTRO", 105, 21, { align: "center" });
-    pdf.text("LINARES, N.L. 67700", 105, 27, { align: "center" });
-    pdf.text("RFC: PDD-031204-KL5", 105, 33, { align: "center" });
-    pdf.line(10, 36, 200, 36);
-    pdf.text(`# Venta: ${v.folio}`, 10, 42);
-    pdf.text(`Fecha: ${v.fecha_txt}`, 130, 42);
-    pdf.line(10, 45, 200, 45);
-
-    let y = 52;
-    (v.detalle || []).forEach(it => {
-      const nombre = (it.nombre || "").substring(0, 40);
-      pdf.text(nombre, 10, y); y += 5;
-      pdf.text(`Cant: ${it.cantidad.toFixed(3)}   $${it.precioUnit.toFixed(2)}   $${(it.cantidad * it.precioUnit).toFixed(2)}`, 10, y);
-      y += 6; if (y > 270) { pdf.addPage(); y = 20; }
+    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
     });
 
-    // 💰 Totales
-    pdf.line(10, y, 200, y); y += 8;
-    const total = v.resumen_financiero?.total || 0;
-    const desc = v.descuento_monto || 0;
-    const impuestos = v.resumen_financiero?.impuestos || 0;
-    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", { minimumFractionDigits: 2 });
-    pdf.setFont("courier", "bold");
-    pdf.text(`Total: $${formatoNum(total)}`, 10, y); y += 5;
-    pdf.text(`Desc:  $${formatoNum(desc)}`, 10, y); y += 5;
-    pdf.text(`Imp:   $${formatoNum(impuestos)}`, 10, y); y += 8;
-    pdf.text("¡Gracias por su compra!", 105, y, { align: "center" });
+    // 📦 Datos base
+    const folio = v.folio;
+    const total = formatoNum(v.resumen_financiero?.total);
+    const subtotal = formatoNum(v.resumen_financiero?.subtotal);
+    const desc = formatoNum(v.descuento_monto || 0);
+    const imp = formatoNum(v.resumen_financiero?.impuestos || 0);
+    const pago = formatoNum(v.recibido || v.resumen_financiero?.total || 0);
+    const cambio = formatoNum(v.cambio || 0);
+    const articulos = (v.detalle || []).reduce((a, b) => a + Number(b.cantidad || 0), 0);
+    const cajero = v.usuarioNombre || "—";
+    const cliente = v.cliente || "PÚBLICO EN GENERAL";
+    const descPorc = v.descuento_porcentaje || 0;
 
-    const pdfBlob = pdf.output("blob");
+    // 🧾 Construir texto térmico para Telegram (idéntico a impresión)
+    let ticket = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, NUEVO LEÓN, 67700
+RFC: PDD-031204-KL5
+TEL: (821) 212-1805
+RÉGIMEN GENERAL DE LEY
+PERSONAS MORALES
+--------------------------------
+# Venta : ${folio}
+Fecha   : ${v.fecha_txt}
+Cliente : ${cliente}
+--------------------------------
+`;
 
-    // 📨 Mensaje de texto
-    const mensaje = `
-🧾 *Nueva Venta con Descuento*
-👤 *Vendedor:* ${USUARIO_LOGUEADO?.nombre || "Desconocido"}
-💰 *Total:* $${formatoNum(total)}
-💸 *Descuento:* ${v.descuento_porcentaje}% ($${formatoNum(desc)})
-📄 *Folio:* ${v.folio}
-🕓 *Fecha:* ${v.fecha_txt}
-`.trim();
+    (v.detalle || []).forEach(it => {
+      const nombre = (it.nombre || "").substring(0, 32);
+      const cant = it.cantidad.toFixed(3).padStart(5, " ");
+      const prec = it.precio_unit.toFixed(2).padStart(8, " ");
+      const imp = it.importe.toFixed(2).padStart(9, " ");
+      ticket += `${nombre}\n`;
+      ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
+    });
 
-    // 🟢 Enviar mensaje (con manejo de error)
+    ticket += `--------------------------------
+Subtotal : $${subtotal}
+Desc. ${descPorc}% : $${desc}
+Impuestos: $${imp}
+Total    : $${total}
+Su Pago  : $${pago}
+Cambio   : $${cambio}
+--------------------------------
+Artículos vendidos: ${articulos}
+Incluye ${imp} de Impuestos
+Cajero: ${cajero}
+--------------------------------
+¡Gracias por su compra!
+`;
+
+    // ✉️ Enviar texto del ticket
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: CHAT_ID, text: mensaje, parse_mode: "Markdown" })
-    })
-    .catch(err => {
-      console.error("⚠️ Error al enviar mensaje a Telegram:", err);
-      alert("⚠️ No se pudo enviar el mensaje a Telegram (modo offline).");
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: "```" + ticket + "```",
+        parse_mode: "Markdown"
+      })
     });
 
-    // 🟢 Enviar PDF (con manejo de error independiente)
+    // 🧾 Generar PDF opcional (para respaldo)
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    pdf.setFont("courier", "bold");
+    pdf.setFontSize(11);
+    let y = 10;
+    ticket.split("\n").forEach(linea => {
+      pdf.text(linea, 10, y);
+      y += 5;
+      if (y > 280) { pdf.addPage(); y = 10; }
+    });
+    const pdfBlob = pdf.output("blob");
+
+    // 📎 Enviar PDF como respaldo (no obligatorio)
     const formData = new FormData();
     formData.append("chat_id", CHAT_ID);
-    formData.append("document", pdfBlob, `Ticket_${v.folio}.pdf`);
-
+    formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
       method: "POST",
       body: formData
-    })
-    .catch(err => {
-      console.error("⚠️ Error al enviar documento a Telegram:", err);
-      alert("⚠️ No se pudo enviar el ticket PDF a Telegram (modo offline).");
     });
 
-    console.log("✅ Intento de envío a Telegram completado:", v.folio);
-
+    console.log("✅ Ticket enviado a Telegram:", folio);
   } catch (err) {
-    console.error("❌ Error global en enviarTelegram:", err);
-    alert("⚠️ No se pudo procesar el envío a Telegram (revisa conexión).");
+    console.error("❌ Error enviando a Telegram:", err);
+    alert("⚠️ No se pudo enviar el ticket a Telegram.");
   }
 }
+
 /* ===========================================================
    📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
    =========================================================== */
