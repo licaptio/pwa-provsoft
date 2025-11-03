@@ -1044,13 +1044,32 @@ const venta = {
 };
 
 
-  await guardarVentaEnFirestore(venta);
-  enviarTelegram(venta);
-  rellenarTicket(venta);
-  imprimirTicketEstilado();
-  carrito = [];
-  render();
-  cerrarCobro();
+await guardarVentaEnFirestore(venta);
+await enviarTelegram(venta);
+rellenarTicket(venta);
+imprimirTicketEstilado();
+
+// 💾 Descargar PDF localmente
+try {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  const ticketText = document.querySelector("#ticket").innerText;
+  pdf.setFont("courier", "bold");
+  pdf.setFontSize(11);
+  pdf.text(ticketText, 10, 10);
+  pdf.save(`Ticket_${folio}.pdf`);
+} catch (err) {
+  console.error("No se pudo generar PDF local:", err);
+}
+
+// 🧹 Limpieza y regreso automático
+carrito = [];
+render();
+cerrarCobro();
+pantallaCarrito.style.display = "none";
+pantallaVenta.style.display = "flex";
+document.getElementById("buscador").focus();
+
 };
 async function guardarVentaEnFirestore(v) {
   try {
