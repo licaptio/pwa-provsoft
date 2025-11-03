@@ -979,16 +979,17 @@ $("#btnConfirmarCobro").onclick = async () => {
     alert("⚠️ Usuario o ruta no detectados. Vuelve a iniciar sesión.");
     return;
   }
-  const tot = calcularTotales(descuentoAutorizado);
-  const pago = parseFloat($("#montoRecibido").value) || 0;
-  const cambio = pago - tot.total;
+const tot = calcularTotales(descuentoAutorizado);
+const pago = parseFloat($("#montoRecibido").value) || 0;
+const cambio = pago - tot.total;
 if (cambio < 0) {
   alert("⚠️ El monto recibido es menor al total a pagar.");
   return;
 }
 
-  const folio = "VENTA-" + Date.now();
+const folio = "VENTA-" + Date.now();
 
+// 🧾 Venta con detalle contable completo
 const venta = {
   folio,
   rutaId,
@@ -996,21 +997,50 @@ const venta = {
   cortado: false,
   descuento_porcentaje: descuentoAutorizado,
   descuento_monto: tot.descuento,
-  resumen_financiero: tot,
+  resumen_financiero: {
+    subtotal: tot.subtotal,
+    descuento: tot.descuento,
+    impuestos: tot.impuestos,
+    total: tot.total,
+    // 🔹 Cálculo adicional para reportes contables
+    costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
+    utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
+    margen_porcentaje: (() => {
+      const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
+      return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
+    })()
+  },
   fecha: serverTimestamp(),
   fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
   usuarioId: USUARIO_LOGUEADO?.id || "",
   usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
   notas: $("#notasCobro").value || "",
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
+  ubicacion: await obtenerUbicacionRobusta().catch(() => null),
 
-  // ✅ AGREGA ESTA PARTE AQUÍ (adentro del objeto)
-  detalle: carrito.map(x => ({
-    nombre: x.nombre,
-    cantidad: x.cantidad,
-    precioUnit: x.precioUnit,
-    importe: x.importe
-  }))
+  // 💼 DETALLE COMPLETO DE CADA PRODUCTO
+  detalle: carrito.map(it => {
+    const depId = it.departamento_id?.toString() || "0";
+    const depInfo = departamentos[depId] || { nombre: "SIN DEP", iva: 0, ieps: 0 };
+
+    const costoUnit = Number(it.costoUnit || 0);
+    const costoTotal = it.cantidad * costoUnit;
+    const utilidad = it.importe - costoTotal;
+
+    return {
+      id: it.id,
+      nombre: it.nombre,
+      codigo: it.codigo,
+      cantidad: it.cantidad,
+      precio_unit: it.precioUnit,
+      importe: it.importe,
+      costo_unit: +costoUnit.toFixed(2),
+      costo_total: +costoTotal.toFixed(2),
+      utilidad: +utilidad.toFixed(2),
+      departamento_id: depId,
+      departamento_info: depInfo
+    };
+  })
 };
 
 
