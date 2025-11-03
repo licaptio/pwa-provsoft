@@ -1032,19 +1032,18 @@ $("#btnConfirmarCobro").onclick = async () => {
       cortado: false,
       descuento_porcentaje: descuentoAutorizado,
       descuento_monto: tot.descuento,
-      resumen_financiero: {
-        subtotal: tot.subtotal,
-        descuento: tot.descuento,
-        impuestos: tot.impuestos,
-        total: tot.total,
-        costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
-        utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
-margen_porcentaje: function() {
-  const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
-  return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
-}
-
-      },
+resumen_financiero: {
+  subtotal: tot.subtotal,
+  descuento: tot.descuento,
+  impuestos: tot.impuestos,
+  total: tot.total,
+  costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
+  utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
+  margen_porcentaje: (() => {
+    const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
+    return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
+  })()  // ← Esto devuelve un número, no una función
+},
       fecha: serverTimestamp(),
       fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
       usuarioId: USUARIO_LOGUEADO?.id || "",
