@@ -1073,7 +1073,7 @@ detalle: carrito.map(it => {
     }
   };
 })
-
+}),
     // 💾 Guardar venta + Telegram + PDF
     await guardarVentaEnFirestore(venta);
     await enviarTelegram(venta);
