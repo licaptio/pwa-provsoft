@@ -1229,7 +1229,7 @@ ${ubicacionInfo}
       })
     });
 
-    // 📍 Enviar ubicación en Google Maps si hay coordenadas
+    // 📍 Enviar ubicación en Google Maps si hay coordenadas (ENLACE CLICKEABLE)
     if (v.ubicacion && v.ubicacion.lat && v.ubicacion.lng) {
       const mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
       
@@ -1238,7 +1238,7 @@ ${ubicacionInfo}
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: CHAT_ID,
-          text: `🗺️ Ubicación en Google Maps:\n${mapsUrl}`,
+          text: `🗺️ [Ubicación en Google Maps](${mapsUrl})`,
           parse_mode: "Markdown"
         })
       });
