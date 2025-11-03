@@ -929,6 +929,7 @@ montoRecibido.addEventListener("input", () => {
   montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
 
+// 🔐 Aplicar descuento con contraseña “”
 // 🔐 Aplicar descuento con contraseña “MADERO690*”
 $("#btnSolicitarDescuento").addEventListener("click", async () => {
   const porcStr = prompt("Introduce el descuento (%)");
@@ -945,11 +946,25 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
     return;
   }
 
+  // ✅ Descuento autorizado
   descuentoAutorizado = porc;
   const tot = calcularTotales(porc);
+
+  // 🔁 Actualiza visualmente total y resumen
   cobroTotal.textContent = money(tot.total);
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
+
+  // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
+  const pago = parseFloat(montoRecibido.value) || 0;
+  if (pago > 0) {
+    const cambio = pago - tot.total;
+    montoCambio.textContent = money(cambio > 0 ? cambio : 0);
+  } else {
+    // si no hay pago todavía, simplemente resetea el cambio
+    montoCambio.textContent = "$0.00";
+  }
+
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
 
