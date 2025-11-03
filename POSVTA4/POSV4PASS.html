@@ -1151,6 +1151,8 @@ Método: ${v.ubicacion?.metodo || "N/D"}
       if (y > 280) { pdf.addPage(); y = 10; }
     });
     const pdfBlob = pdf.output("blob");
+    pdf.save(`Ticket_${folio}.pdf`);
+ 
 
     // 📎 Enviar PDF como respaldo (no obligatorio)
     const formData = new FormData();
