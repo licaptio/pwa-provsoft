@@ -968,7 +968,11 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
 
-// ✅ Confirmar y guardar venta con o sin descuento (versión robusta)
+// ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
+
+/* ===========================================================
+   ✅ SECCIÓN 11.1: CONFIRMAR VENTA (VERSIÓN CORREGIDA)
+   =========================================================== */
 $("#btnConfirmarCobro").onclick = async () => {
   try {
     // 🚧 Bloqueo visual temporal
@@ -1032,18 +1036,18 @@ $("#btnConfirmarCobro").onclick = async () => {
       cortado: false,
       descuento_porcentaje: descuentoAutorizado,
       descuento_monto: tot.descuento,
-resumen_financiero: {
-  subtotal: tot.subtotal,
-  descuento: tot.descuento,
-  impuestos: tot.impuestos,
-  total: tot.total,
-  costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
-  utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
-  margen_porcentaje: (() => {
-    const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
-    return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
-  })()  // ← Esto devuelve un número, no una función
-},
+      resumen_financiero: {
+        subtotal: tot.subtotal,
+        descuento: tot.descuento,
+        impuestos: tot.impuestos,
+        total: tot.total,
+        costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
+        utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
+        margen_porcentaje: (() => {
+          const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
+          return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
+        })()
+      },
       fecha: serverTimestamp(),
       fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
       usuarioId: USUARIO_LOGUEADO?.id || "",
@@ -1051,35 +1055,43 @@ resumen_financiero: {
       notas: $("#notasCobro").value || "",
       autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
       ubicacion: await obtenerUbicacionRobusta().catch(() => null),
-detalle: carrito.map(it => {
-  const dep = departamentos[it.departamento_id] || { id: 0, nombre: "SIN DEP", iva: 0, ieps: 0 };
-  return {
-    id: it.id,
-    nombre: it.nombre,
-    codigo: it.codigo,
-    cantidad: it.cantidad,
-    precio_unit: it.precioUnit,
-    importe: it.importe,
-    costo_unit: +(it.costoUnit || 0).toFixed(2),
-    costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
-    utilidad: +(it.importe - it.cantidad * (it.costoUnit || 0)).toFixed(2),
-    departamento_id: it.departamento_id || "0",
-    departamento_info: {
-      id: dep.id,
-      nombre: dep.nombre,
-      iva: dep.iva,
-      ieps: dep.ieps
-    }
-  };
-})
-}  // ← SOLO CIERRA LA LLAVE DEL OBJETO 'venta', SIN COMA EXTRA
-    // 💾 Guardar venta + Telegram + PDF
+      detalle: carrito.map(it => {
+        const dep = departamentos[it.departamento_id] || { id: 0, nombre: "SIN DEP", iva: 0, ieps: 0 };
+        return {
+          id: it.id,
+          nombre: it.nombre,
+          codigo: it.codigo,
+          cantidad: it.cantidad,
+          precio_unit: it.precioUnit,
+          importe: it.importe,
+          costo_unit: +(it.costoUnit || 0).toFixed(2),
+          costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+          utilidad: +(it.importe - it.cantidad * (it.costoUnit || 0)).toFixed(2),
+          departamento_id: it.departamento_id || "0",
+          departamento_info: {
+            id: dep.id,
+            nombre: dep.nombre,
+            iva: dep.iva,
+            ieps: dep.ieps
+          }
+        };
+      })
+    };
+
+    // 💾 GUARDAR VENTA UNA SOLA VEZ
+    console.log("💾 Guardando venta en Firestore...");
     await guardarVentaEnFirestore(venta);
+    
+    // 📲 Enviar a Telegram
+    console.log("📲 Enviando a Telegram...");
     await enviarTelegram(venta);
+    
+    // 🧾 Generar e imprimir ticket
+    console.log("🧾 Generando ticket...");
     rellenarTicket(venta);
     imprimirTicketEstilado();
 
-    // 💾 PDF local
+    // 💾 PDF local (opcional)
     try {
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF();
@@ -1091,6 +1103,7 @@ detalle: carrito.map(it => {
     } catch (e) { console.error("PDF error:", e); }
 
     // 🧹 Limpieza y regreso
+    console.log("✅ Venta completada, limpiando carrito...");
     carrito = [];
     renderDebounced();
     cerrarCobro();
@@ -1109,25 +1122,20 @@ detalle: carrito.map(it => {
   }
 };
 
-// 🧹 Limpieza y regreso automático
-carrito = [];
-render();
-cerrarCobro();
-pantallaCarrito.style.display = "none";
-pantallaVenta.style.display = "flex";
-document.getElementById("buscador").focus();
-
-
+/* ===========================================================
+   💾 FUNCIÓN GUARDAR VENTA (SIMPLIFICADA)
+   =========================================================== */
 async function guardarVentaEnFirestore(v) {
   try {
-const ref = collection(db, "ventas_rutav2");
-await addDoc(ref, v);
-    console.log("✅ Venta guardada:", v.folio);
+    const ref = collection(db, "ventas_rutav2");
+    const docRef = await addDoc(ref, v);
+    console.log("✅ Venta guardada UNA VEZ en Firestore:", v.folio, "ID:", docRef.id);
+    return docRef.id;
   } catch (e) {
     console.error("❌ Error guardando venta:", e);
+    throw e; // Propagar el error para manejarlo arriba
   }
 }
-
 /* ===========================================================
    📲 SECCIÓN 13: ENVÍO A TELEGRAM (ROBUSTO CON FALLBACK)
    =========================================================== */
