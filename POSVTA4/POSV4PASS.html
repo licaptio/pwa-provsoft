@@ -1137,7 +1137,7 @@ async function guardarVentaEnFirestore(v) {
   }
 }
 /* ===========================================================
-   📲 SECCIÓN 13: ENVÍO A TELEGRAM (ROBUSTO CON FALLBACK)
+   📲 SECCIÓN 13: ENVÍO A TELEGRAM (CON UBICACIÓN)
    =========================================================== */
 async function enviarTelegram(v) {
   try {
@@ -1160,7 +1160,23 @@ async function enviarTelegram(v) {
     const cliente = v.cliente || "PÚBLICO EN GENERAL";
     const descPorc = v.descuento_porcentaje || 0;
 
-    // 🧾 Construir texto térmico para Telegram (idéntico a impresión)
+    // 📍 Información de ubicación
+    let ubicacionInfo = "📍 Ubicación no disponible";
+    if (v.ubicacion) {
+      if (v.ubicacion.direccion) {
+        ubicacionInfo = `📍 ${v.ubicacion.direccion}`;
+        if (v.ubicacion.metodo) {
+          ubicacionInfo += ` (${v.ubicacion.metodo})`;
+        }
+      } else if (v.ubicacion.lat && v.ubicacion.lng) {
+        ubicacionInfo = `📍 Coordenadas: ${v.ubicacion.lat.toFixed(6)}, ${v.ubicacion.lng.toFixed(6)}`;
+        if (v.ubicacion.metodo) {
+          ubicacionInfo += ` (${v.ubicacion.metodo})`;
+        }
+      }
+    }
+
+    // 🧾 Construir texto térmico para Telegram (incluyendo ubicación)
     let ticket = `
 PROVEEDORA MATRIZ
 MADERO 690 SUR, CENTRO
@@ -1197,11 +1213,11 @@ Artículos vendidos: ${articulos}
 Incluye ${imp} de Impuestos
 Cajero: ${cajero}
 --------------------------------
-Ubicación: ${v.ubicacion?.direccion || "Sin dirección"}
-Método: ${v.ubicacion?.metodo || "N/D"}
+${ubicacionInfo}
 --------------------------------
 ¡Gracias por su compra!
 `;
+
     // ✉️ Enviar texto del ticket
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
@@ -1212,6 +1228,21 @@ Método: ${v.ubicacion?.metodo || "N/D"}
         parse_mode: "Markdown"
       })
     });
+
+    // 📍 Enviar ubicación en Google Maps si hay coordenadas
+    if (v.ubicacion && v.ubicacion.lat && v.ubicacion.lng) {
+      const mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
+      
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: `🗺️ Ubicación en Google Maps:\n${mapsUrl}`,
+          parse_mode: "Markdown"
+        })
+      });
+    }
 
     // 🧾 Generar PDF opcional (para respaldo)
     const { jsPDF } = window.jspdf;
@@ -1225,10 +1256,8 @@ Método: ${v.ubicacion?.metodo || "N/D"}
       if (y > 280) { pdf.addPage(); y = 10; }
     });
     const pdfBlob = pdf.output("blob");
-    pdf.save(`Ticket_${folio}.pdf`);
- 
 
-    // 📎 Enviar PDF como respaldo (no obligatorio)
+    // 📎 Enviar PDF como respaldo (opcional)
     const formData = new FormData();
     formData.append("chat_id", CHAT_ID);
     formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
@@ -1237,13 +1266,12 @@ Método: ${v.ubicacion?.metodo || "N/D"}
       body: formData
     });
 
-    console.log("✅ Ticket enviado a Telegram:", folio);
+    console.log("✅ Ticket y ubicación enviados a Telegram:", folio);
   } catch (err) {
     console.error("❌ Error enviando a Telegram:", err);
     alert("⚠️ No se pudo enviar el ticket a Telegram.");
   }
 }
-
 /* ===========================================================
    📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
    =========================================================== */
