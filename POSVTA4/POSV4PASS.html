@@ -1162,6 +1162,8 @@ async function enviarTelegram(v) {
 
     // 📍 Información de ubicación
     let ubicacionInfo = "📍 Ubicación no disponible";
+    let mapsUrl = null;
+    
     if (v.ubicacion) {
       if (v.ubicacion.direccion) {
         ubicacionInfo = `📍 ${v.ubicacion.direccion}`;
@@ -1173,6 +1175,8 @@ async function enviarTelegram(v) {
         if (v.ubicacion.metodo) {
           ubicacionInfo += ` (${v.ubicacion.metodo})`;
         }
+        // Crear URL de Google Maps
+        mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
       }
     }
 
@@ -1219,7 +1223,7 @@ ${ubicacionInfo}
 `;
 
     // ✉️ Enviar texto del ticket
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const ticketResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1229,47 +1233,73 @@ ${ubicacionInfo}
       })
     });
 
-    // 📍 Enviar ubicación en Google Maps si hay coordenadas (ENLACE CLICKEABLE)
-    if (v.ubicacion && v.ubicacion.lat && v.ubicacion.lng) {
-      const mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
+    if (!ticketResponse.ok) {
+      throw new Error(`Error enviando ticket: ${ticketResponse.status}`);
+    }
+
+    console.log("✅ Ticket enviado a Telegram");
+
+    // 📍 Enviar ubicación en Google Maps como mensaje SEPARADO si hay coordenadas
+    if (mapsUrl) {
+      console.log("📍 Enviando enlace de Google Maps:", mapsUrl);
       
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      // Pequeña pausa para evitar rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const mapsResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chat_id: CHAT_ID,
-          text: `🗺️ [Ubicación en Google Maps](${mapsUrl})`,
-          parse_mode: "Markdown"
+          text: `🗺️ *Ubicación de la venta:*\n[Ver en Google Maps](${mapsUrl})`,
+          parse_mode: "Markdown",
+          disable_web_page_preview: false
         })
       });
+
+      if (!mapsResponse.ok) {
+        console.warn("⚠️ No se pudo enviar el enlace de Google Maps, pero el ticket se envió correctamente");
+      } else {
+        console.log("✅ Enlace de Google Maps enviado");
+      }
     }
 
     // 🧾 Generar PDF opcional (para respaldo)
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF();
-    pdf.setFont("courier", "bold");
-    pdf.setFontSize(11);
-    let y = 10;
-    ticket.split("\n").forEach(linea => {
-      pdf.text(linea, 10, y);
-      y += 5;
-      if (y > 280) { pdf.addPage(); y = 10; }
-    });
-    const pdfBlob = pdf.output("blob");
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      pdf.setFont("courier", "bold");
+      pdf.setFontSize(11);
+      let y = 10;
+      ticket.split("\n").forEach(linea => {
+        pdf.text(linea, 10, y);
+        y += 5;
+        if (y > 280) { pdf.addPage(); y = 10; }
+      });
+      const pdfBlob = pdf.output("blob");
 
-    // 📎 Enviar PDF como respaldo (opcional)
-    const formData = new FormData();
-    formData.append("chat_id", CHAT_ID);
-    formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-      method: "POST",
-      body: formData
-    });
+      // Pequeña pausa para evitar rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    console.log("✅ Ticket y ubicación enviados a Telegram:", folio);
+      // 📎 Enviar PDF como respaldo (opcional)
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+        method: "POST",
+        body: formData
+      });
+
+      console.log("✅ PDF enviado a Telegram");
+    } catch (pdfErr) {
+      console.warn("⚠️ Error generando/enviando PDF:", pdfErr);
+    }
+
+    console.log("✅ Todo enviado correctamente a Telegram:", folio);
+    
   } catch (err) {
     console.error("❌ Error enviando a Telegram:", err);
-    alert("⚠️ No se pudo enviar el ticket a Telegram.");
+    // No mostrar alerta aquí para no interrumpir el flujo de venta
   }
 }
 /* ===========================================================
