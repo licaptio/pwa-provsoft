@@ -1301,15 +1301,20 @@ function rellenarTicket(v){
 
   const tbody=document.getElementById("tLineas");
   tbody.innerHTML="";
-  v.detalle.forEach(p=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${p.nombre}</td>
-      <td style="text-align:center">${p.cantidad.toFixed(2)}</td>
-      <td style="text-align:right">${p.precioUnit.toFixed(2)}</td>
-      <td style="text-align:right">${(p.cantidad*p.precioUnit).toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
+v.detalle.forEach(p => {
+  const tr = document.createElement("tr");
+  const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
+  const cantidad = p.cantidad ?? 0;
+  const importe = cantidad * precioUnit;
+
+  tr.innerHTML = `
+    <td>${p.nombre}</td>
+    <td style="text-align:center">${cantidad.toFixed(2)}</td>
+    <td style="text-align:right">${precioUnit.toFixed(2)}</td>
+    <td style="text-align:right">${importe.toFixed(2)}</td>`;
+  tbody.appendChild(tr);
+});
+
 }
 
 function imprimirTicketEstilado() {
