@@ -1073,7 +1073,10 @@ detalle: carrito.map(it => {
     }
   };
 })
-}),
+}  // ← SOLO CIERRA LA LLAVE DEL OBJETO 'venta', SIN COMA EXTRA
+
+    // 💾 Guardar venta + Telegram + PDF
+    await guardarVentaEnFirestore(venta);
     // 💾 Guardar venta + Telegram + PDF
     await guardarVentaEnFirestore(venta);
     await enviarTelegram(venta);
