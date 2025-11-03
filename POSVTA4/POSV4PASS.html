@@ -654,7 +654,7 @@ function addProduct(prod, cant = 1) {
 } else {
   carrito.push({...prod,cantidad:cant,precioUnit,importe:cant*precioUnit});
 }
-renderDebounced(); // 👈 Nueva versión optimizada
+render(); // Usa render normal
 }
 function delItem(id){ carrito=carrito.filter(x=>x.id!==id); renderDebounced(); }
 window.delItem=delItem;
