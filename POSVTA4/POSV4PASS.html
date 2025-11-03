@@ -1039,10 +1039,11 @@ $("#btnConfirmarCobro").onclick = async () => {
         total: tot.total,
         costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
         utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
-        margen_porcentaje: (() => {
-          const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
-          return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
-        })()
+margen_porcentaje: function() {
+  const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
+  return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
+}
+
       },
       fecha: serverTimestamp(),
       fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
