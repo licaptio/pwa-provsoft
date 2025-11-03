@@ -1236,43 +1236,110 @@ function rellenarTicket(v){
   });
 }
 
-function imprimirTicketEstilado(){
-  let ticket="PROVEEDORA MATRIZ\n";
-  ticket+="--------------------------------\n";
-  const filas=document.querySelectorAll("#tLineas tr");
-  filas.forEach(f=>{
-    const cols=f.querySelectorAll("td");
-    if(cols.length>=4){
-      const nombre=(cols[0].textContent||"").substring(0,18).padEnd(18);
-      const cant=(cols[1].textContent||"").padStart(5);
-      const total=(cols[3].textContent||"").padStart(9);
-      ticket+=`${nombre}${cant}${total}\n`;
+function imprimirTicketEstilado() {
+  try {
+    // 🧮 Función auxiliar para formatear números
+    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    // 📦 Obtener datos de la venta actual
+    const folio = $("#tFolio").textContent.trim();
+    const fecha = $("#tFecha").textContent.trim();
+    const cliente = $("#tCliente").textContent.trim();
+    const subtotal = $("#tSubtotal").textContent.trim();
+    const descPorc = $("#tDescPorc").textContent.trim();
+    const descMonto = $("#tDescMonto").textContent.trim();
+    const total = $("#tTotal").textContent.trim();
+    const pago = $("#tPago").textContent.trim();
+    const cambio = $("#tCambio").textContent.trim();
+    const impuestos = $("#tImpuestos").textContent.trim();
+    const articulos = $("#tArticulos").textContent.trim();
+    const cajero = $("#tCajero").textContent.trim();
+
+    // 🧾 Construir texto del ticket en formato térmico
+    let ticket = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, NUEVO LEÓN, 67700
+RFC: PDD-031204-KL5
+TEL: (821) 212-1805
+RÉGIMEN GENERAL DE LEY
+PERSONAS MORALES
+--------------------------------
+# Venta : ${folio}
+Fecha   : ${fecha}
+Cliente : ${cliente}
+--------------------------------
+`;
+
+    // 📋 Detalle de productos
+    const filas = document.querySelectorAll("#tLineas tr");
+    filas.forEach(f => {
+      const cols = f.querySelectorAll("td");
+      if (cols.length >= 4) {
+        const nombre = (cols[0].textContent || "").substring(0, 32);
+        const cant = (cols[1].textContent || "").padStart(5, " ");
+        const prec = (cols[2].textContent || "").padStart(8, " ");
+        const imp = (cols[3].textContent || "").padStart(9, " ");
+        ticket += `${nombre}\n`;
+        ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
+      }
+    });
+
+    // 💵 Totales
+    ticket += `--------------------------------
+Subtotal: ${subtotal}
+Desc. ${descPorc}: ${descMonto}
+Total: ${total}
+Su Pago: ${pago}
+Cambio: ${cambio}
+--------------------------------
+Artículos vendidos: ${articulos}
+Incluye ${impuestos} de Impuestos
+Cajero: ${cajero}
+--------------------------------
+¡Gracias por su compra!
+`;
+
+    // 🖨️ Prioridad 1: InnerPrinter
+    if (window.InnerPrinter) {
+      try {
+        if (typeof window.InnerPrinter.printText === "function") {
+          window.InnerPrinter.printText(ticket);
+          return;
+        }
+        if (typeof window.InnerPrinter.printHtml === "function") {
+          window.InnerPrinter.printHtml(`<pre>${ticket}</pre>`);
+          return;
+        }
+      } catch (err) {
+        console.error("❌ Error con InnerPrinter:", err);
+      }
     }
-  });
-  ticket+="--------------------------------\n";
-  ticket+=" ¡Gracias por su compra!\n";
 
-  if(window.InnerPrinter){
-    try{
-      if(typeof window.InnerPrinter.printText==="function"){
-        window.InnerPrinter.printText(ticket); return;
+    // 🖨️ Prioridad 2: RawBT (Android)
+    if (/Android/i.test(navigator.userAgent)) {
+      try {
+        const encoded = encodeURIComponent(ticket);
+        window.location.href = `rawbt:print?data=${encoded}`;
+        return;
+      } catch (err) {
+        console.error("❌ Error con RawBT:", err);
       }
-      if(typeof window.InnerPrinter.printHtml==="function"){
-        window.InnerPrinter.printHtml(`<pre>${ticket}</pre>`); return;
-      }
-    }catch(e){console.error("Error InnerPrinter:",e);}
-  }
+    }
 
-  if(/Android/i.test(navigator.userAgent)){
-    try{
-      const encoded=encodeURIComponent(ticket);
-      window.location.href=`rawbt:text,${encoded}`; return;
-    }catch(e){console.error("Error RawBT:",e);}
-  }
+    // 🖨️ Prioridad 3: Impresión navegador (fallback)
+    const w = window.open("", "_blank");
+    w.document.write(`<pre style="font-family:monospace;font-size:13px;">${ticket}</pre>`);
+    w.document.close();
+    w.print();
 
-  const w=window.open("","_blank");
-  w.document.write(`<pre style="font-family:monospace">${ticket}</pre>`);
-  w.document.close(); w.print();
+  } catch (err) {
+    console.error("❌ Error generando ticket:", err);
+    alert("Error al generar ticket térmico.");
+  }
 }
 
 /* ===========================================================
