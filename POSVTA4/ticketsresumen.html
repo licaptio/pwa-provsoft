@@ -109,7 +109,7 @@
       loading.style.display = "block"; loading.textContent = "Cargando ventas...";
 
       try {
-        const ventasRef = collection(db, "rutas_venta");
+        const ventasRef = collection(db, "ventas_rutav2");
         const q = query(ventasRef, where("usuarioNombre", "==", nombreUsuario), where("cortado","==",false));
         const snap = await getDocs(q);
 
