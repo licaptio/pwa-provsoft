@@ -375,9 +375,9 @@ function obtenerPrecioSegunCantidad(prod, cantidad) {
    🔑 SECCIÓN 4: LOGIN Y CARGA INICIAL (OPTIMIZADO)
    =========================================================== */
 async function loginUsuario() {
-  const u = $("#loginUsuario").value.trim();
-  const p = $("#loginPassword").value.trim();
-  const msg = $("#loginMsg");
+const u = document.getElementById("loginUsuario").value.trim();
+const p = document.getElementById("loginPassword").value.trim();
+const msg = document.getElementById("loginMsg");
 
   // 🔸 Validación básica
   if (!u || !p) {
@@ -423,8 +423,8 @@ async function loginUsuario() {
     msg.style.background = "rgba(0,150,80,.4)";
 
     // 🌀 Cargar datos principales
-    $("#loginScreen").style.display = "none";
-    $("#posApp").style.display = "block";
+document.getElementById("loginScreen").style.display = "none";
+document.getElementById("posApp").style.display = "block";
 
     // Carga simultánea
     await Promise.all([
