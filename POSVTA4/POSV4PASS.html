@@ -1123,9 +1123,11 @@ Artículos vendidos: ${articulos}
 Incluye ${imp} de Impuestos
 Cajero: ${cajero}
 --------------------------------
+Ubicación: ${v.ubicacion?.direccion || "Sin dirección"}
+Método: ${v.ubicacion?.metodo || "N/D"}
+--------------------------------
 ¡Gracias por su compra!
 `;
-
     // ✉️ Enviar texto del ticket
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
