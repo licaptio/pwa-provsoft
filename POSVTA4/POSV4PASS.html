@@ -194,12 +194,14 @@
   </div>
 
   <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
-  <div class="field searchbox">
-    <label>Buscar</label>
-    <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-    <button id="btnCam" class="cam-btn" type="button">📷</button>
-    <div id="resultados" class="search-results"></div>
-  </div>
+<div class="field searchbox">
+  <label>Buscar</label>
+  <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+  <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
+  <button id="btnCam" class="cam-btn" type="button">📷</button>
+  <div id="resultados" class="search-results"></div>
+</div>
+
 
 </section>
 
@@ -916,30 +918,49 @@ function ejecutarBusqueda(texto) {
   }
 }
 
-// 🚀 Búsqueda directa con Enter (escáner o código)
-let ultimoCodigo = "";
-let escaneando = false;
+/* ===========================================================
+   🔎 DETECTOR UNIVERSAL DE ESCÁNER (MODO BUFFER TEMPORAL)
+   =========================================================== */
+let scanBuffer = "";
+let scanTimer = null;
+let modoScanner = false;
 
-buscador.addEventListener("keydown", e => {
+function procesarCodigoEscaneado(codigo) {
+  const limpio = codigo.trim();
+  if (!limpio) return;
+
+  console.log("📦 Código detectado:", limpio);
+  beep(950, 0.1);
+  ejecutarBusqueda(limpio);
+  buscador.value = "";
+  scanBuffer = "";
+  modoScanner = false;
+}
+
+buscador.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
+    // No hacemos nada todavía — se procesará por timeout
     e.preventDefault();
-    escaneando = true;
-
-    // Esperar al siguiente ciclo de render para obtener el valor final
-    requestAnimationFrame(() => {
-      const codigo = buscador.value.trim();
-
-      // Ignorar si es igual al anterior (evita doble lectura)
-      if (codigo && codigo !== ultimoCodigo) {
-        ultimoCodigo = codigo;
-        ejecutarBusqueda(codigo);
-      }
-
-      // Reiniciar input
-      buscador.value = "";
-      escaneando = false;
-    });
+    return;
   }
+
+  // Si es una tecla de un solo carácter, agregamos al buffer
+  if (e.key.length === 1) {
+    scanBuffer += e.key;
+    modoScanner = true;
+
+    clearTimeout(scanTimer);
+    // ⏱️ Esperar 200 ms sin más teclas para procesar el código completo
+    scanTimer = setTimeout(() => {
+      procesarCodigoEscaneado(scanBuffer);
+    }, 400);
+  }
+});
+// 🧭 BOTÓN DE BÚSQUEDA MANUAL
+document.getElementById("btnBuscarManual").addEventListener("click", () => {
+  const texto = buscador.value.trim();
+  if (texto.length > 0) ejecutarBusqueda(texto);
+  else toast("Escribe o escanea un código primero");
 });
 
 // 🧩 Si el usuario escribe manualmente, también busca a partir de 3 letras
@@ -1701,6 +1722,7 @@ function toast(msg, color = "#0c6cbd") {
        style="width:90%;max-width:360px;margin:auto;background:#fff;border-radius:12px;padding:8px;">
   </div>
   <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
+  
 </div>
 
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
