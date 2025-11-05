@@ -920,10 +920,15 @@ function ejecutarBusqueda(texto) {
 buscador.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
-    const texto = buscador.value.trim();
-    if (texto) ejecutarBusqueda(texto);
+
+    // ⏱️ Esperar 50 milisegundos antes de leer el valor final del input
+    setTimeout(() => {
+      const texto = buscador.value.trim();
+      if (texto) ejecutarBusqueda(texto);
+    }, 50);
   }
 });
+
 
 // ✍️ Búsqueda en vivo por nombre (al escribir)
 buscador.addEventListener("input", () => {
