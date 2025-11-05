@@ -919,7 +919,7 @@ function ejecutarBusqueda(texto) {
 }
 
 /* ===========================================================
-   🔎 DETECTOR UNIVERSAL DE ESCÁNER (MODO BUFFER TEMPORAL)
+   🔎 DETECTOR UNIVERSAL DE ESCÁNER (MODO BUFFER TEMPORAL, v2.1)
    =========================================================== */
 let scanBuffer = "";
 let scanTimer = null;
@@ -937,25 +937,36 @@ function procesarCodigoEscaneado(codigo) {
   modoScanner = false;
 }
 
+// ✅ NUEVO MÉTODO CON SEGURIDAD Y TRIGGERS DIRECTOS
 buscador.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    // No hacemos nada todavía — se procesará por timeout
+  // Si presiona Enter y ya hay datos, dispara búsqueda inmediata
+  if (e.key === "Enter" && scanBuffer.length > 0) {
     e.preventDefault();
+    procesarCodigoEscaneado(scanBuffer);
     return;
   }
 
-  // Si es una tecla de un solo carácter, agregamos al buffer
-  if (e.key.length === 1) {
+  // Solo acumular caracteres imprimibles
+  if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
     scanBuffer += e.key;
     modoScanner = true;
 
     clearTimeout(scanTimer);
-    // ⏱️ Esperar 200 ms sin más teclas para procesar el código completo
+    // Espera 400 ms sin recibir más caracteres → procesa código completo
     scanTimer = setTimeout(() => {
       procesarCodigoEscaneado(scanBuffer);
     }, 400);
   }
 });
+
+// 🔄 Evita que el lector pierda foco del campo
+buscador.addEventListener("blur", () => {
+  if (modoScanner && scanBuffer.length > 0) {
+    // Si se sale del input justo después de escanear, procesa igual
+    procesarCodigoEscaneado(scanBuffer);
+  }
+});
+
 // 🧭 BOTÓN DE BÚSQUEDA MANUAL
 document.getElementById("btnBuscarManual").addEventListener("click", () => {
   const texto = buscador.value.trim();
