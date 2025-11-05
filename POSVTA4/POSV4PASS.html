@@ -646,7 +646,11 @@ function addProduct(prod, cant = 1) {
   const existente = carrito.find(x => x.id === prod.id);
   const cantidadNueva = existente ? existente.cantidad + cant : cant;
   const precioUnit = obtenerPrecioSegunCantidad(prod, cantidadNueva);
-
+// 🔔 sonido si justo pasa al mayoreo por escaneo
+  if (cantidadNueva === 5 && productosMayoreo.includes(String(prod.codigo))) {
+    beep(600, 0.15);
+    toast(`💸 Mayoreo aplicado a ${prod.nombre}`, "#1e8e3e");
+  }
   if (existente) {
   existente.cantidad = cantidadNueva;
   existente.precioUnit = precioUnit;
@@ -715,25 +719,69 @@ function calcularTotales(descPorc = 0) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render(){
-  const tbody=$("#tbody"); tbody.innerHTML="";
-  carrito.forEach(it=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
+function render() {
+  const tbody = $("#tbody");
+  tbody.innerHTML = "";
+
+  carrito.forEach(it => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
       <td>${it.nombre}</td>
-      <td style="text-align:center">${it.cantidad.toFixed(2)}</td>
+      <td style="text-align:center">
+        <input type="number" min="0" step="1" value="${it.cantidad}"
+          style="width:60px;text-align:center;padding:4px;border-radius:6px;
+          border:1px solid #ccc;font-size:14px;"
+          onchange="actualizarCantidad('${it.id}', this.value)">
+      </td>
       <td style="text-align:right">${money(it.importe)}</td>
-      <td class='del-col'><button class='del' onclick="delItem('${it.id}')">×</button></td>`;
+      <td class='del-col'>
+        <button class='del' onclick="delItem('${it.id}')">×</button>
+      </td>
+    `;
     tbody.appendChild(tr);
   });
-  const desc=Number(localStorage.getItem("desc_porcentaje")||0);
-  const {subtotal,descuento,impuestos,total}=calcularTotales(desc);
-  $("#lblSubtotal").textContent=money(subtotal);
-  $("#lblImpuestos").textContent=money(impuestos);
-  $("#lblTotal").textContent=money(total);
+
+  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
+  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
+  $("#lblSubtotal").textContent = money(subtotal);
+  $("#lblImpuestos").textContent = money(impuestos);
+  $("#lblTotal").textContent = money(total);
 }
+
 /* ===========================================================
-   ⚙️ SECCIÓN 9.1: RENDER OPTIMIZADO CON DEBOUNCE
+   ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
+   =========================================================== */  
+
+function actualizarCantidad(id, nuevaCant) {
+  const item = carrito.find(x => x.id === id);
+  if (!item) return;
+
+  const cant = parseFloat(nuevaCant);
+  if (isNaN(cant) || cant < 0) return;
+
+  const precioAnterior = item.precioUnit;
+
+  item.cantidad = cant;
+  item.precioUnit = obtenerPrecioSegunCantidad(item, cant);
+  item.importe = item.cantidad * item.precioUnit;
+
+  // 🔔 Aviso cuando entra o sale de mayoreo
+  if (productosMayoreo.includes(String(item.codigo))) {
+    if (cant >= 5 && item.precioUnit !== precioAnterior) {
+      beep(600, 0.15);
+      toast(`💸 Mayoreo aplicado a ${item.nombre}`, "#1e8e3e");
+    } else if (cant < 5 && item.precioUnit !== precioAnterior) {
+      beep(400, 0.15);
+      toast(`🔁 Precio público restaurado (${item.nombre})`, "#c0392b");
+    }
+  }
+
+  renderDebounced();
+}
+
+  
+/* ===========================================================
+   ⚙️ SECCIÓN 9.2: RENDER OPTIMIZADO CON DEBOUNCE
    =========================================================== */
 let renderTimer;
 
@@ -749,11 +797,14 @@ window.addProduct = addProduct;
 window.render = render;
 let productoTemporal = null;
 
+// 🔁 Escaneo continuo: cada código se agrega directo al carrito
 function seleccionarProducto(prod) {
-  productoTemporal = null; // ya no se usa el input cantidad
-  solicitarCantidadYAgregar(prod);
+  addProduct(prod, 1); // agrega 1 unidad automáticamente
 
-  // 🧹 Limpieza visual y cierre de sugerencias
+  // 🔊 Confirmación de escaneo
+  beep(950, 0.12);
+
+  // 🧹 Limpieza visual
   resultadosDiv.style.display = "none";
   buscador.value = "";
   buscador.focus();
@@ -999,7 +1050,7 @@ $("#btnConfirmarCobro").onclick = async () => {
     if (carrito.length === 0) {
       alert("No hay productos en el carrito.");
       return;
-    }
+    }  
     if (!rutaId || !USUARIO_LOGUEADO) {
       alert("⚠️ Usuario o ruta no detectados. Vuelve a iniciar sesión.");
       return;
@@ -1548,6 +1599,19 @@ window.addEventListener("online", () => {
 
   console.log("✅ Conexión restaurada, Firestore volverá a sincronizar automáticamente.");
 });
+function toast(msg, color = "#0c6cbd") {
+  const aviso = document.createElement("div");
+  aviso.textContent = msg;
+  aviso.style.cssText = `
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:${color};color:#fff;padding:8px 14px;border-radius:10px;
+    font-size:14px;z-index:9999;opacity:0;transition:opacity .3s ease;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+  `;
+  document.body.appendChild(aviso);
+  setTimeout(()=>aviso.style.opacity=1,50);
+  setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},2500);
+}
 
 })(); // ✅ cierre del async
 
