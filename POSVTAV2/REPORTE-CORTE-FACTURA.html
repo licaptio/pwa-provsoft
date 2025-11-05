@@ -58,24 +58,25 @@
           reportes[clave].docsIds.push(docSnap.id);
 
           // 🔹 Combinar productos dentro del mismo grupo
-          data.detalle.forEach(item => {
-            const codigo = item.id || "";
-            const nombre = item.nombre || "SIN NOMBRE";
-            const cantidad = item.cantidad || 0;
-            const precioUnit = item.precio_unit 
-               ?? item.precioUnitario 
-               ?? item.precio 
-               ?? item.precioVenta 
-               ?? 0;
-            const total = cantidad * precioUnit;
+data.detalle.forEach(item => {
+  const codigo = item.codigo || item.id || ""; // usa 'codigo' en lugar de solo 'id'
+  const nombre = item.nombre || "SIN NOMBRE";
+  const cantidad = Number(item.cantidad) || 0;
+  const precioUnit = item.precio_unit 
+    ?? item.precioUnit 
+    ?? item.precioPublico 
+    ?? item.precio 
+    ?? item.precioVenta 
+    ?? 0;
+  const total = cantidad * precioUnit;
 
-            if (!reportes[clave].productos[codigo]) {
-              reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
-            }
-            reportes[clave].productos[codigo].cantidad += cantidad;
-            reportes[clave].productos[codigo].total += total;
-            reportes[clave].totalGeneral += total;
-          });
+  if (!reportes[clave].productos[codigo]) {
+    reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
+  }
+  reportes[clave].productos[codigo].cantidad += cantidad;
+  reportes[clave].productos[codigo].total += total;
+  reportes[clave].totalGeneral += total;
+});
         }
       });
 
