@@ -967,23 +967,7 @@ buscador.addEventListener("blur", () => {
 });
 
 // 🔍 BOTÓN DE BÚSQUEDA MANUAL (cuando escriben texto)
-document.getElementById("btnBuscarManual").addEventListener("click", () => {
-  const texto = buscador.value.trim();
-  if (texto.length > 0) ejecutarBusqueda(texto);
-  else toast("Escribe o escanea un código primero");
-});
 
-// 🔸 Entrada manual (solo cuando el usuario escribe lentamente)
-buscador.addEventListener("input", () => {
-  if (modoScanner) return; // no interferir con escáner
-  const texto = buscador.value.trim();
-  if (texto.length >= 3) {
-    clearTimeout(scanTimer);
-    scanTimer = setTimeout(() => ejecutarBusqueda(texto), 300);
-  } else {
-    resultadosDiv.style.display = "none";
-  }
-});
 
 // 🧭 BOTÓN DE BÚSQUEDA MANUAL
 document.getElementById("btnBuscarManual").addEventListener("click", () => {
