@@ -917,17 +917,32 @@ function ejecutarBusqueda(texto) {
 }
 
 // 🚀 Búsqueda directa con Enter (escáner o código)
+let scanBuffer = "";
+let scanTimer = null;
+
 buscador.addEventListener("keydown", e => {
+  // Ignora teclas de control
+  if (e.key.length > 1 && e.key !== "Enter") return;
+
   if (e.key === "Enter") {
     e.preventDefault();
 
-    // ⏱️ Esperar 50 milisegundos antes de leer el valor final del input
+    // 🕒 Espera un poco más a que termine de escribir el lector
     setTimeout(() => {
-      const texto = buscador.value.trim();
-      if (texto) ejecutarBusqueda(texto);
-    }, 50);
+      const textoFinal = buscador.value.trim();
+      if (textoFinal.length >= 8) ejecutarBusqueda(textoFinal);
+      scanBuffer = "";
+    }, 120); // ← este retraso da tiempo a Chrome móvil
+  } else {
+    // Acumula los caracteres del escáner
+    scanBuffer += e.key;
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => {
+      scanBuffer = "";
+    }, 200);
   }
 });
+
 
 
 // ✍️ Búsqueda en vivo por nombre (al escribir)
