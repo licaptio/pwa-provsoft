@@ -917,42 +917,37 @@ function ejecutarBusqueda(texto) {
 }
 
 // 🚀 Búsqueda directa con Enter (escáner o código)
-let scanBuffer = "";
-let scanTimer = null;
+let ultimoCodigo = "";
+let escaneando = false;
 
 buscador.addEventListener("keydown", e => {
-  // Ignora teclas de control
-  if (e.key.length > 1 && e.key !== "Enter") return;
-
   if (e.key === "Enter") {
     e.preventDefault();
+    escaneando = true;
 
-    // 🕒 Espera un poco más a que termine de escribir el lector
-    setTimeout(() => {
-      const textoFinal = buscador.value.trim();
-      if (textoFinal.length >= 8) ejecutarBusqueda(textoFinal);
-      scanBuffer = "";
-    }, 120); // ← este retraso da tiempo a Chrome móvil
-  } else {
-    // Acumula los caracteres del escáner
-    scanBuffer += e.key;
-    clearTimeout(scanTimer);
-    scanTimer = setTimeout(() => {
-      scanBuffer = "";
-    }, 200);
+    // Esperar al siguiente ciclo de render para obtener el valor final
+    requestAnimationFrame(() => {
+      const codigo = buscador.value.trim();
+
+      // Ignorar si es igual al anterior (evita doble lectura)
+      if (codigo && codigo !== ultimoCodigo) {
+        ultimoCodigo = codigo;
+        ejecutarBusqueda(codigo);
+      }
+
+      // Reiniciar input
+      buscador.value = "";
+      escaneando = false;
+    });
   }
 });
 
-
-
-// ✍️ Búsqueda en vivo por nombre (al escribir)
+// 🧩 Si el usuario escribe manualmente, también busca a partir de 3 letras
 buscador.addEventListener("input", () => {
+  if (escaneando) return; // no interferir si viene del escáner
   const texto = buscador.value.trim();
-  if (texto.length >= 3) {  // desde 3 letras
-    ejecutarBusqueda(texto);
-  } else {
-    resultadosDiv.style.display = "none";
-  }
+  if (texto.length >= 3) ejecutarBusqueda(texto);
+  else resultadosDiv.style.display = "none";
 });
 
 /* ===========================================================
