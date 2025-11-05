@@ -68,7 +68,7 @@ data.detalle.forEach(item => {
     ?? item.precio 
     ?? item.precioVenta 
     ?? 0;
-  const total = cantidad * precioUnit;
+  const total = item.importe ?? (cantidad * precioUnit);
 
   if (!reportes[clave].productos[codigo]) {
     reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
