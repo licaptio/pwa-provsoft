@@ -919,7 +919,7 @@ function ejecutarBusqueda(texto) {
 }
 
 /* ===========================================================
-   🔎 DETECTOR UNIVERSAL DE ESCÁNER (MODO BUFFER TEMPORAL, v2.1)
+   🔎 DETECTOR UNIVERSAL DE ESCÁNER (v3.0 ESTABLE)
    =========================================================== */
 let scanBuffer = "";
 let scanTimer = null;
@@ -937,33 +937,51 @@ function procesarCodigoEscaneado(codigo) {
   modoScanner = false;
 }
 
-// ✅ NUEVO MÉTODO CON SEGURIDAD Y TRIGGERS DIRECTOS
+// 🔹 Captura de caracteres del lector Eyoyo
 buscador.addEventListener("keydown", (e) => {
-  // Si presiona Enter y ya hay datos, dispara búsqueda inmediata
+  // Si presiona Enter y ya hay datos → ejecutar búsqueda directa
   if (e.key === "Enter" && scanBuffer.length > 0) {
     e.preventDefault();
     procesarCodigoEscaneado(scanBuffer);
     return;
   }
 
-  // Solo acumular caracteres imprimibles
+  // Solo acumular teclas imprimibles
   if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
     scanBuffer += e.key;
     modoScanner = true;
 
     clearTimeout(scanTimer);
-    // Espera 400 ms sin recibir más caracteres → procesa código completo
+    // Espera 450 ms sin recibir más caracteres = escaneo terminado
     scanTimer = setTimeout(() => {
       procesarCodigoEscaneado(scanBuffer);
-    }, 400);
+    }, 450);
   }
 });
 
-// 🔄 Evita que el lector pierda foco del campo
+// 🔹 Si pierde el foco, procesa lo que haya en el buffer
 buscador.addEventListener("blur", () => {
   if (modoScanner && scanBuffer.length > 0) {
-    // Si se sale del input justo después de escanear, procesa igual
     procesarCodigoEscaneado(scanBuffer);
+  }
+});
+
+// 🔍 BOTÓN DE BÚSQUEDA MANUAL (cuando escriben texto)
+document.getElementById("btnBuscarManual").addEventListener("click", () => {
+  const texto = buscador.value.trim();
+  if (texto.length > 0) ejecutarBusqueda(texto);
+  else toast("Escribe o escanea un código primero");
+});
+
+// 🔸 Entrada manual (solo cuando el usuario escribe lentamente)
+buscador.addEventListener("input", () => {
+  if (modoScanner) return; // no interferir con escáner
+  const texto = buscador.value.trim();
+  if (texto.length >= 3) {
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => ejecutarBusqueda(texto), 300);
+  } else {
+    resultadosDiv.style.display = "none";
   }
 });
 
