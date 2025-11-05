@@ -62,7 +62,11 @@
             const codigo = item.id || "";
             const nombre = item.nombre || "SIN NOMBRE";
             const cantidad = item.cantidad || 0;
-            const precioUnit = item.precio_unit || 0;
+            const precioUnit = item.precio_unit 
+               ?? item.precioUnitario 
+               ?? item.precio 
+               ?? item.precioVenta 
+               ?? 0;
             const total = cantidad * precioUnit;
 
             if (!reportes[clave].productos[codigo]) {
