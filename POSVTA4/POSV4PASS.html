@@ -660,8 +660,45 @@ function addProduct(prod, cant = 1) {
 } else {
   carrito.push({...prod,cantidad:cant,precioUnit,importe:cant*precioUnit});
 }
+  // 🧭 CONFIRMACIÓN VISUAL TEMPORAL
+  mostrarConfirmacionProducto(prod, cant, precioUnit);
+
 render(); // Usa render normal
 }
+
+/* ===========================================================
+   🧭 FUNCIÓN VISUAL: CONFIRMACIÓN DE PRODUCTO ESCANEADO
+   =========================================================== */
+function mostrarConfirmacionProducto(prod, cant, precioUnit) {
+  // Borra avisos anteriores si aún están visibles
+  const avisoPrevio = document.getElementById("toastProducto");
+  if (avisoPrevio) avisoPrevio.remove();
+
+  const total = (cant * precioUnit).toFixed(2);
+  const aviso = document.createElement("div");
+  aviso.id = "toastProducto";
+  aviso.innerHTML = `
+    ✅ ${cant} × <strong>${prod.nombre}</strong><br>
+    💰 $${total}
+  `;
+  aviso.style.cssText = `
+    position:fixed;bottom:75px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.85);color:#fff;padding:10px 16px;
+    border-radius:12px;text-align:center;z-index:9999;
+    font-size:15px;font-weight:600;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+    opacity:0;transition:opacity .3s ease;
+  `;
+
+  document.body.appendChild(aviso);
+  setTimeout(() => aviso.style.opacity = 1, 80);
+  setTimeout(() => {
+    aviso.style.opacity = 0;
+    setTimeout(() => aviso.remove(), 400);
+  }, 2500);
+}
+  
+  
 function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
 window.delItem=delItem;
 
