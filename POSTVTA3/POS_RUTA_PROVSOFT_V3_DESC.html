@@ -283,23 +283,38 @@ const productosMayoreo = [
   "75068745","75068776","75068783","75068844","75069902","75071295",
   "75071776","75080495"
 ];
+  // === 🧩 Reglas especiales por código y cantidad ===
+const reglasEspeciales = {
+  "7501026026546": { cantidad: 10, tipo: "mayoreo" }, // FOCA 1KGR DETERGENTE
+  "7501026026560": { cantidad: 20, tipo: "mayoreo" },  // FOCA 500GR variante
+   "7501025403485": { cantidad: 12, tipo: "mayoreo" },  // PINOL 828
+   "7501026026577": { cantidad: 40, tipo: "mayoreo" }  // FOCA 250GR variante
+};
+  
 // === 🧮 Determina el precio correcto según cantidad ===
 function obtenerPrecioSegunCantidad(prod, cantidad) {
-  // Solo aplica si el producto está en la lista de mayoreo
-  if (!productosMayoreo.includes(String(prod.codigo))) {
-    return Number(prod.precioPublico || 0);
+  const codigo = String(prod.codigo);
+
+  // 1️⃣ Verifica si el código tiene una regla especial
+  if (codigo in reglasEspeciales) {
+    const regla = reglasEspeciales[codigo];
+    if (cantidad >= regla.cantidad && prod.mayoreo) {
+      console.log(`💸 Regla especial aplicada: ${codigo} (${regla.cantidad}+ piezas → mayoreo)`);
+      return Number(prod.mayoreo);
+    }
   }
 
-  // Si el producto está en la lista y la cantidad es 5 o más → precio de mayoreo
-  if (cantidad >= 5 && prod.mayoreo) {
-    console.log("💸 Mayoreo aplicado:", prod.nombre);
-    return Number(prod.mayoreo);
+  // 2️⃣ Revisa si pertenece al grupo general de cigarros con descuento
+  if (productosMayoreo.includes(codigo)) {
+    if (cantidad >= 5 && prod.mayoreo) {
+      console.log("💸 Mayoreo general aplicado:", prod.nombre);
+      return Number(prod.mayoreo);
+    }
   }
 
-  // En cualquier otro caso → precio público
+  // 3️⃣ En cualquier otro caso, precio público
   return Number(prod.precioPublico || 0);
 }
-  
 // ==== Login ====
 async function loginUsuario(){
   const u=$("#loginUsuario").value.trim(), p=$("#loginPassword").value.trim();
