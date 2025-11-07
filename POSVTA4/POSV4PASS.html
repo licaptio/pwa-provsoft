@@ -272,7 +272,6 @@ body {
   border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin:15px;">
   <h2 style="text-align:center;color:#00416A;">🔧 Pruebas del Sistema POS</h2>
 
-  <button id="btnTestCam" class="btn" style="background:#0c6cbd;margin:6px 0;">📷 Probar Cámara</button><br>
   <button id="btnTestPrinter" class="btn" style="background:#16a34a;margin:6px 0;">🖨️ Probar Impresora</button><br>
   <button id="btnTestGPS" class="btn" style="background:#f59e0b;margin:6px 0;">📍 Probar GPS</button><br>
 
@@ -2259,41 +2258,6 @@ document.getElementById("btnVolverVenta").addEventListener("click", () => {
    🧪 BLOQUE DE PRUEBAS FUNCIONALES DEL SISTEMA POS
    =========================================================== */
 const testResult = document.getElementById("testResult");
-
-// 📷 Prueba de cámara (corregida con beep + retorno automático)
-document.getElementById("btnTestCam").addEventListener("click", async () => {
-  const qrDiv = document.getElementById("qrReaderContainer");
-  const testResult = document.getElementById("testResult");
-  testResult.innerHTML = "🎥 Iniciando prueba de escáner QR...";
-
-  try {
-    const html5QrCode = new Html5Qrcode("reader");
-    qrDiv.style.display = "flex";
-
-    await html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        console.log("🧪 Código detectado en test:", decodedText);
-        beep(950, 0.1);
-        testResult.innerHTML = `✅ Escaneo exitoso:<br><strong>${decodedText}</strong>`;
-
-        // 🔹 Cierra cámara y regresa al menú de test
-        html5QrCode.stop().then(() => {
-          qrDiv.style.display = "none";
-          toast("📷 Cámara cerrada (modo test)", "#16a34a");
-          console.log("📷 Cámara detenida correctamente [TestCam]");
-        });
-      },
-      (err) => console.log("⚠️", err)
-    );
-  } catch (err) {
-    console.error("❌ Error prueba escáner:", err);
-    testResult.innerHTML = "❌ No se pudo iniciar el escáner QR.<br>Verifica permisos o cámara.";
-    toast("❌ No se pudo abrir la cámara", "#c0392b");
-  }
-});
-
 
 // 🖨️ Prueba de impresora térmica
 document.getElementById("btnTestPrinter").addEventListener("click", () => {
