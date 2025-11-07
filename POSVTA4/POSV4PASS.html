@@ -13,6 +13,46 @@
 
   <!-- 🧩 ESTILOS GLOBALES -->
   <style>
+   /* 🔹 Contenedor general (mantiene estructura móvil) */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom right, #00416A, #E4E5E6);
+}
+
+/* 🔹 Sección principal scrollable */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* 🔹 Carrito fijo inferior */
+#carrito-container {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-radius: 15px 15px 0 0;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+  max-height: 40vh; /* ajusta la altura del carrito visible */
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* 🔹 Ítems dentro del carrito */
+.carrito-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.carrito-item:last-child { border-bottom: none; }
+
     /* 🎨 VARIABLES GENERALES */
     :root {
       --azul:#00416A;--resalte:#0c6cbd;--ok:#1e8e3e;
@@ -183,30 +223,34 @@
 
 </header>
 
-  <!-- 🧩 CUERPO PRINCIPAL -->
-  <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
-<section id="pantallaVenta" class="controls">
-  <!-- 🧍‍♂️ CAMPO CLIENTE -->
-  <div class="field">
-    <label>Cliente</label>
-    <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
-    <datalist id="clientesList"></datalist>
-  </div>
+</header>
 
-  <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
-<div class="field searchbox">
-  <label>Buscar</label>
-  <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-  <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
-  <button id="btnCam" class="cam-btn" type="button">📷</button>
-  <div id="resultados" class="search-results"></div>
+<!-- 🧩 CUERPO PRINCIPAL -->
+<div class="main-content">
+
+  <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
+  <section id="pantallaVenta" class="controls">
+    <!-- 🧍‍♂️ CAMPO CLIENTE -->
+    <div class="field">
+      <label>Cliente</label>
+      <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+      <datalist id="clientesList"></datalist>
+    </div>
+
+    <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
+    <div class="field searchbox">
+      <label>Buscar</label>
+      <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+      <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
+      <button id="btnCam" class="cam-btn" type="button">📷</button>
+      <div id="resultados" class="search-results"></div>
+    </div>
+  </section>
+
 </div>
 
-
-</section>
-
-<!-- 🧾 BLOQUE NUEVO — CARRITO OCULTO -->
-<section id="pantallaCarrito" class="card" style="display:none;">
+<!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
+<div id="carrito-container">
   <div class="table-wrap">
     <table>
       <thead>
@@ -220,6 +264,8 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+</div>
+
 
   <div class="totals">
     <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
@@ -699,9 +745,38 @@ function decodificarBalanza(codigo) {
    =========================================================== */
 function addProduct(prod, cant = 1) {
   if (!prod) return;
+  cant = parseFloat(cant);  // 🧮 asegúrate de que puede ser decimal
   const existente = carrito.find(x => x.id === prod.id);
+
+  // 🔹 Si es producto de balanza (peso < 1 kg o con código prefijo 2)
+  if (cant < 1 || String(prod.codigo || "").startsWith("2")) {
+    // No sumar kilos a lo anterior, crear línea nueva separada
+    carrito.push({
+      ...prod,
+      cantidad: cant,
+      precioUnit: Number(prod.precioPublico || 0),
+      importe: cant * Number(prod.precioPublico || 0)
+    });
+    renderDebounced();
+    return;
+  }
+
+  // 🔹 Normal (piezas)
   const cantidadNueva = existente ? existente.cantidad + cant : cant;
   const precioUnit = obtenerPrecioSegunCantidad(prod, cantidadNueva);
+
+  if (existente) {
+    existente.cantidad = cantidadNueva;
+    existente.precioUnit = precioUnit;
+    existente.importe = existente.cantidad * precioUnit;
+  } else {
+    carrito.push({ ...prod, cantidad: cant, precioUnit, importe: cant * precioUnit });
+  }
+
+  mostrarConfirmacionProducto(prod, cant, precioUnit);
+  renderDebounced();
+}
+
 // 🔔 sonido si justo pasa al mayoreo por escaneo
   if (cantidadNueva === 5 && productosMayoreo.includes(String(prod.codigo))) {
     beep(600, 0.15);
@@ -995,16 +1070,19 @@ async function ejecutarBusqueda(texto) {
 
     // 2️⃣ Buscar el producto real
     const producto = buscarLocal(codigoBase);
-    if (producto.length > 0) {
-      const p = producto[0];
-      const total = p.precioPublico * balanza.pesoKg;
-      p.cantidad = balanza.pesoKg;
-      p.total = total;
-      beep(950);
-      seleccionarProducto(p);
-      toast(`⚖️ ${p.nombre} (${balanza.pesoKg.toFixed(3)} kg) – $${total.toFixed(2)}`, "#16a34a");
-      return;
-    } else {
+if (producto.length > 0) {
+  const p = producto[0];
+  const peso = parseFloat(balanza.pesoKg.toFixed(3));
+  const total = p.precioPublico * peso;
+
+  // 🔹 Agrega directo al carrito con el peso correcto
+  addProduct(p, peso);
+
+  beep(950);
+  toast(`⚖️ ${p.nombre} (${peso.toFixed(3)} kg) – $${total.toFixed(2)}`, "#16a34a");
+  return;
+} 
+    else {
       console.warn("❌ Producto de balanza no encontrado:", codigoBase);
       toast("❌ Producto no encontrado en catálogo", "#dc2626");
       return;
