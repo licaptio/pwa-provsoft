@@ -239,7 +239,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
   const snap = await getDocs(qv);
   const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  // 📆 FILTRO POR FECHA (coincidencia con fecha_txt)
+  // 📆 FILTRO POR FECHA
   const fechaRef = fechaSel.split("-").reverse().join("/");
   const ventasDia = ventas.filter(v =>
     v.fecha_txt?.startsWith(fechaRef) || v.fecha_txt?.includes(fechaRef)
@@ -250,11 +250,10 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     return;
   }
 
-  // ⚙️ ACUMULADORES GLOBALES
+  // ⚙️ ACUMULADORES
   let totalDia = 0, totalDescuento = 0, utilidadTotal = 0;
   const porDepto = {}, porArticulo = {}, porNota = [];
 
-  // 🔁 RECORRER VENTAS DEL DÍA
   for (const v of ventasDia) {
     const rf = v.resumen_financiero || {};
     const total = Number(rf.total) || 0;
@@ -266,7 +265,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     totalDescuento += descuento;
     utilidadTotal += utilidad;
 
-    // 🔍 DETALLES DE CADA VENTA
+    // 🔍 Detalle de artículos
     for (const det of (v.detalle || [])) {
       const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
       const importe = (det.importe || 0) - (det.descuento_monto || 0);
@@ -275,14 +274,12 @@ async function generarCorte(rutaId, fechaSel, usuario) {
       const iva = det.iva_calculado || 0;
       const ieps = det.ieps_calculado || 0;
 
-      // 🗂️ Acumuladores por departamento
       if (!porDepto[dep]) porDepto[dep] = { venta: 0, costo: 0, utilidad: 0, impuestos: 0 };
       porDepto[dep].venta += importe;
       porDepto[dep].costo += costoD;
       porDepto[dep].utilidad += utilD;
       porDepto[dep].impuestos += iva + ieps;
 
-      // 🏷️ Acumuladores por artículo
       const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
       if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0, costo: 0 };
       porArticulo[art].cantidad += det.cantidad || 0;
@@ -290,7 +287,6 @@ async function generarCorte(rutaId, fechaSel, usuario) {
       porArticulo[art].costo += costoD;
     }
 
-    // 🧾 Registro individual de venta (nota/ticket)
     porNota.push({
       folio: v.folio || v.id,
       total,
@@ -301,7 +297,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     });
   }
 
-  // 📊 OBJETO DE RESUMEN PARA GUARDAR Y PDF
+  // 📊 OBJETO RESUMEN PARA GUARDAR
   const resumen = {
     usuario,
     rutaId,
@@ -314,8 +310,8 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     porNota
   };
 
-  // 🗄️ GUARDAR EN "cortes_globales"
-  await addDoc(collection(db, "cortes_globales"), {
+  // 🗄️ GUARDAR EN "cortes_globalesV4" (nuevo destino)
+  await addDoc(collection(db, "cortes_globalesV4"), {
     rutaId,
     fecha: serverTimestamp(),
     fecha_corte: fechaSel,
@@ -331,11 +327,11 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     });
   }
 
-  // 📄 GENERAR PDF COMPLETO
+  // 📄 GENERAR PDF
   await generarPDF(resumen);
 
   overlay.style.display = "none";
-  alert("✅ Corte generado correctamente");
+  alert("✅ Corte generado y guardado en cortes_globalesV4");
 }
 
 // =======================================================
