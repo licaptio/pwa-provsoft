@@ -2160,22 +2160,34 @@ document.addEventListener("DOMContentLoaded", function() {
       };
 
       // 🎬 Iniciar escáner
-      await html5QrCode.start(
-        cameraId, 
-        config, 
-        async (decodedText) => {
-          if (escaneoExitoso) return; // Evitar múltiples escaneos
-          
-          escaneoExitoso = true;
-          console.log("✅ Código escaneado:", decodedText);
-          beep(950, 0.1);
-          
-          // 🔄 Procesar código escaneado
-          procesarCodigoEscaneado(decodedText);
-          
-          // ✅ Cerrar cámara inmediatamente después del escaneo
-          setTimeout(cerrarCamara, 100);
-        },
+await html5QrCode.start(
+  cameraId, 
+  config, 
+  async (decodedText) => {
+    // ⚙️ Bloqueo contra escaneos múltiples
+    if (escaneoExitoso) return;
+    escaneoExitoso = true;
+
+    // 📦 Evita doble ejecución: desactiva lector antes de procesar
+    try {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+    } catch (e) {
+      console.warn("⚠️ Error al detener lector:", e);
+    }
+
+    console.log("✅ Código escaneado:", decodedText);
+    beep(950, 0.1);
+
+    // 🧠 Espera mínima para evitar doble inserción
+    setTimeout(() => {
+      procesarCodigoEscaneado(decodedText);
+    }, 200);
+
+    // 🚪 Cierra la interfaz visual con un ligero delay
+    setTimeout(cerrarCamara, 500);
+  },
+
         (errorMessage) => {
           // Mensajes normales de escaneo, no mostrar errores
           if (!errorMessage.includes("No QR code found")) {
