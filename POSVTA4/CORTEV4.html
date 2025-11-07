@@ -2,10 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Cortes de Rutas – PROVSOFT</title>
+  <title>CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES</title>
   <meta name="theme-color" content="#0c6cbd">
   <link rel="icon" href="data:,">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- 🎨 ESTILOS GLOBALES -->
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -13,65 +15,120 @@
       padding: 20px;
       color: #222;
     }
-    h1 { color: #00416A; text-align:center; margin-bottom:10px; }
+
+    h1 {
+      color: #00416A;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
     select, input[type="date"] {
-      display:block; margin:10px auto 20px auto;
-      padding:8px 12px; border-radius:6px; border:1px solid #ccc;
-      font-size:14px;
+      display: block;
+      margin: 10px auto 20px auto;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
     }
+
     table {
-      width: 100%; border-collapse: collapse; background:#fff;
-      border-radius: 10px; overflow:hidden;
-      box-shadow: 0 3px 8px rgba(0,0,0,.1);
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, .1);
     }
-    th, td { padding: 10px 12px; border-bottom: 1px solid #ddd; text-align: left; font-size: 14px; }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+      font-size: 14px;
+    }
+
     th { background: #00416A; color: #fff; }
     tr:hover { background: #f1f5f9; }
+
     button {
-      padding: 6px 10px; border:none; border-radius:6px; cursor:pointer;
-      background:#0c6cbd; color:white; font-weight:600;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #0c6cbd;
+      color: white;
+      font-weight: 600;
     }
+
+    /* 🌀 Overlay de carga */
     #overlay {
-      display:none;
-      position:fixed;
-      inset:0;
-      background:rgba(0,0,0,0.6);
-      z-index:3000;
-      align-items:center;
-      justify-content:center;
-      color:white;
-      font-size:18px;
-      flex-direction:column;
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 3000;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      flex-direction: column;
     }
+
     .spinner {
-      width:60px; height:60px;
-      border:6px solid rgba(255,255,255,0.3);
-      border-top:6px solid #0c6cbd;
-      border-radius:50%;
+      width: 60px; height: 60px;
+      border: 6px solid rgba(255,255,255,0.3);
+      border-top: 6px solid #0c6cbd;
+      border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin-bottom:20px;
+      margin-bottom: 20px;
     }
-    @keyframes spin { from { transform:rotate(0deg);} to { transform:rotate(360deg);} }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   </style>
 
+  <!-- 🧩 Librerías externas: PDF y Gráficos -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body>
-<h1>CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES</h1>
-<select id="selectRuta"><option value="">Selecciona una ruta...</option></select>
-<input type="date" id="selectFecha" />
-<table id="tablaPendientes">
-  <thead><tr><th>Usuario</th><th>Ruta</th><th>Fecha</th><th>Acción</th></tr></thead>
-  <tbody id="tbodyPendientes"><tr><td colspan="4" style="text-align:center;">Selecciona ruta y fecha</td></tr></tbody>
-</table>
 
-<div id="overlay"><div class="spinner"></div>Procesando corte...<div id="overlayText"></div></div>
+
+<body>
+  <h1>CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES</h1>
+
+  <!-- 🔹 Selectores -->
+  <select id="selectRuta"><option value="">Selecciona una ruta...</option></select>
+  <input type="date" id="selectFecha" />
+
+  <!-- 🔹 Tabla de cortes pendientes -->
+  <table id="tablaPendientes">
+    <thead>
+      <tr>
+        <th>Usuario</th><th>Ruta</th><th>Fecha</th><th>Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tbodyPendientes">
+      <tr><td colspan="4" style="text-align:center;">Selecciona ruta y fecha</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 🔹 Overlay (pantalla de carga) -->
+  <div id="overlay">
+    <div class="spinner"></div>
+    Procesando corte...
+    <div id="overlayText"></div>
+  </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ===============================
+// 🚀 BLOQUE 3: CONEXIÓN FIREBASE
+// ===============================
 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// 🔐 CONFIGURACIÓN FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -80,152 +137,449 @@ const firebaseConfig = {
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
+
+// 🔧 Inicializar aplicación
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// 🧭 Elementos del DOM
 const selectRuta = document.getElementById("selectRuta");
 const selectFecha = document.getElementById("selectFecha");
 const tbody = document.getElementById("tbodyPendientes");
 const overlay = document.getElementById("overlay");
 const overlayText = document.getElementById("overlayText");
 
-await cargarRutas();
-
-async function cargarRutas(){
-  const snap = await getDocs(collection(db,"ventas_rutav2","DOpT5m1VoQOYDJPXzpWI","ventas"));
+// ===============================
+// 📋 FUNCIÓN: Cargar Rutas con ventas pendientes
+// ===============================
+async function cargarRutas() {
+  const snap = await getDocs(collection(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas"));
   const rutas = {};
-  snap.forEach(d=>{
-    const v=d.data();
-    if(!v.cortado && v.rutaId){
-      if(!rutas[v.rutaId]) rutas[v.rutaId]=v.usuarioNombre||"Desconocido";
+  snap.forEach(d => {
+    const v = d.data();
+    if (!v.cortado && v.rutaId) {
+      if (!rutas[v.rutaId]) rutas[v.rutaId] = v.usuarioNombre || "Desconocido";
     }
   });
-  Object.entries(rutas).forEach(([id,nombre])=>{
-    const opt=document.createElement("option");
-    opt.value=id; opt.textContent=`${nombre} – ${id}`;
+
+  // Agregar al selector
+  Object.entries(rutas).forEach(([id, nombre]) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = `${nombre} – ${id}`;
     selectRuta.appendChild(opt);
   });
 }
 
-selectFecha.addEventListener("change",listarPendientes);
-selectRuta.addEventListener("change",listarPendientes);
+// Ejecutar carga inicial
+await cargarRutas();
 
-async function listarPendientes(){
-  tbody.innerHTML="<tr><td colspan='4'>Buscando...</td></tr>";
-  const ruta=selectRuta.value, fecha=selectFecha.value;
-  if(!ruta||!fecha){tbody.innerHTML="<tr><td colspan='4' style='text-align:center;color:#999;'>Selecciona ruta y fecha</td></tr>";return;}
-  const qv=query(collection(db,"ventas_rutav2","DOpT5m1VoQOYDJPXzpWI","ventas"),
-                where("rutaId","==",ruta),where("cortado","==",false));
-  const snap=await getDocs(qv);
-  const ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
-  const fechaStr=fecha.replaceAll("-","/");
-  const ventasDia=ventas.filter(v=>v.fecha_txt?.startsWith(fechaStr)||v.fecha_txt?.includes(fechaStr));
-  if(!ventasDia.length){tbody.innerHTML="<tr><td colspan='4' style='text-align:center;'>No hay pendientes</td></tr>";return;}
-  const usuario=ventasDia[0].usuarioNombre||"—";
-  tbody.innerHTML=`<tr><td>${usuario}</td><td>${ruta}</td><td>${fecha}</td>
-  <td><button id='btnCorte'>📊 Generar Corte</button></td></tr>`;
-  document.getElementById("btnCorte").onclick=()=>generarCorte(ruta,fecha,usuario);
+// ===============================
+// 📆 BLOQUE 4: CONTROL DE SELECCIÓN (Ruta + Fecha)
+// ===============================
+
+selectFecha.addEventListener("change", listarPendientes);
+selectRuta.addEventListener("change", listarPendientes);
+
+async function listarPendientes() {
+  tbody.innerHTML = "<tr><td colspan='4'>Buscando...</td></tr>";
+
+  const ruta = selectRuta.value, fecha = selectFecha.value;
+  if (!ruta || !fecha) {
+    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;color:#999;'>Selecciona ruta y fecha</td></tr>";
+    return;
+  }
+
+  const qv = query(
+    collection(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas"),
+    where("rutaId", "==", ruta),
+    where("cortado", "==", false)
+  );
+  const snap = await getDocs(qv);
+  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const fechaStr = fecha.replaceAll("-", "/");
+  const ventasDia = ventas.filter(v => v.fecha_txt?.startsWith(fechaStr) || v.fecha_txt?.includes(fechaStr));
+
+  if (!ventasDia.length) {
+    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No hay pendientes</td></tr>";
+    return;
+  }
+
+  const usuario = ventasDia[0].usuarioNombre || "—";
+  tbody.innerHTML = `
+    <tr>
+      <td>${usuario}</td>
+      <td>${ruta}</td>
+      <td>${fecha}</td>
+      <td><button id='btnCorte'>📊 Generar Corte</button></td>
+    </tr>
+  `;
+
+  document.getElementById("btnCorte").onclick = () => generarCorte(ruta, fecha, usuario);
 }
+</script>
+</body>
+</html>
 
-async function generarCorte(rutaId,fechaSel,usuario){
-  overlay.style.display="flex"; overlayText.innerText="Analizando ventas...";
-  const qv=query(collection(db,"ventas_rutav2","DOpT5m1VoQOYDJPXzpWI","ventas"),
-                where("rutaId","==",rutaId),where("cortado","==",false));
-  const snap=await getDocs(qv);
-  const ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
-  const ventasDia=ventas.filter(v=>v.fecha_txt?.startsWith(fechaSel.split("-").reverse().join("/")));
-  if(!ventasDia.length){overlayText.innerText="No hay ventas para ese día.";return;}
-  let totalDia=0, totalDescuento=0, utilidadTotal=0, porDepto={}, porArticulo={}, porNota=[];
-  for(const v of ventasDia){
-    const rf=v.resumen_financiero||{};
-    const total=Number(rf.total)||0;
-    const desc=Number(rf.descuento)||Number(v.descuento_monto)||0;
-    const costo=Number(rf.costo_total)||0;
-    const utilidad=Number(rf.utilidad_total)||total-costo;
-    totalDia+=total; totalDescuento+=desc; utilidadTotal+=utilidad;
+// ======================================================
+// 🧮 BLOQUE 5 — FUNCIÓN PRINCIPAL: GENERAR CORTE ANALÍTICO
+// ======================================================
 
-    for(const det of (v.detalle||[])){
-      const dep=det.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
-      const importe=(det.importe||0)-(det.descuento_monto||0);
-      const costoD=det.costo_total||det.costo_unit*(det.cantidad||1)||0;
-      const utilD=det.utilidad||importe-costoD;
-      if(!porDepto[dep]) porDepto[dep]={venta:0,costo:0,utilidad:0,impuestos:0};
-      porDepto[dep].venta+=importe;
-      porDepto[dep].costo+=costoD;
-      porDepto[dep].utilidad+=utilD;
-      porDepto[dep].impuestos+=(det.iva_calculado||0)+(det.ieps_calculado||0);
+async function generarCorte(rutaId, fechaSel, usuario) {
+  overlay.style.display = "flex";
+  overlayText.innerText = "Analizando ventas...";
 
-      const art=det.nombre?.toUpperCase()||"SIN NOMBRE";
-      if(!porArticulo[art]) porArticulo[art]={cantidad:0,importe:0,costo:0};
-      porArticulo[art].cantidad+=det.cantidad||0;
-      porArticulo[art].importe+=importe;
-      porArticulo[art].costo+=costoD;
+  // 🧭 CONSULTA VENTAS NO CORTADAS DE LA RUTA
+  const qv = query(
+    collection(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas"),
+    where("rutaId", "==", rutaId),
+    where("cortado", "==", false)
+  );
+  const snap = await getDocs(qv);
+  const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  // 📆 FILTRO POR FECHA (coincidencia con fecha_txt)
+  const fechaRef = fechaSel.split("-").reverse().join("/");
+  const ventasDia = ventas.filter(v =>
+    v.fecha_txt?.startsWith(fechaRef) || v.fecha_txt?.includes(fechaRef)
+  );
+
+  if (!ventasDia.length) {
+    overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
+    return;
+  }
+
+  // ⚙️ ACUMULADORES GLOBALES
+  let totalDia = 0, totalDescuento = 0, utilidadTotal = 0;
+  const porDepto = {}, porArticulo = {}, porNota = [];
+
+  // 🔁 RECORRER VENTAS DEL DÍA
+  for (const v of ventasDia) {
+    const rf = v.resumen_financiero || {};
+    const total = Number(rf.total) || 0;
+    const descuento = Number(rf.descuento) || Number(v.descuento_monto) || 0;
+    const costo = Number(rf.costo_total) || 0;
+    const utilidad = Number(rf.utilidad_total) || total - costo;
+
+    totalDia += total;
+    totalDescuento += descuento;
+    utilidadTotal += utilidad;
+
+    // 🔍 DETALLES DE CADA VENTA
+    for (const det of (v.detalle || [])) {
+      const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
+      const importe = (det.importe || 0) - (det.descuento_monto || 0);
+      const costoD = det.costo_total || det.costo_unit * (det.cantidad || 1) || 0;
+      const utilD = det.utilidad || importe - costoD;
+      const iva = det.iva_calculado || 0;
+      const ieps = det.ieps_calculado || 0;
+
+      // 🗂️ Acumuladores por departamento
+      if (!porDepto[dep]) porDepto[dep] = { venta: 0, costo: 0, utilidad: 0, impuestos: 0 };
+      porDepto[dep].venta += importe;
+      porDepto[dep].costo += costoD;
+      porDepto[dep].utilidad += utilD;
+      porDepto[dep].impuestos += iva + ieps;
+
+      // 🏷️ Acumuladores por artículo
+      const art = det.nombre?.toUpperCase() || "SIN NOMBRE";
+      if (!porArticulo[art]) porArticulo[art] = { cantidad: 0, importe: 0, costo: 0 };
+      porArticulo[art].cantidad += det.cantidad || 0;
+      porArticulo[art].importe += importe;
+      porArticulo[art].costo += costoD;
     }
 
+    // 🧾 Registro individual de venta (nota/ticket)
     porNota.push({
-      folio:v.folio||v.id,
+      folio: v.folio || v.id,
       total,
-      descuento:desc,
-      costo:rf.costo_total||0,
-      utilidad:rf.utilidad_total||0,
-      ubicacion:v.ubicacion||{}
+      descuento,
+      costo,
+      utilidad,
+      ubicacion: v.ubicacion || {}
     });
   }
-  const resumen={usuario,rutaId,fecha:fechaSel,totalDia,totalDescuento,utilidadTotal,porDepto,porArticulo,porNota};
-  await addDoc(collection(db,"cortes_globales"),{
-    rutaId,fecha:serverTimestamp(),fecha_corte:fechaSel,
-    creado_en:new Date().toISOString(),
-    realizado_por:usuario,
+
+  // 📊 OBJETO DE RESUMEN PARA GUARDAR Y PDF
+  const resumen = {
+    usuario,
+    rutaId,
+    fecha: fechaSel,
+    totalDia,
+    totalDescuento,
+    utilidadTotal,
+    porDepto,
+    porArticulo,
+    porNota
+  };
+
+  // 🗄️ GUARDAR EN "cortes_globales"
+  await addDoc(collection(db, "cortes_globales"), {
+    rutaId,
+    fecha: serverTimestamp(),
+    fecha_corte: fechaSel,
+    creado_en: new Date().toISOString(),
+    realizado_por: usuario,
     resumen
   });
-  for(const v of ventasDia){await updateDoc(doc(db,"ventas_rutav2","DOpT5m1VoQOYDJPXzpWI","ventas",v.id),{cortado:true});}
+
+  // 🏁 MARCAR COMO CORTADO
+  for (const v of ventasDia) {
+    await updateDoc(doc(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas", v.id), {
+      cortado: true
+    });
+  }
+
+  // 📄 GENERAR PDF COMPLETO
   await generarPDF(resumen);
-  overlay.style.display="none";
+
+  overlay.style.display = "none";
   alert("✅ Corte generado correctamente");
 }
 
-async function generarPDF(r){
+// =======================================================
+// 🧾 BLOQUE 6 — FUNCIÓN: GENERAR PDF COMPLETO DE 7 PÁGINAS
+// =======================================================
+
+async function generarPDF(r) {
   const { jsPDF } = window.jspdf;
-  const pdf=new jsPDF({format:"letter",unit:"mm"});
-  pdf.setFont("helvetica","bold");
+  const pdf = new jsPDF({ format: "letter", unit: "mm" });
+
+  // ---------------------------------------------
+  // 📄 PÁGINA 1 — RESUMEN GENERAL
+  // ---------------------------------------------
+  pdf.setFont("helvetica", "bold");
   pdf.setFontSize(14);
-  pdf.text("CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES",10,15);
+  pdf.text("CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES", 10, 15);
   pdf.setFontSize(12);
-  pdf.text(`Usuario: ${r.usuario}`,15,25);
-  pdf.text(`Ruta: ${r.rutaId}`,15,32);
-  pdf.text(`Fecha: ${r.fecha}`,15,39);
-  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`,15,46);
-  pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`,15,53);
-  const neto=r.totalDia-r.totalDescuento;
-  pdf.text(`Venta Neta: $${neto.toFixed(2)}  Utilidad: $${r.utilidadTotal.toFixed(2)}`,15,60);
-  pdf.text(`Margen: ${(r.utilidadTotal/neto*100).toFixed(2)}%`,15,67);
-  let y=80;
+  pdf.text(`Usuario: ${r.usuario}`, 15, 25);
+  pdf.text(`Ruta: ${r.rutaId}`, 15, 32);
+  pdf.text(`Fecha: ${r.fecha}`, 15, 39);
+  const neto = r.totalDia - r.totalDescuento;
+  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 15, 46);
+  pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`, 15, 53);
+  pdf.text(`Venta Neta: $${neto.toFixed(2)}`, 15, 60);
+  pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`, 15, 67);
+  const margenTotal = neto > 0 ? ((r.utilidadTotal / neto) * 100).toFixed(2) + "%" : "—";
+  pdf.text(`Margen Promedio: ${margenTotal}`, 15, 74);
+
+  // TABLA POR DEPARTAMENTO
+  let y = 85;
   pdf.setFontSize(10);
-  pdf.text("DEPARTAMENTO",10,y); pdf.text("VENTA NETA",70,y); pdf.text("COSTO",110,y); pdf.text("UTILIDAD",150,y); y+=5;
-  for(const [dep,v] of Object.entries(r.porDepto)){
-    if(y>260){pdf.addPage(); y=20;}
-    pdf.text(dep.substring(0,28),10,y);
-    pdf.text(`$${v.venta.toFixed(2)}`,70,y);
-    pdf.text(`$${v.costo.toFixed(2)}`,110,y);
-    pdf.text(`$${v.utilidad.toFixed(2)}`,150,y);
-    y+=5;
+  pdf.text("Departamento", 10, y);
+  pdf.text("Venta", 70, y);
+  pdf.text("Costo", 110, y);
+  pdf.text("Utilidad", 150, y);
+  y += 5;
+
+  const deptosOrdenados = Object.entries(r.porDepto)
+    .sort((a, b) => b[1].venta - a[1].venta);
+  for (const [dep, v] of deptosOrdenados) {
+    if (y > 260) { pdf.addPage(); y = 20; }
+    pdf.text(dep.substring(0, 28), 10, y);
+    pdf.text(`$${v.venta.toFixed(2)}`, 70, y);
+    pdf.text(`$${v.costo.toFixed(2)}`, 110, y);
+    pdf.text(`$${v.utilidad.toFixed(2)}`, 150, y);
+    y += 5;
   }
-  const blob=pdf.output("blob");
-  const url=URL.createObjectURL(blob);
-  window.open(url,"_blank");
-  await enviarTelegram(blob,`Corte_${r.rutaId}_${r.fecha}.pdf`,
-  `📦 Corte ${r.usuario}\nTotal: $${r.totalDia.toFixed(2)}\nDescuento: $${r.totalDescuento.toFixed(2)}\nUtilidad: $${r.utilidadTotal.toFixed(2)}`);
+
+  // ---------------------------------------------
+  // 📄 PÁGINA 2 — RESUMEN DE TICKETS
+  // ---------------------------------------------
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.text("RESUMEN DE TICKETS (DETALLE)", 60, 15);
+  y = 25;
+  pdf.setFontSize(9);
+  pdf.text("Folio", 10, y);
+  pdf.text("Venta", 60, y);
+  pdf.text("Desc.", 90, y);
+  pdf.text("Costo", 120, y);
+  pdf.text("Utilidad", 150, y);
+  pdf.text("%", 180, y);
+  y += 5;
+  pdf.setFont("helvetica", "normal");
+  for (const t of r.porNota) {
+    if (y > 270) { pdf.addPage(); y = 20; }
+    const ventaNeta = t.total - t.descuento;
+    const margen = ventaNeta > 0 ? ((t.utilidad / ventaNeta) * 100).toFixed(1) + "%" : "—";
+    pdf.text(String(t.folio || "—"), 10, y);
+    pdf.text(`$${t.total.toFixed(2)}`, 60, y);
+    pdf.text(`$${t.descuento.toFixed(2)}`, 90, y);
+    pdf.text(`$${t.costo.toFixed(2)}`, 120, y);
+    pdf.text(`$${t.utilidad.toFixed(2)}`, 150, y);
+    pdf.text(margen, 180, y);
+    y += 5;
+  }
+
+  // ---------------------------------------------
+  // 📊 PÁGINA 3 — GRÁFICA POR DEPARTAMENTO
+  // ---------------------------------------------
+  const imgDepto = await graficaDeptos(r.porDepto);
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("GRÁFICA DE VENTAS POR DEPARTAMENTO", 40, 15);
+  if (imgDepto) pdf.addImage(imgDepto, "PNG", 20, 25, 170, 100);
+  else pdf.text("⚠️ No se pudo generar la gráfica.", 20, 40);
+
+  // ---------------------------------------------
+  // 📈 PÁGINA 4 — TOP 15 ARTÍCULOS MÁS VENDIDOS
+  // ---------------------------------------------
+  const topArt = Object.entries(r.porArticulo)
+    .map(([n, d]) => ({
+      nombre: n, cantidad: d.cantidad, importe: d.importe,
+      costo: d.costo, utilidad: d.importe - d.costo,
+      margen: d.importe ? ((d.importe - d.costo) / d.importe) * 100 : 0
+    }))
+    .sort((a, b) => b.cantidad - a.cantidad).slice(0, 15);
+
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.text("TOP 15 ARTÍCULOS MÁS VENDIDOS (POR UNIDADES)", 25, 15);
+  y = 25; pdf.setFontSize(9);
+  pdf.text("Artículo", 10, y); pdf.text("Cant.", 80, y);
+  pdf.text("Venta", 100, y); pdf.text("Costo", 130, y);
+  pdf.text("Utilidad", 155, y); pdf.text("%", 185, y);
+  y += 6; pdf.setFont("helvetica", "normal");
+  for (const a of topArt) {
+    if (y > 270) { pdf.addPage(); y = 20; }
+    pdf.text(a.nombre.substring(0, 60), 10, y);
+    pdf.text(String(a.cantidad), 80, y);
+    pdf.text(`$${a.importe.toFixed(2)}`, 100, y);
+    pdf.text(`$${a.costo.toFixed(2)}`, 130, y);
+    pdf.text(`$${a.utilidad.toFixed(2)}`, 155, y);
+    pdf.text(`${a.margen.toFixed(1)}%`, 185, y);
+    y += 5;
+  }
+
+  // ---------------------------------------------
+  // 🗺️ PÁGINA 5 — MAPA DE TRAZABILIDAD GPS
+  // ---------------------------------------------
+  await generarMapaPDF(pdf, r.porNota);
+
+  // ---------------------------------------------
+  // 📉 PÁGINAS 6 Y 7 — TOP 20 MARGEN BAJO + GRÁFICA
+  // ---------------------------------------------
+  await generarMargenesBajos(pdf, r.porArticulo);
+
+  // 💾 DESCARGA Y ENVÍO
+  const blob = pdf.output("blob");
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+  await enviarTelegram(blob, `Corte_${r.rutaId}_${r.fecha}.pdf`,
+    `📦 Corte ${r.usuario}\nTotal: $${r.totalDia.toFixed(2)}\nDescuento: $${r.totalDescuento.toFixed(2)}\nUtilidad: $${r.utilidadTotal.toFixed(2)} (${margenTotal})`);
 }
 
-async function enviarTelegram(pdfBlob,nombre,caption){
-  const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-  const CHAT="6617988297";
-  const f=new FormData();
-  f.append("chat_id",CHAT);
-  f.append("caption",caption);
-  f.append("document",pdfBlob,nombre);
-  try{await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`,{method:"POST",body:f});}
-  catch(e){console.error("Telegram error",e);}
+// =======================================================
+// 🧭 BLOQUE 7 — FUNCIONES AUXILIARES (DE PDF Y ENVÍO)
+// =======================================================
+
+// 🥧 Generar gráfica por departamento
+async function graficaDeptos(porDepto) {
+  return new Promise(resolve => {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 800; canvas.height = 400;
+      const ctx = canvas.getContext("2d");
+      const labels = Object.keys(porDepto);
+      const data = Object.values(porDepto).map(v => v.venta);
+      const colors = labels.map((_, i) => `hsl(${i * 360 / labels.length},70%,55%)`);
+      new Chart(ctx, {
+        type: "pie",
+        data: { labels, datasets: [{ data, backgroundColor: colors }] },
+        options: { responsive: false, plugins: { legend: { position: "bottom" } } }
+      });
+      setTimeout(() => resolve(canvas.toDataURL("image/png")), 800);
+    } catch { resolve(null); }
+  });
+}
+
+// 🌍 Generar mapa estático de ventas
+async function generarMapaPDF(pdf, notas) {
+  try {
+    const puntos = notas.filter(n => n.ubicacion?.lat && n.ubicacion?.lon);
+    if (!puntos.length) {
+      pdf.addPage();
+      pdf.text("⚠️ No hay ubicaciones registradas para mostrar en el mapa.", 20, 50);
+      return;
+    }
+    const latC = puntos.reduce((a, p) => a + p.ubicacion.lat, 0) / puntos.length;
+    const lonC = puntos.reduce((a, p) => a + p.ubicacion.lon, 0) / puntos.length;
+    const markers = puntos.map(p =>
+      `markers=color:red%7Clabel:${encodeURIComponent(p.folio?.slice(-2) || "X")}%7C${p.ubicacion.lat},${p.ubicacion.lon}`
+    ).join("&");
+    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latC},${lonC}&zoom=13&scale=2&size=640x480&maptype=roadmap&${markers}&key=AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE`;
+    const res = await fetch(mapUrl); const blob = await res.blob();
+    const img = await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(blob); });
+    pdf.addPage(); pdf.setFont("helvetica", "bold"); pdf.setFontSize(13);
+    pdf.text("MAPA DE TRAZABILIDAD DE VENTAS GPS", 45, 15);
+    pdf.addImage(img, "JPEG", 10, 25, 190, 120);
+  } catch { pdf.addPage(); pdf.text("⚠️ Error al generar mapa de trazabilidad.", 20, 50); }
+}
+
+// 📉 Top 20 artículos con menor margen y gráfico
+async function generarMargenesBajos(pdf, porArticulo) {
+  const articulos = Object.entries(porArticulo).map(([n, d]) => {
+    const imp = d.importe || 0, cos = d.costo || 0;
+    const util = imp - cos, marg = imp ? (util / imp) * 100 : 0;
+    return { nombre: n, cantidad: d.cantidad, importe: imp, costo: cos, utilidad: util, margen: marg };
+  }).sort((a, b) => a.margen - b.margen).slice(0, 20);
+
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold"); pdf.setFontSize(13);
+  pdf.text("TOP 20 ARTÍCULOS CON MENOR UTILIDAD (%)", 25, 15);
+  let y = 25; pdf.setFontSize(9);
+  pdf.text("Artículo", 10, y); pdf.text("Cant.", 80, y);
+  pdf.text("Venta", 100, y); pdf.text("Costo", 130, y);
+  pdf.text("Utilidad", 155, y); pdf.text("%", 185, y);
+  y += 6; pdf.setFont("helvetica", "normal");
+  for (const a of articulos) {
+    if (y > 270) { pdf.addPage(); y = 20; }
+    pdf.text(a.nombre.substring(0, 60), 10, y);
+    pdf.text(String(a.cantidad), 80, y);
+    pdf.text(`$${a.importe.toFixed(2)}`, 100, y);
+    pdf.text(`$${a.costo.toFixed(2)}`, 130, y);
+    pdf.text(`$${a.utilidad.toFixed(2)}`, 155, y);
+    pdf.text(`${a.margen.toFixed(1)}%`, 185, y);
+    y += 5;
+  }
+
+  // 🎨 Gráfico
+  const canvas = document.createElement("canvas");
+  canvas.width = 800; canvas.height = 400;
+  const ctx = canvas.getContext("2d");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: articulos.map(a => a.nombre.substring(0, 15)),
+      datasets: [{ data: articulos.map(a => a.margen), backgroundColor: articulos.map(a =>
+        a.margen < 0 ? "rgba(255,99,132,0.7)" :
+        a.margen < 10 ? "rgba(255,205,86,0.7)" :
+        "rgba(75,192,192,0.7)") }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => v + "%" } } } }
+  });
+  await new Promise(r => setTimeout(r, 800));
+  const img = canvas.toDataURL("image/png");
+  pdf.addPage();
+  pdf.text("GRAFICO DE UTILIDAD – 20 ARTÍCULOS CON MENOR MARGEN", 20, 15);
+  pdf.addImage(img, "PNG", 10, 25, 190, 100);
+}
+
+// 🤖 Envío a Telegram
+async function enviarTelegram(pdfBlob, nombre, caption) {
+  const BOT = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+  const CHAT = "6617988297";
+  const f = new FormData();
+  f.append("chat_id", CHAT);
+  f.append("caption", caption);
+  f.append("document", pdfBlob, nombre);
+  try { await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, { method: "POST", body: f }); }
+  catch (e) { console.error("Telegram error", e); }
 }
 </script>
 </body>
