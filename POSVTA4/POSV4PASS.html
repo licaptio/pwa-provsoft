@@ -2079,29 +2079,41 @@ window.addEventListener("load",()=>{
     if(!readerDiv){ alert("No se encontró el contenedor del lector (#reader)"); return; }
 
     html5QrCode=new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode:"environment" },
-      { fps:10, qrbox:250 },
-(decodedText) => {
-  console.log("📦 Código detectado por cámara:", decodedText);
+ html5QrCode.start(
+  { facingMode:"environment" },
+  { fps:10, qrbox:250 },
+  (decodedText) => {
+    console.log("📦 Código detectado por cámara:", decodedText);
 
-  // 🔊 Confirmación auditiva
-  beep(950, 0.1);
+    // 🔊 Confirmación auditiva
+    beep(950, 0.1);
 
-  // ✅ Detiene la cámara inmediatamente
-  html5QrCode.stop().then(() => {
-    camDiv.style.display = "none";
-    // 🧩 Procesa el código directamente
-    procesarCodigoEscaneado(decodedText.trim());
-  }).catch(err => {
-    console.warn("⚠️ No se pudo detener cámara:", err);
-    camDiv.style.display = "none";
-    procesarCodigoEscaneado(decodedText.trim());
-  });
-},
-
-      (errorMessage)=>console.log("⚠️",errorMessage)
-    ).catch(err=>{
+    // ✅ Detiene la cámara
+    html5QrCode.stop().then(() => {
+      camDiv.style.display = "none";
+      // 🔁 Llama al flujo normal del escáner (agrega directo al carrito)
+      procesarCodigoEscaneado(decodedText.trim());
+      // ✅ Confirmación visual
+      const ok = document.createElement("div");
+      ok.textContent = "✅ Producto agregado";
+      ok.style.cssText = `
+        position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+        background:rgba(0,128,0,.9);color:#fff;padding:15px 20px;
+        border-radius:12px;font-weight:700;font-size:18px;z-index:5000;
+        box-shadow:0 4px 12px rgba(0,0,0,.3);opacity:0;transition:opacity .3s;
+      `;
+      document.body.appendChild(ok);
+      setTimeout(()=>ok.style.opacity=1,80);
+      setTimeout(()=>{ok.style.opacity=0;setTimeout(()=>ok.remove(),400)},2000);
+    }).catch(err => {
+      console.warn("⚠️ No se pudo detener cámara:", err);
+      camDiv.style.display = "none";
+      procesarCodigoEscaneado(decodedText.trim());
+    });
+  },
+  (errorMessage) => console.log("⚠️", errorMessage)
+);
+.catch(err=>{
       alert("No se pudo abrir la cámara: "+err);
       camDiv.style.display="none";
     });
