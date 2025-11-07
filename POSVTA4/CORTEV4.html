@@ -191,8 +191,7 @@ async function listarPendientes() {
   }
 
   const qv = query(
-    collection(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas"),
-    where("rutaId", "==", ruta),
+    collection(db, "ventas_rutav2")    where("rutaId", "==", ruta),
     where("cortado", "==", false)
   );
   const snap = await getDocs(qv);
@@ -229,7 +228,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
 
   // 🧭 CONSULTA VENTAS NO CORTADAS DE LA RUTA
   const qv = query(
-    collection(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas"),
+    collection(db, "ventas_rutav2"),
     where("rutaId", "==", rutaId),
     where("cortado", "==", false)
   );
