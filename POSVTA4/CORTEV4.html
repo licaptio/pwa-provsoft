@@ -313,10 +313,25 @@ async function generarMargenesBajos(pdf,porArticulo){
   const canvas=document.createElement("canvas");
   canvas.width=800;canvas.height=400;
   const ctx=canvas.getContext("2d");
-  new Chart(ctx,{type:"bar",data:{labels:articulos.map(a=>a.nombre.substring(0,15)),
-    datasets:[{data:articulos.map(a=>a.margen),
-    backgroundColor:articulos.map(a=>a.margen<0?"rgba(255,99,132,0.7)":a.margen<10?"rgba(255,205,86,0.7)":"rgba(75,192,192,0.7)")}]}},
-    options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+"%"}}}}});
+  new Chart(ctx, {
+  type: "bar",
+  data: {
+    labels: articulos.map(a => a.nombre.substring(0, 15)),
+    datasets: [{
+      data: articulos.map(a => a.margen),
+      backgroundColor: articulos.map(a =>
+        a.margen < 0 ? "rgba(255,99,132,0.7)" :
+        a.margen < 10 ? "rgba(255,205,86,0.7)" :
+        "rgba(75,192,192,0.7)"
+      )
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { ticks: { callback: v => v + "%" } } }
+  }
+});
+
   await new Promise(r=>setTimeout(r,800));
   const img=canvas.toDataURL("image/png");
   pdf.addPage();pdf.text("GRAFICO DE UTILIDAD – 20 ARTÍCULOS CON MENOR MARGEN",20,15);
