@@ -1245,7 +1245,7 @@ btnBuscarManual.addEventListener("click", async () => {
       item.addEventListener("click", () => {
         addProduct(p, 1);
         beep(950, 0.1);
-        toast(`✅ ${p.nombre} agregado`, "#16a34a");
+        toast(\`✅ ${p.nombre} agregado\`, "#16a34a");
         modal.remove();
       });
       resultadosManual.appendChild(item);
@@ -1254,6 +1254,7 @@ btnBuscarManual.addEventListener("click", async () => {
 
   cerrarBtn.addEventListener("click", () => modal.remove());
 });
+
 
 
 
