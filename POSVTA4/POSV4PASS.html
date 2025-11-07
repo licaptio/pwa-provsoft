@@ -777,24 +777,6 @@ function addProduct(prod, cant = 1) {
   renderDebounced();
 }
 
-// 🔔 sonido si justo pasa al mayoreo por escaneo
-  if (cantidadNueva === 5 && productosMayoreo.includes(String(prod.codigo))) {
-    beep(600, 0.15);
-    toast(`💸 Mayoreo aplicado a ${prod.nombre}`, "#1e8e3e");
-  }
-  if (existente) {
-  existente.cantidad = cantidadNueva;
-  existente.precioUnit = precioUnit;
-  existente.importe = existente.cantidad * precioUnit;
-} else {
-  carrito.push({...prod,cantidad:cant,precioUnit,importe:cant*precioUnit});
-}
-  // 🧭 CONFIRMACIÓN VISUAL TEMPORAL
-  mostrarConfirmacionProducto(prod, cant, precioUnit);
-
-render(); // Usa render normal
-}
-
 /* ===========================================================
    🧭 FUNCIÓN VISUAL: CONFIRMACIÓN DE PRODUCTO ESCANEADO
    =========================================================== */
