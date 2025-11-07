@@ -2059,51 +2059,84 @@ if (btnResumen) {
 
 <!-- 📷 Control de escáner QR (Versión PROVSOFT 2025 Final – con búsqueda directa) -->
 <script>
+<!-- 📷 ESCÁNER QR PROVSOFT 2025 COMPATIBLE -->
+<script>
 window.addEventListener("load", () => {
   const btnCam = document.getElementById("btnCam");
   const camDiv = document.getElementById("qrReaderContainer");
   const cerrarCam = document.getElementById("cerrarCam");
   const buscador = document.getElementById("buscador");
   let html5QrCode = null;
+  let cameraId = null;
 
+  // 🚀 Abrir cámara
   btnCam.addEventListener("click", async () => {
     try {
       camDiv.style.display = "flex";
-      const readerDiv = document.getElementById("reader");
-      if (!readerDiv) return alert("No se encontró el contenedor del lector (#reader)");
-      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
+      // 🔹 Si ya existe instancia, detener y limpiar antes
+      if (html5QrCode) {
+        await html5QrCode.stop().catch(() => {});
+        html5QrCode.clear();
+      }
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      // 🔍 Detectar cámaras disponibles
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length) {
+        // Prefiere la trasera si existe
+        const backCam = devices.find(d => /back|rear|environment/i.test(d.label));
+        cameraId = backCam ? backCam.id : devices[0].id;
+      } else {
+        alert("❌ No se detectó cámara disponible.");
+        camDiv.style.display = "none";
+        return;
+      }
+
+      // 🎥 Iniciar lectura
       await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
+        cameraId,
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        },
         async (decodedText) => {
-          console.log("📦 Código detectado:", decodedText);
+          console.log("📦 Escaneado:", decodedText);
           beep(950, 0.1);
 
-          // 👇 Ejecuta búsqueda directamente sin depender del Enter simulado
+          // 🔹 Ejecuta búsqueda directa
           await ejecutarBusqueda(decodedText);
 
-          // ✅ Detiene cámara y cierra overlay
-          html5QrCode.stop().then(() => {
-            camDiv.style.display = "none";
-            console.log("📷 Cámara detenida correctamente");
-          });
+          // ✅ Cerrar cámara automáticamente
+          await html5QrCode.stop();
+          html5QrCode.clear();
+          camDiv.style.display = "none";
+          console.log("📷 Cámara detenida correctamente");
         },
-        (err) => console.log("⚠️", err)
+        (errorMessage) => {
+          // Evita spam en consola
+        }
       );
+
     } catch (err) {
-      alert("❌ No se pudo abrir la cámara: " + err.message);
+      console.error("❌ Error abriendo cámara:", err);
+      alert("No se pudo abrir la cámara: " + err.message);
       camDiv.style.display = "none";
     }
   });
 
-  cerrarCam.addEventListener("click", () => {
-    if (html5QrCode) {
-      html5QrCode.stop().then(() => {
-        camDiv.style.display = "none";
-        console.log("📷 Cámara detenida correctamente (por usuario)");
-      });
-    } else {
+  // 🚪 Cerrar manualmente
+  cerrarCam.addEventListener("click", async () => {
+    try {
+      if (html5QrCode) {
+        await html5QrCode.stop();
+        html5QrCode.clear();
+      }
+      camDiv.style.display = "none";
+      console.log("📷 Cámara cerrada manualmente");
+    } catch (err) {
       camDiv.style.display = "none";
     }
   });
