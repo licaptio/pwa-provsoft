@@ -275,7 +275,6 @@ body {
 
   <div class="actions">
     <button class="btn" id="btnCobrar">Cobrar</button>
-    <button class="btn" id="btnRegresar" style="background:#aaa;">🔙 Regresar</button>
   </div>
 </section>
 <!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
@@ -2029,7 +2028,6 @@ document.getElementById("btnLogout").addEventListener("click",()=>{
 const pantallaVenta = document.getElementById("pantallaVenta");
 const pantallaCarrito = document.getElementById("pantallaCarrito");
 const btnVerCarrito = document.getElementById("btnVerCarrito");
-const btnRegresar = document.getElementById("btnRegresar");
 
 btnVerCarrito.addEventListener("click", () => {
   pantallaVenta.style.display = "none";
@@ -2037,12 +2035,6 @@ btnVerCarrito.addEventListener("click", () => {
   renderDebounced(); // Versión optimizada
 });
 
-
-btnRegresar.addEventListener("click", () => {
-  pantallaCarrito.style.display = "none";
-  pantallaVenta.style.display = "flex";
-  document.getElementById("buscador").focus();
-});
 
 </script>
 <!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
