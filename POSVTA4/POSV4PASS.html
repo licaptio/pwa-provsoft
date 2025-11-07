@@ -1177,11 +1177,82 @@ buscador.addEventListener("blur", () => {
   if (modoScanner && scanBuffer.length > 0) procesarCodigoEscaneado(scanBuffer);
 });
 
-/* 🔍 BOTÓN DE BÚSQUEDA MANUAL */
-document.getElementById("btnBuscarManual").addEventListener("click", () => {
-  const texto = buscador.value.trim();
-  if (texto.length > 0) ejecutarBusqueda(texto);
-  else toast("Escribe o escanea un código primero");
+btnBuscarManual
+
+/* ===========================================================
+   🔍 BUSCADOR MANUAL CON MODAL DE RESULTADOS (con desenfoque)
+   =========================================================== */
+const btnBuscarManual = document.getElementById("btnBuscarManual");
+
+btnBuscarManual.addEventListener("click", async () => {
+  const texto = buscador.value.trim().toLowerCase();
+
+  if (!texto) {
+    toast("🕵️ Escribe algo para buscar un producto", "#c0392b");
+    return;
+  }
+
+  // 🔍 Buscar coincidencias locales o equivalentes
+  let resultados = buscarLocal(texto);
+  if (resultados.length === 0) {
+    resultados = await buscarEquivalenteRemoto(texto);
+  }
+
+  if (resultados.length === 0) {
+    toast("❌ No se encontraron coincidencias", "#c0392b");
+    return;
+  }
+
+  // 🪟 Crear ventana modal con desenfoque
+  const modal = document.createElement("div");
+  modal.style.cssText = `
+    position:fixed;inset:0;
+    background:rgba(0,0,0,0.35);
+    backdrop-filter:blur(4px);
+    display:flex;align-items:center;justify-content:center;
+    z-index:5000;
+  `;
+
+  const caja = document.createElement("div");
+  caja.style.cssText = `
+    background:#fff;border-radius:14px;
+    width:90%;max-width:400px;max-height:70vh;
+    overflow-y:auto;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  `;
+  caja.innerHTML = `<h3 style="margin-top:0;color:#00416A;text-align:center">
+    Resultados de búsqueda
+  </h3>`;
+
+  // 🧾 Listar resultados
+  resultados.forEach(p => {
+    const item = document.createElement("div");
+    item.style.cssText = `
+      padding:10px;border-bottom:1px solid #eee;cursor:pointer;
+      display:flex;justify-content:space-between;align-items:center;
+    `;
+    item.innerHTML = `
+      <span style="flex:1">${p.nombre}</span>
+      <strong style="color:#0c6cbd">${money(p.precioPublico)}</strong>
+    `;
+    item.addEventListener("click", () => {
+      addProduct(p, 1);
+      beep(950, 0.1);
+      toast(`✅ ${p.nombre} agregado`, "#16a34a");
+      modal.remove();
+    });
+    caja.appendChild(item);
+  });
+
+  // ❌ Botón cerrar
+  const cerrar = document.createElement("button");
+  cerrar.textContent = "Cerrar";
+  cerrar.className = "btn";
+  cerrar.style.marginTop = "10px";
+  cerrar.addEventListener("click", () => modal.remove());
+  caja.appendChild(cerrar);
+
+  modal.appendChild(caja);
+  document.body.appendChild(modal);
 });
 
 
