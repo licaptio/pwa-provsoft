@@ -2247,20 +2247,31 @@ const testResult = document.getElementById("testResult");
 
 // 📷 Prueba de cámara
 document.getElementById("btnTestCam").addEventListener("click", async () => {
-  testResult.innerHTML = "🎥 Abriendo cámara...";
+  testResult.innerHTML = "🎥 Iniciando prueba de escáner QR...";
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    testResult.innerHTML = "✅ Cámara detectada correctamente.";
-    stream.getTracks().forEach(track => track.stop());
-    beep(950, 0.1);
+    const html5QrCode = new Html5Qrcode("reader");
+    document.getElementById("qrReaderContainer").style.display = "flex";
+
+    await html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        testResult.innerHTML = `✅ Escaneo exitoso:<br><strong>${decodedText}</strong>`;
+        beep(950, 0.1);
+        html5QrCode.stop().then(() => {
+          document.getElementById("qrReaderContainer").style.display = "none";
+        });
+      },
+      (errorMessage) => {
+        console.log("⚠️", errorMessage);
+      }
+    );
   } catch (err) {
-    console.error("❌ Error cámara:", err);
-    testResult.innerHTML = "❌ No se pudo acceder a la cámara.<br>Verifica permisos o conexión.";
+    console.error("❌ Error prueba escáner:", err);
+    testResult.innerHTML = "❌ No se pudo iniciar el escáner QR.<br>Verifica permisos o cámara.";
     toast("❌ No se pudo abrir la cámara", "#c0392b");
   }
 });
-
-
 
 // 🖨️ Prueba de impresora térmica
 document.getElementById("btnTestPrinter").addEventListener("click", () => {
