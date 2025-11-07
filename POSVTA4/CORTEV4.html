@@ -223,7 +223,7 @@ async function listarPendientes() {
 </html>
 
 // ======================================================
-// 🧮 BLOQUE 5 — FUNCIÓN PRINCIPAL: GENERAR CORTE ANALÍTICO
+// 🧮 BLOQUE 5 — FUNCIÓN PRINCIPAL: GENERAR CORTE ANALÍTICO (PROVSOFT V4)
 // ======================================================
 
 async function generarCorte(rutaId, fechaSel, usuario) {
@@ -250,7 +250,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     return;
   }
 
-  // ⚙️ ACUMULADORES
+  // ⚙️ ACUMULADORES GLOBALES
   let totalDia = 0, totalDescuento = 0, utilidadTotal = 0;
   const porDepto = {}, porArticulo = {}, porNota = [];
 
@@ -265,7 +265,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     totalDescuento += descuento;
     utilidadTotal += utilidad;
 
-    // 🔍 Detalle de artículos
+    // 🔍 DETALLES POR ARTÍCULO
     for (const det of (v.detalle || [])) {
       const dep = det.departamento_info?.nombre?.toUpperCase() || "SIN DEPTO";
       const importe = (det.importe || 0) - (det.descuento_monto || 0);
@@ -287,6 +287,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
       porArticulo[art].costo += costoD;
     }
 
+    // 🧾 Registro por ticket
     porNota.push({
       folio: v.folio || v.id,
       total,
@@ -297,20 +298,44 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     });
   }
 
-  // 📊 OBJETO RESUMEN PARA GUARDAR
+  // 📊 OBJETO EXTENDIDO PARA CORTE PROVSOFT V4
   const resumen = {
+    empresa: "PROVEEDORA DE DULCES Y DESECHABLES",
     usuario,
     rutaId,
     fecha: fechaSel,
+    creado_por: usuario,
+    creado_en: new Date().toISOString(),
+    ventas_totales: ventasDia.length,
+    departamentos_unicos: Object.keys(porDepto).length,
+    articulos_unicos: Object.keys(porArticulo).length,
     totalDia,
     totalDescuento,
     utilidadTotal,
+    margenGlobal: totalDia ? ((utilidadTotal / (totalDia - totalDescuento)) * 100).toFixed(2) : 0,
+
+    // 🔹 Listado completo de ventas con detalle
+    detalle_ventas: ventasDia.map(v => ({
+      folio: v.folio || v.id,
+      fecha_txt: v.fecha_txt,
+      total: v.resumen_financiero?.total || 0,
+      descuento: v.resumen_financiero?.descuento || 0,
+      costo: v.resumen_financiero?.costo_total || 0,
+      utilidad: v.resumen_financiero?.utilidad_total || 0,
+      metodo_pago: v.metodo_pago || "—",
+      cliente: v.cliente_nombre || "—",
+      usuarioNombre: v.usuarioNombre || usuario,
+      ubicacion: v.ubicacion || {},
+      detalle: v.detalle || [] // 🔸 Guarda todos los artículos vendidos en ese ticket
+    })),
+
+    // 🔹 Resumenes analíticos
     porDepto,
     porArticulo,
     porNota
   };
 
-  // 🗄️ GUARDAR EN "cortes_globalesV4" (nuevo destino)
+  // 🗄️ GUARDAR EN "cortes_globalesV4"
   await addDoc(collection(db, "cortes_globalesV4"), {
     rutaId,
     fecha: serverTimestamp(),
@@ -327,11 +352,11 @@ async function generarCorte(rutaId, fechaSel, usuario) {
     });
   }
 
-  // 📄 GENERAR PDF
+  // 📄 GENERAR PDF COMPLETO
   await generarPDF(resumen);
 
   overlay.style.display = "none";
-  alert("✅ Corte generado y guardado en cortes_globalesV4");
+  alert("✅ Corte generado y guardado en cortes_globalesV4 (estructura extendida PROVSOFT V4)");
 }
 
 // =======================================================
