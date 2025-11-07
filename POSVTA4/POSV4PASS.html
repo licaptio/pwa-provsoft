@@ -2090,12 +2090,10 @@ window.addEventListener("load",()=>{
     // 🔊 Confirmación auditiva
     beep(950, 0.1);
 
-    // ✅ Detiene la cámara
     html5QrCode.stop().then(() => {
       camDiv.style.display = "none";
-      // 🔁 Llama al flujo normal del escáner (agrega directo al carrito)
       procesarCodigoEscaneado(decodedText.trim());
-      // ✅ Confirmación visual
+
       const ok = document.createElement("div");
       ok.textContent = "✅ Producto agregado";
       ok.style.cssText = `
@@ -2114,11 +2112,11 @@ window.addEventListener("load",()=>{
     });
   },
   (errorMessage) => console.log("⚠️", errorMessage)
-);
-.catch(err=>{
-      alert("No se pudo abrir la cámara: "+err);
-      camDiv.style.display="none";
-    });
+)
+.catch(err => {   // ✅ ahora correctamente encadenado
+  alert("No se pudo abrir la cámara: " + err);
+  camDiv.style.display = "none";
+});
   });
 
   cerrarCam.addEventListener("click",()=>{
