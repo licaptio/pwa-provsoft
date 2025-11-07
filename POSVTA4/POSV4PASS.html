@@ -2082,16 +2082,24 @@ window.addEventListener("load",()=>{
     html5QrCode.start(
       { facingMode:"environment" },
       { fps:10, qrbox:250 },
-      (decodedText)=>{
-        console.log("📦 Código detectado:",decodedText);
-        const buscador=document.getElementById("buscador");
-        buscador.value=decodedText;
-        camDiv.style.display="none";
-        html5QrCode.stop().then(()=>{
-          const enterEvent=new KeyboardEvent("keydown",{key:"Enter"});
-          buscador.dispatchEvent(enterEvent);
-        });
-      },
+(decodedText) => {
+  console.log("📦 Código detectado por cámara:", decodedText);
+
+  // 🔊 Confirmación auditiva
+  beep(950, 0.1);
+
+  // ✅ Detiene la cámara inmediatamente
+  html5QrCode.stop().then(() => {
+    camDiv.style.display = "none";
+    // 🧩 Procesa el código directamente
+    procesarCodigoEscaneado(decodedText.trim());
+  }).catch(err => {
+    console.warn("⚠️ No se pudo detener cámara:", err);
+    camDiv.style.display = "none";
+    procesarCodigoEscaneado(decodedText.trim());
+  });
+},
+
       (errorMessage)=>console.log("⚠️",errorMessage)
     ).catch(err=>{
       alert("No se pudo abrir la cámara: "+err);
