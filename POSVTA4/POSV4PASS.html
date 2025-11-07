@@ -680,6 +680,19 @@ async function buscarEquivalenteRemoto(codigo) {
     return [];
   }
 }
+/* ===========================================================
+   ⚖️ SECCIÓN 6.2: DECODIFICAR CÓDIGOS DE BALANZA
+   =========================================================== */
+function decodificarBalanza(codigo) {
+  // Códigos tipo 2000097001308 → 2000097 + 0.130 kg
+  if (codigo.startsWith("2") && codigo.length === 13) {
+    const codigoProducto = codigo.substring(0, 7);  // 2000097
+    const pesoBruto = codigo.substring(7, 12);      // 00130
+    const pesoKg = parseFloat(pesoBruto) / 1000;    // 0.130
+    return { esBalanza: true, codigoProducto, pesoKg };
+  }
+  return { esBalanza: false };
+}
 
 /* ===========================================================
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
@@ -962,8 +975,50 @@ function beep(freq = 800, duration = 0.1) {
 }
 
 // 🔍 Función central que ejecuta la búsqueda y muestra resultados
-function ejecutarBusqueda(texto) {
-  const resultados = buscarLocal(texto);
+async function ejecutarBusqueda(texto) {
+  const balanza = decodificarBalanza(texto);
+
+  // ⚖️ Caso 1: Código de balanza detectado
+  if (balanza.esBalanza) {
+    console.log("⚖️ Código de balanza detectado:", balanza);
+
+    // 1️⃣ Buscar en equivalentes si ese código está vinculado
+    const ref = collection(db, "equivalentes");
+    const q = query(ref, where("codigo_equivalente", "==", balanza.codigoProducto));
+    const snap = await getDocs(q);
+
+    let codigoBase = balanza.codigoProducto;
+    if (!snap.empty) {
+      codigoBase = snap.docs[0].data().codigo_origen;
+      console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
+    }
+
+    // 2️⃣ Buscar el producto real
+    const producto = buscarLocal(codigoBase);
+    if (producto.length > 0) {
+      const p = producto[0];
+      const total = p.precioPublico * balanza.pesoKg;
+      p.cantidad = balanza.pesoKg;
+      p.total = total;
+      beep(950);
+      seleccionarProducto(p);
+      toast(`⚖️ ${p.nombre} (${balanza.pesoKg.toFixed(3)} kg) – $${total.toFixed(2)}`, "#16a34a");
+      return;
+    } else {
+      console.warn("❌ Producto de balanza no encontrado:", codigoBase);
+      toast("❌ Producto no encontrado en catálogo", "#dc2626");
+      return;
+    }
+  }
+
+  // 🧾 Caso 2: Código normal
+  let resultados = buscarLocal(texto);
+
+  if (resultados.length === 0) {
+    console.log("🔍 Buscando equivalencias remotas...");
+    resultados = await buscarEquivalenteRemoto(texto);
+  }
+
   resultadosDiv.innerHTML = "";
 
   if (resultados.length === 1) {
@@ -974,11 +1029,8 @@ function ejecutarBusqueda(texto) {
     resultados.forEach(p => {
       const item = document.createElement("div");
       item.className = "result-item";
-
-      // Resalta coincidencias (p. ej. CONVERMEX → <strong>CONVERMEX</strong>)
       const regex = new RegExp(texto, "ig");
       const nombreResaltado = p.nombre.replace(regex, m => `<strong style="color:#0c6cbd">${m}</strong>`);
-
       item.innerHTML = `<span>${nombreResaltado}</span><small>${money(p.precioPublico)}</small>`;
       item.addEventListener("click", () => {
         beep(950);
