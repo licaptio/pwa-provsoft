@@ -102,9 +102,14 @@
   <!-- 🔹 Tabla de cortes pendientes -->
   <table id="tablaPendientes">
     <thead>
-      <tr>
-        <th>Usuario</th><th>Ruta</th><th>Fecha</th><th>Acción</th>
-      </tr>
+<tr>
+  <th>Usuario</th>
+  <th>Ruta</th>
+  <th>Fecha</th>
+  <th>Total Día</th>
+  <th>Acción</th>
+</tr>
+
     </thead>
     <tbody id="tbodyPendientes">
       <tr><td colspan="4" style="text-align:center;">Selecciona ruta y fecha</td></tr>
@@ -210,14 +215,23 @@ const ventasDia = ventas.filter(v =>
   }
 
   const usuario = ventasDia[0].usuarioNombre || "—";
-  tbody.innerHTML = `
-    <tr>
-      <td>${usuario}</td>
-      <td>${ruta}</td>
-      <td>${fecha}</td>
-      <td><button id='btnCorte'>📊 Generar Corte</button></td>
-    </tr>
-  `;
+// 💰 Calcular el total del día
+const totalDia = ventasDia.reduce((sum, v) => {
+  const rf = v.resumen_financiero || {};
+  return sum + (Number(rf.total) || 0);
+}, 0);
+
+// 🧾 Mostrar fila con total incluido
+tbody.innerHTML = `
+  <tr>
+    <td>${usuario}</td>
+    <td>${ruta}</td>
+    <td>${fecha}</td>
+    <td>$${totalDia.toFixed(2)}</td>
+    <td><button id='btnCorte'>📊 Generar Corte</button></td>
+  </tr>
+`;
+
 
   document.getElementById("btnCorte").onclick = () => generarCorte(ruta, fecha, usuario);
 }
