@@ -249,6 +249,51 @@
 <!-- 📦 Librería PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
+<!-- 📷 Control de escáner QR -->
+<script>
+window.addEventListener("load", () => {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  let html5QrCode = null;
+
+  btnCam.addEventListener("click", () => {
+    camDiv.style.display = "flex";
+    const readerDiv = document.getElementById("reader");
+    if (!readerDiv) {
+      alert("No se encontró el contenedor del lector (#reader)");
+      return;
+    }
+
+    html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      (decodedText) => {
+        console.log("📦 Código detectado:", decodedText);
+        const buscador = document.getElementById("buscador");
+        buscador.value = decodedText;
+        camDiv.style.display = "none";
+        html5QrCode.stop().then(() => {
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          buscador.dispatchEvent(enterEvent);
+        });
+      },
+      (errorMessage) => console.log("⚠️", errorMessage)
+    ).catch((err) => {
+      alert("No se pudo abrir la cámara: " + err);
+      camDiv.style.display = "none";
+    });
+  });
+
+  cerrarCam.addEventListener("click", () => {
+    if (html5QrCode) html5QrCode.stop().then(() => camDiv.style.display = "none");
+    else camDiv.style.display = "none";
+  });
+});
+</script>
+
+
 <!-- Tu script principal de Firebase -->
 <script type="module">
 "use strict";
@@ -1529,92 +1574,5 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 </script>
-<script src="./html5-qrcode.min.js"></script>
-<script>
-window.addEventListener("load", () => {
-  const btnCam = document.getElementById("btnCam");
-  const camDiv = document.getElementById("qrReaderContainer");
-  const cerrarCam = document.getElementById("cerrarCam");
-  let html5QrCode = null;
-
-  btnCam.addEventListener("click", () => {
-    camDiv.style.display = "flex";
-    const readerDiv = document.getElementById("reader");
-    if (!readerDiv) {
-      alert("No se encontró el contenedor del lector (#reader)");
-      return;
-    }
-
-    html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start(
-      { facingMode: "environment" },
-      { fps: 10, qrbox: 250 },
-      (decodedText) => {
-        console.log("📦 Código detectado:", decodedText);
-        const buscador = document.getElementById("buscador");
-        buscador.value = decodedText;
-        camDiv.style.display = "none";
-        html5QrCode.stop().then(() => {
-          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-          buscador.dispatchEvent(enterEvent);
-        });
-      },
-      (errorMessage) => console.log("⚠️", errorMessage)
-    ).catch((err) => {
-      alert("No se pudo abrir la cámara: " + err);
-      camDiv.style.display = "none";
-    });
-  });
-
-cerrarCam.addEventListener("click", () => {
-  if (html5QrCode) {
-    html5QrCode.stop().then(() => {
-      console.log("📷 Cámara detenida correctamente");
-      camDiv.style.display = "none";
-    });
-  } else {
-    camDiv.style.display = "none";
-  }
-});
-
-});
-  // 🧪 Integrar también el botón de test de cámara (si existe en tu sistema)
-  const btnTestCam = document.getElementById("btnTestCam");
-  if (btnTestCam) {
-    btnTestCam.addEventListener("click", () => {
-      camDiv.style.display = "flex";
-      const readerDiv = document.getElementById("reader");
-      if (!readerDiv) {
-        alert("No se encontró el contenedor del lector (#reader)");
-        return;
-      }
-
-      html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          console.log("🎥 Test lectura:", decodedText);
-          html5QrCode.stop().then(() => {
-            camDiv.style.display = "none";
-            // 👉 Muestra el resultado directamente en el test
-            const testResult = document.getElementById("testResult");
-            if (testResult) {
-              testResult.innerHTML = `✅ Escaneo exitoso:<br><strong>${decodedText}</strong>`;
-            } else {
-              alert("Escaneo exitoso: " + decodedText);
-            }
-          });
-        },
-        (errorMessage) => console.log("⚠️", errorMessage)
-      ).catch((err) => {
-        alert("No se pudo abrir la cámara: " + err);
-        camDiv.style.display = "none";
-      });
-    });
-  }
-
-</script>
-
 </body>
 </html>
