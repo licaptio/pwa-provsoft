@@ -2249,12 +2249,30 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
-// Hacer la función ejecutarBusqueda disponible globalmente
+// ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
 window.ejecutarBusqueda = async function(texto) {
-  // Esta función debería estar definida en tu código principal
-  console.log("Buscando:", texto);
-  // Aquí va la lógica de búsqueda que ya tienes implementada
+  try {
+    // Reutiliza la función ya existente declarada antes en tu script principal
+    if (typeof window.ejecutarBusquedaOriginal === "function") {
+      return window.ejecutarBusquedaOriginal(texto);
+    }
+    // Si no existe, busca directamente el producto local
+    if (typeof buscarLocal === "function") {
+      const resultados = buscarLocal(texto);
+      if (resultados.length > 0) {
+        beep(950, 0.1);
+        seleccionarProducto(resultados[0]);
+        toast("✅ Producto agregado: " + resultados[0].nombre, "#16a34a");
+      } else {
+        toast("❌ No se encontró el código: " + texto, "#c0392b");
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en ejecutarBusqueda:", err);
+    toast("⚠️ Error al procesar código", "#f59e0b");
+  }
 };
+
 </script>
 
 <style>
