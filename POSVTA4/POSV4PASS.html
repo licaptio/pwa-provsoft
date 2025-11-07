@@ -1465,16 +1465,6 @@ $("#btnConfirmarCobro").onclick = async () => {
     rellenarTicket(venta);
     imprimirTicketEstilado();
 
-    // 💾 PDF local (opcional)
-    try {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-      pdf.setFont("courier", "bold");
-      pdf.setFontSize(11);
-      const text = document.querySelector("#ticket").innerText;
-      pdf.text(text, 10, 10);
-      pdf.save(`Ticket_${folio}.pdf`);
-    } catch (e) { console.error("PDF error:", e); }
 
     // 🧹 Limpieza y regreso
     console.log("✅ Venta completada, limpiando carrito...");
