@@ -1044,6 +1044,8 @@ function beep(freq = 800, duration = 0.1) {
   } catch (err) {}
 }
 
+// Permitir que el escáner la use
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
 // 🔍 Función central que ejecuta la búsqueda y muestra resultados
 async function ejecutarBusqueda(texto) {
   const balanza = decodificarBalanza(texto);
