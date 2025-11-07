@@ -2055,9 +2055,6 @@ if (btnResumen) {
 }
 
 </script>
-
-<!-- 📷 Control de escáner QR (Versión PROVSOFT 2025 Final – con búsqueda directa) -->
-<script>
 <!-- 📷 ESCÁNER QR PROVSOFT 2025 COMPATIBLE -->
 <script>
 window.addEventListener("load", () => {
@@ -2084,7 +2081,6 @@ window.addEventListener("load", () => {
       // 🔍 Detectar cámaras disponibles
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length) {
-        // Prefiere la trasera si existe
         const backCam = devices.find(d => /back|rear|environment/i.test(d.label));
         cameraId = backCam ? backCam.id : devices[0].id;
       } else {
@@ -2096,27 +2092,29 @@ window.addEventListener("load", () => {
       // 🎥 Iniciar lectura
       await html5QrCode.start(
         cameraId,
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0
-        },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         async (decodedText) => {
           console.log("📦 Escaneado:", decodedText);
+          buscador.value = decodedText; // 👈 opcional, lo escribe
           beep(950, 0.1);
 
-          // 🔹 Ejecuta búsqueda directa
           await ejecutarBusqueda(decodedText);
 
-          // ✅ Cerrar cámara automáticamente
+          // ✅ Cierra cámara con fade suave
           await html5QrCode.stop();
           html5QrCode.clear();
-          camDiv.style.display = "none";
+          camDiv.style.opacity = 1;
+          const fade = setInterval(() => {
+            camDiv.style.opacity -= 0.1;
+            if (camDiv.style.opacity <= 0) {
+              clearInterval(fade);
+              camDiv.style.display = "none";
+              camDiv.style.opacity = 1;
+            }
+          }, 40);
           console.log("📷 Cámara detenida correctamente");
         },
-        (errorMessage) => {
-          // Evita spam en consola
-        }
+        (err) => {}
       );
 
     } catch (err) {
@@ -2140,6 +2138,8 @@ window.addEventListener("load", () => {
     }
   });
 });
+</script>
+
 </script>
 
 <!-- 🛡️ BLOQUE 10: BLOQUEO DE SALIDA Y REFRESCO ACCIDENTAL -->
