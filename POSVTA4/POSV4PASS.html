@@ -2102,6 +2102,12 @@ window.addEventListener("load", () => {
 
           // ✅ Cierra cámara con fade suave
           await html5QrCode.stop();
+          // 🧩 Asegura que el stream se libere (depuración Android)
+if (html5QrCode._localMediaStream) {
+  html5QrCode._localMediaStream.getTracks().forEach(t => t.stop());
+  console.log("🎬 Stream cerrado manualmente");
+}
+
           html5QrCode.clear();
           camDiv.style.opacity = 1;
           const fade = setInterval(() => {
