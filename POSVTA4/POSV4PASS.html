@@ -2057,83 +2057,65 @@ if (btnResumen) {
 
 </script>
 
-<!-- 📷 BLOQUE 9: CONTROL DE ESCÁNER QR (UNIFICADO Y ESTABLE) -->
+<!-- 📷 Control de escáner QR (Versión PROVSOFT 2025 estable) -->
 <script>
 window.addEventListener("load", () => {
   const btnCam = document.getElementById("btnCam");
-  const btnTestCam = document.getElementById("btnTestCam");
-  const cerrarCam = document.getElementById("cerrarCam");
   const camDiv = document.getElementById("qrReaderContainer");
-  const readerDiv = document.getElementById("reader");
-
+  const cerrarCam = document.getElementById("cerrarCam");
+  const buscador = document.getElementById("buscador");
   let html5QrCode = null;
-  let camActiva = false;
 
-  // 🧩 Función central para iniciar cámara (sirve para POS y Test)
-  async function iniciarCamara(modo = "venta") {
+  // 🚀 Abrir cámara al presionar el botón 📷
+  btnCam.addEventListener("click", async () => {
     try {
-      if (camActiva) return;
-      camActiva = true;
       camDiv.style.display = "flex";
-      readerDiv.innerHTML = ""; // limpia contenedor
 
-      html5QrCode = new Html5Qrcode("reader");
+      const readerDiv = document.getElementById("reader");
+      if (!readerDiv) {
+        alert("No se encontró el contenedor del lector (#reader)");
+        return;
+      }
+
+      // ✅ Crea lector si no existe
+      if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+
+      // 🎯 Inicia la cámara trasera
       await html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         (decodedText) => {
           console.log("📦 Código detectado:", decodedText);
-          beep(950, 0.1);
+          buscador.value = decodedText;
+          // 🔹 Simular Enter para búsqueda inmediata
+          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
+          buscador.dispatchEvent(enterEvent);
 
+          // ✅ Detiene cámara y cierra overlay
           html5QrCode.stop().then(() => {
             camDiv.style.display = "none";
-            camActiva = false;
-
-            if (modo === "venta") {
-              procesarCodigoEscaneado(decodedText.trim());
-              toast("✅ Producto agregado", "#16a34a");
-            } else {
-              const testResult = document.getElementById("testResult");
-              if (testResult) {
-                testResult.innerHTML = `✅ Escaneo exitoso:<br><strong>${decodedText}</strong>`;
-              }
-            }
-          }).catch(err => {
-            console.warn("⚠️ No se pudo detener cámara:", err);
-            camDiv.style.display = "none";
-            camActiva = false;
+            console.log("📷 Cámara detenida correctamente");
           });
         },
-        (errorMessage) => {
-          // mensajes menores de lectura
-        }
+        (errorMessage) => console.log("⚠️", errorMessage)
       );
     } catch (err) {
-      console.error("❌ Error iniciando cámara:", err);
-      toast("❌ No se pudo abrir la cámara", "#c0392b");
+      alert("❌ No se pudo abrir la cámara: " + err.message);
       camDiv.style.display = "none";
-      camActiva = false;
     }
-  }
+  });
 
-  // 🎥 Botón principal del POS
-  if (btnCam) btnCam.addEventListener("click", () => iniciarCamara("venta"));
-
-  // 🧪 Botón del test de cámara (usa la misma función)
-  if (btnTestCam) btnTestCam.addEventListener("click", () => iniciarCamara("test"));
-
-  // ❌ Botón de cerrar cámara
-  if (cerrarCam) {
-    cerrarCam.addEventListener("click", async () => {
-      try {
-        if (html5QrCode) await html5QrCode.stop();
-      } catch (err) {
-        console.warn("⚠️ No se pudo detener cámara:", err);
-      }
+  // 🚪 Botón “Cerrar cámara”
+  cerrarCam.addEventListener("click", () => {
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => {
+        camDiv.style.display = "none";
+        console.log("📷 Cámara detenida correctamente (por usuario)");
+      });
+    } else {
       camDiv.style.display = "none";
-      camActiva = false;
-    });
-  }
+    }
+  });
 });
 </script>
 
