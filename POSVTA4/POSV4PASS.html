@@ -1178,80 +1178,83 @@ buscador.addEventListener("blur", () => {
 });
 
 /* ===========================================================
-   🔍 BUSCADOR MANUAL CON MODAL DE RESULTADOS (con desenfoque)
+   🔍 BUSCADOR MANUAL INDEPENDIENTE (no ligado al cajón)
    =========================================================== */
 const btnBuscarManual = document.getElementById("btnBuscarManual");
 
 btnBuscarManual.addEventListener("click", async () => {
-  const texto = buscador.value.trim().toLowerCase();
-
-  if (!texto) {
-    toast("🕵️ Escribe algo para buscar un producto", "#c0392b");
-    return;
-  }
-
-  // 🔍 Buscar coincidencias locales o equivalentes
-  let resultados = buscarLocal(texto);
-  if (resultados.length === 0) {
-    resultados = await buscarEquivalenteRemoto(texto);
-  }
-
-  if (resultados.length === 0) {
-    toast("❌ No se encontraron coincidencias", "#c0392b");
-    return;
-  }
-
-  // 🪟 Crear ventana modal con desenfoque
+  // 🪟 Modal contenedor
   const modal = document.createElement("div");
   modal.style.cssText = `
-    position:fixed;inset:0;
-    background:rgba(0,0,0,0.35);
-    backdrop-filter:blur(4px);
+    position:fixed;inset:0;z-index:9999;
     display:flex;align-items:center;justify-content:center;
-    z-index:5000;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
   `;
 
-  const caja = document.createElement("div");
-  caja.style.cssText = `
-    background:#fff;border-radius:14px;
-    width:90%;max-width:400px;max-height:70vh;
-    overflow-y:auto;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  const box = document.createElement("div");
+  box.style.cssText = `
+    background:#fff;border-radius:14px;padding:16px;width:90%;
+    max-width:400px;max-height:80vh;display:flex;flex-direction:column;
   `;
-  caja.innerHTML = `<h3 style="margin-top:0;color:#00416A;text-align:center">
-    Resultados de búsqueda
-  </h3>`;
+  box.innerHTML = `
+    <h3 style="margin:0 0 10px;text-align:center;color:#00416A">
+      🔍 Buscar producto
+    </h3>
+    <input id="inputBusquedaManual" type="text" placeholder="Nombre o código..."
+      style="padding:10px;border-radius:8px;border:1px solid #ccc;
+             font-size:16px;margin-bottom:10px;">
+    <div id="resultadosManual"
+      style="flex:1;overflow-y:auto;border-top:1px solid #ddd;
+             padding-top:10px;font-size:15px;"></div>
+    <button id="cerrarBusquedaManual" class="btn"
+      style="margin-top:10px;background:#c0392b;">Cerrar</button>
+  `;
+  modal.appendChild(box);
+  document.body.appendChild(modal);
 
-  // 🧾 Listar resultados
-  resultados.forEach(p => {
-    const item = document.createElement("div");
-    item.style.cssText = `
-      padding:10px;border-bottom:1px solid #eee;cursor:pointer;
-      display:flex;justify-content:space-between;align-items:center;
-    `;
-    item.innerHTML = `
-      <span style="flex:1">${p.nombre}</span>
-      <strong style="color:#0c6cbd">${money(p.precioPublico)}</strong>
-    `;
-    item.addEventListener("click", () => {
-      addProduct(p, 1);
-      beep(950, 0.1);
-      toast(`✅ ${p.nombre} agregado`, "#16a34a");
-      modal.remove();
+  const inputManual = box.querySelector("#inputBusquedaManual");
+  const resultadosManual = box.querySelector("#resultadosManual");
+  const cerrarBtn = box.querySelector("#cerrarBusquedaManual");
+
+  inputManual.focus();
+
+  // 🧠 Escucha escritura dentro del input del modal
+  inputManual.addEventListener("input", async () => {
+    const texto = inputManual.value.trim().toLowerCase();
+    resultadosManual.innerHTML = "";
+    if (texto.length < 2) return;
+
+    let resultados = buscarLocal(texto);
+    if (resultados.length === 0) resultados = await buscarEquivalenteRemoto(texto);
+
+    if (resultados.length === 0) {
+      resultadosManual.innerHTML = `<div style="padding:8px;color:#777;">Sin coincidencias</div>`;
+      return;
+    }
+
+    resultados.forEach(p => {
+      const item = document.createElement("div");
+      item.style.cssText = `
+        padding:8px;border-bottom:1px solid #eee;cursor:pointer;
+        display:flex;justify-content:space-between;align-items:center;
+      `;
+      item.innerHTML = `
+        <span>${p.nombre}</span>
+        <strong style="color:#0c6cbd">${money(p.precioPublico)}</strong>
+      `;
+      item.addEventListener("click", () => {
+        addProduct(p, 1);
+        beep(950, 0.1);
+        toast(`✅ ${p.nombre} agregado`, "#16a34a");
+        modal.remove();
+      });
+      resultadosManual.appendChild(item);
     });
-    caja.appendChild(item);
   });
 
-  // ❌ Botón cerrar
-  const cerrar = document.createElement("button");
-  cerrar.textContent = "Cerrar";
-  cerrar.className = "btn";
-  cerrar.style.marginTop = "10px";
-  cerrar.addEventListener("click", () => modal.remove());
-  caja.appendChild(cerrar);
-
-  modal.appendChild(caja);
-  document.body.appendChild(modal);
+  cerrarBtn.addEventListener("click", () => modal.remove());
 });
+
 
 
 /* ===========================================================
