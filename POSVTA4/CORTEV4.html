@@ -539,25 +539,47 @@ async function graficaDeptos(porDepto) {
 async function generarMapaPDF(pdf, notas) {
   try {
     const puntos = notas.filter(n => n.ubicacion?.lat && n.ubicacion?.lon);
+    pdf.addPage();
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.text("MAPA DE TRAZABILIDAD DE VENTAS GPS", 45, 15);
+
     if (!puntos.length) {
-      pdf.addPage();
-      pdf.text("⚠️ No hay ubicaciones registradas para mostrar en el mapa.", 20, 50);
+      pdf.text("⚠️ No hay ubicaciones registradas para mostrar.", 20, 50);
       return;
     }
+
     const latC = puntos.reduce((a, p) => a + p.ubicacion.lat, 0) / puntos.length;
     const lonC = puntos.reduce((a, p) => a + p.ubicacion.lon, 0) / puntos.length;
+
     const markers = puntos.map(p =>
       `markers=color:red%7Clabel:${encodeURIComponent(p.folio?.slice(-2) || "X")}%7C${p.ubicacion.lat},${p.ubicacion.lon}`
     ).join("&");
-    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latC},${lonC}&zoom=13&scale=2&size=640x480&maptype=roadmap&${markers}&key=AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE`;
-    const res = await fetch(mapUrl); const blob = await res.blob();
-    const img = await new Promise(r => { const rd = new FileReader(); rd.onload = () => r(rd.result); rd.readAsDataURL(blob); });
-    pdf.addPage(); pdf.setFont("helvetica", "bold"); pdf.setFontSize(13);
-    pdf.text("MAPA DE TRAZABILIDAD DE VENTAS GPS", 45, 15);
-    pdf.addImage(img, "JPEG", 10, 25, 190, 120);
-  } catch { pdf.addPage(); pdf.text("⚠️ Error al generar mapa de trazabilidad.", 20, 50); }
-}
 
+    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${latC},${lonC}&zoom=13&scale=2&size=640x480&maptype=roadmap&${markers}&key=AIzaSyDj-feD_jhqKIKgZLHZ9xpejG5Nx4UiiSE`;
+
+    const res = await fetch(mapUrl);
+    const contentType = res.headers.get("content-type") || "";
+
+    if (!contentType.includes("image")) {
+      pdf.text("⚠️ Error al generar mapa (respuesta inválida de API).", 20, 50);
+      return;
+    }
+
+    const blob = await res.blob();
+    const img = await new Promise(r => { 
+      const rd = new FileReader(); 
+      rd.onload = () => r(rd.result); 
+      rd.readAsDataURL(blob); 
+    });
+
+    pdf.addImage(img, "JPEG", 10, 25, 190, 120);
+  } catch (e) {
+    pdf.addPage();
+    pdf.text("⚠️ Error al generar mapa de trazabilidad.", 20, 50);
+    console.error("Error mapa PDF:", e);
+  }
+}
 // 📉 Top 20 artículos con menor margen y gráfico
 async function generarMargenesBajos(pdf, porArticulo) {
   const articulos = Object.entries(porArticulo).map(([n, d]) => {
