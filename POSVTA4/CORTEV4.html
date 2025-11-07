@@ -198,8 +198,11 @@ const qv = query(
   const snap = await getDocs(qv);
   const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  const fechaStr = fecha.replaceAll("-", "/");
-  const ventasDia = ventas.filter(v => v.fecha_txt?.startsWith(fechaStr) || v.fecha_txt?.includes(fechaStr));
+const partes = fecha.split("-");
+const fechaRef = `${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+const ventasDia = ventas.filter(v =>
+  v.fecha_txt?.startsWith(fechaRef) || v.fecha_txt?.includes(fechaRef)
+);
 
   if (!ventasDia.length) {
     tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>No hay pendientes</td></tr>";
@@ -236,11 +239,13 @@ async function generarCorte(rutaId, fechaSel, usuario) {
   const snap = await getDocs(qv);
   const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  // 📆 FILTRO POR FECHA
-  const fechaRef = fechaSel.split("-").reverse().join("/");
-  const ventasDia = ventas.filter(v =>
-    v.fecha_txt?.startsWith(fechaRef) || v.fecha_txt?.includes(fechaRef)
-  );
+// 📆 FILTRO POR FECHA (corregido)
+const partes = fechaSel.split("-");
+const fechaRef = `${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+const ventasDia = ventas.filter(v =>
+  v.fecha_txt?.startsWith(fechaRef) || v.fecha_txt?.includes(fechaRef)
+);
+
 
   if (!ventasDia.length) {
     overlayText.innerText = "⚠️ No hay ventas para esa fecha.";
