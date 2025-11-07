@@ -2055,9 +2055,9 @@ if (btnResumen) {
 }
 
 </script>
-<!-- 📷 ESCÁNER QR PROVSOFT 2025 COMPATIBLE -->
-<script src="./html5-qrcode.min.js"></script>
-<script>
+/* ===========================================================
+   📷 ESCÁNER QR CORREGIDO - FUNCIONAMIENTO COMPLETO
+   =========================================================== */
 window.addEventListener("load", () => {
   const btnCam = document.getElementById("btnCam");
   const camDiv = document.getElementById("qrReaderContainer");
@@ -2065,83 +2065,117 @@ window.addEventListener("load", () => {
   const buscador = document.getElementById("buscador");
   let html5QrCode = null;
   let cameraId = null;
+  let escaneoExitoso = false;
 
   // 🚀 Abrir cámara
   btnCam.addEventListener("click", async () => {
     try {
+      escaneoExitoso = false;
       camDiv.style.display = "flex";
 
-      // 🔹 Si ya existe instancia, detener y limpiar antes
+      // 🔹 Limpiar instancia previa
       if (html5QrCode) {
-        await html5QrCode.stop().catch(() => {});
-        html5QrCode.clear();
+        try {
+          await html5QrCode.stop();
+          html5QrCode.clear();
+        } catch (e) {
+          console.log("🧹 Limpiando instancia previa...");
+        }
+        html5QrCode = null;
       }
+
+      // 🕐 Pequeño delay para renderizado
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       html5QrCode = new Html5Qrcode("reader");
 
-      // 🔍 Detectar cámaras disponibles
+      // 🔍 Detectar cámaras
       const devices = await Html5Qrcode.getCameras();
-      if (devices && devices.length) {
-        const backCam = devices.find(d => /back|rear|environment/i.test(d.label));
-        cameraId = backCam ? backCam.id : devices[0].id;
-      } else {
+      if (!devices || devices.length === 0) {
         alert("❌ No se detectó cámara disponible.");
-        camDiv.style.display = "none";
+        cerrarCamara();
         return;
       }
 
-      // 🎥 Iniciar lectura
-      await html5QrCode.start(
-        cameraId,
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        async (decodedText) => {
-          console.log("📦 Escaneado:", decodedText);
-          buscador.value = decodedText; // 👈 opcional, lo escribe
-          beep(950, 0.1);
+      // 🎥 Seleccionar cámara trasera o primera disponible
+      const backCam = devices.find(d => /back|rear|environment/gi.test(d.label));
+      cameraId = backCam ? backCam.id : devices[0].id;
 
-          await ejecutarBusqueda(decodedText);
-
-          // ✅ Cierra cámara con fade suave
-          await html5QrCode.stop();
-          // 🧩 Asegura que el stream se libere (depuración Android)
-if (html5QrCode._localMediaStream) {
-  html5QrCode._localMediaStream.getTracks().forEach(t => t.stop());
-  console.log("🎬 Stream cerrado manualmente");
-}
-
-          html5QrCode.clear();
-          camDiv.style.opacity = 1;
-          const fade = setInterval(() => {
-            camDiv.style.opacity -= 0.1;
-            if (camDiv.style.opacity <= 0) {
-              clearInterval(fade);
-              camDiv.style.display = "none";
-              camDiv.style.opacity = 1;
-            }
-          }, 40);
-          console.log("📷 Cámara detenida correctamente");
+      // ⚙️ Configuración optimizada
+      const config = {
+        fps: 15,
+        qrbox: { 
+          width: 250, 
+          height: 250 
         },
-        (err) => {}
+        aspectRatio: 1.0,
+        focusMode: "continuous"
+      };
+
+      // 🎬 Iniciar escáner
+      await html5QrCode.start(
+        cameraId, 
+        config, 
+        async (decodedText) => {
+          if (escaneoExitoso) return; // Evitar múltiples escaneos
+          
+          escaneoExitoso = true;
+          console.log("✅ Código escaneado:", decodedText);
+          beep(950, 0.1);
+          
+          // 🔄 Procesar código escaneado
+          await ejecutarBusqueda(decodedText);
+          
+          // ✅ Cerrar cámara inmediatamente después del escaneo
+          cerrarCamara();
+        },
+        (errorMessage) => {
+          // Mensajes normales de escaneo, no mostrar errores
+          if (!errorMessage.includes("No QR code found")) {
+            console.log("🔍 Escaneando...", errorMessage);
+          }
+        }
       );
 
+      console.log("📷 Cámara iniciada correctamente");
+
     } catch (err) {
-      console.error("❌ Error abriendo cámara:", err);
-      alert("No se pudo abrir la cámara: " + err.message);
-      camDiv.style.display = "none";
+      console.error("❌ Error iniciando cámara:", err);
+      alert("No se pudo abrir la cámara: " + (err.message || err));
+      cerrarCamara();
     }
   });
 
-  // 🚪 Cerrar manualmente
-  cerrarCam.addEventListener("click", async () => {
+  // 🚪 Función para cerrar cámara correctamente
+  async function cerrarCamara() {
     try {
       if (html5QrCode) {
+        console.log("🛑 Deteniendo cámara...");
         await html5QrCode.stop();
         html5QrCode.clear();
+        html5QrCode = null;
       }
+    } catch (stopErr) {
+      console.log("⚠️ Error al detener cámara:", stopErr);
+    } finally {
       camDiv.style.display = "none";
-      console.log("📷 Cámara cerrada manualmente");
-    } catch (err) {
-      camDiv.style.display = "none";
+      escaneoExitoso = false;
+      console.log("📷 Cámara cerrada");
+      
+      // 🔄 Enfocar el buscador para continuar trabajando
+      setTimeout(() => {
+        buscador.focus();
+      }, 300);
+    }
+  }
+
+  // ❌ Cerrar manualmente
+  cerrarCam.addEventListener("click", cerrarCamara);
+
+  // 🎯 Cerrar al hacer clic fuera del lector
+  camDiv.addEventListener("click", (e) => {
+    if (e.target.id === "qrReaderContainer") {
+      cerrarCamara();
     }
   });
 });
