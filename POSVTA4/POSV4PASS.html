@@ -639,6 +639,47 @@ function buscarLocal(qraw) {
   // 4️⃣ Coincidencia por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
+/* ===========================================================
+   🔗 SECCIÓN 6.1: CONSULTA DE EQUIVALENCIAS EN FIRESTORE
+   =========================================================== */
+async function buscarEquivalenteRemoto(codigo) {
+  try {
+    const ref = collection(db, "equivalentes");
+
+    // 1️⃣ Busca si el código es origen
+    const qOrigen = query(ref, where("codigo_origen", "==", codigo));
+    // 2️⃣ O si es un equivalente
+    const qEquiv = query(ref, where("codigo_equivalente", "==", codigo));
+
+    const [snapOrigen, snapEquiv] = await Promise.all([
+      getDocs(qOrigen),
+      getDocs(qEquiv)
+    ]);
+
+    let codigoReal = null;
+
+    // Si escaneó el código original, buscamos su equivalente (por si acaso)
+    if (!snapOrigen.empty) {
+      codigoReal = snapOrigen.docs[0].data().codigo_origen;
+    }
+    // Si escaneó un equivalente, regresamos el código original vinculado
+    else if (!snapEquiv.empty) {
+      codigoReal = snapEquiv.docs[0].data().codigo_origen;
+    }
+
+    if (codigoReal) {
+      console.log("🔁 Código equivalente encontrado:", codigoReal);
+      toast(`🔄 Código equivalente detectado (${codigoReal})`, "#f59e0b");
+      const producto = buscarLocal(codigoReal);
+      if (producto.length > 0) return producto;
+    }
+
+    return [];
+  } catch (err) {
+    console.error("❌ Error buscando equivalencia:", err);
+    return [];
+  }
+}
 
 /* ===========================================================
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
