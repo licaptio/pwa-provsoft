@@ -2227,26 +2227,32 @@ document.getElementById("btnVolverVenta").addEventListener("click", () => {
    =========================================================== */
 const testResult = document.getElementById("testResult");
 
-// 📷 Prueba de cámara
+// 📷 Prueba de cámara (corregida con beep + retorno automático)
 document.getElementById("btnTestCam").addEventListener("click", async () => {
+  const qrDiv = document.getElementById("qrReaderContainer");
+  const testResult = document.getElementById("testResult");
   testResult.innerHTML = "🎥 Iniciando prueba de escáner QR...";
+
   try {
     const html5QrCode = new Html5Qrcode("reader");
-    document.getElementById("qrReaderContainer").style.display = "flex";
+    qrDiv.style.display = "flex";
 
     await html5QrCode.start(
       { facingMode: "environment" },
       { fps: 10, qrbox: 250 },
       (decodedText) => {
-        testResult.innerHTML = `✅ Escaneo exitoso:<br><strong>${decodedText}</strong>`;
+        console.log("🧪 Código detectado en test:", decodedText);
         beep(950, 0.1);
+        testResult.innerHTML = `✅ Escaneo exitoso:<br><strong>${decodedText}</strong>`;
+
+        // 🔹 Cierra cámara y regresa al menú de test
         html5QrCode.stop().then(() => {
-          document.getElementById("qrReaderContainer").style.display = "none";
+          qrDiv.style.display = "none";
+          toast("📷 Cámara cerrada (modo test)", "#16a34a");
+          console.log("📷 Cámara detenida correctamente [TestCam]");
         });
       },
-      (errorMessage) => {
-        console.log("⚠️", errorMessage);
-      }
+      (err) => console.log("⚠️", err)
     );
   } catch (err) {
     console.error("❌ Error prueba escáner:", err);
@@ -2254,6 +2260,7 @@ document.getElementById("btnTestCam").addEventListener("click", async () => {
     toast("❌ No se pudo abrir la cámara", "#c0392b");
   }
 });
+
 
 // 🖨️ Prueba de impresora térmica
 document.getElementById("btnTestPrinter").addEventListener("click", () => {
