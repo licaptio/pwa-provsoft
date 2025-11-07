@@ -2057,7 +2057,7 @@ if (btnResumen) {
 
 </script>
 
-<!-- 📷 Control de escáner QR (Versión PROVSOFT 2025 estable) -->
+<!-- 📷 Control de escáner QR (Versión PROVSOFT 2025 Final – con búsqueda directa) -->
 <script>
 window.addEventListener("load", () => {
   const btnCam = document.getElementById("btnCam");
@@ -2066,30 +2066,22 @@ window.addEventListener("load", () => {
   const buscador = document.getElementById("buscador");
   let html5QrCode = null;
 
-  // 🚀 Abrir cámara al presionar el botón 📷
   btnCam.addEventListener("click", async () => {
     try {
       camDiv.style.display = "flex";
-
       const readerDiv = document.getElementById("reader");
-      if (!readerDiv) {
-        alert("No se encontró el contenedor del lector (#reader)");
-        return;
-      }
-
-      // ✅ Crea lector si no existe
+      if (!readerDiv) return alert("No se encontró el contenedor del lector (#reader)");
       if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
 
-      // 🎯 Inicia la cámara trasera
       await html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
-        (decodedText) => {
+        async (decodedText) => {
           console.log("📦 Código detectado:", decodedText);
-          buscador.value = decodedText;
-          // 🔹 Simular Enter para búsqueda inmediata
-          const enterEvent = new KeyboardEvent("keydown", { key: "Enter" });
-          buscador.dispatchEvent(enterEvent);
+          beep(950, 0.1);
+
+          // 👇 Ejecuta búsqueda directamente sin depender del Enter simulado
+          await ejecutarBusqueda(decodedText);
 
           // ✅ Detiene cámara y cierra overlay
           html5QrCode.stop().then(() => {
@@ -2097,7 +2089,7 @@ window.addEventListener("load", () => {
             console.log("📷 Cámara detenida correctamente");
           });
         },
-        (errorMessage) => console.log("⚠️", errorMessage)
+        (err) => console.log("⚠️", err)
       );
     } catch (err) {
       alert("❌ No se pudo abrir la cámara: " + err.message);
@@ -2105,7 +2097,6 @@ window.addEventListener("load", () => {
     }
   });
 
-  // 🚪 Botón “Cerrar cámara”
   cerrarCam.addEventListener("click", () => {
     if (html5QrCode) {
       html5QrCode.stop().then(() => {
