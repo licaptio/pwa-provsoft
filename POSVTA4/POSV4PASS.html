@@ -301,7 +301,7 @@ body {
 <!-- 📸 LIBRERÍAS EXTERNAS -->
 
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
+<script src="./html5-qrcode.min.js"></script> <!-- 👈 Asegúrate de que esta ruta sea correcta -->
 
 <!-- 💳 MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO -->
 <div id="modalCobro"
@@ -2055,17 +2055,55 @@ if (btnResumen) {
 }
 
 </script>
+</body>
+</html>
+
+<script>
 /* ===========================================================
    📷 ESCÁNER QR CORREGIDO - FUNCIONAMIENTO COMPLETO
    =========================================================== */
-window.addEventListener("load", () => {
+document.addEventListener("DOMContentLoaded", function() {
   const btnCam = document.getElementById("btnCam");
   const camDiv = document.getElementById("qrReaderContainer");
   const cerrarCam = document.getElementById("cerrarCam");
   const buscador = document.getElementById("buscador");
+  
   let html5QrCode = null;
-  let cameraId = null;
   let escaneoExitoso = false;
+
+  // Función para hacer beep
+  function beep(freq = 800, duration = 0.1) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); 
+      gain.connect(ctx.destination);
+      osc.type = "sine"; 
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      osc.start(); 
+      osc.stop(ctx.currentTime + duration);
+    } catch (err) {}
+  }
+
+  // Función para mostrar toast
+  function toast(msg, color = "#0c6cbd") {
+    const aviso = document.createElement("div");
+    aviso.textContent = msg;
+    aviso.style.cssText = `
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:${color};color:#fff;padding:8px 14px;border-radius:10px;
+      font-size:14px;z-index:9999;opacity:0;transition:opacity .3s ease;
+      box-shadow:0 2px 8px rgba(0,0,0,.3);
+    `;
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.style.opacity = 1, 50);
+    setTimeout(() => {
+      aviso.style.opacity = 0;
+      setTimeout(() => aviso.remove(), 400);
+    }, 2500);
+  }
 
   // 🚀 Abrir cámara
   btnCam.addEventListener("click", async () => {
@@ -2087,6 +2125,13 @@ window.addEventListener("load", () => {
       // 🕐 Pequeño delay para renderizado
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Verificar que la librería esté cargada
+      if (typeof Html5Qrcode === 'undefined') {
+        alert("❌ Librería de escáner no cargada. Verifica html5-qrcode.min.js");
+        cerrarCamara();
+        return;
+      }
+
       html5QrCode = new Html5Qrcode("reader");
 
       // 🔍 Detectar cámaras
@@ -2099,7 +2144,7 @@ window.addEventListener("load", () => {
 
       // 🎥 Seleccionar cámara trasera o primera disponible
       const backCam = devices.find(d => /back|rear|environment/gi.test(d.label));
-      cameraId = backCam ? backCam.id : devices[0].id;
+      const cameraId = backCam ? backCam.id : devices[0].id;
 
       // ⚙️ Configuración optimizada
       const config = {
@@ -2124,10 +2169,10 @@ window.addEventListener("load", () => {
           beep(950, 0.1);
           
           // 🔄 Procesar código escaneado
-          await ejecutarBusqueda(decodedText);
+          procesarCodigoEscaneado(decodedText);
           
           // ✅ Cerrar cámara inmediatamente después del escaneo
-          cerrarCamara();
+          setTimeout(cerrarCamara, 100);
         },
         (errorMessage) => {
           // Mensajes normales de escaneo, no mostrar errores
@@ -2164,13 +2209,15 @@ window.addEventListener("load", () => {
       
       // 🔄 Enfocar el buscador para continuar trabajando
       setTimeout(() => {
-        buscador.focus();
+        if (buscador) buscador.focus();
       }, 300);
     }
   }
 
   // ❌ Cerrar manualmente
-  cerrarCam.addEventListener("click", cerrarCamara);
+  if (cerrarCam) {
+    cerrarCam.addEventListener("click", cerrarCamara);
+  }
 
   // 🎯 Cerrar al hacer clic fuera del lector
   camDiv.addEventListener("click", (e) => {
@@ -2178,9 +2225,81 @@ window.addEventListener("load", () => {
       cerrarCamara();
     }
   });
+
+  // 🔍 Función para procesar códigos escaneados
+  function procesarCodigoEscaneado(codigo) {
+    const limpio = codigo.trim();
+    if (!limpio) return;
+
+    console.log("📦 Código detectado por cámara:", limpio);
+    
+    // Simular la búsqueda como si se hubiera escrito en el buscador
+    if (buscador) {
+      buscador.value = limpio;
+    }
+    
+    // Ejecutar búsqueda usando la función global
+    if (typeof window.ejecutarBusqueda === 'function') {
+      window.ejecutarBusqueda(limpio);
+    } else {
+      // Fallback: mostrar mensaje
+      console.warn("Función ejecutarBusqueda no disponible");
+      toast("✅ Código escaneado: " + limpio, "#16a34a");
+    }
+  }
 });
+
+// Hacer la función ejecutarBusqueda disponible globalmente
+window.ejecutarBusqueda = async function(texto) {
+  // Esta función debería estar definida en tu código principal
+  console.log("Buscando:", texto);
+  // Aquí va la lógica de búsqueda que ya tienes implementada
+};
 </script>
 
+<style>
+/* 🎨 ESTILOS MEJORADOS PARA EL ESCÁNER */
+#qrReaderContainer {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 3000;
+  backdrop-filter: blur(5px);
+}
+
+#reader {
+  width: 90%;
+  max-width: 400px;
+  margin: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#cerrarCam {
+  margin-top: 20px;
+  background: #c0392b;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+#cerrarCam:hover {
+  background: #a93226;
+  transform: scale(1.05);
+}
+</style>
 </script>
 
 <!-- 🛡️ BLOQUE 10: BLOQUEO DE SALIDA Y REFRESCO ACCIDENTAL -->
@@ -2373,4 +2492,3 @@ document.getElementById("btnTestGPS").addEventListener("click", async () => {
 
 </body>
 </html>
-
