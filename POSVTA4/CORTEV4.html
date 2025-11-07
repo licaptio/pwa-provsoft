@@ -190,10 +190,11 @@ async function listarPendientes() {
     return;
   }
 
-  const qv = query(
-    collection(db, "ventas_rutav2")    where("rutaId", "==", ruta),
-    where("cortado", "==", false)
-  );
+const qv = query(
+  collection(db, "ventas_rutav2"),
+  where("rutaId", "==", ruta),
+  where("cortado", "==", false)
+);
   const snap = await getDocs(qv);
   const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
