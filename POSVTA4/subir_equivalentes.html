@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Subida de Equivalentes | PROVSOFT</title>
+</head>
+<body>
+  <h2>Subiendo códigos equivalentes...</h2>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // 🔑 CONFIG FIREBASE
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.firebasestorage.app",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 📦 BLOQUE 1 – Pega aquí la primera parte del arreglo
+    const equivalencias = [
+      { codigo_origen: "040181", codigo_equivalente: "00110" },
+      { codigo_origen: "040187", codigo_equivalente: "00116" },
+      { codigo_origen: "040187", codigo_equivalente: "00257" },
+      { codigo_origen: "7503029763046", codigo_equivalente: "006910002400" },
+      { codigo_origen: "13608", codigo_equivalente: "0080101649209" },
+      { codigo_origen: "685596001626", codigo_equivalente: "010100" },
+      { codigo_origen: "010921", codigo_equivalente: "010923" },
+      { codigo_origen: "681070852616", codigo_equivalente: "013051004507" },
+      { codigo_origen: "048419967958", codigo_equivalente: "013051314828" },
+      { codigo_origen: "048419967958", codigo_equivalente: "013051326241" },
+      { codigo_origen: "048419967958", codigo_equivalente: "013051326258" },
+      { codigo_origen: "7501", codigo_equivalente: "013051666071" },
+      { codigo_origen: "7501", codigo_equivalente: "013051666132" },
+      { codigo_origen: "7501", codigo_equivalente: "013051666156" },
+      { codigo_origen: "7501", codigo_equivalente: "013051666231" },
+      { codigo_origen: "7501", codigo_equivalente: "013051666248" },
+      { codigo_origen: "7501", codigo_equivalente: "013051666262" },
+      { codigo_origen: "018804701429", codigo_equivalente: "018804701528" },
+      { codigo_origen: "018804701429", codigo_equivalente: "018804701535" },
+      { codigo_origen: "040033", codigo_equivalente: "026521019758" },
+      { codigo_origen: "681070852616", codigo_equivalente: "026635272834" },
+      { codigo_origen: "9034", codigo_equivalente: "026635279833" },
+      { codigo_origen: "9034", codigo_equivalente: "026635282444" },
+      { codigo_origen: "9034", codigo_equivalente: "026635282482" },
+      { codigo_origen: "9036", codigo_equivalente: "026635282505" },
+      { codigo_origen: "9033", codigo_equivalente: "026635282529" },
+      { codigo_origen: "9034", codigo_equivalente: "026635282543" },
+      { codigo_origen: "9035", codigo_equivalente: "026635282567" },
+      { codigo_origen: "9034", codigo_equivalente: "026635282581" },
+      { codigo_origen: "9034", codigo_equivalente: "026635282994" },
+      { codigo_origen: "742554481750", codigo_equivalente: "026635293570" },
+      { codigo_origen: "9036", codigo_equivalente: "026635301459" },
+      { codigo_origen: "681070852616", codigo_equivalente: "026635331272" },
+      { codigo_origen: "681070852616", codigo_equivalente: "026635350990" },
+      { codigo_origen: "681070852616", codigo_equivalente: "026635351379" },
+      { codigo_origen: "9035", codigo_equivalente: "026635361903" },
+      { codigo_origen: "9033", codigo_equivalente: "026635362122" },
+      { codigo_origen: "9034", codigo_equivalente: "026635362146" },
+      { codigo_origen: "9036", codigo_equivalente: "026635362153" },
+      { codigo_origen: "9033", codigo_equivalente: "026635362160" },
+      { codigo_origen: "9034", codigo_equivalente: "026635362177" },
+      { codigo_origen: "9035", codigo_equivalente: "026635362184" },
+      { codigo_origen: "9034", codigo_equivalente: "026635362191" },
+      { codigo_origen: "9034", codigo_equivalente: "026635362207" },
+      { codigo_origen: "9017", codigo_equivalente: "026635368032" },
+      { codigo_origen: "742554481750", codigo_equivalente: "026635375764" },
+      { codigo_origen: "9017", codigo_equivalente: "026635385848" },
+      // ⚠️ Aquí continuarás pegando el BLOQUE 2, BLOQUE 3, etc.
+    ];
+
+    async function subirEquivalentes() {
+      for (const eq of equivalencias) {
+        await addDoc(collection(db, "equivalentes"), eq);
+        console.log(`✅ ${eq.codigo_origen} → ${eq.codigo_equivalente}`);
+      }
+      console.log("🚀 Carga finalizada.");
+    }
+
+    subirEquivalentes();
+  </script>
+</body>
+</html>
