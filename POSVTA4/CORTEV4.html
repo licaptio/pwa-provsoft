@@ -153,7 +153,7 @@ const overlayText = document.getElementById("overlayText");
 // 📋 FUNCIÓN: Cargar Rutas con ventas pendientes
 // ===============================
 async function cargarRutas() {
-  const snap = await getDocs(collection(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas"));
+  const snap = await getDocs(collection(db, "ventas_rutav2"));
   const rutas = {};
   snap.forEach(d => {
     const v = d.data();
@@ -344,7 +344,7 @@ async function generarCorte(rutaId, fechaSel, usuario) {
 
   // 🏁 MARCAR COMO CORTADO
   for (const v of ventasDia) {
-    await updateDoc(doc(db, "ventas_rutav2", "DOpT5m1VoQOYDJPXzpWI", "ventas", v.id), {
+    await updateDoc(doc(db, "ventas_rutav2", v.id), {
       cortado: true
     });
   }
