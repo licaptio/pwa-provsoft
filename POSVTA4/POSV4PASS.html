@@ -882,7 +882,7 @@ function calcularTotales(descPorc = 0) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render() {
+function render(desc = 0) {
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
@@ -892,20 +892,18 @@ function render() {
       <td>${it.nombre}</td>
       <td style="text-align:center">
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
-  style="width:70px;text-align:center;padding:4px;border-radius:6px;
-  border:1px solid #ccc;font-size:14px;"
-  onchange="actualizarCantidad('${it.id}', this.value)"
-  oninput="actualizarCantidad('${it.id}', this.value)">
+          style="width:70px;text-align:center;padding:4px;border-radius:6px;
+          border:1px solid #ccc;font-size:14px;"
+          onchange="actualizarCantidad('${it.id}', this.value)"
+          oninput="actualizarCantidad('${it.id}', this.value)">
       </td>
       <td style="text-align:right">${money(it.importe)}</td>
       <td class='del-col'>
         <button class='del' onclick="delItem('${it.id}')">×</button>
-      </td>
-    `;
+      </td>`;
     tbody.appendChild(tr);
   });
 
-  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
   const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
   $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
@@ -929,7 +927,6 @@ function actualizarCantidad(id, nuevaCant) {
   item.precioUnit = obtenerPrecioSegunCantidad(item, cant);
   item.importe = item.cantidad * item.precioUnit;
 
-  // 🔔 Aviso cuando entra o sale de mayoreo
   if (productosMayoreo.includes(String(item.codigo))) {
     if (cant >= 5 && item.precioUnit !== precioAnterior) {
       beep(600, 0.15);
@@ -940,10 +937,10 @@ function actualizarCantidad(id, nuevaCant) {
     }
   }
 
-  // 🧮 Recalcular totales y refrescar tabla
-  render();
+  // 🧮 Mantener descuento activo automáticamente
+  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
+  render(desc);
 }
-
   
 /* ===========================================================
    ⚙️ SECCIÓN 9.2: RENDER OPTIMIZADO CON DEBOUNCE
