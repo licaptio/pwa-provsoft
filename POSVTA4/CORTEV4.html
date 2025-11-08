@@ -266,29 +266,27 @@
       const margenTotal=neto>0?((r.utilidadTotal/neto)*100).toFixed(2)+"%":"—";
       pdf.text(`Margen Promedio: ${margenTotal}`,15,74);
 
+   // ============================================================
+  // [10.3] TABLA DEPARTAMENTOS EN LA MISMA HOJA
   // ============================================================
-  // [10.3] TABLA DETALLE POR DEPARTAMENTO
-  // ============================================================
-  const yStart = 85;
-  pdf.addPage();
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(14);
-  pdf.text("ANÁLISIS POR DEPARTAMENTO", 60, 15);
+  pdf.setFontSize(12);
+  pdf.text("ANÁLISIS POR DEPARTAMENTO", 15, 90);
 
-  pdf.setFontSize(10);
+  pdf.setFontSize(9);
   pdf.setFillColor(12, 108, 189);
   pdf.setTextColor(255, 255, 255);
-  pdf.rect(10, 22, 190, 7, "F");
-  pdf.text("Departamento", 12, 27);
-  pdf.text("Venta", 65, 27);
-  pdf.text("Imp.", 88, 27);
-  pdf.text("Venta+Imp", 106, 27);
-  pdf.text("Costo", 136, 27);
-  pdf.text("Utilidad", 158, 27);
-  pdf.text("%", 182, 27);
+  pdf.rect(10, 95, 190, 6, "F");
+  pdf.text("Departamento", 12, 99);
+  pdf.text("Venta", 65, 99);
+  pdf.text("Imp.", 88, 99);
+  pdf.text("Venta+Imp", 106, 99);
+  pdf.text("Costo", 136, 99);
+  pdf.text("Utilidad", 158, 99);
+  pdf.text("%", 182, 99);
 
   pdf.setTextColor(0, 0, 0);
-  let y = 34;
+  let y = 106;
   let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
 
   for (const [dep, d] of Object.entries(r.porDepto)) {
@@ -299,7 +297,13 @@
     const util = d.utilidad || 0;
     const marg = ventaImp > 0 ? ((util / ventaImp) * 100).toFixed(1) + "%" : "—";
 
-    pdf.text(dep.substring(0, 20), 12, y);
+    // Color alternado (gris claro cada dos filas)
+    if (Math.floor((y - 106) / 6) % 2 === 1) {
+      pdf.setFillColor(240, 240, 240);
+      pdf.rect(10, y - 4, 190, 6, "F");
+    }
+
+    pdf.text(dep.substring(0, 25), 12, y);
     pdf.text(`$${venta.toFixed(2)}`, 65, y, { align: "right" });
     pdf.text(`$${imp.toFixed(2)}`, 88, y, { align: "right" });
     pdf.text(`$${ventaImp.toFixed(2)}`, 106, y, { align: "right" });
@@ -313,24 +317,99 @@
     totalUtil += util;
 
     y += 6;
-    if (y > 260) { pdf.addPage(); y = 20; }
   }
 
   const totalVentaImp = totalVenta + totalImp;
   const margenTotalTabla = totalVentaImp > 0 ? ((totalUtil / totalVentaImp) * 100).toFixed(1) + "%" : "—";
 
-  pdf.setFillColor(240, 240, 240);
-  pdf.rect(10, y, 190, 8, "F");
+  pdf.setFillColor(220, 220, 220);
+  pdf.rect(10, y - 4, 190, 7, "F");
   pdf.setFont("helvetica", "bold");
-  pdf.text("TOTALES", 12, y + 5);
-  pdf.text(`$${totalVenta.toFixed(2)}`, 65, y + 5, { align: "right" });
-  pdf.text(`$${totalImp.toFixed(2)}`, 88, y + 5, { align: "right" });
-  pdf.text(`$${totalVentaImp.toFixed(2)}`, 106, y + 5, { align: "right" });
-  pdf.text(`$${totalCosto.toFixed(2)}`, 136, y + 5, { align: "right" });
-  pdf.text(`$${totalUtil.toFixed(2)}`, 158, y + 5, { align: "right" });
-  pdf.text(margenTotalTabla, 182, y + 5, { align: "right" });
+  pdf.text("TOTALES", 12, y);
+  pdf.text(`$${totalVenta.toFixed(2)}`, 65, y, { align: "right" });
+  pdf.text(`$${totalImp.toFixed(2)}`, 88, y, { align: "right" });
+  pdf.text(`$${totalVentaImp.toFixed(2)}`, 106, y, { align: "right" });
+  pdf.text(`$${totalCosto.toFixed(2)}`, 136, y, { align: "right" });
+  pdf.text(`$${totalUtil.toFixed(2)}`, 158, y, { align: "right" });
+  pdf.text(margenTotalTabla, 182, y, { align: "right" });
 
+  // ============================================================
+  // [10.4] RESUMEN DE TICKETS (POR FECHA DE CORTE)
+  // ============================================================
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text(`RESUMEN DE TICKETS – ${r.fecha}`, 50, 15);
 
+  pdf.setFontSize(10);
+  const tickets = r.detalle_ventas || [];
+
+  // Encabezados
+  pdf.setFillColor(12, 108, 189);
+  pdf.setTextColor(255, 255, 255);
+  pdf.rect(10, 22, 190, 7, "F");
+  pdf.text("Folio", 12, 27);
+  pdf.text("Hora", 42, 27);
+  pdf.text("Venta", 74, 27);
+  pdf.text("Imp.", 96, 27);
+  pdf.text("Total", 112, 27);
+  pdf.text("Costo", 134, 27);
+  pdf.text("Utilidad", 158, 27);
+  pdf.text("%", 182, 27);
+
+  pdf.setTextColor(0, 0, 0);
+  let y = 34;
+  let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
+
+  for (const t of tickets) {
+    // Datos base
+    const folio = t.folio || "—";
+    const fechaTxt = t.fecha_txt || "";
+    const hora = fechaTxt.split(" ")[1] || "";
+    const totalVentaTicket = Number(t.total) || 0;
+    const imp = t.detalle?.reduce((s, d) => s + (d.iva_calculado || 0) + (d.ieps_calculado || 0), 0) || 0;
+    const ventaSinImp = totalVentaTicket - imp;
+    const costo = Number(t.costo) || 0;
+    const utilidad = ventaSinImp - costo;
+    const marg = ventaSinImp > 0 ? ((utilidad / ventaSinImp) * 100).toFixed(1) + "%" : "—";
+
+    // Fila
+    if ((y - 34) / 6 % 2 === 1) {
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(10, y - 4, 190, 6, "F");
+    }
+
+    pdf.text(folio.substring(0, 10), 12, y);
+    pdf.text(hora || "—", 42, y);
+    pdf.text(`$${ventaSinImp.toFixed(2)}`, 74, y, { align: "right" });
+    pdf.text(`$${imp.toFixed(2)}`, 96, y, { align: "right" });
+    pdf.text(`$${totalVentaTicket.toFixed(2)}`, 112, y, { align: "right" });
+    pdf.text(`$${costo.toFixed(2)}`, 134, y, { align: "right" });
+    pdf.text(`$${utilidad.toFixed(2)}`, 158, y, { align: "right" });
+    pdf.text(marg, 182, y, { align: "right" });
+
+    totalVenta += ventaSinImp;
+    totalImp += imp;
+    totalCosto += costo;
+    totalUtil += utilidad;
+    y += 6;
+
+    if (y > 270) { pdf.addPage(); y = 20; }
+  }
+
+  const margenGlobal = totalVenta > 0 ? ((totalUtil / totalVenta) * 100).toFixed(1) + "%" : "—";
+  const totalConImp = totalVenta + totalImp;
+
+  pdf.setFillColor(220, 220, 220);
+  pdf.rect(10, y - 4, 190, 8, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.text("TOTALES", 12, y);
+  pdf.text(`$${totalVenta.toFixed(2)}`, 74, y, { align: "right" });
+  pdf.text(`$${totalImp.toFixed(2)}`, 96, y, { align: "right" });
+  pdf.text(`$${totalConImp.toFixed(2)}`, 112, y, { align: "right" });
+  pdf.text(`$${totalCosto.toFixed(2)}`, 134, y, { align: "right" });
+  pdf.text(`$${totalUtil.toFixed(2)}`, 158, y, { align: "right" });
+  pdf.text(margenGlobal, 182, y, { align: "right" });
       
       // [10.3] Gráfica por Departamento
       try{
