@@ -160,51 +160,73 @@ snap.forEach(d => {
 
     cargarVentas();
 
-    // === Reimpresión ===
-    async function reimprimirTicket(id){
-      try{
-        const docRef = doc(db,"ventas_rutav2",id);
-        const snap=await getDoc(docRef);
-        if(!snap.exists()){alert("Venta no encontrada.");return;}
-        const v=snap.data();
-        const total=v.resumen_financiero.total||0;
-        const sub=v.resumen_financiero.subtotal||0;
-        const desc=v.descuento_monto||0;
-        const imp=v.resumen_financiero.impuestos||0;
-        const folio=v.folio;
-        const cliente=v.cliente||"PÚBLICO EN GENERAL";
-        const cajero=v.usuarioNombre||"—";
-        const fecha=v.fecha_txt;
-
-        let ticket="";
-        ticket+="PROVEEDORA MATRIZ\n";
-        ticket+="MADERO 690 SUR, CENTRO\n";
-        ticket+="LINARES, N.L. 67700\n";
-        ticket+="RFC: PDD031204KL5\n";
-        ticket+="TEL: (821) 212-1805\n";
-        ticket+="--------------------------------\n";
-        ticket+=`# Venta: ${folio}\nFecha: ${fecha}\nCliente: ${cliente}\n--------------------------------\n`;
-        (v.detalle||[]).forEach(it=>{
-          ticket+=`${(it.nombre||"").substring(0,18).padEnd(18)}${it.cantidad.toFixed(2).padStart(5)}${(it.importe||0).toFixed(2).padStart(9)}\n`;
-        });
-        ticket+="--------------------------------\n";
-        ticket+=`Subtotal: ${sub.toFixed(2)}\nDescuento: ${desc.toFixed(2)}\nImpuestos: ${imp.toFixed(2)}\nTotal: ${total.toFixed(2)}\n--------------------------------\nCajero: ${cajero}\n¡Gracias por su compra!\n\n`;
-
-        if(/Android/i.test(navigator.userAgent)){
-          const encoded=encodeURIComponent(ticket);
-          window.location.href=`rawbt:text,${encoded}`;
-        }else{
-          const pdf=new jsPDF({unit:"mm",format:[80,297]});
-          pdf.setFont("courier","normal");
-          let y=10;
-          ticket.split("\n").forEach(line=>{pdf.text(line,4,y);y+=5;});
-          pdf.output("dataurlnewwindow");
-        }
-      }catch(e){
-        console.error(e);
-        alert("Error al reimprimir.");
-      }
+// === Reimpresión ===
+async function reimprimirTicket(id) {
+  try {
+    const docRef = doc(db, "ventas_rutav2", id);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      alert("Venta no encontrada.");
+      return;
     }
-  </script>
+    const v = snap.data();
+    const total = v.resumen_financiero.total || 0;
+    const sub = v.resumen_financiero.subtotal || 0;
+    const desc = v.descuento_monto || 0;
+    const imp = v.resumen_financiero.impuestos || 0;
+    const folio = v.folio;
+    const cliente = v.cliente || "PÚBLICO EN GENERAL";
+    const cajero = v.usuarioNombre || "—";
+    const fecha = v.fecha_txt;
+
+    let ticket = "";
+    ticket += "        PROVEEDORA MATRIZ\n";
+    ticket += "   MADERO 690 SUR, CENTRO\n";
+    ticket += "   LINARES, N.L. 67700\n";
+    ticket += "      RFC: PDD031204KL5\n";
+    ticket += "     TEL: (821) 212-1805\n";
+    ticket += "--------------------------------\n";
+    ticket += `# Venta: ${folio}\n`;
+    ticket += `Fecha: ${fecha}\n`;
+    ticket += `Cliente: ${cliente}\n`;
+    ticket += "--------------------------------\n";
+
+    (v.detalle || []).forEach(it => {
+      const nombre = (it.nombre || "").substring(0, 16).padEnd(16);
+      const cant = (it.cantidad || 0).toFixed(2).padStart(5);
+      const imp = (it.importe || 0).toFixed(2).padStart(9);
+      ticket += `${nombre}${cant}${imp}\n`;
+    });
+
+    ticket += "--------------------------------\n";
+    ticket += `Subtotal:     ${sub.toFixed(2)}\n`;
+    ticket += `Descuento:    ${desc.toFixed(2)}\n`;
+    ticket += `Impuestos:    ${imp.toFixed(2)}\n`;
+    ticket += `TOTAL:        ${total.toFixed(2)}\n`;
+    ticket += "--------------------------------\n";
+    ticket += `Cajero: ${cajero}\n`;
+    ticket += "   ¡Gracias por su compra!\n";
+    ticket += "        *** REIMPRESIÓN ***\n";
+
+    if (/Android/i.test(navigator.userAgent)) {
+      const encoded = encodeURIComponent(ticket);
+      window.location.href = `rawbt:text,${encoded}`;
+    } else {
+      const pdf = new jsPDF({ unit: "mm", format: [80, 200] });
+      pdf.setFont("courier", "normal");
+      pdf.setFontSize(10);
+      let y = 10;
+      ticket.split("\n").forEach(line => {
+        pdf.text(line, 5, y);
+        y += 4;
+      });
+      pdf.output("dataurlnewwindow");
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Error al reimprimir.");
+  }
+}
+</script>
 </body>
 </html>
