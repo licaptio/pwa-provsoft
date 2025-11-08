@@ -163,7 +163,7 @@ snap.forEach(d => {
     // === Reimpresión ===
     async function reimprimirTicket(id){
       try{
-        const docRef=doc(db,"rutas_venta",id);
+        const docRef = doc(db,"ventas_rutav2",id);
         const snap=await getDoc(docRef);
         if(!snap.exists()){alert("Venta no encontrada.");return;}
         const v=snap.data();
