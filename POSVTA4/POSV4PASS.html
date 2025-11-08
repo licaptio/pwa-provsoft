@@ -1242,12 +1242,11 @@ btnBuscarManual.addEventListener("click", async () => {
         <span>${p.nombre}</span>
         <strong style="color:#0c6cbd">${money(p.precioPublico)}</strong>
       `;
-      item.addEventListener("click", () => {
-        addProduct(p, 1);
-        beep(950, 0.1);
-        toast("✅ " + p.nombre + " agregado", "#16a34a");
-        modal.remove();
-      });
+item.addEventListener("click", () => {
+  solicitarCantidadYAgregar(p); // abre el modal de cantidad
+  modal.remove();
+});
+
       resultadosManual.appendChild(item);
     });
   });
