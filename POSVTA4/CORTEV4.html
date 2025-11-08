@@ -7,6 +7,9 @@
   <link rel="icon" href="data:,">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
 
+  <!-- =============================================
+       [1] ESTILOS GLOBALES Y TABLA
+       ============================================= -->
   <style>
     body {font-family:'Poppins',sans-serif;background:#f5f7fa;padding:20px;color:#222;}
     h1 {color:#00416A;text-align:center;margin-bottom:10px;}
@@ -21,12 +24,19 @@
     @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
   </style>
 
+  <!-- =============================================
+       [2] LIBRERÍAS EXTERNAS
+       ============================================= -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
+
 <body>
   <h1>CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES</h1>
 
+  <!-- =============================================
+       [3] CONTROLES DE FILTRO Y TABLA
+       ============================================= -->
   <select id="selectRuta"><option value="">Selecciona una ruta...</option></select>
   <input type="date" id="selectFecha"/>
 
@@ -41,261 +51,304 @@
     </tbody>
   </table>
 
+  <!-- =============================================
+       [4] OVERLAY DE PROCESO
+       ============================================= -->
   <div id="overlay">
     <div class="spinner"></div>
     Procesando corte...
     <div id="overlayText"></div>
   </div>
 
-<script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getFirestore,collection,query,where,getDocs,addDoc,updateDoc,doc,serverTimestamp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <!-- =============================================
+       [5] SCRIPT PRINCIPAL FIREBASE
+       ============================================= -->
+  <script type="module">
+    import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {getFirestore,collection,query,where,getDocs,addDoc,updateDoc,doc,serverTimestamp} 
+      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const firebaseConfig={
-  apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain:"inventariopv-643f1.firebaseapp.com",
-  projectId:"inventariopv-643f1",
-  storageBucket:"inventariopv-643f1.appspot.com",
-  messagingSenderId:"96242533231",
-  appId:"1:96242533231:web:aae75a18fbaf9840529e9a"
-};
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
+    // [5.1] Configuración Firebase
+    const firebaseConfig={
+      apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain:"inventariopv-643f1.firebaseapp.com",
+      projectId:"inventariopv-643f1",
+      storageBucket:"inventariopv-643f1.appspot.com",
+      messagingSenderId:"96242533231",
+      appId:"1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+    const app=initializeApp(firebaseConfig);
+    const db=getFirestore(app);
 
-const selectRuta=document.getElementById("selectRuta");
-const selectFecha=document.getElementById("selectFecha");
-const tbody=document.getElementById("tbodyPendientes");
-const overlay=document.getElementById("overlay");
-const overlayText=document.getElementById("overlayText");
+    // [5.2] Referencias DOM
+    const selectRuta=document.getElementById("selectRuta");
+    const selectFecha=document.getElementById("selectFecha");
+    const tbody=document.getElementById("tbodyPendientes");
+    const overlay=document.getElementById("overlay");
+    const overlayText=document.getElementById("overlayText");
 
-// 🔹 Cargar rutas pendientes
-async function cargarRutas(){
-  const snap=await getDocs(collection(db,"ventas_rutav2"));
-  const rutas={};
-  snap.forEach(d=>{
-    const v=d.data();
-    if(!v.cortado&&v.rutaId){
-      if(!rutas[v.rutaId]) rutas[v.rutaId]=v.usuarioNombre||"Desconocido";
+    // ============================================================
+    // [6] FUNCIÓN: CARGAR RUTAS PENDIENTES
+    // ============================================================
+    async function cargarRutas(){
+      const snap=await getDocs(collection(db,"ventas_rutav2"));
+      const rutas={};
+      snap.forEach(d=>{
+        const v=d.data();
+        if(!v.cortado&&v.rutaId){
+          if(!rutas[v.rutaId]) rutas[v.rutaId]=v.usuarioNombre||"Desconocido";
+        }
+      });
+      Object.entries(rutas).forEach(([id,nombre])=>{
+        const opt=document.createElement("option");
+        opt.value=id; opt.textContent=`${nombre} – ${id}`;
+        selectRuta.appendChild(opt);
+      });
     }
-  });
-  Object.entries(rutas).forEach(([id,nombre])=>{
-    const opt=document.createElement("option");
-    opt.value=id; opt.textContent=`${nombre} – ${id}`;
-    selectRuta.appendChild(opt);
-  });
-}
-await cargarRutas();
+    await cargarRutas();
 
-selectFecha.addEventListener("change",listarPendientes);
-selectRuta.addEventListener("change",listarPendientes);
+    // ============================================================
+    // [7] EVENTOS PRINCIPALES
+    // ============================================================
+    selectFecha.addEventListener("change",listarPendientes);
+    selectRuta.addEventListener("change",listarPendientes);
 
-async function listarPendientes(){
-  tbody.innerHTML="<tr><td colspan='5'>Buscando...</td></tr>";
-  const ruta=selectRuta.value, fecha=selectFecha.value;
-  if(!ruta||!fecha){
-    tbody.innerHTML="<tr><td colspan='5' style='text-align:center;color:#999;'>Selecciona ruta y fecha</td></tr>";
-    return;
-  }
-  const qv=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
-  const snap=await getDocs(qv);
-  const ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // ============================================================
+    // [8] FUNCIÓN: LISTAR PENDIENTES
+    // ============================================================
+    async function listarPendientes(){
+      tbody.innerHTML="<tr><td colspan='5'>Buscando...</td></tr>";
+      const ruta=selectRuta.value, fecha=selectFecha.value;
+      if(!ruta||!fecha){
+        tbody.innerHTML="<tr><td colspan='5' style='text-align:center;color:#999;'>Selecciona ruta y fecha</td></tr>";
+        return;
+      }
+      const qv=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
+      const snap=await getDocs(qv);
+      const ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
 
-  const partes=fecha.split("-");
-  const fechaRef=`${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
-  const ventasDia=ventas.filter(v=>v.fecha_txt?.startsWith(fechaRef)||v.fecha_txt?.includes(fechaRef));
+      const partes=fecha.split("-");
+      const fechaRef=`${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+      const ventasDia=ventas.filter(v=>v.fecha_txt?.startsWith(fechaRef)||v.fecha_txt?.includes(fechaRef));
 
-  if(!ventasDia.length){
-    tbody.innerHTML="<tr><td colspan='5' style='text-align:center;'>No hay pendientes</td></tr>";
-    return;
-  }
-
-  const usuario=ventasDia[0].usuarioNombre||"—";
-  const totalDia=ventasDia.reduce((sum,v)=>{
-    const rf=v.resumen_financiero||{};
-    return sum+(Number(rf.total)||0);
-  },0);
-
-  tbody.innerHTML=`
-    <tr>
-      <td>${usuario}</td><td>${ruta}</td><td>${fecha}</td>
-      <td>$${totalDia.toFixed(2)}</td>
-      <td><button id='btnCorte'>📊 Generar Corte</button></td>
-    </tr>`;
-  document.getElementById("btnCorte").onclick=()=>generarCorte(ruta,fecha,usuario);
-}
-
-// ===================== CORTE ANALÍTICO =====================
-async function generarCorte(rutaId,fechaSel,usuario){
-  overlay.style.display="flex"; overlayText.innerText="Analizando ventas...";
-  try{
-    const qv=query(collection(db,"ventas_rutav2"),where("rutaId","==",rutaId),where("cortado","==",false));
-    const snap=await getDocs(qv);
-    const ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
-
-    const partes=fechaSel.split("-");
-    const fechaRef=`${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
-    const ventasDia=ventas.filter(v=>v.fecha_txt?.startsWith(fechaRef)||v.fecha_txt?.includes(fechaRef));
-
-    if(!ventasDia.length){overlayText.innerText="⚠️ No hay ventas para esa fecha.";return;}
-
-    let totalDia=0,totalDescuento=0,utilidadTotal=0;
-    const porDepto={},porArticulo={},porNota=[];
-
-    for(const v of ventasDia){
-      const rf=v.resumen_financiero||{};
-      const total=Number(rf.total)||0;
-      const descuento=Number(rf.descuento)||Number(v.descuento_monto)||0;
-      const costo=Number(rf.costo_total)||0;
-      const utilidad=Number(rf.utilidad_total)||total-costo;
-
-      totalDia+=total; totalDescuento+=descuento; utilidadTotal+=utilidad;
-
-      for(const det of (v.detalle||[])){
-        const dep=det.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
-        const importe=(det.importe||0)-(det.descuento_monto||0);
-        const costoD=det.costo_total||det.costo_unit*(det.cantidad||1)||0;
-        const utilD=det.utilidad||importe-costoD;
-        const iva=det.iva_calculado||0; const ieps=det.ieps_calculado||0;
-
-        if(!porDepto[dep]) porDepto[dep]={venta:0,costo:0,utilidad:0,impuestos:0};
-        porDepto[dep].venta+=importe; porDepto[dep].costo+=costoD;
-        porDepto[dep].utilidad+=utilD; porDepto[dep].impuestos+=iva+ieps;
-
-        const art=det.nombre?.toUpperCase()||"SIN NOMBRE";
-        if(!porArticulo[art]) porArticulo[art]={cantidad:0,importe:0,costo:0};
-        porArticulo[art].cantidad+=det.cantidad||0;
-        porArticulo[art].importe+=importe;
-        porArticulo[art].costo+=costoD;
+      if(!ventasDia.length){
+        tbody.innerHTML="<tr><td colspan='5' style='text-align:center;'>No hay pendientes</td></tr>";
+        return;
       }
 
-      porNota.push({folio:v.folio||v.id,total,descuento,costo,utilidad,ubicacion:v.ubicacion||{}});
+      const usuario=ventasDia[0].usuarioNombre||"—";
+      const totalDia=ventasDia.reduce((sum,v)=>{
+        const rf=v.resumen_financiero||{};
+        return sum+(Number(rf.total)||0);
+      },0);
+
+      tbody.innerHTML=`
+        <tr>
+          <td>${usuario}</td><td>${ruta}</td><td>${fecha}</td>
+          <td>$${totalDia.toFixed(2)}</td>
+          <td><button id='btnCorte'>📊 Generar Corte</button></td>
+        </tr>`;
+      document.getElementById("btnCorte").onclick=()=>generarCorte(ruta,fecha,usuario);
     }
 
-    const resumen={
-      empresa:"PROVEEDORA DE DULCES Y DESECHABLES",usuario,rutaId,fecha:fechaSel,
-      creado_por:usuario,creado_en:new Date().toISOString(),
-      ventas_totales:ventasDia.length,departamentos_unicos:Object.keys(porDepto).length,
-      articulos_unicos:Object.keys(porArticulo).length,totalDia,totalDescuento,utilidadTotal,
-      margenGlobal:totalDia?((utilidadTotal/(totalDia-totalDescuento))*100).toFixed(2):0,
-      detalle_ventas:ventasDia.map(v=>({
-        folio:v.folio||v.id,fecha_txt:v.fecha_txt,total:v.resumen_financiero?.total||0,
-        descuento:v.resumen_financiero?.descuento||0,costo:v.resumen_financiero?.costo_total||0,
-        utilidad:v.resumen_financiero?.utilidad_total||0,metodo_pago:v.metodo_pago||"—",
-        cliente:v.cliente_nombre||"—",usuarioNombre:v.usuarioNombre||usuario,detalle:v.detalle||[]
-      })),
-      porDepto,porArticulo,porNota
-    };
+    // ============================================================
+    // [9] FUNCIÓN PRINCIPAL: GENERAR CORTE ANALÍTICO
+    // ============================================================
+    async function generarCorte(rutaId,fechaSel,usuario){
+      overlay.style.display="flex"; overlayText.innerText="Analizando ventas...";
+      try{
+        // [9.1] Consultar ventas
+        const qv=query(collection(db,"ventas_rutav2"),where("rutaId","==",rutaId),where("cortado","==",false));
+        const snap=await getDocs(qv);
+        const ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
 
-    overlayText.innerText="Guardando corte en Firestore...";
-    await addDoc(collection(db,"cortes_globalesV4"),{
-      rutaId,fecha:serverTimestamp(),fecha_corte:fechaSel,creado_en:new Date().toISOString(),
-      realizado_por:usuario,resumen
-    });
-    for(const v of ventasDia){await updateDoc(doc(db,"ventas_rutav2",v.id),{cortado:true});}
+        // [9.2] Filtrar por fecha
+        const partes=fechaSel.split("-");
+        const fechaRef=`${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+        const ventasDia=ventas.filter(v=>v.fecha_txt?.startsWith(fechaRef)||v.fecha_txt?.includes(fechaRef));
+        if(!ventasDia.length){overlayText.innerText="⚠️ No hay ventas para esa fecha.";return;}
 
-    overlayText.innerText="Generando PDF...";
-    await generarPDF(resumen);
-    overlayText.innerText="Corte completado ✅";
-    await new Promise(r=>setTimeout(r,1200));
-    overlay.style.display="none";
-    alert("✅ Corte generado y guardado correctamente");
-  }catch(e){
-    console.error(e);
-    overlayText.innerText="❌ Error al generar el corte";
-  }
-}
+        // [9.3] Cálculos globales
+        let totalDia=0,totalDescuento=0,utilidadTotal=0;
+        const porDepto={},porArticulo={},porNota=[];
 
-// ===================== PDF =====================
-async function generarPDF(r){
-  const {jsPDF}=window.jspdf;
-  const pdf=new jsPDF({format:"letter",unit:"mm"});
-  pdf.setFont("helvetica","bold");pdf.setFontSize(14);
-  pdf.text("CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES",10,15);
-  pdf.setFontSize(12);
-  pdf.text(`Usuario: ${r.usuario}`,15,25);
-  pdf.text(`Ruta: ${r.rutaId}`,15,32);
-  pdf.text(`Fecha: ${r.fecha}`,15,39);
-  const neto=r.totalDia-r.totalDescuento;
-  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`,15,46);
-  pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`,15,53);
-  pdf.text(`Venta Neta: $${neto.toFixed(2)}`,15,60);
-  pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`,15,67);
-  const margenTotal=neto>0?((r.utilidadTotal/neto)*100).toFixed(2)+"%":"—";
-  pdf.text(`Margen Promedio: ${margenTotal}`,15,74);
+        for(const v of ventasDia){
+          const rf=v.resumen_financiero||{};
+          const total=Number(rf.total)||0;
+          const descuento=Number(rf.descuento)||Number(v.descuento_monto)||0;
+          const costo=Number(rf.costo_total)||0;
+          const utilidad=Number(rf.utilidad_total)||total-costo;
 
-  // 🔹 Gráfica departamentos (protegida)
-  try{
-    overlayText.innerText="Generando gráfica de departamentos...";
-    const imgDepto=await graficaDeptos(r.porDepto);
-    pdf.addPage();pdf.setFont("helvetica","bold");pdf.setFontSize(14);
-    pdf.text("GRÁFICA DE VENTAS POR DEPARTAMENTO",40,15);
-    if(imgDepto) pdf.addImage(imgDepto,"PNG",20,25,170,100);
-    else pdf.text("⚠️ No se pudo generar la gráfica.",20,40);
-  }catch(e){console.error("Error en gráfica deptos:",e);}
+          totalDia+=total; totalDescuento+=descuento; utilidadTotal+=utilidad;
 
-  // 🔹 Gráfica márgenes bajos
-  try{
-    overlayText.innerText="Generando gráfica de utilidades...";
-    await generarMargenesBajos(pdf,r.porArticulo);
-  }catch(e){console.error("Error en margen bajos:",e);}
+          // [9.4] Detalle por departamento / artículo
+          for(const det of (v.detalle||[])){
+            const dep=det.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
+            const importe=(det.importe||0)-(det.descuento_monto||0);
+            const costoD=det.costo_total||det.costo_unit*(det.cantidad||1)||0;
+            const utilD=det.utilidad||importe-costoD;
+            const iva=det.iva_calculado||0; const ieps=det.ieps_calculado||0;
 
-  // 🔹 Abrir PDF y enviar por Telegram
-  overlayText.innerText="Enviando reporte a Telegram...";
-  const blob=pdf.output("blob");
-  const url=URL.createObjectURL(blob);window.open(url,"_blank");
-  await enviarTelegram(blob,`Corte_${r.rutaId}_${r.fecha}.pdf`,
-    `📦 Corte ${r.usuario}\nTotal: $${r.totalDia.toFixed(2)}\nDescuento: $${r.totalDescuento.toFixed(2)}\nUtilidad: $${r.utilidadTotal.toFixed(2)} (${margenTotal})`);
-}
+            if(!porDepto[dep]) porDepto[dep]={venta:0,costo:0,utilidad:0,impuestos:0};
+            porDepto[dep].venta+=importe; porDepto[dep].costo+=costoD;
+            porDepto[dep].utilidad+=utilD; porDepto[dep].impuestos+=iva+ieps;
 
-async function graficaDeptos(porDepto){
-  return new Promise(resolve=>{
-    const canvas=document.createElement("canvas");canvas.width=800;canvas.height=400;
-    const ctx=canvas.getContext("2d");
-    const labels=Object.keys(porDepto);
-    const data=Object.values(porDepto).map(v=>v.venta);
-    const colors=labels.map((_,i)=>`hsl(${i*360/labels.length},70%,55%)`);
-    new Chart(ctx,{type:"pie",data:{labels,datasets:[{data,backgroundColor:colors}]},
-      options:{responsive:false,plugins:{legend:{position:"bottom"}}}});
-    setTimeout(()=>resolve(canvas.toDataURL("image/png")),800);
-  });
-}
+            const art=det.nombre?.toUpperCase()||"SIN NOMBRE";
+            if(!porArticulo[art]) porArticulo[art]={cantidad:0,importe:0,costo:0};
+            porArticulo[art].cantidad+=det.cantidad||0;
+            porArticulo[art].importe+=importe;
+            porArticulo[art].costo+=costoD;
+          }
 
-async function generarMargenesBajos(pdf,porArticulo){
-  const articulos=Object.entries(porArticulo).map(([n,d])=>{
-    const imp=d.importe||0,cos=d.costo||0,util=imp-cos,marg=imp?(util/imp)*100:0;
-    return{nombre:n,cantidad:d.cantidad,importe:imp,costo:cos,utilidad:util,margen:marg};
-  }).sort((a,b)=>a.margen-b.margen).slice(0,20);
+          porNota.push({folio:v.folio||v.id,total,descuento,costo,utilidad,ubicacion:v.ubicacion||{}});
+        }
 
-  const canvas=document.createElement("canvas");
-  canvas.width=800;canvas.height=400;
-  const ctx=canvas.getContext("2d");
-  new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels:articulos.map(a=>a.nombre.substring(0,15)),
-      datasets:[{data:articulos.map(a=>a.margen),
-        backgroundColor:articulos.map(a=>
-          a.margen<0?"rgba(255,99,132,0.7)":a.margen<10?"rgba(255,205,86,0.7)":"rgba(75,192,192,0.7)"
-        )}]
-    },
-    options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+"%"}}}}
-  });
-  await new Promise(r=>setTimeout(r,800));
-  const img=canvas.toDataURL("image/png");
-  pdf.addPage();pdf.text("GRÁFICO DE UTILIDAD – 20 ARTÍCULOS CON MENOR MARGEN",20,15);
-  pdf.addImage(img,"PNG",10,25,190,100);
-}
+        // [9.5] Construcción de resumen general
+        const resumen={
+          empresa:"PROVEEDORA DE DULCES Y DESECHABLES",usuario,rutaId,fecha:fechaSel,
+          creado_por:usuario,creado_en:new Date().toISOString(),
+          ventas_totales:ventasDia.length,departamentos_unicos:Object.keys(porDepto).length,
+          articulos_unicos:Object.keys(porArticulo).length,totalDia,totalDescuento,utilidadTotal,
+          margenGlobal:totalDia?((utilidadTotal/(totalDia-totalDescuento))*100).toFixed(2):0,
+          detalle_ventas:ventasDia.map(v=>({
+            folio:v.folio||v.id,fecha_txt:v.fecha_txt,total:v.resumen_financiero?.total||0,
+            descuento:v.resumen_financiero?.descuento||0,costo:v.resumen_financiero?.costo_total||0,
+            utilidad:v.resumen_financiero?.utilidad_total||0,metodo_pago:v.metodo_pago||"—",
+            cliente:v.cliente_nombre||"—",usuarioNombre:v.usuarioNombre||usuario,detalle:v.detalle||[]
+          })),
+          porDepto,porArticulo,porNota
+        };
 
-async function enviarTelegram(pdfBlob,nombre,caption){
-  const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-  const CHAT="6617988297";
-  const f=new FormData();
-  f.append("chat_id",CHAT);
-  f.append("caption",caption);
-  f.append("document",pdfBlob,nombre);
-  try{await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`,{method:"POST",body:f});}
-  catch(e){console.error("Telegram error",e);}
-}
-</script>
+        // [9.6] Guardar en Firestore
+        overlayText.innerText="Guardando corte en Firestore...";
+        await addDoc(collection(db,"cortes_globalesV4"),{
+          rutaId,fecha:serverTimestamp(),fecha_corte:fechaSel,creado_en:new Date().toISOString(),
+          realizado_por:usuario,resumen
+        });
+
+        // [9.7] Marcar ventas cortadas
+        for(const v of ventasDia){await updateDoc(doc(db,"ventas_rutav2",v.id),{cortado:true});}
+
+        // [9.8] Generar PDF
+        overlayText.innerText="Generando PDF...";
+        await generarPDF(resumen);
+        overlayText.innerText="Corte completado ✅";
+        await new Promise(r=>setTimeout(r,1200));
+        overlay.style.display="none";
+        alert("✅ Corte generado y guardado correctamente");
+      }catch(e){
+        console.error(e);
+        overlayText.innerText="❌ Error al generar el corte";
+      }
+    }
+
+    // ============================================================
+    // [10] FUNCIÓN: GENERAR PDF DEL CORTE
+    // ============================================================
+    async function generarPDF(r){
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({format:"letter",unit:"mm"});
+
+      // [10.1] Encabezado
+      pdf.setFont("helvetica","bold");pdf.setFontSize(14);
+      pdf.text("CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES",10,15);
+      pdf.setFontSize(12);
+      pdf.text(`Usuario: ${r.usuario}`,15,25);
+      pdf.text(`Ruta: ${r.rutaId}`,15,32);
+      pdf.text(`Fecha: ${r.fecha}`,15,39);
+
+      // [10.2] Totales
+      const neto=r.totalDia-r.totalDescuento;
+      pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`,15,46);
+      pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`,15,53);
+      pdf.text(`Venta Neta: $${neto.toFixed(2)}`,15,60);
+      pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`,15,67);
+      const margenTotal=neto>0?((r.utilidadTotal/neto)*100).toFixed(2)+"%":"—";
+      pdf.text(`Margen Promedio: ${margenTotal}`,15,74);
+
+      // [10.3] Gráfica por Departamento
+      try{
+        overlayText.innerText="Generando gráfica de departamentos...";
+        const imgDepto=await graficaDeptos(r.porDepto);
+        pdf.addPage();pdf.setFont("helvetica","bold");pdf.setFontSize(14);
+        pdf.text("GRÁFICA DE VENTAS POR DEPARTAMENTO",40,15);
+        if(imgDepto) pdf.addImage(imgDepto,"PNG",20,25,170,100);
+      }catch(e){console.error("Error en gráfica deptos:",e);}
+
+      // [10.4] Gráfica de márgenes bajos
+      try{
+        overlayText.innerText="Generando gráfica de utilidades...";
+        await generarMargenesBajos(pdf,r.porArticulo);
+      }catch(e){console.error("Error en margen bajos:",e);}
+
+      // [10.5] Enviar PDF a Telegram
+      overlayText.innerText="Enviando reporte a Telegram...";
+      const blob=pdf.output("blob");
+      const url=URL.createObjectURL(blob);window.open(url,"_blank");
+      await enviarTelegram(blob,`Corte_${r.rutaId}_${r.fecha}.pdf`,
+        `📦 Corte ${r.usuario}\nTotal: $${r.totalDia.toFixed(2)}\nDescuento: $${r.totalDescuento.toFixed(2)}\nUtilidad: $${r.utilidadTotal.toFixed(2)} (${margenTotal})`);
+    }
+
+    // ============================================================
+    // [11] FUNCIÓN: GRAFICAR DEPARTAMENTOS
+    // ============================================================
+    async function graficaDeptos(porDepto){
+      return new Promise(resolve=>{
+        const canvas=document.createElement("canvas");canvas.width=800;canvas.height=400;
+        const ctx=canvas.getContext("2d");
+        const labels=Object.keys(porDepto);
+        const data=Object.values(porDepto).map(v=>v.venta);
+        const colors=labels.map((_,i)=>`hsl(${i*360/labels.length},70%,55%)`);
+        new Chart(ctx,{type:"pie",data:{labels,datasets:[{data,backgroundColor:colors}]},
+          options:{responsive:false,plugins:{legend:{position:"bottom"}}}});
+        setTimeout(()=>resolve(canvas.toDataURL("image/png")),800);
+      });
+    }
+
+    // ============================================================
+    // [12] FUNCIÓN: GRAFICAR MÁRGENES BAJOS
+    // ============================================================
+    async function generarMargenesBajos(pdf,porArticulo){
+      const articulos=Object.entries(porArticulo).map(([n,d])=>{
+        const imp=d.importe||0,cos=d.costo||0,util=imp-cos,marg=imp?(util/imp)*100:0;
+        return{nombre:n,cantidad:d.cantidad,importe:imp,costo:cos,utilidad:util,margen:marg};
+      }).sort((a,b)=>a.margen-b.margen).slice(0,20);
+
+      const canvas=document.createElement("canvas");
+      canvas.width=800;canvas.height=400;
+      const ctx=canvas.getContext("2d");
+      new Chart(ctx,{
+        type:"bar",
+        data:{
+          labels:articulos.map(a=>a.nombre.substring(0,15)),
+          datasets:[{data:articulos.map(a=>a.margen),
+            backgroundColor:articulos.map(a=>
+              a.margen<0?"rgba(255,99,132,0.7)":a.margen<10?"rgba(255,205,86,0.7)":"rgba(75,192,192,0.7)"
+            )}]
+        },
+        options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+"%"}}}}
+      });
+      await new Promise(r=>setTimeout(r,800));
+      const img=canvas.toDataURL("image/png");
+      pdf.addPage();pdf.text("GRÁFICO DE UTILIDAD – 20 ARTÍCULOS CON MENOR MARGEN",20,15);
+      pdf.addImage(img,"PNG",10,25,190,100);
+    }
+
+    // ============================================================
+    // [13] FUNCIÓN: ENVIAR PDF A TELEGRAM
+    // ============================================================
+    async function enviarTelegram(pdfBlob,nombre,caption){
+      const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+      const CHAT="6617988297";
+      const f=new FormData();
+      f.append("chat_id",CHAT);
+      f.append("caption",caption);
+      f.append("document",pdfBlob,nombre);
+      try{
+        await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`,{method:"POST",body:f});
+      }catch(e){console.error("Telegram error",e);}
+    }
+
+  </script>
 </body>
 </html>
