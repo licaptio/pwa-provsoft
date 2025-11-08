@@ -286,7 +286,7 @@
   pdf.text("%", 182, 99);
 
   pdf.setTextColor(0, 0, 0);
-  let y = 106;
+  let yDepto = 106;
   let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
 
   for (const [dep, d] of Object.entries(r.porDepto)) {
@@ -298,7 +298,7 @@
     const marg = ventaImp > 0 ? ((util / ventaImp) * 100).toFixed(1) + "%" : "—";
 
     // Color alternado (gris claro cada dos filas)
-    if (Math.floor((y - 106) / 6) % 2 === 1) {
+    if (Math.floor((yDepto - 106) / 6) % 2 === 1) {
       pdf.setFillColor(240, 240, 240);
       pdf.rect(10, y - 4, 190, 6, "F");
     }
@@ -316,14 +316,14 @@
     totalCosto += costo;
     totalUtil += util;
 
-    y += 6;
+    yDepto += 6;
   }
 
   const totalVentaImp = totalVenta + totalImp;
   const margenTotalTabla = totalVentaImp > 0 ? ((totalUtil / totalVentaImp) * 100).toFixed(1) + "%" : "—";
 
   pdf.setFillColor(220, 220, 220);
-  pdf.rect(10, y - 4, 190, 7, "F");
+  pdf.rect(10, yDepto - 4, 190, 7, "F")
   pdf.setFont("helvetica", "bold");
   pdf.text("TOTALES", 12, y);
   pdf.text(`$${totalVenta.toFixed(2)}`, 65, y, { align: "right" });
