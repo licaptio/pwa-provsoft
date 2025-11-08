@@ -266,6 +266,72 @@
       const margenTotal=neto>0?((r.utilidadTotal/neto)*100).toFixed(2)+"%":"—";
       pdf.text(`Margen Promedio: ${margenTotal}`,15,74);
 
+  // ============================================================
+  // [10.3] TABLA DETALLE POR DEPARTAMENTO
+  // ============================================================
+  const yStart = 85;
+  pdf.addPage();
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.text("ANÁLISIS POR DEPARTAMENTO", 60, 15);
+
+  pdf.setFontSize(10);
+  pdf.setFillColor(12, 108, 189);
+  pdf.setTextColor(255, 255, 255);
+  pdf.rect(10, 22, 190, 7, "F");
+  pdf.text("Departamento", 12, 27);
+  pdf.text("Venta", 65, 27);
+  pdf.text("Imp.", 88, 27);
+  pdf.text("Venta+Imp", 106, 27);
+  pdf.text("Costo", 136, 27);
+  pdf.text("Utilidad", 158, 27);
+  pdf.text("%", 182, 27);
+
+  pdf.setTextColor(0, 0, 0);
+  let y = 34;
+  let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
+
+  for (const [dep, d] of Object.entries(r.porDepto)) {
+    const venta = d.venta || 0;
+    const imp = d.impuestos || 0;
+    const ventaImp = venta + imp;
+    const costo = d.costo || 0;
+    const util = d.utilidad || 0;
+    const marg = ventaImp > 0 ? ((util / ventaImp) * 100).toFixed(1) + "%" : "—";
+
+    pdf.text(dep.substring(0, 20), 12, y);
+    pdf.text(`$${venta.toFixed(2)}`, 65, y, { align: "right" });
+    pdf.text(`$${imp.toFixed(2)}`, 88, y, { align: "right" });
+    pdf.text(`$${ventaImp.toFixed(2)}`, 106, y, { align: "right" });
+    pdf.text(`$${costo.toFixed(2)}`, 136, y, { align: "right" });
+    pdf.text(`$${util.toFixed(2)}`, 158, y, { align: "right" });
+    pdf.text(marg, 182, y, { align: "right" });
+
+    totalVenta += venta;
+    totalImp += imp;
+    totalCosto += costo;
+    totalUtil += util;
+
+    y += 6;
+    if (y > 260) { pdf.addPage(); y = 20; }
+  }
+
+  const totalVentaImp = totalVenta + totalImp;
+  const margenTotalTabla = totalVentaImp > 0 ? ((totalUtil / totalVentaImp) * 100).toFixed(1) + "%" : "—";
+
+  pdf.setFillColor(240, 240, 240);
+  pdf.rect(10, y, 190, 8, "F");
+  pdf.setFont("helvetica", "bold");
+  pdf.text("TOTALES", 12, y + 5);
+  pdf.text(`$${totalVenta.toFixed(2)}`, 65, y + 5, { align: "right" });
+  pdf.text(`$${totalImp.toFixed(2)}`, 88, y + 5, { align: "right" });
+  pdf.text(`$${totalVentaImp.toFixed(2)}`, 106, y + 5, { align: "right" });
+  pdf.text(`$${totalCosto.toFixed(2)}`, 136, y + 5, { align: "right" });
+  pdf.text(`$${totalUtil.toFixed(2)}`, 158, y + 5, { align: "right" });
+  pdf.text(margenTotalTabla, 182, y + 5, { align: "right" });
+
+
+      
       // [10.3] Gráfica por Departamento
       try{
         overlayText.innerText="Generando gráfica de departamentos...";
