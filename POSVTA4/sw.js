@@ -5,7 +5,7 @@
    Descripción: Cache inteligente + sincronización ventas
    =========================================================== */
 
-const CACHE_NAME = 'provsoft-pos-v2';
+const CACHE_NAME = 'provsoft-pos-v3';
 const STATIC_ASSETS = [
   './',
   './POSV4PASS.html',                // HTML principal
