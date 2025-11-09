@@ -5,7 +5,7 @@
    Descripción: Cache inteligente + sincronización ventas
    =========================================================== */
 
-const CACHE_NAME = 'provsoft-pos-v1';
+const CACHE_NAME = 'provsoft-pos-v2';
 const STATIC_ASSETS = [
   './',
   './POSV4PASS.html',                // HTML principal
@@ -16,6 +16,7 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/maskable_icon.png',
+  './offline.html',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap'
 ];
 
@@ -53,7 +54,7 @@ self.addEventListener('activate', (event) => {
 });
 
 /* ===========================================================
-   ⚡️ FETCH: “Network first, fallback to cache”
+   ⚡️ FETCH: estrategia mixta “stale-while-revalidate + network first”
    =========================================================== */
 self.addEventListener('fetch', (event) => {
   const req = event.request;
@@ -66,14 +67,42 @@ self.addEventListener('fetch', (event) => {
     req.url.startsWith('data:')
   ) return;
 
+  // 🧱 Archivos estáticos → cache first
+  if (
+    req.url.endsWith('.js') ||
+    req.url.endsWith('.css') ||
+    req.url.endsWith('.png') ||
+    req.url.endsWith('.webp') ||
+    req.url.endsWith('.json')
+  ) {
+    event.respondWith(
+      caches.match(req).then(cached => {
+        const fetchAndUpdate = fetch(req).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
+          return res;
+        }).catch(() => cached); // si falla la red, devuelve el caché
+        return cached || fetchAndUpdate;
+      })
+    );
+    return;
+  }
+
+  // 🌐 Resto de peticiones → network first con fallback offline
   event.respondWith(
     fetch(req)
-      .then((res) => {
+      .then(res => {
         const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         return res;
       })
-      .catch(() => caches.match(req))
+      .catch(() => {
+        // Si es navegación y no hay red, mostrar página offline
+        if (req.mode === 'navigate') return caches.match('./offline.html');
+        return caches.match(req);
+      })
   );
 });
 
