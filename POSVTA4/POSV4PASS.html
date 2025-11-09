@@ -2053,8 +2053,50 @@ if (btnResumen) {
     window.location.href = "ticketsresumen.html";
   });
 }
-
 </script>
+<script>
+// =====================================================
+// 🔄 Reintento automático de sincronización de ventas
+// =====================================================
+
+// Cuando el navegador recupere conexión
+window.addEventListener('online', async () => {
+  try {
+    // Verifica que existan SW y Background Sync
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.sync.register('sync-ventas-pendientes');
+      console.log('📡 Evento de sincronización registrado');
+    } else {
+      // Si el navegador no soporta SyncManager, fuerza reenvío inmediato
+      console.warn('⚠️ Background Sync no soportado, reenviando manualmente');
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ action: 'sincronizar' });
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error al registrar sincronización:', err);
+  }
+});
+</script>
+<script>
+// =====================================================
+// 📬 Receptor de mensajes del Service Worker
+// =====================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.action === 'sincronizar') {
+      console.log('📦 Orden recibida: sincronizar ventas pendientes');
+      if (typeof reenviarVentasPendientes === 'function') {
+        reenviarVentasPendientes(); // Llama tu función de reenvío
+      } else {
+        console.warn('⚠️ Función reenviarVentasPendientes() no encontrada');
+      }
+    }
+  });
+}
+</script>
+
 </body>
 </html>
 
