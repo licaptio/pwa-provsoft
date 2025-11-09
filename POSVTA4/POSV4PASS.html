@@ -1683,9 +1683,18 @@ ${ubicacionInfo}
     
   } catch (err) {
     console.error("❌ Error enviando a Telegram:", err);
-    // No mostrar alerta aquí para no interrumpir el flujo de venta
+
+    // 🚨 NUEVO BLOQUE: si hay error, guardamos la venta pendiente
+    if (!navigator.onLine || err.message.includes("Failed to fetch")) {
+      guardarVentaPendiente(v);
+      console.warn("📦 Venta guardada para reintento al reconectarse:", v.folio);
+      toast("📦 Venta guardada localmente (sin conexión)", "#f59e0b");
+    } else {
+      console.warn("⚠️ Error no relacionado con conexión:", err.message);
+    }
   }
 }
+
 /* ===========================================================
    📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
    =========================================================== */
