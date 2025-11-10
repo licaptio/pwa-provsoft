@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+|<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -267,7 +267,7 @@
       pdf.text(`Margen Promedio: ${margenTotal}`,15,74);
 
 // ============================================================
-// [10.3] TABLA DEPARTAMENTOS EN LA MISMA HOJA
+// [10.3] TABLA DEPARTAMENTOS EN LA MISMA HOJA (CORREGIDO)
 // ============================================================
 pdf.setFont("helvetica", "bold");
 pdf.setFontSize(12);
@@ -290,38 +290,38 @@ let yDepto = 106;
 let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
 
 for (const [dep, d] of Object.entries(r.porDepto)) {
-  const venta = d.venta || 0;
-  const imp = d.impuestos || 0;
-  const ventaImp = venta + imp;
+  const ventaBruta = d.venta || 0;          // total con impuestos
+  const imp = d.impuestos || 0;             // IVA + IEPS
+  const ventaSinImp = ventaBruta - imp;     // 🔹 venta antes de impuestos
+  const ventaConImp = ventaBruta;           // venta total
   const costo = d.costo || 0;
   const util = d.utilidad || 0;
-  const marg = ventaImp > 0 ? ((util / ventaImp) * 100).toFixed(1) + "%" : "—";
+  const marg = ventaSinImp > 0 ? ((util / ventaSinImp) * 100).toFixed(1) + "%" : "—";
 
-  // Color alternado (gris claro cada dos filas)
+  // Color alternado
   if (Math.floor((yDepto - 106) / 6) % 2 === 1) {
     pdf.setFillColor(240, 240, 240);
     pdf.rect(10, yDepto - 4, 190, 6, "F");
   }
 
   pdf.text(dep.substring(0, 25), 12, yDepto);
-  pdf.text(`$${venta.toFixed(2)}`, 65, yDepto, { align: "right" });
+  pdf.text(`$${ventaSinImp.toFixed(2)}`, 65, yDepto, { align: "right" });
   pdf.text(`$${imp.toFixed(2)}`, 88, yDepto, { align: "right" });
-  pdf.text(`$${ventaImp.toFixed(2)}`, 106, yDepto, { align: "right" });
+  pdf.text(`$${ventaConImp.toFixed(2)}`, 106, yDepto, { align: "right" });
   pdf.text(`$${costo.toFixed(2)}`, 136, yDepto, { align: "right" });
   pdf.text(`$${util.toFixed(2)}`, 158, yDepto, { align: "right" });
   pdf.text(marg, 182, yDepto, { align: "right" });
 
-  totalVenta += venta;
+  totalVenta += ventaSinImp;
   totalImp += imp;
   totalCosto += costo;
   totalUtil += util;
-
   yDepto += 6;
 }
 
 // Totales
 const totalVentaImp = totalVenta + totalImp;
-const margenTotalTabla = totalVentaImp > 0 ? ((totalUtil / totalVentaImp) * 100).toFixed(1) + "%" : "—";
+const margenTotalTabla = totalVenta > 0 ? ((totalUtil / totalVenta) * 100).toFixed(1) + "%" : "—";
 
 pdf.setFillColor(220, 220, 220);
 pdf.rect(10, yDepto - 4, 190, 7, "F");
@@ -333,7 +333,7 @@ pdf.text(`$${totalVentaImp.toFixed(2)}`, 106, yDepto, { align: "right" });
 pdf.text(`$${totalCosto.toFixed(2)}`, 136, yDepto, { align: "right" });
 pdf.text(`$${totalUtil.toFixed(2)}`, 158, yDepto, { align: "right" });
 pdf.text(margenTotalTabla, 182, yDepto, { align: "right" });
-
+      
   // ============================================================
   // [10.4] RESUMEN DE TICKETS (POR FECHA DE CORTE)
   // ============================================================
