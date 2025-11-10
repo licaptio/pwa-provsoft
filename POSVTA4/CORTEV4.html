@@ -360,7 +360,8 @@ pdf.text(margenTotalTabla, 182, yDepto, { align: "right" });
 
   pdf.setTextColor(0, 0, 0);
   let y = 34;
-  let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
+  let totalVentaT = 0, totalImpT = 0, totalCostoT = 0, totalUtilT = 0;
+
 
   for (const t of tickets) {
     // Datos base
@@ -389,27 +390,27 @@ pdf.text(margenTotalTabla, 182, yDepto, { align: "right" });
     pdf.text(`$${utilidad.toFixed(2)}`, 158, y, { align: "right" });
     pdf.text(marg, 182, y, { align: "right" });
 
-    totalVenta += ventaSinImp;
-    totalImp += imp;
-    totalCosto += costo;
-    totalUtil += utilidad;
+totalVentaT += ventaSinImp;
+totalImpT += imp;
+totalCostoT += costo;
+totalUtilT += utilidad;
     y += 6;
 
     if (y > 270) { pdf.addPage(); y = 20; }
   }
 
-  const margenGlobal = totalVenta > 0 ? ((totalUtil / totalVenta) * 100).toFixed(1) + "%" : "—";
-  const totalConImp = totalVenta + totalImp;
-
+const margenGlobal = totalVentaT > 0 ? ((totalUtilT / totalVentaT) * 100).toFixed(1) + "%" : "—";
+const totalConImp = totalVentaT + totalImpT;
+      
   pdf.setFillColor(220, 220, 220);
   pdf.rect(10, y - 4, 190, 8, "F");
   pdf.setFont("helvetica", "bold");
   pdf.text("TOTALES", 12, y);
-  pdf.text(`$${totalVenta.toFixed(2)}`, 74, y, { align: "right" });
-  pdf.text(`$${totalImp.toFixed(2)}`, 96, y, { align: "right" });
-  pdf.text(`$${totalConImp.toFixed(2)}`, 112, y, { align: "right" });
-  pdf.text(`$${totalCosto.toFixed(2)}`, 134, y, { align: "right" });
-  pdf.text(`$${totalUtil.toFixed(2)}`, 158, y, { align: "right" });
+  pdf.text(`$${totalVentaT.toFixed(2)}`, 74, y, { align: "right" });
+pdf.text(`$${totalImpT.toFixed(2)}`, 96, y, { align: "right" });
+pdf.text(`$${totalConImp.toFixed(2)}`, 112, y, { align: "right" });
+pdf.text(`$${totalCostoT.toFixed(2)}`, 134, y, { align: "right" });
+pdf.text(`$${totalUtilT.toFixed(2)}`, 158, y, { align: "right" });
   pdf.text(margenGlobal, 182, y, { align: "right" });
       
       // [10.3] Gráfica por Departamento
