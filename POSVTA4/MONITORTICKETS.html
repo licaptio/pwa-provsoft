@@ -264,7 +264,7 @@
 
       // Traer solo la colección y filtrar localmente por la fecha seleccionada
       // (Se puede optimizar con queries por rango si la colección es enorme)
-      const snapshot = await db.collection("rutas_venta").get();
+      const snapshot = await db.collection("ventas_rutav2").get();
       const usuariosUnicos = new Set();
 
       snapshot.forEach(doc => {
@@ -320,7 +320,7 @@
       tablaBody.innerHTML = "";
 
       // Traemos solo documentos del usuario (optimizable por índices)
-      const snapshot = await db.collection("rutas_venta")
+      const snapshot = await db.collection("ventas_rutav2")
         .where("usuarioNombre", "==", usuarioFiltro)
         .get();
 
@@ -432,7 +432,7 @@ pwSubmit.addEventListener("click", async () => {
   if (!pendingDeleteId) return;
 
   try {
-    const ref = db.collection("rutas_venta").doc(pendingDeleteId);
+    const ref = db.collection("ventas_rutav2").doc(pendingDeleteId);
 
     if (pendingAction === "cortar") {
       await ref.update({ cortado: true });
@@ -472,7 +472,7 @@ pwInput.addEventListener("keydown", (e) => {
     // =====================================================
     async function eliminarVentaConfirmada(id) {
       try {
-        await db.collection("rutas_venta").doc(id).delete();
+        await db.collection("ventas_rutav2").doc(id).delete();
         alert("✅ Venta eliminada correctamente");
         // recargar los resultados actuales (si hay fecha+usuario seleccionados)
         cargarVentas();
@@ -489,7 +489,7 @@ async function descortarVenta(id) {
   if (!confirmar) return;
 
   try {
-    await db.collection("rutas_venta").doc(id).update({
+    await db.collection("ventas_rutav2").doc(id).update({
       cortado: false
     });
     alert("✅ Venta marcada como NO cortada (descortada).");
