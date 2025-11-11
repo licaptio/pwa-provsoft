@@ -320,9 +320,11 @@
       tablaBody.innerHTML = "";
 
       // Traemos solo documentos del usuario (optimizable por índices)
-      const snapshot = await db.collection("ventas_rutav2")
-        .where("usuarioNombre", "==", usuarioFiltro)
-        .get();
+const snapshot = await db.collection("ventas_rutav2")
+  .where("usuarioNombre", "==", usuarioFiltro)
+  .orderBy("fecha", "asc")
+  .get();
+
 
       snapshot.forEach(doc => {
         const data = doc.data();
