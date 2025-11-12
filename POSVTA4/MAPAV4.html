@@ -112,7 +112,15 @@ function parseFechaTxt(fechaTxt) {
   let horaParte = horaParteRaw.trim().toLowerCase();
 
   // Separamos tiempo y am/pm -> ["2:55:51", "p.m."] o ["10:11:18", "a. m."]
-  let [tiempo, meridiano] = horaParte.split(' ');
+  // separar por espacios y limpiar valores vacíos
+let partesHora = horaParte.split(' ').filter(x => x.trim() !== '');
+
+// partesHora queda así:
+// ["2:55:51", "p.m."]
+
+let tiempo = partesHora[0];
+let meridiano = (partesHora[1] || '').replace(/\./g, ''); // "p.m." -> "pm"
+
   meridiano = (meridiano || '').replace(/\./g, ''); // "p.m." -> "pm", "a. m." -> "am"
 
   const [hStr, mStr, sStr] = tiempo.split(':');
