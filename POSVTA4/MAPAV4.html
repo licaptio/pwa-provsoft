@@ -126,6 +126,12 @@ async function consultarVentas() {
     alert("No hay ventas de ese usuario en esa fecha.");
     return;
   }
+// 🕒 ORDENAR DE MÁS ANTIGUA → MÁS RECIENTE
+ventas.sort((a, b) => {
+  const da = new Date(a.fecha_txt.replace(" a. m.", " AM").replace(" p. m.", " PM"));
+  const db = new Date(b.fecha_txt.replace(" a. m.", " AM").replace(" p. m.", " PM"));
+  return da - db; // ascendente
+});
 
   let totalDia = 0;
   let hayUbicaciones = false;
