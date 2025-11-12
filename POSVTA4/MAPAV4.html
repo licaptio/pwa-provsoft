@@ -93,6 +93,39 @@ async function cargarUsuarios() {
   });
 }
 await cargarUsuarios();
+// 🔧 Convierte "12/11/2025, 2:55:51 p.m." a un objeto Date real
+function parseFechaTxt(fechaTxt) {
+  if (!fechaTxt) return new Date(0);
+
+  // Separar fecha y hora: ["12/11/2025", " 2:55:51 p.m."]
+  const [fechaParte, horaParteRaw] = fechaTxt.split(',');
+  if (!fechaParte || !horaParteRaw) return new Date(0);
+
+  // ---- FECHA ----
+  const [diaStr, mesStr, anioStr] = fechaParte.trim().split('/');
+  const dia  = parseInt(diaStr, 10);
+  const mes  = parseInt(mesStr, 10); // 1–12
+  const anio = parseInt(anioStr, 10);
+
+  // ---- HORA ----
+  // ejemplo horaParteRaw: " 2:55:51 p.m."
+  let horaParte = horaParteRaw.trim().toLowerCase();
+
+  // Separamos tiempo y am/pm -> ["2:55:51", "p.m."] o ["10:11:18", "a. m."]
+  let [tiempo, meridiano] = horaParte.split(' ');
+  meridiano = (meridiano || '').replace(/\./g, ''); // "p.m." -> "pm", "a. m." -> "am"
+
+  const [hStr, mStr, sStr] = tiempo.split(':');
+  let hora   = parseInt(hStr || '0', 10);
+  const min  = parseInt(mStr || '0', 10);
+  const seg  = parseInt(sStr || '0', 10);
+
+  // Convertir a formato 24h
+  if (meridiano === 'pm' && hora < 12) hora += 12;
+  if (meridiano === 'am' && hora === 12) hora = 0;
+
+  return new Date(anio, mes - 1, dia, hora, min, seg);
+}
 
 // 🔍 Consultar ventas del día (cortadas + no cortadas)
 async function consultarVentas() {
@@ -128,10 +161,14 @@ async function consultarVentas() {
   }
 // 🕒 ORDENAR DE MÁS ANTIGUA → MÁS RECIENTE
 ventas.sort((a, b) => {
-  const da = new Date(a.fecha_txt.replace(" a. m.", " AM").replace(" p. m.", " PM"));
-  const db = new Date(b.fecha_txt.replace(" a. m.", " AM").replace(" p. m.", " PM"));
+  const da = parseFechaTxt(a.fecha_txt);
+  const db = parseFechaTxt(b.fecha_txt);
   return da - db; // ascendente
 });
+
+// (Opcional) comprobar en consola
+console.log("Orden comprobado:", ventas.map(v => v.fecha_txt));
+
 
   let totalDia = 0;
   let hayUbicaciones = false;
