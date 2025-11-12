@@ -94,8 +94,8 @@ async function cargarUsuarios() {
 }
 await cargarUsuarios();
 
-// 🔍 Consultar ventas cortadas por fecha
-async function consultarVentasCortadas() {
+// 🔍 Consultar ventas del día (cortadas + no cortadas)
+async function consultarVentas() {
   markers.forEach(m => map.removeLayer(m));
   markers = [];
   document.getElementById('tabla').innerHTML = '';
@@ -109,7 +109,8 @@ async function consultarVentasCortadas() {
   }
 
   const ref = collection(db, "ventas_rutav2");
-  const q = query(ref, where("usuarioNombre", "==", usuarioSel), where("cortado", "==", true));
+  // ❌ Quitamos cortado == true
+  const q = query(ref, where("usuarioNombre", "==", usuarioSel));
   const snapshot = await getDocs(q);
 
   const partes = fechaSel.split("-");
@@ -122,7 +123,7 @@ async function consultarVentasCortadas() {
   });
 
   if (ventas.length === 0) {
-    alert("No hay ventas cortadas de ese usuario en esa fecha.");
+    alert("No hay ventas de ese usuario en esa fecha.");
     return;
   }
 
@@ -133,19 +134,24 @@ async function consultarVentasCortadas() {
     const totalVenta = Number(v.resumen_financiero?.total || 0);
     totalDia += totalVenta;
 
+    // 🗺️ marcador en el mapa
     if (v.ubicacion?.lat && v.ubicacion?.lon) {
       const marker = L.marker([v.ubicacion.lat, v.ubicacion.lon]).addTo(map);
       marker.bindPopup(`
         <b>${v.usuarioNombre}</b><br>
         ${v.fecha_txt}<br>
         <b>$${totalVenta.toLocaleString('es-MX')}</b><br>
-        ${v.metodo_pago || ''}<br>
-        ${v.cliente || ''}
+        Pago: ${v.metodo_pago || ''}<br>
+        Cliente: ${v.cliente || ''}<br>
+        <span style="color:${v.cortado ? 'green' : 'red'}">
+          ${v.cortado ? 'CORTADA' : 'NO CORTADA'}
+        </span>
       `);
       markers.push(marker);
       hayUbicaciones = true;
     }
 
+    // 🧾 tabla
     const row = `<tr>
       <td>${v.usuarioNombre}</td>
       <td>${v.fecha_txt}</td>
@@ -163,11 +169,12 @@ async function consultarVentasCortadas() {
     const primera = ventas.find(v => v.ubicacion?.lat);
     if (primera) map.setView([primera.ubicacion.lat, primera.ubicacion.lon], 13);
   } else {
-    alert("No hay coordenadas registradas para esas ventas. Se muestran solo en tabla.");
+    alert("No hay coordenadas registradas. Se muestran solo en tabla.");
   }
 }
 
-document.getElementById('consultar').addEventListener('click', consultarVentasCortadas);
+// Cambiar el listener:
+document.getElementById('consultar').addEventListener('click', consultarVentas);
 </script>
 </body>
 </html>
