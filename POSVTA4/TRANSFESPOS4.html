@@ -200,32 +200,35 @@ async function buscarPorCodigo() {
 
   const bal = decodificarBalanza(codigo);
   if (bal.esBalanza) {
-    codigo = bal.codigoProducto;   // el código principal
-    pesoDetectado = bal.pesoKg;    // el peso leído
+    codigo = bal.codigoProducto;
+    pesoDetectado = bal.pesoKg;
   }
 
   const productos = await getAllProductos();
   const encontrado = productos.find(p => normalizarCodigo(p, codigo));
 
-  if (encontrado) {
-    seleccionarProducto(encontrado);
+  if (!encontrado) return;
 
-    // 🔥 SI ES BALANZA, SE AGREGA DIRECTO
-    if (pesoDetectado !== null) {
-      document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
-      agregarItem();       // directo
-      renderTabla();
-      document.getElementById("buscador").value = "";
-      document.getElementById("buscador").focus();
-      return;  // salir, no pedir cantidad
-    }
+  seleccionarProducto(encontrado);
 
-    // 🔵 SI NO ES BALANZA, PASA A CANTIDAD MANUAL
-    const qty = document.getElementById("cantidad");
-    qty.value = "1";
-    qty.focus();
-    qty.select();
+  // 🧡 SI ES BALANZA → cantidad = peso
+  if (pesoDetectado !== null) {
+    document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
+    agregarItem();
+    renderTabla();
+    document.getElementById("buscador").value = "";
+    document.getElementById("buscador").focus();
+    return;
   }
+
+  // 💚 SI ES CÓDIGO NORMAL → cantidad = 1 AUTOMÁTICO
+  document.getElementById("cantidad").value = 1;
+  agregarItem();
+  renderTabla();
+
+  // limpiar y enfocar para siguiente escaneo
+  document.getElementById("buscador").value = "";
+  document.getElementById("buscador").focus();
 }
 
 /* ==========================================================
