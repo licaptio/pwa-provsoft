@@ -452,3 +452,55 @@ window.eliminarItem = eliminarItem;
 window.getAllProductos = getAllProductos;
 
   </script>
+</head>
+<body>
+
+<h2>Traspaso entre Almacenes</h2>
+
+<!-- Selección de ruta -->
+<select id="ruta">
+  <option value="">Seleccione una ruta</option>
+  <option value="RUTA1">Ruta 1</option>
+  <option value="RUTA2">Ruta 2</option>
+</select>
+
+<input id="vendedor" placeholder="Vendedor" readonly>
+
+<!-- Buscador -->
+<input id="buscador" placeholder="Escanear código">
+<button id="btnBuscarCodigo">Buscar Código</button>
+<button id="btnBuscarNombre">Buscar Nombre</button>
+
+<div id="preview"></div>
+
+<!-- Cantidad -->
+<input id="cantidad" type="number" value="1">
+
+<!-- Tabla carrito -->
+<table>
+  <thead>
+    <tr>
+      <th>Código</th>
+      <th>Concepto</th>
+      <th>Cantidad</th>
+      <th>Precio</th>
+      <th>Eliminar</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
+</table>
+
+<button id="btnTraspaso">Finalizar Traspaso</button>
+
+<!-- Modal búsqueda -->
+<div id="modalResultados" style="display:none;">
+  <button id="cerrarModal">Cerrar</button>
+  <input id="busquedaNombre" placeholder="Buscar por nombre">
+  <div id="listaResultados"></div>
+  <button id="btnAnterior">Anterior</button>
+  <button id="btnSiguiente">Siguiente</button>
+  <div id="paginacion"></div>
+</div>
+
+</body>
+</html>
