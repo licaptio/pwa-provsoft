@@ -189,6 +189,49 @@ function normalizarCodigo(producto, codigoEscaneado) {
   return null;
 }
 
+/* ==========================================================
+   🟧 BÚSQUEDA CÓDIGO / NOMBRE
+========================================================== */
+async function buscarPorCodigo() {
+  let codigo = document.getElementById("buscador").value.trim();
+  if (!codigo) return;
+
+  // Detectar balanza
+  const bal = decodificarBalanza(codigo);
+  let pesoDetectado = null;
+
+  if (bal.esBalanza) {
+    codigo = bal.codigoProducto;
+    pesoDetectado = bal.pesoKg;
+  }
+
+  // Buscar en el catálogo offline
+  const productos = await getAllProductos();
+  const encontrado = productos.find(p => normalizarCodigo(p, codigo));
+
+  if (encontrado) {
+    seleccionarProducto(encontrado);
+
+    // Si viene peso de balanza, reemplaza la cantidad
+    if (pesoDetectado !== null)
+      document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
+
+    // 🔥 AGREGAR AUTOMÁTICAMENTE AL CARRITO
+    agregarItem();
+    renderTabla();
+
+  } else {
+    document.getElementById("preview").innerText = "❌ No encontrado";
+  }
+
+  // limpiar input
+  document.getElementById("buscador").value = "";
+}
+
+function buscarPorNombre() {
+  document.getElementById("modalResultados").style.display = "flex";
+  document.getElementById("busquedaNombre").focus();
+}
 
 /* ==========================================================
    🟥 CARRITO
