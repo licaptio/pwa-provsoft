@@ -362,6 +362,29 @@ async function cargarVendedor() {
   }
 }
 
+/* ==========================================================
+   🟪 FUNCIÓN FALTANTE — CARGAR VENDEDOR POR RUTA
+========================================================== */
+async function cargarVendedor() {
+  const ruta = document.getElementById("ruta").value;
+  if (!ruta) return;
+
+  const q = query(
+    collection(db, "usuarios_ruta"),
+    where("rutaId", "==", ruta),
+    where("activo", "==", true)
+  );
+
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    snap.forEach(doc => {
+      document.getElementById("vendedor").value = doc.data().nombre;
+    });
+  } else {
+    document.getElementById("vendedor").value = "No asignado";
+  }
+}
 
 /* ==========================================================
    ⬛ BLOQUE 7 — MODAL DE RESULTADOS
