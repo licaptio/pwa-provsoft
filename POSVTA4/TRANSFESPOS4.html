@@ -281,28 +281,30 @@ window.eliminarItem = (i) => {
 
 
 /* ==========================================================
-   🟪 CARGAR VENDEDOR POR RUTA
+   🟦 CARGAR LISTA DE VENDEDORES ACTIVOS
 ========================================================== */
-async function cargarVendedor() {
-  const ruta = document.getElementById("ruta").value;
-  if (!ruta) return;
-
+async function cargarListaVendedores() {
   const q = query(
     collection(db, "usuarios_ruta"),
-    where("rutaId", "==", ruta),
+    where("rol", "==", "vendedor"),
     where("activo", "==", true)
   );
 
   const snap = await getDocs(q);
 
-  if (!snap.empty) {
-    const vendedor = snap.docs[0].data().nombre;
-    document.getElementById("vendedor").value = vendedor;
-  } else {
-    document.getElementById("vendedor").value = "No asignado";
-  }
-}
+  const select = document.getElementById("vendedorSelect");
+  select.innerHTML = `<option value="">Seleccione vendedor</option>`;
 
+  snap.forEach(doc => {
+    const d = doc.data();
+    select.innerHTML += `
+      <option value="${doc.id}"
+        data-nombre="${d.nombre}"
+        data-ruta="${d.rutaId}">
+        ${d.nombre}
+      </option>`;
+  });
+}
 
 /* ==========================================================
    🟫 INIT
@@ -310,7 +312,20 @@ async function cargarVendedor() {
 document.addEventListener("DOMContentLoaded", async () => {
   await syncProductos();
 
-  document.getElementById("ruta").addEventListener("change", cargarVendedor);
+  document.getElementById("vendedorSelect").addEventListener("change", e => {
+  const opt = e.target.selectedOptions[0];
+
+  if (!opt) return;
+
+  const nombre = opt.dataset.nombre;
+  const ruta   = opt.dataset.ruta;
+
+  document.getElementById("vendedor").value = nombre;
+  document.getElementById("rutaId").value = ruta;
+
+  console.log("SELECCIONADO:", nombre, "RUTA:", ruta);
+});
+
   document.getElementById("btnBuscarCodigo").addEventListener("click", buscarPorCodigo);
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
@@ -332,15 +347,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 <div class="contenedor">
 
-  <!-- RUTA -->
-<select id="ruta">
-  <option value="">Seleccione ruta</option>
-  <option value="Almacen_Ruta_1">Ruta 1</option>
-  <option value="Almacen_Ruta_2">Ruta 2</option>
-  
-</select>
+<!-- SELECCIÓN DE VENDEDOR -->
+<select id="vendedorSelect"></select>
+<input id="vendedor" placeholder="Vendedor seleccionado" readonly>
 
-  <input id="vendedor" placeholder="Vendedor asignado" readonly>
+<!-- Ruta oculta -->
+<input id="rutaId" hidden>
 
   <!-- BUSCADOR -->
   <div>
