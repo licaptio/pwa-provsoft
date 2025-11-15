@@ -93,7 +93,6 @@
   }
 </style>
 
-<!-- 🔥 SCRIPT COMPLETO -->
 <script type="module">
 
 /* ==========================================================
@@ -117,7 +116,7 @@ const db = getFirestore(app);
 
 
 /* ==========================================================
-   🟩 INDEXEDDB OFFLINE
+   🟩 INDEXEDDB
 ========================================================== */
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -158,7 +157,6 @@ async function syncProductos() {
     if (!snap.empty) {
       const lista = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       await saveProductos(lista);
-      localStorage.setItem("ultimaSync", new Date().toISOString());
       console.log(`Catálogo actualizado: ${lista.length} productos`);
     }
   } catch (err) {
@@ -193,47 +191,9 @@ function normalizarCodigo(producto, codigoEscaneado) {
 
 
 /* ==========================================================
-   🟧 BÚSQUEDA CÓDIGO / NOMBRE
-========================================================== */
-async function buscarPorCodigo() {
-  let codigo = document.getElementById("buscador").value.trim();
-  if (!codigo) return;
-
-  const bal = decodificarBalanza(codigo);
-  let pesoDetectado = null;
-
-  if (bal.esBalanza) {
-    codigo = bal.codigoProducto;
-    pesoDetectado = bal.pesoKg;
-  }
-
-  const productos = await getAllProductos();
-  const encontrado = productos.find(p => normalizarCodigo(p, codigo));
-
-  if (encontrado) {
-    seleccionarProducto(encontrado);
-    if (pesoDetectado !== null)
-      document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
-  } else {
-    document.getElementById("preview").innerText = "❌ No encontrado";
-  }
-
-  document.getElementById("buscador").value = "";
-}
-
-function buscarPorNombre() {
-  document.getElementById("modalResultados").style.display = "flex";
-  document.getElementById("busquedaNombre").focus();
-}
-
-
-/* ==========================================================
-   🟥 SELECCIÓN + CARRITO
+   🟥 CARRITO
 ========================================================== */
 let carrito = [];
-let resultadosBusqueda = [];
-let paginaActual = 0;
-const porPagina = 10;
 
 function seleccionarProducto(data) {
   document.getElementById("codigoSel").value = data.codigoBarra;
@@ -247,7 +207,7 @@ function agregarItem() {
   const codigo = document.getElementById("codigoSel").value;
   const concepto = document.getElementById("conceptoSel").value;
   const precio = parseFloat(document.getElementById("precioSel").value);
-  let cantidad = parseFloat(document.getElementById("cantidad").value);
+  const cantidad = parseFloat(document.getElementById("cantidad").value);
 
   if (!codigo || cantidad <= 0) return;
 
@@ -274,14 +234,14 @@ function renderTabla() {
   });
 }
 
-window.eliminarItem = (i) => {
+window.eliminarItem = i => {
   carrito.splice(i, 1);
   renderTabla();
 };
 
 
 /* ==========================================================
-   🟦 CARGAR LISTA DE VENDEDORES ACTIVOS
+   🟦 CARGAR LISTA DE VENDEDORES
 ========================================================== */
 async function cargarListaVendedores() {
   const q = query(
@@ -306,27 +266,23 @@ async function cargarListaVendedores() {
   });
 }
 
+
 /* ==========================================================
-   🟫 INIT
+   🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
+
   await syncProductos();
-  await cargarListaVendedores(); // 👈 NUEVO
-});
+  await cargarListaVendedores();
 
+  // seleccionar vendedor
   document.getElementById("vendedorSelect").addEventListener("change", e => {
-  const opt = e.target.selectedOptions[0];
+    const opt = e.target.selectedOptions[0];
+    if (!opt) return;
 
-  if (!opt) return;
-
-  const nombre = opt.dataset.nombre;
-  const ruta   = opt.dataset.ruta;
-
-  document.getElementById("vendedor").value = nombre;
-  document.getElementById("rutaId").value = ruta;
-
-  console.log("SELECCIONADO:", nombre, "RUTA:", ruta);
-});
+    document.getElementById("vendedor").value = opt.dataset.nombre;
+    document.getElementById("rutaId").value = opt.dataset.ruta;
+  });
 
   document.getElementById("btnBuscarCodigo").addEventListener("click", buscarPorCodigo);
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
@@ -338,8 +294,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       p.concepto.toLowerCase().includes(term)
     );
   });
-});
 
+});
 </script>
 
 </head>
