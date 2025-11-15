@@ -311,6 +311,8 @@ async function cargarListaVendedores() {
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
   await syncProductos();
+  await cargarListaVendedores(); // 👈 NUEVO
+});
 
   document.getElementById("vendedorSelect").addEventListener("change", e => {
   const opt = e.target.selectedOptions[0];
