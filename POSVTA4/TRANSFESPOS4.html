@@ -196,41 +196,36 @@ async function buscarPorCodigo() {
   let codigo = document.getElementById("buscador").value.trim();
   if (!codigo) return;
 
-  // Detectar balanza
-  const bal = decodificarBalanza(codigo);
   let pesoDetectado = null;
 
+  const bal = decodificarBalanza(codigo);
   if (bal.esBalanza) {
-    codigo = bal.codigoProducto;
-    pesoDetectado = bal.pesoKg;
+    codigo = bal.codigoProducto;   // el código principal
+    pesoDetectado = bal.pesoKg;    // el peso leído
   }
 
-  // Buscar en el catálogo offline
   const productos = await getAllProductos();
   const encontrado = productos.find(p => normalizarCodigo(p, codigo));
 
   if (encontrado) {
     seleccionarProducto(encontrado);
 
-    // Si viene peso de balanza, reemplaza la cantidad
-    if (pesoDetectado !== null)
+    // 🔥 SI ES BALANZA, SE AGREGA DIRECTO
+    if (pesoDetectado !== null) {
       document.getElementById("cantidad").value = pesoDetectado.toFixed(3);
+      agregarItem();       // directo
+      renderTabla();
+      document.getElementById("buscador").value = "";
+      document.getElementById("buscador").focus();
+      return;  // salir, no pedir cantidad
+    }
 
-    // 🔥 AGREGAR AUTOMÁTICAMENTE AL CARRITO
-    agregarItem();
-    renderTabla();
-
-  } else {
-    document.getElementById("preview").innerText = "❌ No encontrado";
+    // 🔵 SI NO ES BALANZA, PASA A CANTIDAD MANUAL
+    const qty = document.getElementById("cantidad");
+    qty.value = "1";
+    qty.focus();
+    qty.select();
   }
-
-  // limpiar input
-  document.getElementById("buscador").value = "";
-}
-
-function buscarPorNombre() {
-  document.getElementById("modalResultados").style.display = "flex";
-  document.getElementById("busquedaNombre").focus();
 }
 
 /* ==========================================================
@@ -328,6 +323,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   document.getElementById("btnBuscarCodigo").addEventListener("click", buscarPorCodigo);
+  // escaneo con pistola (ENTER)
+document.getElementById("buscador").addEventListener("keypress", e => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    buscarPorCodigo();
+  }
+});
+
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 
   document.getElementById("busquedaNombre").addEventListener("input", async e => {
