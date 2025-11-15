@@ -317,8 +317,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("vendedorSelect").addEventListener("change", e => {
     const opt = e.target.selectedOptions[0];
     if (!opt) return;
-
-    document.getElementById("vendedor").value = opt.dataset.nombre;
+    
     document.getElementById("rutaId").value = opt.dataset.ruta;
   });
 
