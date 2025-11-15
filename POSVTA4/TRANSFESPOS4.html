@@ -341,6 +341,26 @@ function abrirComprobante(folio, ruta, vendedor, items) {
   win.document.close();
 }
 
+async function cargarVendedor() {
+  const ruta = document.getElementById("ruta").value;
+  if (!ruta) return;
+
+  const q = query(
+    collection(db, "usuarios_ruta"),
+    where("rutaId", "==", ruta),
+    where("activo", "==", true)
+  );
+
+  const snap = await getDocs(q);
+
+  if (!snap.empty) {
+    snap.forEach(doc => {
+      document.getElementById("vendedor").value = doc.data().nombre;
+    });
+  } else {
+    document.getElementById("vendedor").value = "No asignado";
+  }
+}
 
 
 /* ==========================================================
