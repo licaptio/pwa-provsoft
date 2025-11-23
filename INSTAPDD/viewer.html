@@ -45,15 +45,16 @@ select {
 /* ===== GRID IG ===== */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* IG pc */
-  gap: 3px;              /* IG gap */
+  grid-template-columns: repeat(3, 1fr); /* siempre 3 columnas */
+  gap: 3px;             /* separación tipo instagram */
   padding: 3px;
 }
+
 
 /* Cada item debe ser cuadrado IG */
 .grid-item {
   position: relative;
-  aspect-ratio: 1/1;      /* Cuadrado */
+  aspect-ratio: 1/1;    /* CUADRADO REAL */
   overflow: hidden;
   border-radius: 3px;
   background: #eee;
@@ -64,7 +65,7 @@ select {
 .grid-item img {
   width: 100%;
   height: 100%;
-  object-fit: cover;      /* Recorte estilo IG */
+  object-fit: cover;    /* IG style */
   display: block;
 }
 
@@ -128,8 +129,7 @@ select {
 /* ======== MÓVIL ======== */
 @media (max-width: 768px) {
   .grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* IG móvil */
-    gap: 2px;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
