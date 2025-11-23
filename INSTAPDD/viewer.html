@@ -15,146 +15,123 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef3ff;
-      margin: 0;
-      padding: 0;
-    }
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fafafa;
+    margin: 0;
+    padding: 0;
+  }
 
-    .filters {
-      position: sticky;
-      top: 0;
-      background: #ffffffdd;
-      backdrop-filter: blur(5px);
-      padding: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,.1);
-      z-index: 10;
-    }
+  /* ======== BARRA DE FILTROS ======== */
+  .filters {
+    position: sticky;
+    top: 0;
+    background: white;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    z-index: 10;
+  }
 
-    select {
-      padding: 10px;
-      width: 100%;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
+  select {
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+  }
 
+  /* ======== GRID TIPO INSTAGRAM ======== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .grid-item {
+    position: relative;
+    aspect-ratio: 1 / 1;        /* 📌 CUADRADA */
+    overflow: hidden;
+    border-radius: 4px;
+    background: #eee;
+    cursor: pointer;
+  }
+
+  .grid-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;         /* 📌 RECORTE TIPO INSTAGRAM */
+    display: block;
+  }
+
+  /* ======== INFO Y BOTÓN DE BORRADO ======== */
+  .info-hover {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,.65);
+    color: white;
+    font-size: 12px;
+    padding: 6px;
+    opacity: 0;
+    transition: .2s;
+  }
+
+  .grid-item:hover .info-hover {
+    opacity: 1;
+  }
+
+  .delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(255, 0, 0, 0.85);
+    border: none;
+    padding: 4px 8px;
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    opacity: 0;
+    transition: .2s;
+  }
+
+  .grid-item:hover .delete-btn {
+    opacity: 1;
+  }
+
+  /* ======== ALERTAS TUSYA (NO TOCO NADA) ======== */
+  .alert-sergio {
+    border: 3px solid red !important;
+    animation: blink-sergio 1s infinite !important;
+  }
+
+  @keyframes blink-sergio {
+    0% { box-shadow: 0 0 8px red; }
+    50% { box-shadow: 0 0 25px red; }
+    100% { box-shadow: 0 0 8px red; }
+  }
+
+  .alert-pago {
+    border: 3px solid #7b00ff !important;
+    animation: blink-pago 1s infinite !important;
+  }
+
+  @keyframes blink-pago {
+    0% { box-shadow: 0 0 8px #7b00ff; }
+    50% { box-shadow: 0 0 25px #d28bff; }
+    100% { box-shadow: 0 0 8px #7b00ff; }
+  }
+
+  @media (max-width: 768px) {
     .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 15px;
-      padding: 15px;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     }
-
-    .grid-item {
-      position: relative;
-      background: #dce7ff;
-      border: 2px solid #4b73ff;
-      border-radius: 10px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: transform .2s ease;
-    }
-
-    .grid-item:hover {
-      transform: scale(1.02);
-    }
-
-    .grid-item img {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
-      display: block;
-    }
-
-    .info-hover {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 23, 92, 0.85);
-      color: white;
-      font-size: 12px;
-      padding: 8px;
-      opacity: 0;
-      transition: opacity .2s ease;
-      pointer-events: none;
-    }
-
-    .grid-item:hover .info-hover {
-      opacity: 1;
-    }
-
-    .delete-btn {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      background: #ff1f1f;
-      border: none;
-      padding: 6px 10px;
-      color: white;
-      border-radius: 5px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      opacity: 0;
-      transition: opacity .2s ease;
-    }
-
-    .grid-item:hover .delete-btn {
-      opacity: 1;
-    }
-
-    @media (max-width: 768px) {
-      .grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
-      }
-
-      .grid-item img {
-        height: 300px;
-      }
-
-      .grid-item {
-        border-width: 3px;
-      }
-
-      .info-hover {
-        font-size: 14px;
-        padding: 10px;
-      }
-
-      .delete-btn {
-        padding: 8px 12px;
-        font-size: 16px;
-      }
-    }
-
-.alert-sergio {
-  border: 4px solid red !important;
-  animation: blink-sergio 1s infinite !important;
-}
-
-@keyframes blink-sergio {
-  0% { box-shadow: 0 0 8px red; }
-  50% { box-shadow: 0 0 25px red; }
-  100% { box-shadow: 0 0 8px red; }
-}
-.alert-pago {
-  border: 4px solid #7b00ff !important;
-  animation: blink-pago 1s infinite !important;
-}
-
-@keyframes blink-pago {
-  0% { box-shadow: 0 0 8px #7b00ff; }
-  50% { box-shadow: 0 0 25px #d28bff; }
-  100% { box-shadow: 0 0 8px #7b00ff; }
-}
-
-  </style>
+  }
+</style>
 </head>
 
 <body>
