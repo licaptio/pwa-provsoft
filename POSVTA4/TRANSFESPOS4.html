@@ -312,6 +312,7 @@ async function cargarListaVendedores() {
    🟫 INIT CORRECTO (TODO DENTRO)
 ========================================================== */
 document.addEventListener("DOMContentLoaded", async () => {
+document.getElementById("btnTraspaso").addEventListener("click", guardarTraspaso);
 
   await syncProductos();
   await cargarListaVendedores();
@@ -344,6 +345,57 @@ document.getElementById("buscador").addEventListener("keypress", e => {
   });
 
 });
+
+/* ==========================================================
+   🟪 GUARDAR TRASPASO EN COLECCIÓN DE SU RUTA
+========================================================== */
+async function guardarTraspaso() {
+
+  const vendedorId = document.getElementById("vendedorSelect").value;
+  const rutaId = document.getElementById("rutaId").value;
+
+  if (!vendedorId) {
+    alert("Seleccione un vendedor");
+    return;
+  }
+
+  if (!rutaId) {
+    alert("Este vendedor no tiene rutaId asignado");
+    return;
+  }
+
+  if (carrito.length === 0) {
+    alert("Agregue productos antes de finalizar el traspaso");
+    return;
+  }
+
+  const payload = {
+    vendedorId,
+    rutaId,
+    fecha: new Date().toISOString(),
+    items: carrito.map(i => ({
+      codigo: i.codigo,
+      concepto: i.concepto,
+      cantidad: i.cantidad,
+      precio: i.precio
+    }))
+  };
+
+  try {
+    // 🔥 GRABA EN LA COLECCIÓN DINÁMICA
+    await addDoc(collection(db, rutaId), payload);
+
+    alert("✔ Traspaso enviado correctamente a " + rutaId);
+
+    carrito = [];
+    renderTabla();
+
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error al guardar: " + err.message);
+  }
+}
+
 </script>
 
 </head>
