@@ -347,7 +347,7 @@ document.getElementById("buscador").addEventListener("keypress", e => {
 });
 
 /* ==========================================================
-   🟪 GUARDAR TRASPASO EN COLECCIÓN DE SU RUTA
+   🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
 ========================================================== */
 async function guardarTraspaso() {
 
@@ -382,10 +382,12 @@ async function guardarTraspaso() {
   };
 
   try {
-    // 🔥 GRABA EN LA COLECCIÓN DINÁMICA
-    await addDoc(collection(db, rutaId), payload);
+    // 🔥 GRABA AQUÍ: /almacenes/{rutaId}/entradas/
+    const rutaColeccion = collection(db, "almacenes", rutaId, "entradas");
+    
+    await addDoc(rutaColeccion, payload);
 
-    alert("✔ Traspaso enviado correctamente a " + rutaId);
+    alert("✔ Traspaso enviado correctamente a /almacenes/" + rutaId + "/entradas/");
 
     carrito = [];
     renderTabla();
