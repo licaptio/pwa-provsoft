@@ -336,6 +336,10 @@ document.getElementById("buscador").addEventListener("keypress", e => {
 
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
 });
+document.getElementById("cerrarModal").addEventListener("click", () => {
+  document.getElementById("modalResultados").style.display = "none";
+});
+
 document.getElementById("busquedaNombre").addEventListener("input", async e => {
   const term = e.target.value.toLowerCase();
   const lista = document.getElementById("listaResultados");
