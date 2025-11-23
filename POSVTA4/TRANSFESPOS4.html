@@ -347,6 +347,23 @@ document.getElementById("buscador").addEventListener("keypress", e => {
 });
 
 /* ==========================================================
+   🟦 BUSCAR POR NOMBRE – ABRIR MODAL
+========================================================== */
+let resultadosBusqueda = [];
+
+async function buscarPorNombre() {
+  document.getElementById("modalResultados").style.display = "flex";
+
+  // limpiar
+  document.getElementById("busquedaNombre").value = "";
+  document.getElementById("listaResultados").innerHTML = "";
+
+  // cargar productos
+  const productos = await getAllProductos();
+  resultadosBusqueda = productos;
+}
+
+/* ==========================================================
    🟪 GUARDAR TRASPASO EN: /almacenes/{rutaId}/entradas/
 ========================================================== */
 async function guardarTraspaso() {
