@@ -335,16 +335,32 @@ document.getElementById("buscador").addEventListener("keypress", e => {
 });
 
   document.getElementById("btnBuscarNombre").addEventListener("click", buscarPorNombre);
-
-  document.getElementById("busquedaNombre").addEventListener("input", async e => {
-    const term = e.target.value.toLowerCase();
-    const productos = await getAllProductos();
-    resultadosBusqueda = productos.filter(p =>
-      p.concepto.toLowerCase().includes(term)
-    );
-  });
-
 });
+document.getElementById("busquedaNombre").addEventListener("input", async e => {
+  const term = e.target.value.toLowerCase();
+  const lista = document.getElementById("listaResultados");
+
+  const filtrados = resultadosBusqueda.filter(p =>
+    p.concepto.toLowerCase().includes(term)
+  );
+
+  lista.innerHTML = "";
+
+  filtrados.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.textContent = p.concepto + " (" + p.codigoBarra + ")";
+    div.onclick = () => {
+      seleccionarProducto(p);
+      document.getElementById("cantidad").value = 1;
+      agregarItem();
+      renderTabla();
+      document.getElementById("modalResultados").style.display = "none";
+    };
+    lista.appendChild(div);
+  });
+});
+
 
 /* ==========================================================
    🟦 BUSCAR POR NOMBRE – ABRIR MODAL
