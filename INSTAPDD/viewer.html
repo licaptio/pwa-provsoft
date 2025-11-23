@@ -16,121 +16,123 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #fafafa;
-    margin: 0;
-    padding: 0;
-  }
+body {
+  font-family: Arial, sans-serif;
+  background: #fafafa;
+  margin: 0;
+  padding: 0;
+}
 
-  /* ======== BARRA DE FILTROS ======== */
-  .filters {
-    position: sticky;
-    top: 0;
-    background: white;
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-    z-index: 10;
-  }
+/* FILTROS IG */
+.filters {
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  z-index: 10;
+}
 
-  select {
-    padding: 10px;
-    width: 100%;
-    margin-bottom: 0;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-  }
+select {
+  padding: 10px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  margin: 0;
+}
 
-  /* ======== GRID TIPO INSTAGRAM ======== */
+/* ===== GRID IG ===== */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* IG pc */
+  gap: 3px;              /* IG gap */
+  padding: 3px;
+}
+
+/* Cada item debe ser cuadrado IG */
+.grid-item {
+  position: relative;
+  aspect-ratio: 1/1;      /* Cuadrado */
+  overflow: hidden;
+  border-radius: 3px;
+  background: #eee;
+  cursor: pointer;
+}
+
+/* Imagen IG */
+.grid-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;      /* Recorte estilo IG */
+  display: block;
+}
+
+/* Hover de información */
+.info-hover {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.65);
+  color: white;
+  font-size: 12px;
+  padding: 6px;
+  opacity: 0;
+  transition: .2s;
+}
+.grid-item:hover .info-hover {
+  opacity: 1;
+}
+
+/* Botón borrar */
+.delete-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255, 0, 0, 0.85);
+  border: none;
+  padding: 4px 8px;
+  color: white;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: .2s;
+}
+.grid-item:hover .delete-btn {
+  opacity: 1;
+}
+
+/* ALERTAS IGUALES */
+.alert-sergio {
+  border: 3px solid red !important;
+  animation: blink-sergio 1s infinite !important;
+}
+@keyframes blink-sergio {
+  0% { box-shadow: 0 0 8px red; }
+  50% { box-shadow: 0 0 25px red; }
+  100% { box-shadow: 0 0 8px red; }
+}
+
+.alert-pago {
+  border: 3px solid #7b00ff !important;
+  animation: blink-pago 1s infinite !important;
+}
+@keyframes blink-pago {
+  0% { box-shadow: 0 0 8px #7b00ff; }
+  50% { box-shadow: 0 0 25px #d28bff; }
+  100% { box-shadow: 0 0 8px #7b00ff; }
+}
+
+/* ======== MÓVIL ======== */
+@media (max-width: 768px) {
   .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 3px;
-    padding: 3px;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); /* IG móvil */
+    gap: 2px;
   }
+}
 
-  .grid-item {
-    position: relative;
-    aspect-ratio: 1 / 1;        /* 📌 CUADRADA */
-    overflow: hidden;
-    border-radius: 4px;
-    background: #eee;
-    cursor: pointer;
-  }
-
-  .grid-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;         /* 📌 RECORTE TIPO INSTAGRAM */
-    display: block;
-  }
-
-  /* ======== INFO Y BOTÓN DE BORRADO ======== */
-  .info-hover {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0,0,0,.65);
-    color: white;
-    font-size: 12px;
-    padding: 6px;
-    opacity: 0;
-    transition: .2s;
-  }
-
-  .grid-item:hover .info-hover {
-    opacity: 1;
-  }
-
-  .delete-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background: rgba(255, 0, 0, 0.85);
-    border: none;
-    padding: 4px 8px;
-    color: white;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    opacity: 0;
-    transition: .2s;
-  }
-
-  .grid-item:hover .delete-btn {
-    opacity: 1;
-  }
-
-  /* ======== ALERTAS TUSYA (NO TOCO NADA) ======== */
-  .alert-sergio {
-    border: 3px solid red !important;
-    animation: blink-sergio 1s infinite !important;
-  }
-
-  @keyframes blink-sergio {
-    0% { box-shadow: 0 0 8px red; }
-    50% { box-shadow: 0 0 25px red; }
-    100% { box-shadow: 0 0 8px red; }
-  }
-
-  .alert-pago {
-    border: 3px solid #7b00ff !important;
-    animation: blink-pago 1s infinite !important;
-  }
-
-  @keyframes blink-pago {
-    0% { box-shadow: 0 0 8px #7b00ff; }
-    50% { box-shadow: 0 0 25px #d28bff; }
-    100% { box-shadow: 0 0 8px #7b00ff; }
-  }
-
-  @media (max-width: 768px) {
-    .grid {
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    }
-  }
 </style>
 </head>
 
