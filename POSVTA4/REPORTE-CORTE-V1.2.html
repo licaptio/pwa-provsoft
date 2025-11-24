@@ -143,13 +143,11 @@ async function abrirDetalleVenta(id) {
 
   const data = snap.data();
 
-  // Mostrar modal correcto
   document.getElementById("modalVenta").style.display = "flex";
 
   const cont = document.getElementById("detalleVentaContenido");
   cont.innerHTML = `
       <h2>Detalle de Venta</h2>
-
       <p><strong>Folio:</strong> ${data.folio || ""}</p>
       <p><strong>Fecha:</strong> ${data.fecha_txt || ""}</p>
       <p><strong>Nota:</strong> ${data.notas || ""}</p>
@@ -180,12 +178,13 @@ async function abrirDetalleVenta(id) {
         </tbody>
       </table>
   `;
+}   // ← ← ESTA LLAVE ES OBLIGATORIA
 
 
-  // =====================================================
-  // MOSTRAR REPORTES
-  // =====================================================
-  function mostrarReportes(reportes) {
+// =====================================================
+// MOSTRAR REPORTES
+// =====================================================
+function mostrarReportes(reportes) {
     const contenedor = document.getElementById("reportes");
     contenedor.innerHTML = "";
 
