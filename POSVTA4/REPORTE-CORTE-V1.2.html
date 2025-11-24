@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reportes de Ventas Cortadas</title>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, collection, getDocs, updateDoc, doc } 
-      from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -22,7 +23,7 @@
     const db = getFirestore(app);
 
     // ==========================================
-    // 🔹 CARGAR Y AGRUPAR LAS VENTAS CORTADAS
+    //   CARGAR Y AGRUPAR VENTAS CORTADAS
     // ==========================================
     async function cargarVentas() {
       const contenedor = document.getElementById("reportes");
@@ -36,30 +37,20 @@
 
         if (data.cortado === true && Array.isArray(data.detalle)) {
           
-          // Fecha
           const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : docSnap.createTime.toDate();
           const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
-          
-          // Datos principales
+
           const vendedor = data.usuarioNombre || "SIN NOMBRE";
           const ruta = data.rutaId || "Sin ruta";
           const factura = data.factura || "";
 
-          // Nota limpia
           const nota = (data.notas || "").trim();
-
-          // Folio
           const folio = data.folio || "";
 
-          // TOTAL REAL DESDE DATA.TOTAL (confirmado por el usuario)
           let totalVenta = 0;
-          if (typeof data.total === "number") {
-            totalVenta = data.total;
-          } else if (typeof data.total === "string" && data.total.trim() !== "") {
-            totalVenta = parseFloat(data.total);
-          }
+          if (typeof data.total === "number") totalVenta = data.total;
+          else if (typeof data.total === "string") totalVenta = parseFloat(data.total);
 
-          // Agrupar clave
           const clave = `${fecha}_${vendedor}_${ruta}`;
 
           if (!reportes[clave]) {
@@ -71,16 +62,21 @@
               productos: {},
               totalGeneral: 0,
               factura,
-              nota,
-              folio,
-              totalVenta,
+              notasLista: [],
               docsIds: []
             };
           }
 
           reportes[clave].docsIds.push(docSnap.id);
 
-          // Productos
+          if (nota || folio || totalVenta > 0) {
+            reportes[clave].notasLista.push({
+              nota,
+              folio,
+              totalVenta
+            });
+          }
+
           data.detalle.forEach(item => {
             const codigo = item.codigo || item.id || "";
             const nombre = item.nombre || "SIN NOMBRE";
@@ -110,7 +106,7 @@
     }
 
     // ==========================================
-    // 🔹 MOSTRAR LAS TARJETAS DE REPORTES
+    //   MOSTRAR LAS TARJETAS DE REPORTES
     // ==========================================
     function mostrarReportes(reportes) {
       const contenedor = document.getElementById("reportes");
@@ -127,7 +123,7 @@
         header.innerHTML = `
           <div class="header-left">
             <h2>🧾 Reporte ${rep.fecha}</h2>
-            <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; <strong>Vendedor:</strong> ${rep.vendedor}</p>
+            <p><strong>Ruta:</strong> ${rep.ruta} | <strong>Vendedor:</strong> ${rep.vendedor}</p>
           </div>
           <div class="header-right">
             <label>No. Factura:</label>
@@ -139,18 +135,20 @@
         body.className = "card-body";
         body.style.display = "none";
 
-        // Mostrar la NOTA dentro del cuerpo
-        if (rep.nota || rep.folio || rep.totalVenta) {
-          const notaBox = document.createElement("div");
-          notaBox.className = "nota-box";
-
-          notaBox.innerHTML = `
-            ${rep.nota ? `<strong>Nota:</strong> ${rep.nota}<br>` : ""}
-            ${rep.folio ? `<strong>Folio de Venta:</strong> ${rep.folio}<br>` : ""}
-            <strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}
-          `;
-
-          body.appendChild(notaBox);
+        // ==========================================
+        //   TODAS LAS NOTAS (lista completa)
+        // ==========================================
+        if (rep.notasLista.length > 0) {
+          rep.notasLista.forEach(n => {
+            const notaBox = document.createElement("div");
+            notaBox.className = "nota-box";
+            notaBox.innerHTML = `
+              ${n.nota ? `<strong>Nota:</strong> ${n.nota}<br>` : ""}
+              ${n.folio ? `<strong>Folio:</strong> ${n.folio}<br>` : ""}
+              <strong>Total:</strong> $${Number(n.totalVenta).toFixed(2)}
+            `;
+            body.appendChild(notaBox);
+          });
         }
 
         // Totales
@@ -200,10 +198,10 @@
             for (const id of rep.docsIds) {
               await updateDoc(doc(db, "ventas_rutav2", id), { factura });
             }
-            alert("Número de factura guardado correctamente ✅");
+            alert("Número de factura guardado correctamente");
             card.classList.remove("sin-factura");
           } catch (err) {
-            alert("Error al guardar el número de factura ❌");
+            alert("Error al guardar factura");
           }
         };
 
@@ -221,7 +219,6 @@
         body.appendChild(botonGuardar);
         body.appendChild(botonImprimir);
 
-        // Expandir tarjeta
         header.onclick = () => {
           body.style.display = body.style.display === "none" ? "block" : "none";
         };
@@ -233,20 +230,30 @@
     }
 
     // ==========================================
-    // 🔹 IMPRIMIR REPORTE
+    //   IMPRIMIR REPORTE
     // ==========================================
     function imprimirReporte(tablaHTML, rep, factura) {
       const ventana = window.open("", "_blank");
+
+      let notasHTML = "";
+      rep.notasLista.forEach(n => {
+        notasHTML += `
+          <p><strong>Nota:</strong> ${n.nota || ""}</p>
+          <p><strong>Folio:</strong> ${n.folio || ""}</p>
+          <p><strong>Total:</strong> $${Number(n.totalVenta).toFixed(2)}</p>
+          <hr>
+        `;
+      });
+
       ventana.document.write(`
         <html><head><title>Imprimir Reporte</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; color: #111; }
+          body { font-family: Arial; margin: 20px; color: #111; }
           h1 { text-align: center; color: #00416A; }
-          p { text-align: center; margin: 5px 0 15px; }
           table { width: 100%; border-collapse: collapse; margin-top: 10px; }
           th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
           th { background: #00416A; color: white; }
-          .total { font-weight: bold; text-align: right; margin: 10px 0; }
+          .total { font-weight: bold; margin: 10px 0; text-align: right; }
         </style>
         </head><body>
 
@@ -254,9 +261,9 @@
 
         <p><strong>Ruta:</strong> ${rep.ruta}</p>
         <p><strong>Vendedor:</strong> ${rep.vendedor}</p>
-        ${rep.nota ? `<p><strong>Nota:</strong> ${rep.nota}</p>` : ""}
-        ${rep.folio ? `<p><strong>Folio de Venta:</strong> ${rep.folio}</p>` : ""}
-        <p><strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}</p>
+
+        ${notasHTML}
+
         <p><strong>No. Factura:</strong> ${factura}</p>
 
         <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
@@ -280,35 +287,29 @@
     h1 { text-align: center; color: #003366; margin-bottom: 20px; }
 
     .card {
-      background: #fff; 
-      border-radius: 14px; 
+      background: #fff;
+      border-radius: 14px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      margin: 20px auto; 
-      width: 90%; 
-      max-width: 1000px; 
+      margin: 20px auto;
+      width: 90%;
+      max-width: 1000px;
       overflow: hidden;
       transition: 0.3s;
     }
 
-    .card:hover { box-shadow: 0 8px 18px rgba(0,0,0,0.15); }
-
     .card-header {
-      display: flex; 
-      justify-content: space-between; 
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      background: #00416A; 
-      color: #fff; 
-      padding: 15px 20px; 
-      flex-wrap: wrap;
+      background: #00416A;
+      color: #fff;
+      padding: 15px 20px;
     }
-
-    .card-header h2 { margin: 0; font-size: 18px; }
-    .card-header p { margin: 5px 0 0; font-size: 14px; color: #dce6f2; }
 
     .card-body { padding: 15px; background: #fafafa; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; text-align: center; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
     th { background: #003366; color: white; }
 
     .nota-box {
@@ -317,48 +318,37 @@
       padding: 12px;
       margin: 10px 0;
       border-left: 4px solid #ffc107;
-      font-size: 14px;
     }
 
     button {
-      display: block; 
-      margin: 10px 0 5px auto; 
+      margin: 10px 0;
       padding: 8px 15px;
-      background: #00416A; 
-      color: white; 
-      border: none; 
+      background: #00416A;
+      color: white;
+      border: none;
       border-radius: 6px;
-      cursor: pointer; 
+      cursor: pointer;
       font-weight: bold;
     }
 
-    button:hover { background: #0a6cb8; }
-
-    .total-box { 
-      text-align: right; 
-      font-size: 16px; 
-      color: #00416A; 
-      margin: 5px 0; 
-      font-weight: bold; 
+    .total-box {
+      text-align: right;
+      margin: 5px 0;
+      font-weight: bold;
+      color: #00416A;
     }
 
-    .factura-input {
-      padding: 6px 8px; 
-      border-radius: 6px; 
-      border: 1px solid #ccc; 
-      font-size: 14px; 
-      width: 140px;
+    .sin-factura {
+      animation: glow 1.5s infinite;
     }
 
-    .sin-factura { animation: destello 1.5s infinite; }
-
-    @keyframes destello {
-      0%, 100% { box-shadow: 0 0 10px 2px rgba(255,0,0,0.6); }
-      50% { box-shadow: 0 0 18px 4px rgba(255,0,0,0.2); }
+    @keyframes glow {
+      0%,100% { box-shadow: 0 0 10px red; }
+      50% { box-shadow: 0 0 20px rgba(255,0,0,0.3); }
     }
   </style>
-
 </head>
+
 <body>
   <h1>Reportes de Ventas Cortadas</h1>
   <div id="reportes"></div>
