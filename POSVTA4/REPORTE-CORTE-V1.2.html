@@ -7,7 +7,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, collection, getDocs, updateDoc, doc }
+  import { getFirestore, collection, getDocs, updateDoc, doc, getDoc }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -36,11 +36,8 @@
       const data = docSnap.data();
       if (!data.cortado || !Array.isArray(data.detalle)) return;
 
-      // fecha
       const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : docSnap.createTime.toDate();
-      const fecha = fechaVenta.toLocaleDateString("es-MX", {
-        day: "numeric", month: "long", year: "numeric"
-      });
+      const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
 
       const vendedor = data.usuarioNombre || "SIN NOMBRE";
       const ruta = data.rutaId || "Sin ruta";
@@ -48,13 +45,11 @@
       const nota = (data.notas || "").trim();
       const folio = data.folio || "";
 
-let totalVenta = 0;
-
-// NUEVO: leer desde resumen_financiero.total
-if (data.resumen_financiero && data.resumen_financiero.total != null) {
-  totalVenta = Number(data.resumen_financiero.total);
-}
-
+      // Total de la venta REAL
+      let totalVenta = 0;
+      if (data.resumen_financiero && data.resumen_financiero.total != null) {
+        totalVenta = Number(data.resumen_financiero.total);
+      }
 
       const clave = `${fecha}_${vendedor}_${ruta}`;
 
@@ -67,57 +62,116 @@ if (data.resumen_financiero && data.resumen_financiero.total != null) {
           factura,
           productos: {},
           totalGeneral: 0,
-          notasLista: [],    // ← ← AQUI SE GUARDA TODA LA INFO DE NOTAS
+          notasLista: [],
           docsIds: []
         };
       }
 
       reportes[clave].docsIds.push(docSnap.id);
 
-      // guardar solo las notas que tengan info
+      // GUARDAR NOTAS CON ID DE VENTA
       if (nota !== "") {
         reportes[clave].notasLista.push({
           nota,
           folio,
-          totalVenta
+          totalVenta,
+          ventaId: docSnap.id
         });
       }
 
-      // productos
+      // Productos
       data.detalle.forEach(item => {
         const codigo = item.codigo || item.id || "";
         const nombre = item.nombre || "SIN NOMBRE";
         const cantidad = Number(item.cantidad) || 0;
 
-        const precioUnit =
-          item.precio_unit ??
-          item.precioUnit ??
-          item.precioPublico ??
-          item.precio ??
-          item.precioVenta ??
-          0;
+        const precioUnit = item.precio_unit ??
+                           item.precioUnit ??
+                           item.precioPublico ??
+                           item.precio ??
+                           item.precioVenta ??
+                           0;
 
         const total = item.importe ?? (cantidad * precioUnit);
 
         if (!reportes[clave].productos[codigo]) {
-          reportes[clave].productos[codigo] = {
-            nombre,
-            cantidad: 0,
-            precioUnit,
-            total: 0
-          };
+          reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
         }
 
         reportes[clave].productos[codigo].cantidad += cantidad;
         reportes[clave].productos[codigo].total += total;
-
         reportes[clave].totalGeneral += total;
       });
-
     });
 
     const lista = Object.values(reportes).sort((a, b) => b.fechaVenta - a.fechaVenta);
     mostrarReportes(lista);
+  }
+
+  // =====================================================
+  // ABRIR DETALLE DE UNA VENTA EN VENTANA NUEVA
+  // =====================================================
+  async function abrirDetalleVenta(id) {
+    const ref = doc(db, "ventas_rutav2", id);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      alert("No se encontró la venta.");
+      return;
+    }
+
+    const data = snap.data();
+
+    const win = window.open("", "_blank");
+    win.document.write(`
+      <html>
+      <head><title>Detalle de Venta</title>
+      <style>
+        body { font-family: Arial; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        th { background: #00416A; color: white; }
+      </style>
+      </head>
+      <body>
+
+      <h2>Detalle de Venta</h2>
+
+      <p><strong>Folio:</strong> ${data.folio || ""}</p>
+      <p><strong>Fecha:</strong> ${data.fecha_txt || ""}</p>
+      <p><strong>Nota:</strong> ${data.notas || ""}</p>
+      <p><strong>Total:</strong> $${data.resumen_financiero?.total || 0}</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            data.detalle.map(p => `
+              <tr>
+                <td>${p.codigo}</td>
+                <td>${p.nombre}</td>
+                <td>${p.cantidad}</td>
+                <td>$${p.precio_unit}</td>
+                <td>$${p.importe}</td>
+              </tr>
+            `).join("")
+          }
+        </tbody>
+      </table>
+
+      </body>
+      </html>
+    `);
+
+    win.document.close();
   }
 
   // =====================================================
@@ -141,7 +195,7 @@ if (data.resumen_financiero && data.resumen_financiero.total != null) {
         </div>
         <div class="header-right">
           <label>No. Factura:</label>
-          <input type="text" class="factura-input" value="${rep.factura || ""}" placeholder="Ingrese número">
+          <input type="text" class="factura-input" value="${rep.factura || ""}">
         </div>
       `;
 
@@ -149,21 +203,21 @@ if (data.resumen_financiero && data.resumen_financiero.total != null) {
       body.className = "card-body";
       body.style.display = "none";
 
-      // 🔥 MOSTRAR TODAS LAS NOTAS (solo si existen)
-      if (rep.notasLista.length > 0) {
-        rep.notasLista.forEach(n => {
-          const box = document.createElement("div");
-          box.className = "nota-box";
-          box.innerHTML = `
-            <strong>Nota:</strong> ${n.nota}<br>
-            <strong>Folio:</strong> ${n.folio}<br>
-            <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
-          `;
-          body.appendChild(box);
-        });
-      }
+      // NOTAS CLICKABLE
+      rep.notasLista.forEach(n => {
+        const box = document.createElement("div");
+        box.className = "nota-box";
+        box.innerHTML = `
+          <strong>Nota:</strong> ${n.nota}<br>
+          <strong>Folio:</strong> ${n.folio}<br>
+          <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
+        `;
+        box.style.cursor = "pointer";
+        box.onclick = () => abrirDetalleVenta(n.ventaId);
+        body.appendChild(box);
+      });
 
-      // tabla
+      // TABLA
       const totalTop = document.createElement("div");
       totalTop.className = "total-box";
       totalTop.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
@@ -199,49 +253,44 @@ if (data.resumen_financiero && data.resumen_financiero.total != null) {
       totalBottom.className = "total-box";
       totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
 
-      // guardar factura
+      // GUARDAR FACTURA
       const botonGuardar = document.createElement("button");
       botonGuardar.textContent = "💾 Guardar Factura";
       botonGuardar.onclick = async () => {
         const factura = card.querySelector(".factura-input").value.trim();
         if (!factura) return alert("Ingrese un número de factura.");
-
         for (const id of rep.docsIds) {
           await updateDoc(doc(db, "ventas_rutav2", id), { factura });
         }
-
         card.classList.remove("sin-factura");
         alert("Factura guardada.");
       };
 
-      // imprimir
+      // IMPRIMIR
       const botonImprimir = document.createElement("button");
       botonImprimir.textContent = "🖨️ Imprimir";
-      botonImprimir.onclick = () => {
-        imprimirReporte(tabla.outerHTML, rep, card.querySelector(".factura-input").value || "");
-      };
+      botonImprimir.onclick = () => imprimirReporte(tabla.outerHTML, rep);
 
-      // ensamblar
+      // Añadir elementos al cuerpo
       body.appendChild(totalTop);
       body.appendChild(tabla);
       body.appendChild(totalBottom);
       body.appendChild(botonGuardar);
       body.appendChild(botonImprimir);
 
+      // Toggle
       header.onclick = () => {
         body.style.display = body.style.display === "none" ? "block" : "none";
       };
 
       card.appendChild(header);
       card.appendChild(body);
-
       contenedor.appendChild(card);
     });
   }
 
   window.onload = cargarVentas;
 </script>
-
   <style>
     body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
     h1 { text-align: center; color: #003366; margin-bottom: 20px; }
