@@ -28,42 +28,59 @@
       const contenedor = document.getElementById("reportes");
       contenedor.innerHTML = "<p>Cargando reportes...</p>";
 
-      // 🔹 AJUSTE: ahora leemos desde /ventas_rutav2
       const snapshot = await getDocs(collection(db, "ventas_rutav2"));
       let reportes = {};
 
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
+
         if (data.cortado === true && Array.isArray(data.detalle)) {
+          
+          // Fecha
           const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : docSnap.createTime.toDate();
           const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+          
+          // Datos principales
           const vendedor = data.usuarioNombre || "SIN NOMBRE";
           const ruta = data.rutaId || "Sin ruta";
           const factura = data.factura || "";
-          const nota = data.notas || "";  
-          const folio = data.folio || "";  
-          const totalVenta = Number(data.total) || 0;
 
+          // Nota limpia
+          const nota = (data.notas || "").trim();
 
+          // Folio
+          const folio = data.folio || "";
+
+          // TOTAL REAL DESDE DATA.TOTAL (confirmado por el usuario)
+          let totalVenta = 0;
+          if (typeof data.total === "number") {
+            totalVenta = data.total;
+          } else if (typeof data.total === "string" && data.total.trim() !== "") {
+            totalVenta = parseFloat(data.total);
+          }
+
+          // Agrupar clave
           const clave = `${fecha}_${vendedor}_${ruta}`;
-if (!reportes[clave]) {
-  reportes[clave] = {
-    fechaVenta,
-    fecha,
-    vendedor,
-    ruta,
-    productos: {},
-    totalGeneral: 0,
-    factura,
-    nota,
-    folio,
-    totalVenta,
-    docsIds: []
-  };
-}
+
+          if (!reportes[clave]) {
+            reportes[clave] = {
+              fechaVenta,
+              fecha,
+              vendedor,
+              ruta,
+              productos: {},
+              totalGeneral: 0,
+              factura,
+              nota,
+              folio,
+              totalVenta,
+              docsIds: []
+            };
+          }
 
           reportes[clave].docsIds.push(docSnap.id);
 
+          // Productos
           data.detalle.forEach(item => {
             const codigo = item.codigo || item.id || "";
             const nombre = item.nombre || "SIN NOMBRE";
@@ -74,11 +91,13 @@ if (!reportes[clave]) {
               ?? item.precio 
               ?? item.precioVenta 
               ?? 0;
+
             const total = item.importe ?? (cantidad * precioUnit);
 
             if (!reportes[clave].productos[codigo]) {
               reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
             }
+
             reportes[clave].productos[codigo].cantidad += cantidad;
             reportes[clave].productos[codigo].total += total;
             reportes[clave].totalGeneral += total;
@@ -98,6 +117,7 @@ if (!reportes[clave]) {
       contenedor.innerHTML = "";
 
       reportes.forEach(rep => {
+
         const card = document.createElement("div");
         card.className = "card";
         if (!rep.factura) card.classList.add("sin-factura");
@@ -118,19 +138,22 @@ if (!reportes[clave]) {
         const body = document.createElement("div");
         body.className = "card-body";
         body.style.display = "none";
-       
-        // Nota dentro del cuerpo del reporte
-if (rep.nota || rep.folio || rep.totalVenta) {
-  const notaBox = document.createElement("div");
-  notaBox.className = "nota-box";
-  notaBox.innerHTML = `
-    ${ rep.nota ? `<strong>Nota:</strong> ${rep.nota}<br>` : "" }
-    <strong>Folio de Venta:</strong> ${rep.folio}<br>
-    <strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}
-  `;
-  body.appendChild(notaBox);
-}
 
+        // Mostrar la NOTA dentro del cuerpo
+        if (rep.nota || rep.folio || rep.totalVenta) {
+          const notaBox = document.createElement("div");
+          notaBox.className = "nota-box";
+
+          notaBox.innerHTML = `
+            ${rep.nota ? `<strong>Nota:</strong> ${rep.nota}<br>` : ""}
+            ${rep.folio ? `<strong>Folio de Venta:</strong> ${rep.folio}<br>` : ""}
+            <strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}
+          `;
+
+          body.appendChild(notaBox);
+        }
+
+        // Totales
         const totalTop = document.createElement("div");
         totalTop.className = "total-box";
         totalTop.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
@@ -166,11 +189,13 @@ if (rep.nota || rep.folio || rep.totalVenta) {
         totalBottom.className = "total-box";
         totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
 
+        // Guardar factura
         const botonGuardar = document.createElement("button");
         botonGuardar.textContent = "💾 Guardar Factura";
         botonGuardar.onclick = async () => {
           const factura = card.querySelector(".factura-input")?.value.trim() || "";
           if (!factura) return alert("Ingrese un número de factura antes de guardar.");
+
           try {
             for (const id of rep.docsIds) {
               await updateDoc(doc(db, "ventas_rutav2", id), { factura });
@@ -178,11 +203,11 @@ if (rep.nota || rep.folio || rep.totalVenta) {
             alert("Número de factura guardado correctamente ✅");
             card.classList.remove("sin-factura");
           } catch (err) {
-            console.error("Error al guardar factura:", err);
             alert("Error al guardar el número de factura ❌");
           }
         };
-        
+
+        // Botón imprimir
         const botonImprimir = document.createElement("button");
         botonImprimir.textContent = "🖨️ Imprimir";
         botonImprimir.onclick = () => {
@@ -196,6 +221,7 @@ if (rep.nota || rep.folio || rep.totalVenta) {
         body.appendChild(botonGuardar);
         body.appendChild(botonImprimir);
 
+        // Expandir tarjeta
         header.onclick = () => {
           body.style.display = body.style.display === "none" ? "block" : "none";
         };
@@ -223,18 +249,25 @@ if (rep.nota || rep.folio || rep.totalVenta) {
           .total { font-weight: bold; text-align: right; margin: 10px 0; }
         </style>
         </head><body>
+
         <h1>Reporte de Venta ${rep.fecha}</h1>
+
         <p><strong>Ruta:</strong> ${rep.ruta}</p>
-<p><strong>Vendedor:</strong> ${rep.vendedor}</p>
-${ rep.nota ? `<p><strong>Nota:</strong> ${rep.nota}</p>` : "" }
-<p><strong>Folio de Venta:</strong> ${rep.folio}</p>
-<p><strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}</p>
-<p><strong>No. Factura:</strong> ${factura}</p>
+        <p><strong>Vendedor:</strong> ${rep.vendedor}</p>
+        ${rep.nota ? `<p><strong>Nota:</strong> ${rep.nota}</p>` : ""}
+        ${rep.folio ? `<p><strong>Folio de Venta:</strong> ${rep.folio}</p>` : ""}
+        <p><strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}</p>
+        <p><strong>No. Factura:</strong> ${factura}</p>
+
         <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
+
         ${tablaHTML}
+
         <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
+
         </body></html>
       `);
+
       ventana.document.close();
       ventana.print();
     }
@@ -245,47 +278,86 @@ ${ rep.nota ? `<p><strong>Nota:</strong> ${rep.nota}</p>` : "" }
   <style>
     body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
     h1 { text-align: center; color: #003366; margin-bottom: 20px; }
+
     .card {
-      background: #fff; border-radius: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      margin: 20px auto; width: 90%; max-width: 1000px; overflow: hidden;
+      background: #fff; 
+      border-radius: 14px; 
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin: 20px auto; 
+      width: 90%; 
+      max-width: 1000px; 
+      overflow: hidden;
       transition: 0.3s;
     }
+
     .card:hover { box-shadow: 0 8px 18px rgba(0,0,0,0.15); }
+
     .card-header {
-      display: flex; justify-content: space-between; align-items: center;
-      background: #00416A; color: #fff; padding: 15px 20px; flex-wrap: wrap;
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      background: #00416A; 
+      color: #fff; 
+      padding: 15px 20px; 
+      flex-wrap: wrap;
     }
+
     .card-header h2 { margin: 0; font-size: 18px; }
     .card-header p { margin: 5px 0 0; font-size: 14px; color: #dce6f2; }
+
     .card-body { padding: 15px; background: #fafafa; }
+
     table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
     th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; text-align: center; }
     th { background: #003366; color: white; }
-    button {
-      display: block; margin: 10px 0 5px auto; padding: 8px 15px;
-      background: #00416A; color: white; border: none; border-radius: 6px;
-      cursor: pointer; font-weight: bold;
-    }
-    button:hover { background: #0a6cb8; }
-    .total-box { text-align: right; font-size: 16px; color: #00416A; margin: 5px 0; font-weight: bold; }
-    .header-right label { font-size: 13px; margin-right: 6px; color: #dce6f2; }
-    .factura-input {
-      padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; width: 140px;
-    }
+
     .nota-box {
-  background: #fff3cd;
-  color: #7a5a00;
-  padding: 12px;
-  margin: 5px 0;
-  border-left: 4px solid #ffc107;
-  font-size: 14px;
-}
+      background: #fff3cd;
+      color: #7a5a00;
+      padding: 12px;
+      margin: 10px 0;
+      border-left: 4px solid #ffc107;
+      font-size: 14px;
+    }
+
+    button {
+      display: block; 
+      margin: 10px 0 5px auto; 
+      padding: 8px 15px;
+      background: #00416A; 
+      color: white; 
+      border: none; 
+      border-radius: 6px;
+      cursor: pointer; 
+      font-weight: bold;
+    }
+
+    button:hover { background: #0a6cb8; }
+
+    .total-box { 
+      text-align: right; 
+      font-size: 16px; 
+      color: #00416A; 
+      margin: 5px 0; 
+      font-weight: bold; 
+    }
+
+    .factura-input {
+      padding: 6px 8px; 
+      border-radius: 6px; 
+      border: 1px solid #ccc; 
+      font-size: 14px; 
+      width: 140px;
+    }
+
+    .sin-factura { animation: destello 1.5s infinite; }
+
     @keyframes destello {
       0%, 100% { box-shadow: 0 0 10px 2px rgba(255,0,0,0.6); }
       50% { box-shadow: 0 0 18px 4px rgba(255,0,0,0.2); }
     }
-    .sin-factura { animation: destello 1.5s infinite; }
   </style>
+
 </head>
 <body>
   <h1>Reportes de Ventas Cortadas</h1>
