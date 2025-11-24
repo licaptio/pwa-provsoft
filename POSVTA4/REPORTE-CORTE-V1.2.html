@@ -40,20 +40,27 @@
           const vendedor = data.usuarioNombre || "SIN NOMBRE";
           const ruta = data.rutaId || "Sin ruta";
           const factura = data.factura || "";
+          const nota = data.notas || "";  
+          const folio = data.folio || "";  
+          const totalVenta = Number(data.total) || 0;
+
 
           const clave = `${fecha}_${vendedor}_${ruta}`;
-          if (!reportes[clave]) {
-            reportes[clave] = {
-              fechaVenta,
-              fecha,
-              vendedor,
-              ruta,
-              productos: {},
-              totalGeneral: 0,
-              factura,
-              docsIds: []
-            };
-          }
+if (!reportes[clave]) {
+  reportes[clave] = {
+    fechaVenta,
+    fecha,
+    vendedor,
+    ruta,
+    productos: {},
+    totalGeneral: 0,
+    factura,
+    nota,
+    folio,
+    totalVenta,
+    docsIds: []
+  };
+}
 
           reportes[clave].docsIds.push(docSnap.id);
 
@@ -111,6 +118,18 @@
         const body = document.createElement("div");
         body.className = "card-body";
         body.style.display = "none";
+       
+        // Nota dentro del cuerpo del reporte
+if (rep.nota || rep.folio || rep.totalVenta) {
+  const notaBox = document.createElement("div");
+  notaBox.className = "nota-box";
+  notaBox.innerHTML = `
+    ${ rep.nota ? `<strong>Nota:</strong> ${rep.nota}<br>` : "" }
+    <strong>Folio de Venta:</strong> ${rep.folio}<br>
+    <strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}
+  `;
+  body.appendChild(notaBox);
+}
 
         const totalTop = document.createElement("div");
         totalTop.className = "total-box";
@@ -163,7 +182,7 @@
             alert("Error al guardar el número de factura ❌");
           }
         };
-
+        
         const botonImprimir = document.createElement("button");
         botonImprimir.textContent = "🖨️ Imprimir";
         botonImprimir.onclick = () => {
@@ -205,9 +224,12 @@
         </style>
         </head><body>
         <h1>Reporte de Venta ${rep.fecha}</h1>
-        <p><strong>Ruta:</strong> ${rep.ruta} &nbsp; | &nbsp; 
-           <strong>Vendedor:</strong> ${rep.vendedor} &nbsp; | &nbsp;
-           <strong>No. Factura:</strong> ${factura}</p>
+        <p><strong>Ruta:</strong> ${rep.ruta}</p>
+<p><strong>Vendedor:</strong> ${rep.vendedor}</p>
+${ rep.nota ? `<p><strong>Nota:</strong> ${rep.nota}</p>` : "" }
+<p><strong>Folio de Venta:</strong> ${rep.folio}</p>
+<p><strong>Total de la Venta:</strong> $${rep.totalVenta.toFixed(2)}</p>
+<p><strong>No. Factura:</strong> ${factura}</p>
         <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
         ${tablaHTML}
         <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
@@ -250,6 +272,14 @@
     .factura-input {
       padding: 6px 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; width: 140px;
     }
+    .nota-box {
+  background: #fff3cd;
+  color: #7a5a00;
+  padding: 12px;
+  margin: 5px 0;
+  border-left: 4px solid #ffc107;
+  font-size: 14px;
+}
     @keyframes destello {
       0%, 100% { box-shadow: 0 0 10px 2px rgba(255,0,0,0.6); }
       50% { box-shadow: 0 0 18px 4px rgba(255,0,0,0.2); }
