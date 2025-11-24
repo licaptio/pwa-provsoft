@@ -37,7 +37,9 @@
       if (!data.cortado || !Array.isArray(data.detalle)) return;
 
       const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : docSnap.createTime.toDate();
-      const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
+      const fecha = fechaVenta.toLocaleDateString("es-MX", {
+        day: "numeric", month: "long", year: "numeric"
+      });
 
       const vendedor = data.usuarioNombre || "SIN NOMBRE";
       const ruta = data.rutaId || "Sin ruta";
@@ -45,7 +47,6 @@
       const nota = (data.notas || "").trim();
       const folio = data.folio || "";
 
-      // Total de la venta REAL
       let totalVenta = 0;
       if (data.resumen_financiero && data.resumen_financiero.total != null) {
         totalVenta = Number(data.resumen_financiero.total);
@@ -69,7 +70,6 @@
 
       reportes[clave].docsIds.push(docSnap.id);
 
-      // GUARDAR NOTAS CON ID DE VENTA
       if (nota !== "") {
         reportes[clave].notasLista.push({
           nota,
@@ -79,29 +79,37 @@
         });
       }
 
-      // Productos
+      // productos
       data.detalle.forEach(item => {
         const codigo = item.codigo || item.id || "";
         const nombre = item.nombre || "SIN NOMBRE";
         const cantidad = Number(item.cantidad) || 0;
 
-        const precioUnit = item.precio_unit ??
-                           item.precioUnit ??
-                           item.precioPublico ??
-                           item.precio ??
-                           item.precioVenta ??
-                           0;
+        const precioUnit =
+          item.precio_unit ??
+          item.precioUnit ??
+          item.precioPublico ??
+          item.precio ??
+          item.precioVenta ??
+          0;
 
         const total = item.importe ?? (cantidad * precioUnit);
 
         if (!reportes[clave].productos[codigo]) {
-          reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
+          reportes[clave].productos[codigo] = {
+            nombre,
+            cantidad: 0,
+            precioUnit,
+            total: 0
+          };
         }
 
         reportes[clave].productos[codigo].cantidad += cantidad;
         reportes[clave].productos[codigo].total += total;
+
         reportes[clave].totalGeneral += total;
       });
+
     });
 
     const lista = Object.values(reportes).sort((a, b) => b.fechaVenta - a.fechaVenta);
@@ -109,9 +117,22 @@
   }
 
   // =====================================================
-  // ABRIR DETALLE DE UNA VENTA EN VENTANA NUEVA
+  // MODAL FUNCTIONS
+  // =====================================================
+  function cerrarModal() {
+    document.getElementById("modalVenta").style.display = "none";
+  }
+
+  function mostrarModal(html) {
+    document.getElementById("detalleVentaContenido").innerHTML = html;
+    document.getElementById("modalVenta").style.display = "flex";
+  }
+
+  // =====================================================
+  // ABRIR DETALLE VENTA EN MODAL
   // =====================================================
   async function abrirDetalleVenta(id) {
+
     const ref = doc(db, "ventas_rutav2", id);
     const snap = await getDoc(ref);
 
@@ -122,29 +143,17 @@
 
     const data = snap.data();
 
-    const win = window.open("", "_blank");
-    win.document.write(`
-      <html>
-      <head><title>Detalle de Venta</title>
-      <style>
-        body { font-family: Arial; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        th { background: #00416A; color: white; }
-      </style>
-      </head>
-      <body>
-
-      <h2>Detalle de Venta</h2>
+    const html = `
+      <h2 style="color:#00416A">Detalle de Venta</h2>
 
       <p><strong>Folio:</strong> ${data.folio || ""}</p>
       <p><strong>Fecha:</strong> ${data.fecha_txt || ""}</p>
       <p><strong>Nota:</strong> ${data.notas || ""}</p>
-      <p><strong>Total:</strong> $${data.resumen_financiero?.total || 0}</p>
+      <p><strong>Total:</strong> $${Number(data.resumen_financiero?.total || 0).toFixed(2)}</p>
 
-      <table>
+      <table style="width:100%; border-collapse:collapse; margin-top:15px;">
         <thead>
-          <tr>
+          <tr style="background:#00416A; color:white;">
             <th>Código</th>
             <th>Producto</th>
             <th>Cantidad</th>
@@ -159,19 +168,16 @@
                 <td>${p.codigo}</td>
                 <td>${p.nombre}</td>
                 <td>${p.cantidad}</td>
-                <td>$${p.precio_unit}</td>
-                <td>$${p.importe}</td>
+                <td>$${Number(p.precio_unit).toFixed(2)}</td>
+                <td>$${Number(p.importe).toFixed(2)}</td>
               </tr>
             `).join("")
           }
         </tbody>
       </table>
+    `;
 
-      </body>
-      </html>
-    `);
-
-    win.document.close();
+    mostrarModal(html);
   }
 
   // =====================================================
@@ -195,7 +201,7 @@
         </div>
         <div class="header-right">
           <label>No. Factura:</label>
-          <input type="text" class="factura-input" value="${rep.factura || ""}">
+          <input type="text" class="factura-input" value="${rep.factura || ""}" placeholder="Ingrese número">
         </div>
       `;
 
@@ -203,19 +209,23 @@
       body.className = "card-body";
       body.style.display = "none";
 
-      // NOTAS CLICKABLE
-      rep.notasLista.forEach(n => {
-        const box = document.createElement("div");
-        box.className = "nota-box";
-        box.innerHTML = `
-          <strong>Nota:</strong> ${n.nota}<br>
-          <strong>Folio:</strong> ${n.folio}<br>
-          <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
-        `;
-        box.style.cursor = "pointer";
-        box.onclick = () => abrirDetalleVenta(n.ventaId);
-        body.appendChild(box);
-      });
+      // NOTAS CLICKABLES
+      if (rep.notasLista.length > 0) {
+        rep.notasLista.forEach(n => {
+          const box = document.createElement("div");
+          box.className = "nota-box";
+          box.innerHTML = `
+            <div class="nota-click">
+              <strong>Nota:</strong> ${n.nota}<br>
+              <strong>Folio:</strong> ${n.folio}<br>
+              <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
+            </div>
+          `;
+          box.style.cursor = "pointer";
+          box.onclick = () => abrirDetalleVenta(n.ventaId);
+          body.appendChild(box);
+        });
+      }
 
       // TABLA
       const totalTop = document.createElement("div");
@@ -253,32 +263,27 @@
       totalBottom.className = "total-box";
       totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
 
-      // GUARDAR FACTURA
+      // guardar factura
       const botonGuardar = document.createElement("button");
       botonGuardar.textContent = "💾 Guardar Factura";
       botonGuardar.onclick = async () => {
         const factura = card.querySelector(".factura-input").value.trim();
         if (!factura) return alert("Ingrese un número de factura.");
+
         for (const id of rep.docsIds) {
           await updateDoc(doc(db, "ventas_rutav2", id), { factura });
         }
+
         card.classList.remove("sin-factura");
         alert("Factura guardada.");
       };
 
-      // IMPRIMIR
-      const botonImprimir = document.createElement("button");
-      botonImprimir.textContent = "🖨️ Imprimir";
-      botonImprimir.onclick = () => imprimirReporte(tabla.outerHTML, rep);
-
-      // Añadir elementos al cuerpo
+      // ensamblar
       body.appendChild(totalTop);
       body.appendChild(tabla);
       body.appendChild(totalBottom);
       body.appendChild(botonGuardar);
-      body.appendChild(botonImprimir);
 
-      // Toggle
       header.onclick = () => {
         body.style.display = body.style.display === "none" ? "block" : "none";
       };
@@ -291,75 +296,129 @@
 
   window.onload = cargarVentas;
 </script>
-  <style>
-    body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
-    h1 { text-align: center; color: #003366; margin-bottom: 20px; }
 
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-      margin: 20px auto;
-      width: 90%;
-      max-width: 1000px;
-      overflow: hidden;
-      transition: 0.3s;
-    }
+<style>
+body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
+h1 { text-align: center; color: #003366; margin-bottom: 20px; }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #00416A;
-      color: #fff;
-      padding: 15px 20px;
-    }
+.card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  margin: 20px auto;
+  width: 90%;
+  max-width: 1000px;
+  overflow: hidden;
+  transition: 0.3s;
+}
 
-    .card-body { padding: 15px; background: #fafafa; }
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #00416A;
+  color: #fff;
+  padding: 15px 20px;
+}
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
-    th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; }
-    th { background: #003366; color: white; }
+.card-body { padding: 15px; background: #fafafa; }
 
-    .nota-box {
-      background: #fff3cd;
-      color: #7a5a00;
-      padding: 12px;
-      margin: 10px 0;
-      border-left: 4px solid #ffc107;
-    }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
+th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; text-align:center; }
+th { background: #003366; color: white; }
 
-    button {
-      margin: 10px 0;
-      padding: 8px 15px;
-      background: #00416A;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
+.nota-box {
+  background: #fff3cd;
+  color: #7a5a00;
+  padding: 12px;
+  margin: 10px 0;
+  border-left: 4px solid #ffc107;
+}
 
-    .total-box {
-      text-align: right;
-      margin: 5px 0;
-      font-weight: bold;
-      color: #00416A;
-    }
+button {
+  margin: 10px 0;
+  padding: 8px 15px;
+  background: #00416A;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
 
-    .sin-factura {
-      animation: glow 1.5s infinite;
-    }
+.total-box {
+  text-align: right;
+  margin: 5px 0;
+  font-weight: bold;
+  color: #00416A;
+}
 
-    @keyframes glow {
-      0%,100% { box-shadow: 0 0 10px red; }
-      50% { box-shadow: 0 0 20px rgba(255,0,0,0.3); }
-    }
-  </style>
+.sin-factura {
+  animation: glow 1.5s infinite;
+}
+
+@keyframes glow {
+  0%,100% { box-shadow: 0 0 10px red; }
+  50% { box-shadow: 0 0 20px rgba(255,0,0,0.3); }
+}
+
+/* 🔹 MODAL */
+.modal-venta {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(3px);
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-contenido {
+  background: white;
+  padding: 20px;
+  width: 90%;
+  max-width: 700px;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+  animation: fadeIn 0.25s ease;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.cerrar-modal {
+  float: right;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #00416A;
+}
+
+.cerrar-modal:hover {
+  color: red;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+</style>
 </head>
 
 <body>
   <h1>Reportes de Ventas Cortadas</h1>
   <div id="reportes"></div>
+
+  <!-- 🟦 MODAL -->
+  <div id="modalVenta" class="modal-venta">
+    <div class="modal-contenido">
+      <span class="cerrar-modal" onclick="cerrarModal()">✖</span>
+      <div id="detalleVentaContenido"></div>
+    </div>
+  </div>
+
 </body>
 </html>
