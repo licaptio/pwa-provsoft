@@ -48,12 +48,13 @@
       const nota = (data.notas || "").trim();
       const folio = data.folio || "";
 
-      // total real desde Firebase
-      let totalVenta = 0;
-      if (typeof data.total === "number") totalVenta = data.total;
-      else if (typeof data.total === "string" && data.total.trim() !== "") {
-        totalVenta = parseFloat(data.total);
-      }
+let totalVenta = 0;
+
+// NUEVO: leer desde resumen_financiero.total
+if (data.resumen_financiero && data.resumen_financiero.total != null) {
+  totalVenta = Number(data.resumen_financiero.total);
+}
+
 
       const clave = `${fecha}_${vendedor}_${ruta}`;
 
