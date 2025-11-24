@@ -5,282 +5,241 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reportes de Ventas Cortadas</title>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs, updateDoc, doc } 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, getDocs, updateDoc, doc }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.appspot.com",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:d2f1e80b17f123456789"
-    };
+  const firebaseConfig = {
+    apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+    authDomain: "inventariopv-643f1.firebaseapp.com",
+    projectId: "inventariopv-643f1",
+    storageBucket: "inventariopv-643f1.appspot.com",
+    messagingSenderId: "96242533231",
+    appId: "1:96242533231:web:d2f1e80b17f123456789"
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    // ==========================================
-    //   CARGAR Y AGRUPAR VENTAS CORTADAS
-    // ==========================================
-    async function cargarVentas() {
-      const contenedor = document.getElementById("reportes");
-      contenedor.innerHTML = "<p>Cargando reportes...</p>";
+  // =====================================================
+  // CARGAR Y AGRUPAR VENTAS
+  // =====================================================
+  async function cargarVentas() {
+    const contenedor = document.getElementById("reportes");
+    contenedor.innerHTML = "<p>Cargando reportes...</p>";
 
-      const snapshot = await getDocs(collection(db, "ventas_rutav2"));
-      let reportes = {};
+    const snapshot = await getDocs(collection(db, "ventas_rutav2"));
+    let reportes = {};
 
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
+    snapshot.forEach(docSnap => {
+      const data = docSnap.data();
+      if (!data.cortado || !Array.isArray(data.detalle)) return;
 
-        if (data.cortado === true && Array.isArray(data.detalle)) {
-          
-          const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : docSnap.createTime.toDate();
-          const fecha = fechaVenta.toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" });
-
-          const vendedor = data.usuarioNombre || "SIN NOMBRE";
-          const ruta = data.rutaId || "Sin ruta";
-          const factura = data.factura || "";
-
-          const nota = (data.notas || "").trim();
-          const folio = data.folio || "";
-
-          let totalVenta = 0;
-          if (typeof data.total === "number") totalVenta = data.total;
-          else if (typeof data.total === "string") totalVenta = parseFloat(data.total);
-
-          const clave = `${fecha}_${vendedor}_${ruta}`;
-
-          if (!reportes[clave]) {
-            reportes[clave] = {
-              fechaVenta,
-              fecha,
-              vendedor,
-              ruta,
-              productos: {},
-              totalGeneral: 0,
-              factura,
-              notasLista: [],
-              docsIds: []
-            };
-          }
-
-          reportes[clave].docsIds.push(docSnap.id);
-
-          if (nota || folio || totalVenta > 0) {
-            reportes[clave].notasLista.push({
-              nota,
-              folio,
-              totalVenta
-            });
-          }
-
-          data.detalle.forEach(item => {
-            const codigo = item.codigo || item.id || "";
-            const nombre = item.nombre || "SIN NOMBRE";
-            const cantidad = Number(item.cantidad) || 0;
-            const precioUnit = item.precio_unit 
-              ?? item.precioUnit 
-              ?? item.precioPublico 
-              ?? item.precio 
-              ?? item.precioVenta 
-              ?? 0;
-
-            const total = item.importe ?? (cantidad * precioUnit);
-
-            if (!reportes[clave].productos[codigo]) {
-              reportes[clave].productos[codigo] = { nombre, cantidad: 0, precioUnit, total: 0 };
-            }
-
-            reportes[clave].productos[codigo].cantidad += cantidad;
-            reportes[clave].productos[codigo].total += total;
-            reportes[clave].totalGeneral += total;
-          });
-        }
+      // fecha
+      const fechaVenta = data.fecha ? new Date(data.fecha.seconds * 1000) : docSnap.createTime.toDate();
+      const fecha = fechaVenta.toLocaleDateString("es-MX", {
+        day: "numeric", month: "long", year: "numeric"
       });
 
-      const listaOrdenada = Object.values(reportes).sort((a, b) => b.fechaVenta - a.fechaVenta);
-      mostrarReportes(listaOrdenada);
-    }
+      const vendedor = data.usuarioNombre || "SIN NOMBRE";
+      const ruta = data.rutaId || "Sin ruta";
+      const factura = data.factura || "";
+      const nota = (data.notas || "").trim();
+      const folio = data.folio || "";
 
-    // ==========================================
-    //   MOSTRAR LAS TARJETAS DE REPORTES
-    // ==========================================
-    function mostrarReportes(reportes) {
-      const contenedor = document.getElementById("reportes");
-      contenedor.innerHTML = "";
+      // total real desde Firebase
+      let totalVenta = 0;
+      if (typeof data.total === "number") totalVenta = data.total;
+      else if (typeof data.total === "string" && data.total.trim() !== "") {
+        totalVenta = parseFloat(data.total);
+      }
 
-      reportes.forEach(rep => {
+      const clave = `${fecha}_${vendedor}_${ruta}`;
 
-        const card = document.createElement("div");
-        card.className = "card";
-        if (!rep.factura) card.classList.add("sin-factura");
+      if (!reportes[clave]) {
+        reportes[clave] = {
+          fechaVenta,
+          fecha,
+          vendedor,
+          ruta,
+          factura,
+          productos: {},
+          totalGeneral: 0,
+          notasLista: [],    // ← ← AQUI SE GUARDA TODA LA INFO DE NOTAS
+          docsIds: []
+        };
+      }
 
-        const header = document.createElement("div");
-        header.className = "card-header";
-        header.innerHTML = `
-          <div class="header-left">
-            <h2>🧾 Reporte ${rep.fecha}</h2>
-            <p><strong>Ruta:</strong> ${rep.ruta} | <strong>Vendedor:</strong> ${rep.vendedor}</p>
-          </div>
-          <div class="header-right">
-            <label>No. Factura:</label>
-            <input type="text" class="factura-input" placeholder="Ingrese número" value="${rep.factura}" />
-          </div>
-        `;
+      reportes[clave].docsIds.push(docSnap.id);
 
-        const body = document.createElement("div");
-        body.className = "card-body";
-        body.style.display = "none";
+      // guardar solo las notas que tengan info
+      if (nota !== "") {
+        reportes[clave].notasLista.push({
+          nota,
+          folio,
+          totalVenta
+        });
+      }
 
-        // ==========================================
-        //   TODAS LAS NOTAS (lista completa)
-        // ==========================================
-        if (rep.notasLista.length > 0) {
-          rep.notasLista.forEach(n => {
-            const notaBox = document.createElement("div");
-            notaBox.className = "nota-box";
-            notaBox.innerHTML = `
-              ${n.nota ? `<strong>Nota:</strong> ${n.nota}<br>` : ""}
-              ${n.folio ? `<strong>Folio:</strong> ${n.folio}<br>` : ""}
-              <strong>Total:</strong> $${Number(n.totalVenta).toFixed(2)}
-            `;
-            body.appendChild(notaBox);
-          });
+      // productos
+      data.detalle.forEach(item => {
+        const codigo = item.codigo || item.id || "";
+        const nombre = item.nombre || "SIN NOMBRE";
+        const cantidad = Number(item.cantidad) || 0;
+
+        const precioUnit =
+          item.precio_unit ??
+          item.precioUnit ??
+          item.precioPublico ??
+          item.precio ??
+          item.precioVenta ??
+          0;
+
+        const total = item.importe ?? (cantidad * precioUnit);
+
+        if (!reportes[clave].productos[codigo]) {
+          reportes[clave].productos[codigo] = {
+            nombre,
+            cantidad: 0,
+            precioUnit,
+            total: 0
+          };
         }
 
-        // Totales
-        const totalTop = document.createElement("div");
-        totalTop.className = "total-box";
-        totalTop.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
+        reportes[clave].productos[codigo].cantidad += cantidad;
+        reportes[clave].productos[codigo].total += total;
 
-        const tabla = document.createElement("table");
-        tabla.innerHTML = `
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Producto</th>
-              <th>Cantidad</th>
-              <th>Precio Unitario</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        `;
+        reportes[clave].totalGeneral += total;
+      });
 
-        const tbody = tabla.querySelector("tbody");
-        for (const [codigo, info] of Object.entries(rep.productos)) {
-          const fila = document.createElement("tr");
-          fila.innerHTML = `
-            <td>${codigo}</td>
-            <td>${info.nombre}</td>
-            <td>${info.cantidad}</td>
-            <td>$${info.precioUnit.toFixed(2)}</td>
-            <td>$${info.total.toFixed(2)}</td>
+    });
+
+    const lista = Object.values(reportes).sort((a, b) => b.fechaVenta - a.fechaVenta);
+    mostrarReportes(lista);
+  }
+
+  // =====================================================
+  // MOSTRAR REPORTES
+  // =====================================================
+  function mostrarReportes(reportes) {
+    const contenedor = document.getElementById("reportes");
+    contenedor.innerHTML = "";
+
+    reportes.forEach(rep => {
+      const card = document.createElement("div");
+      card.className = "card";
+      if (!rep.factura) card.classList.add("sin-factura");
+
+      const header = document.createElement("div");
+      header.className = "card-header";
+      header.innerHTML = `
+        <div class="header-left">
+          <h2>🧾 Reporte ${rep.fecha}</h2>
+          <p><strong>Ruta:</strong> ${rep.ruta} | <strong>Vendedor:</strong> ${rep.vendedor}</p>
+        </div>
+        <div class="header-right">
+          <label>No. Factura:</label>
+          <input type="text" class="factura-input" value="${rep.factura || ""}" placeholder="Ingrese número">
+        </div>
+      `;
+
+      const body = document.createElement("div");
+      body.className = "card-body";
+      body.style.display = "none";
+
+      // 🔥 MOSTRAR TODAS LAS NOTAS (solo si existen)
+      if (rep.notasLista.length > 0) {
+        rep.notasLista.forEach(n => {
+          const box = document.createElement("div");
+          box.className = "nota-box";
+          box.innerHTML = `
+            <strong>Nota:</strong> ${n.nota}<br>
+            <strong>Folio:</strong> ${n.folio}<br>
+            <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
           `;
-          tbody.appendChild(fila);
+          body.appendChild(box);
+        });
+      }
+
+      // tabla
+      const totalTop = document.createElement("div");
+      totalTop.className = "total-box";
+      totalTop.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
+
+      const tabla = document.createElement("table");
+      tabla.innerHTML = `
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Cantidad</th>
+            <th>Precio Unitario</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = tabla.querySelector("tbody");
+      for (const [codigo, info] of Object.entries(rep.productos)) {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td>${codigo}</td>
+          <td>${info.nombre}</td>
+          <td>${info.cantidad}</td>
+          <td>$${info.precioUnit.toFixed(2)}</td>
+          <td>$${info.total.toFixed(2())}</td>
+        `;
+        tbody.appendChild(fila);
+      }
+
+      const totalBottom = document.createElement("div");
+      totalBottom.className = "total-box";
+      totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
+
+      // guardar factura
+      const botonGuardar = document.createElement("button");
+      botonGuardar.textContent = "💾 Guardar Factura";
+      botonGuardar.onclick = async () => {
+        const factura = card.querySelector(".factura-input").value.trim();
+        if (!factura) return alert("Ingrese un número de factura.");
+
+        for (const id of rep.docsIds) {
+          await updateDoc(doc(db, "ventas_rutav2", id), { factura });
         }
 
-        const totalBottom = document.createElement("div");
-        totalBottom.className = "total-box";
-        totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
+        card.classList.remove("sin-factura");
+        alert("Factura guardada.");
+      };
 
-        // Guardar factura
-        const botonGuardar = document.createElement("button");
-        botonGuardar.textContent = "💾 Guardar Factura";
-        botonGuardar.onclick = async () => {
-          const factura = card.querySelector(".factura-input")?.value.trim() || "";
-          if (!factura) return alert("Ingrese un número de factura antes de guardar.");
+      // imprimir
+      const botonImprimir = document.createElement("button");
+      botonImprimir.textContent = "🖨️ Imprimir";
+      botonImprimir.onclick = () => {
+        imprimirReporte(tabla.outerHTML, rep, card.querySelector(".factura-input").value || "");
+      };
 
-          try {
-            for (const id of rep.docsIds) {
-              await updateDoc(doc(db, "ventas_rutav2", id), { factura });
-            }
-            alert("Número de factura guardado correctamente");
-            card.classList.remove("sin-factura");
-          } catch (err) {
-            alert("Error al guardar factura");
-          }
-        };
+      // ensamblar
+      body.appendChild(totalTop);
+      body.appendChild(tabla);
+      body.appendChild(totalBottom);
+      body.appendChild(botonGuardar);
+      body.appendChild(botonImprimir);
 
-        // Botón imprimir
-        const botonImprimir = document.createElement("button");
-        botonImprimir.textContent = "🖨️ Imprimir";
-        botonImprimir.onclick = () => {
-          const factura = card.querySelector(".factura-input")?.value || "";
-          imprimirReporte(tabla.outerHTML, rep, factura);
-        };
+      header.onclick = () => {
+        body.style.display = body.style.display === "none" ? "block" : "none";
+      };
 
-        body.appendChild(totalTop);
-        body.appendChild(tabla);
-        body.appendChild(totalBottom);
-        body.appendChild(botonGuardar);
-        body.appendChild(botonImprimir);
+      card.appendChild(header);
+      card.appendChild(body);
 
-        header.onclick = () => {
-          body.style.display = body.style.display === "none" ? "block" : "none";
-        };
+      contenedor.appendChild(card);
+    });
+  }
 
-        card.appendChild(header);
-        card.appendChild(body);
-        contenedor.appendChild(card);
-      });
-    }
-
-    // ==========================================
-    //   IMPRIMIR REPORTE
-    // ==========================================
-    function imprimirReporte(tablaHTML, rep, factura) {
-      const ventana = window.open("", "_blank");
-
-      let notasHTML = "";
-      rep.notasLista.forEach(n => {
-        notasHTML += `
-          <p><strong>Nota:</strong> ${n.nota || ""}</p>
-          <p><strong>Folio:</strong> ${n.folio || ""}</p>
-          <p><strong>Total:</strong> $${Number(n.totalVenta).toFixed(2)}</p>
-          <hr>
-        `;
-      });
-
-      ventana.document.write(`
-        <html><head><title>Imprimir Reporte</title>
-        <style>
-          body { font-family: Arial; margin: 20px; color: #111; }
-          h1 { text-align: center; color: #00416A; }
-          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-          th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-          th { background: #00416A; color: white; }
-          .total { font-weight: bold; margin: 10px 0; text-align: right; }
-        </style>
-        </head><body>
-
-        <h1>Reporte de Venta ${rep.fecha}</h1>
-
-        <p><strong>Ruta:</strong> ${rep.ruta}</p>
-        <p><strong>Vendedor:</strong> ${rep.vendedor}</p>
-
-        ${notasHTML}
-
-        <p><strong>No. Factura:</strong> ${factura}</p>
-
-        <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
-
-        ${tablaHTML}
-
-        <div class="total">Total General: $${rep.totalGeneral.toFixed(2)}</div>
-
-        </body></html>
-      `);
-
-      ventana.document.close();
-      ventana.print();
-    }
-
-    window.onload = cargarVentas;
-  </script>
+  window.onload = cargarVentas;
+</script>
 
   <style>
     body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
