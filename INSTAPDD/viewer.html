@@ -132,6 +132,22 @@ select {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+/* Check para ocultar */
+.hide-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  z-index: 5;
+  transform: scale(1.3);
+  display: none;
+}
+
+.hidden-item {
+  display: none !important;
+}
 
 </style>
 </head>
@@ -142,7 +158,25 @@ select {
   <select id="relationFilter">
     <option value="">🔎 Filtrar por relación</option>
   </select>
+
+  <!-- BOTÓN PARA ACTIVAR MODO OCULTAR -->
+  <button id="toggleHideMode" style="
+    width:100%;padding:10px;margin-top:10px;
+    background:#444;color:white;border:none;border-radius:6px;font-size:14px;
+  ">
+    👁️ Modo Ocultar/Mostrar
+  </button>
+
+  <!-- BOTÓN PARA DESOCULTAR TODO -->
+  <button id="showAllBtn" style="
+    width:100%;padding:10px;margin-top:10px;
+    background:#0c6cbd;color:white;border:none;border-radius:6px;
+    font-size:14px;display:none;
+  ">
+    🔄 Mostrar TODO lo oculto
+  </button>
 </div>
+
 
 <div id="gallery" class="grid"></div>
 
@@ -235,7 +269,8 @@ if (item.relation && item.relation.toUpperCase().includes("PAGO")) {
 
   div.className = "grid-item " + extraClass;
 
-  div.innerHTML = `
+div.innerHTML = `
+      <input type="checkbox" class="hide-check" onchange="toggleItem(this)">
       <img src="${url}" onclick="downloadImage('${url}')">
 
       <div class="info-hover">
@@ -284,6 +319,41 @@ window.onscroll = () => {
 
 loadRelations();
 loadMore();
+function toggleItem(check) {
+  const card = check.closest(".grid-item");
+
+  if (check.checked) {
+    card.classList.add("hidden-item");
+  } else {
+    card.classList.remove("hidden-item");
+  }
+}
+let hideMode = false;
+
+document.getElementById("toggleHideMode").onclick = () => {
+  hideMode = !hideMode;
+
+  document.querySelectorAll(".hide-check").forEach(ch => {
+    ch.style.display = hideMode ? "block" : "none";
+  });
+
+  document.getElementById("toggleHideMode").textContent =
+    hideMode ? "👁️‍🗨️ Salir del modo ocultar" : "👁️ Modo Ocultar/Mostrar";
+
+  document.getElementById("showAllBtn").style.display =
+    hideMode ? "block" : "none";
+};
+
+document.getElementById("showAllBtn").onclick = () => {
+  document.querySelectorAll(".hidden-item").forEach(el => {
+    el.classList.remove("hidden-item");
+    const check = el.querySelector(".hide-check");
+    if (check) check.checked = false;
+  });
+
+  alert("✔ Todas las imágenes han sido desocultadas");
+};
+
 </script>
 
 </body>
