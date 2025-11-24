@@ -48,7 +48,7 @@
       const folio = data.folio || "";
 
       let totalVenta = 0;
-      if (data.resumen_financiero && data.resumen_financiero.total != null) {
+      if (data.resumen_financiero?.total != null) {
         totalVenta = Number(data.resumen_financiero.total);
       }
 
@@ -79,12 +79,10 @@
         });
       }
 
-      // productos
       data.detalle.forEach(item => {
         const codigo = item.codigo || item.id || "";
         const nombre = item.nombre || "SIN NOMBRE";
         const cantidad = Number(item.cantidad) || 0;
-
         const precioUnit =
           item.precio_unit ??
           item.precioUnit ??
@@ -119,38 +117,34 @@
   // =====================================================
   // MODAL FUNCTIONS
   // =====================================================
-function cerrarModal() {
-  document.getElementById("modalVenta").style.display = "none";
-}
-
-
-  function mostrarModal(html) {
-    document.getElementById("detalleVentaContenido").innerHTML = html;
-    document.getElementById("modalVenta").style.display = "flex";
+  function cerrarModal() {
+    document.getElementById("modalVenta").style.display = "none";
   }
 
   // =====================================================
   // ABRIR DETALLE VENTA EN MODAL
   // =====================================================
-async function abrirDetalleVenta(id) {
-  const ref = doc(db, "ventas_rutav2", id);
-  const snap = await getDoc(ref);
+  async function abrirDetalleVenta(id) {
 
-  if (!snap.exists()) {
-    alert("No se encontró la venta.");
-    return;
-  }
+    const ref = doc(db, "ventas_rutav2", id);
+    const snap = await getDoc(ref);
 
-  const data = snap.data();
+    if (!snap.exists()) {
+      alert("No se encontró la venta.");
+      return;
+    }
 
-  document.getElementById("modalVenta").style.display = "flex";
+    const data = snap.data();
 
-  const cont = document.getElementById("detalleVentaContenido");
-  cont.innerHTML = `
+    const cont = document.getElementById("detalleVentaContenido");
+
+    cont.innerHTML = `
+      <span class="cerrar-modal" id="cerrarX">✖</span>
+
       <h2>Detalle de Venta</h2>
-      <p><strong>Folio:</strong> ${data.folio || ""}</p>
-      <p><strong>Fecha:</strong> ${data.fecha_txt || ""}</p>
-      <p><strong>Nota:</strong> ${data.notas || ""}</p>
+      <p><strong>Folio:</strong> ${data.folio}</p>
+      <p><strong>Fecha:</strong> ${data.fecha_txt}</p>
+      <p><strong>Nota:</strong> ${data.notas}</p>
       <p><strong>Total:</strong> $${data.resumen_financiero?.total || 0}</p>
 
       <table>
@@ -164,27 +158,31 @@ async function abrirDetalleVenta(id) {
           </tr>
         </thead>
         <tbody>
-          ${
-            data.detalle.map(p => `
-              <tr>
-                <td>${p.codigo}</td>
-                <td>${p.nombre}</td>
-                <td>${p.cantidad}</td>
-                <td>$${p.precio_unit}</td>
-                <td>$${p.importe}</td>
-              </tr>
-            `).join("")
-          }
+          ${data.detalle
+            .map(
+              p => `
+          <tr>
+            <td>${p.codigo}</td>
+            <td>${p.nombre}</td>
+            <td>${p.cantidad}</td>
+            <td>$${p.precio_unit}</td>
+            <td>$${p.importe}</td>
+          </tr>`
+            )
+            .join("")}
         </tbody>
       </table>
-  `;
-}   // ← ← ESTA LLAVE ES OBLIGATORIA
+    `;
 
+    document.getElementById("modalVenta").style.display = "flex";
 
-// =====================================================
-// MOSTRAR REPORTES
-// =====================================================
-function mostrarReportes(reportes) {
+    document.getElementById("cerrarX").onclick = cerrarModal;  
+  }
+
+  // =====================================================
+  // MOSTRAR REPORTES
+  // =====================================================
+  function mostrarReportes(reportes) {
     const contenedor = document.getElementById("reportes");
     contenedor.innerHTML = "";
 
@@ -210,80 +208,26 @@ function mostrarReportes(reportes) {
       body.className = "card-body";
       body.style.display = "none";
 
-      // NOTAS CLICKABLES
-      if (rep.notasLista.length > 0) {
-        rep.notasLista.forEach(n => {
-          const box = document.createElement("div");
-          box.className = "nota-box";
-          box.innerHTML = `
-            <div class="nota-click">
-              <strong>Nota:</strong> ${n.nota}<br>
-              <strong>Folio:</strong> ${n.folio}<br>
-              <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
-            </div>
-          `;
-          box.style.cursor = "pointer";
-          box.onclick = () => abrirDetalleVenta(n.ventaId);
-          body.appendChild(box);
-        });
-      }
+      rep.notasLista.forEach(n => {
+        const box = document.createElement("div");
+        box.className = "nota-box";
+        box.innerHTML = `
+          <strong>Nota:</strong> ${n.nota}<br>
+          <strong>Folio:</strong> ${n.folio}<br>
+          <strong>Total:</strong> $${n.totalVenta.toFixed(2)}
+        `;
 
-      // TABLA
+        box.style.cursor = "pointer";
+        box.onclick = () => abrirDetalleVenta(n.ventaId);
+
+        body.appendChild(box);
+      });
+
       const totalTop = document.createElement("div");
       totalTop.className = "total-box";
       totalTop.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
 
-      const tabla = document.createElement("table");
-      tabla.innerHTML = `
-        <thead>
-          <tr>
-            <th>Código</th>
-            <th>Producto</th>
-            <th>Cantidad</th>
-            <th>Precio Unitario</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      `;
-
-      const tbody = tabla.querySelector("tbody");
-      for (const [codigo, info] of Object.entries(rep.productos)) {
-        const fila = document.createElement("tr");
-        fila.innerHTML = `
-          <td>${codigo}</td>
-          <td>${info.nombre}</td>
-          <td>${info.cantidad}</td>
-          <td>$${info.precioUnit.toFixed(2)}</td>
-          <td>$${info.total.toFixed(2)}</td>
-        `;
-        tbody.appendChild(fila);
-      }
-
-      const totalBottom = document.createElement("div");
-      totalBottom.className = "total-box";
-      totalBottom.innerHTML = `<strong>Total General: $${rep.totalGeneral.toFixed(2)}</strong>`;
-
-      // guardar factura
-      const botonGuardar = document.createElement("button");
-      botonGuardar.textContent = "💾 Guardar Factura";
-      botonGuardar.onclick = async () => {
-        const factura = card.querySelector(".factura-input").value.trim();
-        if (!factura) return alert("Ingrese un número de factura.");
-
-        for (const id of rep.docsIds) {
-          await updateDoc(doc(db, "ventas_rutav2", id), { factura });
-        }
-
-        card.classList.remove("sin-factura");
-        alert("Factura guardada.");
-      };
-
-      // ensamblar
       body.appendChild(totalTop);
-      body.appendChild(tabla);
-      body.appendChild(totalBottom);
-      body.appendChild(botonGuardar);
 
       header.onclick = () => {
         body.style.display = body.style.display === "none" ? "block" : "none";
@@ -299,128 +243,49 @@ function mostrarReportes(reportes) {
 </script>
 
 <style>
-body { font-family: 'Poppins', sans-serif; background: #eef1f5; margin: 20px; color: #111; }
-h1 { text-align: center; color: #003366; margin-bottom: 20px; }
+  body{font-family:Poppins;background:#eef1f5;margin:20px;color:#111}
+  h1{text-align:center;color:#003366;margin-bottom:20px}
 
-.card {
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  margin: 20px auto;
-  width: 90%;
-  max-width: 1000px;
-  overflow: hidden;
-  transition: 0.3s;
-}
+  .card{background:#fff;border-radius:14px;box-shadow:0 4px 10px rgba(0,0,0,0.1);
+        margin:20px auto;width:90%;max-width:1000px;overflow:hidden}
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #00416A;
-  color: #fff;
-  padding: 15px 20px;
-}
+  .card-header{display:flex;justify-content:space-between;align-items:center;
+               background:#00416A;color:#fff;padding:15px 20px;cursor:pointer}
 
-.card-body { padding: 15px; background: #fafafa; }
+  .card-body{padding:15px;background:#fafafa}
 
-table { width: 100%; border-collapse: collapse; margin-top: 10px; background: #fff; }
-th, td { padding: 8px 10px; border-bottom: 1px solid #ddd; text-align:center; }
-th { background: #003366; color: white; }
+  .nota-box{background:#fff3cd;color:#7a5a00;padding:12px;margin:10px 0;border-left:4px solid #ffc107}
 
-.nota-box {
-  background: #fff3cd;
-  color: #7a5a00;
-  padding: 12px;
-  margin: 10px 0;
-  border-left: 4px solid #ffc107;
-}
+  .modal-venta{
+    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.6);justify-content:center;align-items:center;
+    z-index:10000;
+  }
 
-button {
-  margin: 10px 0;
-  padding: 8px 15px;
-  background: #00416A;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
+  .modal-contenido{
+    background:white;padding:20px;border-radius:10px;
+    width:90%;max-width:800px;max-height:85vh;overflow:auto;
+    position:relative;
+  }
 
-.total-box {
-  text-align: right;
-  margin: 5px 0;
-  font-weight: bold;
-  color: #00416A;
-}
-
-.sin-factura {
-  animation: glow 1.5s infinite;
-}
-
-@keyframes glow {
-  0%,100% { box-shadow: 0 0 10px red; }
-  50% { box-shadow: 0 0 20px rgba(255,0,0,0.3); }
-}
-
-/* 🔹 MODAL */
-.modal-venta {
-  display: none;
-  position: fixed;
-  z-index: 9999;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(3px);
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-contenido {
-  background: white;
-  padding: 20px;
-  width: 90%;
-  max-width: 700px;
-  border-radius: 12px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.2);
-  animation: fadeIn 0.25s ease;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-.cerrar-modal {
-  float: right;
-  font-size: 22px;
-  font-weight: bold;
-  cursor: pointer;
-  color: #00416A;
-}
-
-.cerrar-modal:hover {
-  color: red;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-  
+  .cerrar-modal{
+    position:absolute;top:10px;right:15px;font-size:24px;font-weight:bold;
+    cursor:pointer;color:#00416A;
+  }
+  .cerrar-modal:hover{color:red}
 </style>
 </head>
 
 <body>
-  <h1>Reportes de Ventas Cortadas</h1>
-  <div id="reportes"></div>
 
-  <!-- 🟦 MODAL -->
-  <div id="modalVenta" class="modal-venta">
-    <div class="modal-contenido">
-      <span class="cerrar-modal" onclick="cerrarModal()">✖</span>
-      <div id="detalleVentaContenido"></div>
-    </div>
+<h1>Reportes de Ventas Cortadas</h1>
+<div id="reportes"></div>
+
+<div id="modalVenta" class="modal-venta">
+  <div class="modal-contenido">
+    <div id="detalleVentaContenido"></div>
   </div>
+</div>
 
 </body>
 </html>
