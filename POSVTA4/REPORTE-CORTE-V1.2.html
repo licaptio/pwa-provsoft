@@ -119,9 +119,10 @@
   // =====================================================
   // MODAL FUNCTIONS
   // =====================================================
-  function cerrarModal() {
-    document.getElementById("modalVenta").style.display = "none";
-  }
+function cerrarModal() {
+  document.getElementById("modalVenta").style.display = "none";
+}
+
 
   function mostrarModal(html) {
     document.getElementById("detalleVentaContenido").innerHTML = html;
@@ -131,29 +132,32 @@
   // =====================================================
   // ABRIR DETALLE VENTA EN MODAL
   // =====================================================
-  async function abrirDetalleVenta(id) {
+async function abrirDetalleVenta(id) {
+  const ref = doc(db, "ventas_rutav2", id);
+  const snap = await getDoc(ref);
 
-    const ref = doc(db, "ventas_rutav2", id);
-    const snap = await getDoc(ref);
+  if (!snap.exists()) {
+    alert("No se encontró la venta.");
+    return;
+  }
 
-    if (!snap.exists()) {
-      alert("No se encontró la venta.");
-      return;
-    }
+  const data = snap.data();
 
-    const data = snap.data();
+  // Mostrar modal correcto
+  document.getElementById("modalVenta").style.display = "flex";
 
-    const html = `
-      <h2 style="color:#00416A">Detalle de Venta</h2>
+  const cont = document.getElementById("detalleVentaContenido");
+  cont.innerHTML = `
+      <h2>Detalle de Venta</h2>
 
       <p><strong>Folio:</strong> ${data.folio || ""}</p>
       <p><strong>Fecha:</strong> ${data.fecha_txt || ""}</p>
       <p><strong>Nota:</strong> ${data.notas || ""}</p>
-      <p><strong>Total:</strong> $${Number(data.resumen_financiero?.total || 0).toFixed(2)}</p>
+      <p><strong>Total:</strong> $${data.resumen_financiero?.total || 0}</p>
 
-      <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+      <table>
         <thead>
-          <tr style="background:#00416A; color:white;">
+          <tr>
             <th>Código</th>
             <th>Producto</th>
             <th>Cantidad</th>
@@ -168,17 +172,15 @@
                 <td>${p.codigo}</td>
                 <td>${p.nombre}</td>
                 <td>${p.cantidad}</td>
-                <td>$${Number(p.precio_unit).toFixed(2)}</td>
-                <td>$${Number(p.importe).toFixed(2)}</td>
+                <td>$${p.precio_unit}</td>
+                <td>$${p.importe}</td>
               </tr>
             `).join("")
           }
         </tbody>
       </table>
-    `;
-
-    mostrarModal(html);
-  }
+  `;
+}
 
   // =====================================================
   // MOSTRAR REPORTES
@@ -405,6 +407,7 @@ button {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+  
 </style>
 </head>
 
