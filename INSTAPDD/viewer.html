@@ -207,6 +207,10 @@ const supabase = window.supabase.createClient(
 let page = 0;
 const limit = 30;
 let loading = false;
+// ============================
+// Guardar imágenes ocultas
+// ============================
+let hiddenImages = JSON.parse(localStorage.getItem("hiddenImages") || "[]");
 
 /* ===============================
    CARGAR RELACIONES
@@ -270,6 +274,14 @@ function addImage(item) {
   const fecha = new Date(item.created_at).toLocaleString();
 
   const div = document.createElement("div");
+div.dataset.id = item.id;
+
+// Ver si esta imagen estaba oculta
+const shouldHide = hiddenImages.includes(item.id);
+
+if (shouldHide) {
+  div.classList.add("hidden-item");
+}
 
   let extraClass = "";
 
@@ -287,7 +299,7 @@ if (item.relation && item.relation.toUpperCase().includes("PAGO")) {
   div.className = "grid-item " + extraClass;
 
 div.innerHTML = `
-      <input type="checkbox" class="hide-check" onchange="toggleItem(this)">
+      <input type="checkbox" class="hide-check" onchange="toggleItem(this)" ${shouldHide ? "checked" : ""}>
       <img src="${url}" onclick="downloadImage('${url}')">
 
       <div class="info-hover">
@@ -338,13 +350,26 @@ loadRelations();
 loadMore();
 function toggleItem(check) {
   const card = check.closest(".grid-item");
+  const id = card.dataset.id; // <-- ID único del item
 
   if (check.checked) {
     card.classList.add("hidden-item");
+
+    // Guardar ID en localStorage
+    if (!hiddenImages.includes(id)) {
+      hiddenImages.push(id);
+      localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
+    }
+
   } else {
     card.classList.remove("hidden-item");
+
+    // Quitar ID de localStorage
+    hiddenImages = hiddenImages.filter(x => x !== id);
+    localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
   }
 }
+
 let hideMode = false;
 
 document.getElementById("toggleHideMode").onclick = () => {
