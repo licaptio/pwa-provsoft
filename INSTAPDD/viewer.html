@@ -148,6 +148,24 @@ select {
 .hidden-item {
   display: none !important;
 }
+.hide-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 5;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  appearance: none;   /* ESTO ES LA CLAVE */
+  display: none;
+  border: 2px solid white;
+  background: rgba(255,255,255,0.7);
+  border-radius: 4px;
+}
+.hide-check:checked {
+  background: #444;
+}
 
 </style>
 </head>
