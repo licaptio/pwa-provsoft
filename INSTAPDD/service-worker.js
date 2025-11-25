@@ -1,4 +1,4 @@
-const CACHE_NAME = "instapdd-cache-v1";
+const CACHE_NAME = "instapdd-cache-v2";  // <-- sube versión para forzar actualización
 
 const FILES_TO_CACHE = [
   "./",
@@ -13,6 +13,7 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(FILES_TO_CACHE))
   );
+  self.skipWaiting(); // <-- fuerza a reemplazar el SW sin esperar
 });
 
 // ACTIVACIÓN
@@ -26,6 +27,7 @@ self.addEventListener("activate", (event) => {
       )
     )
   );
+  clients.claim(); // <-- activa inmediatamente
 });
 
 // RESPONDER PETICIONES
@@ -33,7 +35,4 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then(resp => resp || fetch(event.request))
   );
-});
-self.addEventListener('activate', event => {
-  event.waitUntil(clients.claim());
 });
