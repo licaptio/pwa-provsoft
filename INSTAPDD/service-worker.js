@@ -1,4 +1,4 @@
-const CACHE_NAME = "instapdd-cache-v2";
+const CACHE_NAME = "instapdd-cache-v1";
 
 const FILES_TO_CACHE = [
   "./",
@@ -33,4 +33,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     caches.match(event.request).then(resp => resp || fetch(event.request))
   );
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(clients.claim());
 });
