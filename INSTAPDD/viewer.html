@@ -50,23 +50,13 @@ select {
   padding: 3px;
 }
 
-
-/* Cada item debe ser cuadrado IG */
-.grid-item {
-  position: relative;
-  aspect-ratio: 1/1;    /* CUADRADO REAL */
-  overflow: hidden;
-  border-radius: 3px;
-  background: #eee;
-  cursor: pointer;
-}
-
-/* Imagen IG */
 .grid-item img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;    /* IG style */
-  display: block;
+  object-fit: cover;
 }
 
 /* Hover de información */
