@@ -141,20 +141,30 @@ select {
   position: absolute;
   top: 6px;
   left: 6px;
-  z-index: 5;
-  width: 20px;
-  height: 20px;
-  margin: 0;
-  padding: 0;
-  appearance: none;   /* ESTO ES LA CLAVE */
+  z-index: 10;
+  width: 22px;
+  height: 22px;
+  appearance: none;
   display: none;
+  border-radius: 6px;
+
+  /* 🔥 FONDO OSCURO QUE SE VE EN CUALQUIER IMAGEN */
+  background: rgba(0,0,0,0.55);
+
+  /* BORDE BLANCO FIRME */
   border: 2px solid white;
-  background: rgba(255,255,255,0.7);
-  border-radius: 4px;
+
+  /* SOMBRA PARA SEPARARSE DE LA FOTO */
+  box-shadow: 0 0 4px rgba(0,0,0,0.7);
+
+  cursor: pointer;
 }
+
 .hide-check:checked {
-  background: #444;
+  background: #00c853; /* VERDE DE SELECCIÓN */
+  border-color: white;
 }
+
 
 </style>
 </head>
