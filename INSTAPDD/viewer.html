@@ -164,6 +164,17 @@ select {
   background: #00c853; /* VERDE DE SELECCIÓN */
   border-color: white;
 }
+/* 🔥 ALERTA RECLAMACIÓN – NEÓN TURQUESA */
+.alert-reclamacion {
+  border: 3px solid #00e5ff !important;
+  animation: blink-reclamacion 0.9s infinite !important;
+}
+
+@keyframes blink-reclamacion {
+  0%   { box-shadow: 0 0 10px #00e5ff; }
+  50%  { box-shadow: 0 0 28px #72faff; }
+  100% { box-shadow: 0 0 10px #00e5ff; }
+}
 
 
 </style>
@@ -297,6 +308,11 @@ if (item.relation && item.relation.toUpperCase() === "SERGIO AGUAYO") {
 // 🟣 Pago (morado parpadeante)
 if (item.relation && item.relation.toUpperCase().includes("PAGO")) {
   extraClass = "alert-pago";
+}
+
+
+if (item.relation && item.relation.toUpperCase().includes("RECLAMACION")) {
+  extraClass = "alert-reclamacion";
 }
 
 
