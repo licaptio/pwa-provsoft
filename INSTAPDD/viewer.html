@@ -291,7 +291,7 @@ function addImage(item) {
 div.dataset.id = item.id;
 
 // Ver si esta imagen estaba oculta
-const shouldHide = hiddenImages.includes(item.id);
+const shouldHide = hiddenImages.includes(String(item.id));
 
 if (shouldHide) {
   div.classList.add("hidden-item");
@@ -374,17 +374,15 @@ function toggleItem(check) {
   if (check.checked) {
     card.classList.add("hidden-item");
 
-    // Guardar ID en localStorage
-    if (!hiddenImages.includes(id)) {
-      hiddenImages.push(id);
-      localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
-    }
-
+if (!hiddenImages.includes(String(id))) {
+  hiddenImages.push(String(id));
+  localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
+}
   } else {
     card.classList.remove("hidden-item");
 
     // Quitar ID de localStorage
-    hiddenImages = hiddenImages.filter(x => x !== id);
+    hiddenImages = hiddenImages.filter(x => x !== String(id));
     localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
   }
 }
@@ -411,6 +409,10 @@ document.getElementById("showAllBtn").onclick = () => {
     const check = el.querySelector(".hide-check");
     if (check) check.checked = false;
   });
+
+  // 🔥 LIMPIAR LOCALSTORAGE para mantenerlas visibles después del refresh
+  hiddenImages = [];
+  localStorage.setItem("hiddenImages", "[]");
 
   alert("✔ Todas las imágenes han sido desocultadas");
 };
