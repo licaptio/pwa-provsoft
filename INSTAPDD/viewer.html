@@ -258,10 +258,12 @@ async function loadMore(reset = false) {
   const start = page * limit;
   const end = start + limit - 1;
 
-  let q = supabase.from("bookit_entries")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .range(start, end);
+let q = supabase.from("bookit_entries")
+  .select("*")
+  .eq("hidden", false) // 🔥 solo mostrar imágenes no ocultas
+  .order("created_at", { ascending: false })
+  .range(start, end);
+  
 
   const rel = document.getElementById("relationFilter").value;
   if (rel) q = q.eq("relation", rel);
@@ -374,16 +376,17 @@ function toggleItem(check) {
   if (check.checked) {
     card.classList.add("hidden-item");
 
-if (!hiddenImages.includes(String(id))) {
-  hiddenImages.push(String(id));
-  localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
-}
+await supabase.from("bookit_entries")
+  .update({ hidden: true })
+  .eq("id", id);
+
   } else {
     card.classList.remove("hidden-item");
 
     // Quitar ID de localStorage
-    hiddenImages = hiddenImages.filter(x => x !== String(id));
-    localStorage.setItem("hiddenImages", JSON.stringify(hiddenImages));
+await supabase.from("bookit_entries")
+  .update({ hidden: false })
+  .eq("id", id);
   }
 }
 
@@ -403,18 +406,25 @@ document.getElementById("toggleHideMode").onclick = () => {
     hideMode ? "block" : "none";
 };
 
-document.getElementById("showAllBtn").onclick = () => {
+document.getElementById("showAllBtn").onclick = async () => {
+
+  // 🔥 Actualizar TODAS en Supabase (quitar oculto)
+  await supabase
+    .from("bookit_entries")
+    .update({ hidden: false })
+    .eq("hidden", true);
+
+  // 🔥 Quitar la clase visual de los elementos
   document.querySelectorAll(".hidden-item").forEach(el => {
     el.classList.remove("hidden-item");
     const check = el.querySelector(".hide-check");
     if (check) check.checked = false;
   });
 
-  // 🔥 LIMPIAR LOCALSTORAGE para mantenerlas visibles después del refresh
-  hiddenImages = [];
-  localStorage.setItem("hiddenImages", "[]");
-
   alert("✔ Todas las imágenes han sido desocultadas");
+
+  // 🔥 Recargar galería ya limpia
+  loadMore(true);
 };
 
 </script>
