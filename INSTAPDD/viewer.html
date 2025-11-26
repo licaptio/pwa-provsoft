@@ -220,7 +220,7 @@ let loading = false;
 // ============================
 // Guardar imágenes ocultas
 // ============================
-let hiddenImages = JSON.parse(localStorage.getItem("hiddenImages") || "[]");
+
 
 /* ===============================
    CARGAR RELACIONES
@@ -292,13 +292,6 @@ function addImage(item) {
   const div = document.createElement("div");
 div.dataset.id = item.id;
 
-// Ver si esta imagen estaba oculta
-const shouldHide = hiddenImages.includes(String(item.id));
-
-if (shouldHide) {
-  div.classList.add("hidden-item");
-}
-
   let extraClass = "";
 
 // 🔴 Sergio Aguayo (rojo parpadeante)
@@ -320,7 +313,7 @@ if (item.relation && item.relation.toUpperCase().includes("RECLAMACION")) {
   div.className = "grid-item " + extraClass;
 
 div.innerHTML = `
-      <input type="checkbox" class="hide-check" onchange="toggleItem(this)" ${shouldHide ? "checked" : ""}>
+<input type="checkbox" class="hide-check" onchange="toggleItem(this)">
       <img src="${url}" onclick="downloadImage('${url}')">
 
       <div class="info-hover">
