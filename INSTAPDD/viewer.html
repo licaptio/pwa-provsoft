@@ -362,7 +362,7 @@ window.onscroll = () => {
 
 loadRelations();
 loadMore();
-function toggleItem(check) {
+async function toggleItem(check) {
   const card = check.closest(".grid-item");
   const id = card.dataset.id; // <-- ID único del item
 
