@@ -218,7 +218,11 @@ let hiddenImages = JSON.parse(localStorage.getItem("hiddenImages") || "[]");
 async function loadRelations() {
   const { data } = await supabase.from("bookit_entries").select("relation");
 
-  const relations = [...new Set(data.map(r => r.relation).filter(Boolean))];
+  const relations = [...new Set(data
+  .map(r => r.relation)
+  .filter(Boolean)
+)].sort((a, b) => a.localeCompare(b, "es")); 
+
   const sel = document.getElementById("relationFilter");
 
   relations.forEach(rel => {
