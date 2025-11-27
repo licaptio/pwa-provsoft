@@ -154,7 +154,39 @@ select {
   50% { box-shadow: 0 0 32px #fffb7a; }
   100% { box-shadow: 0 0 10px #fff200; }
 }
+/* 🔥 Ocultar visualmente cuando está hidden */
+.hidden-item {
+  opacity: 0.35;
+  filter: grayscale(100%);
+}
+/* 🔥 CHECKBOX PARA OCULTAR */
+.hide-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 26px;
+  height: 26px;
+  display: none;
+  z-index: 20;
 
+  /* Fondo oscuro visible sobre cualquier imagen */
+  background: rgba(0, 0, 0, 0.55);
+
+  /* Bordes y forma */
+  border: 2px solid white;
+  border-radius: 6px;
+
+  /* Sombras */
+  box-shadow: 0 0 4px rgba(0,0,0,0.8);
+
+  cursor: pointer;
+}
+
+.hide-check:checked {
+  background: #00c853; /* verde selección */
+  border-color: white;
+}
+  
 </style>
 </head>
 
