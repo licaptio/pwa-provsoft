@@ -243,6 +243,45 @@ async function loadMore(reset = false) {
   page++;
   loading = false;
 }
+/* 🔥 MODO OCULTAR / MOSTRAR */
+let hideMode = false;
+
+document.getElementById("toggleHideMode").onclick = () => {
+  hideMode = !hideMode;
+
+  document.querySelectorAll(".hide-check").forEach(ch => {
+    if (hideMode) {
+      ch.style.setProperty("display", "block", "important");
+    } else {
+      ch.style.setProperty("display", "none", "important");
+      ch.checked = false;
+    }
+  });
+
+  document.getElementById("toggleHideMode").textContent =
+    hideMode ? "👁️‍🗨️ Salir del modo ocultar" : "👁️ Modo Ocultar/Mostrar";
+
+  // Mostrar botón desocultar
+  document.getElementById("showAllBtn").style.display =
+    hideMode ? "block" : "none";
+};
+
+/* 🔥 DESOCULTAR TODO */
+document.getElementById("showAllBtn").onclick = async () => {
+
+  await supabase.from("bookit_entries")
+    .update({ hidden: false })
+    .eq("hidden", true);
+
+  document.querySelectorAll(".hidden-item").forEach(el => {
+    el.classList.remove("hidden-item");
+    const check = el.querySelector(".hide-check");
+    if (check) check.checked = false;
+  });
+
+  alert("✔ Todas las imágenes han sido desocultadas");
+  loadMore(true);
+};
 
 /* AGREGAR IMAGEN */
 function addImage(item) {
@@ -328,6 +367,23 @@ async function deleteImage(id, path, ev) {
   alert("✔ Imagen eliminada");
   loadMore(true);
 }
+/* 🔥 OCULTAR / MOSTRAR ITEM (GUARDA EN SUPABASE) */
+async function toggleItem(check) {
+  const card = check.closest(".grid-item");
+  const id = card.dataset.id;
+
+  if (check.checked) {
+    card.classList.add("hidden-item");
+    await supabase.from("bookit_entries")
+      .update({ hidden: true })
+      .eq("id", id);
+  } else {
+    card.classList.remove("hidden-item");
+    await supabase.from("bookit_entries")
+      .update({ hidden: false })
+      .eq("id", id);
+  }
+}
 
 /* EVENTOS */
 relationFilter.onchange = () => loadMore(true);
@@ -340,6 +396,7 @@ window.onscroll = () => {
 
 loadRelations();
 loadMore();
+
 </script>
 </body>
 </html>
