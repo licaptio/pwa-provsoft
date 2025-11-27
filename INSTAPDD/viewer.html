@@ -41,12 +41,19 @@ select {
   font-size: 14px;
   margin: 0;
 }
-/* GRID 3 COLUMNAS TIPO INSTAGRAM */
+/* GRID RESPONSIVO TIPO INSTAGRAM */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr); /* 💻 3 columnas en PC */
   gap: 3px;
   padding: 3px;
+}
+
+/* 📱 Celular: solo 2 columnas */
+@media (max-width: 600px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 /* CUADRO PERFECTO 1:1 */
