@@ -45,22 +45,20 @@ select {
 /* ===== GRID IG ===== */
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* siempre 3 columnas */
-  gap: 3px;             /* separación tipo instagram */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
   padding: 3px;
 }
-/* Cada item debe ser cuadrado IG REAL */
 .grid-item {
   position: relative;
   width: 100%;
-  padding-top: 100%; /* 🔥 CREA EL CUADRADO PERFECTO */
+  padding-top: 100%;
   overflow: hidden;
   border-radius: 3px;
   background: #eee;
   cursor: pointer;
   box-sizing: border-box;
 }
-
 .grid-item img {
   position: absolute;
   top: 0;
@@ -70,7 +68,7 @@ select {
   object-fit: cover;
 }
 
-/* Hover de información */
+/* Hover info */
 .info-hover {
   position: absolute;
   bottom: 0;
@@ -106,7 +104,26 @@ select {
   opacity: 1;
 }
 
-/* ALERTAS IGUALES */
+/* 🔥 BOTÓN EDITAR */
+.edit-btn {
+  position: absolute;
+  top: 6px;
+  left: 40px;
+  background: rgba(0,0,0,0.7);
+  border: none;
+  padding: 4px 8px;
+  color: white;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: .2s;
+}
+.grid-item:hover .edit-btn {
+  opacity: 1;
+}
+
+/* Alertas */
 .alert-sergio {
   border: 3px solid red !important;
   animation: blink-sergio 1s infinite !important;
@@ -127,70 +144,15 @@ select {
   100% { box-shadow: 0 0 8px #7b00ff; }
 }
 
-/* ======== MÓVIL ======== */
-@media (max-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.hidden-item {
-  display: none !important;
-}
-.hide-check {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 10;
-  width: 22px;
-  height: 22px;
-  appearance: none;
-  display: none;
-  border-radius: 6px;
-
-  /* 🔥 FONDO OSCURO QUE SE VE EN CUALQUIER IMAGEN */
-  background: rgba(0,0,0,0.55);
-
-  /* BORDE BLANCO FIRME */
-  border: 2px solid white;
-
-  /* SOMBRA PARA SEPARARSE DE LA FOTO */
-  box-shadow: 0 0 4px rgba(0,0,0,0.7);
-
-  cursor: pointer;
-}
-
-.hide-check:checked {
-  background: #00c853; /* VERDE DE SELECCIÓN */
-  border-color: white;
-}
-/* 🔥 ALERTA RECLAMACIÓN – AMARILLO NEÓN */
+/* Reclamo */
 .alert-reclamacion {
-  border: 3px solid #fff200 !important; /* Amarillo neón */
+  border: 3px solid #fff200 !important;
   animation: blink-reclamacion 0.85s infinite !important;
 }
-
 @keyframes blink-reclamacion {
-  0%   { box-shadow: 0 0 10px #fff200; }
-  50%  { box-shadow: 0 0 32px #fffb7a; }
+  0% { box-shadow: 0 0 10px #fff200; }
+  50% { box-shadow: 0 0 32px #fffb7a; }
   100% { box-shadow: 0 0 10px #fff200; }
-}
-.edit-btn {
-  position: absolute;
-  top: 6px;
-  left: 40px;
-  background: rgba(0,0,0,0.7);
-  border: none;
-  padding: 4px 8px;
-  color: white;
-  border-radius: 3px;
-  font-size: 12px;
-  cursor: pointer;
-  opacity: 0;
-  transition: .2s;
-}
-.grid-item:hover .edit-btn {
-  opacity: 1;
 }
 
 </style>
@@ -203,7 +165,6 @@ select {
     <option value="">🔎 Filtrar por relación</option>
   </select>
 
-  <!-- BOTÓN PARA ACTIVAR MODO OCULTAR -->
   <button id="toggleHideMode" style="
     width:100%;padding:10px;margin-top:10px;
     background:#444;color:white;border:none;border-radius:6px;font-size:14px;
@@ -211,7 +172,6 @@ select {
     👁️ Modo Ocultar/Mostrar
   </button>
 
-  <!-- BOTÓN PARA DESOCULTAR TODO -->
   <button id="showAllBtn" style="
     width:100%;padding:10px;margin-top:10px;
     background:#0c6cbd;color:white;border:none;border-radius:6px;
@@ -221,34 +181,27 @@ select {
   </button>
 </div>
 
-
 <div id="gallery" class="grid"></div>
 
 <script>
-/* 🔑 SUPABASE */
+/* SUPABASE */
 const supabase = window.supabase.createClient(
   "https://cvpbtjlupswbyxenugpz.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
+  "PUBLIC KEY"
 );
 
 let page = 0;
 const limit = 30;
 let loading = false;
-// ============================
-// Guardar imágenes ocultas
-// ============================
 
-
-/* ===============================
-   CARGAR RELACIONES
-=============================== */
+/* CARGAR RELACIONES */
 async function loadRelations() {
   const { data } = await supabase.from("bookit_entries").select("relation");
 
   const relations = [...new Set(data
-  .map(r => r.relation)
-  .filter(Boolean)
-)].sort((a, b) => a.localeCompare(b, "es")); 
+    .map(r => r.relation)
+    .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "es"));
 
   const sel = document.getElementById("relationFilter");
 
@@ -260,9 +213,7 @@ async function loadRelations() {
   });
 }
 
-/* ===============================
-   CARGAR FOTOS
-=============================== */
+/* CARGAR FOTOS */
 async function loadMore(reset = false) {
   if (loading) return;
   loading = true;
@@ -275,13 +226,12 @@ async function loadMore(reset = false) {
   const start = page * limit;
   const end = start + limit - 1;
 
-let q = supabase.from("bookit_entries")
-  .select("*")
-  .eq("hidden", false) // 🔥 solo mostrar imágenes no ocultas
-  .order("updated_at", { ascending: false })
-.order("created_at", { ascending: false });
-  .range(start, end);
-  
+  let q = supabase.from("bookit_entries")
+    .select("*")
+    .eq("hidden", false)
+    🔥 .order("updated_at", { ascending: false })
+    🔥 .order("created_at", { ascending: false })
+    .range(start, end);
 
   const rel = document.getElementById("relationFilter").value;
   if (rel) q = q.eq("relation", rel);
@@ -294,9 +244,7 @@ let q = supabase.from("bookit_entries")
   loading = false;
 }
 
-/* ===============================
-   AGREGAR IMAGEN
-=============================== */
+/* AGREGAR IMAGEN */
 function addImage(item) {
   const gallery = document.getElementById("gallery");
 
@@ -308,45 +256,36 @@ function addImage(item) {
   const fecha = new Date(item.created_at).toLocaleString();
 
   const div = document.createElement("div");
-div.dataset.id = item.id;
+  div.dataset.id = item.id;
 
   let extraClass = "";
 
-// 🔴 Sergio Aguayo (rojo parpadeante)
-if (item.relation && item.relation.toUpperCase() === "SERGIO AGUAYO") {
-  extraClass = "alert-sergio";
-}
-
-// 🟣 Pago (morado parpadeante)
-if (item.relation && item.relation.toUpperCase().includes("PAGO")) {
-  extraClass = "alert-pago";
-}
-
-
-if (item.relation && item.relation.toUpperCase().includes("RECLAMACION")) {
-  extraClass = "alert-reclamacion";
-}
-
+  if (item.relation?.toUpperCase() === "SERGIO AGUAYO") extraClass = "alert-sergio";
+  if (item.relation?.toUpperCase().includes("PAGO")) extraClass = "alert-pago";
+  if (item.relation?.toUpperCase().includes("RECLAMACION")) extraClass = "alert-reclamacion";
 
   div.className = "grid-item " + extraClass;
 
-div.innerHTML = `
-<input type="checkbox" class="hide-check" onchange="toggleItem(this)">
-      <img src="${url}" onclick="downloadImage('${url}')">
+  div.innerHTML = `
+    <input type="checkbox" class="hide-check" onchange="toggleItem(this)">
+    <img src="${url}" onclick="downloadImage('${url}')">
 
-      <div class="info-hover">
-        <b>Nota:</b> ${item.caption || "-"}<br>
-        <b>Relación:</b> ${item.relation || "-"}<br>
-        <b>Fecha:</b> ${fecha}
-      </div>
+    <div class="info-hover">
+      <b>Nota:</b> ${item.caption || "-"}<br>
+      <b>Relación:</b> ${item.relation || "-"}<br>
+      <b>Fecha:</b> ${fecha}
+    </div>
 
-      <button class="delete-btn" onclick="deleteImage('${item.id}', '${item.image_url}', event)">X</button>
-      <button class="edit-btn" onclick="editImage('${item.id}', '${item.caption || ""}', '${item.relation || ""}', event)">✏️</button>
+    <button class="delete-btn" onclick="deleteImage('${item.id}', '${item.image_url}', event)">X</button>
+
+    <!-- 🔥 BOTÓN EDITAR -->
+    <button class="edit-btn" onclick="editImage('${item.id}', '${item.caption || ""}', '${item.relation || ""}', event)">✏️</button>
   `;
 
   gallery.appendChild(div);
 }
 
+/* DESCARGAR */
 function downloadImage(url) {
   const a = document.createElement("a");
   a.href = url;
@@ -354,19 +293,7 @@ function downloadImage(url) {
   a.click();
 }
 
-async function deleteImage(id, path, ev) {
-  ev.stopPropagation();
-
-  const pass = prompt("Contraseña para borrar:");
-
-  if (pass !== "1982") return alert("❌ Contraseña incorrecta");
-
-  await supabase.from("bookit_entries").delete().eq("id", id);
-  await supabase.storage.from("bookit").remove([path]);
-
-  alert("✔ Imagen eliminada");
-  loadMore(true);
-}
+/* 🔥 EDITAR ITEM */
 async function editImage(id, currentCaption, currentRelation, ev) {
   ev.stopPropagation();
 
@@ -376,24 +303,33 @@ async function editImage(id, currentCaption, currentRelation, ev) {
   const newRelation = prompt("🏷 Nueva relación:", currentRelation);
   if (newRelation === null) return;
 
-  // 🔥 Actualizar con timestamp automático
   await supabase.from("bookit_entries")
     .update({
       caption: newCaption,
       relation: newRelation,
-      updated_at: new Date()
+      updated_at: new Date()   // 🔥 marca de tiempo
     })
     .eq("id", id);
 
   alert("✔ Información actualizada");
-
-  // 🔥 Recargar galería desde cero (sube al top)
   loadMore(true);
 }
 
-/* ===============================
-   EVENTOS
-=============================== */
+/* BORRAR */
+async function deleteImage(id, path, ev) {
+  ev.stopPropagation();
+
+  const pass = prompt("Contraseña para borrar:");
+  if (pass !== "1982") return alert("❌ Contraseña incorrecta");
+
+  await supabase.from("bookit_entries").delete().eq("id", id);
+  await supabase.storage.from("bookit").remove([path]);
+
+  alert("✔ Imagen eliminada");
+  loadMore(true);
+}
+
+/* EVENTOS */
 relationFilter.onchange = () => loadMore(true);
 
 window.onscroll = () => {
@@ -404,64 +340,6 @@ window.onscroll = () => {
 
 loadRelations();
 loadMore();
-async function toggleItem(check) {
-  const card = check.closest(".grid-item");
-  const id = card.dataset.id; // <-- ID único del item
-
-  if (check.checked) {
-    card.classList.add("hidden-item");
-
-await supabase.from("bookit_entries")
-  .update({ hidden: true })
-  .eq("id", id);
-
-  } else {
-    card.classList.remove("hidden-item");
-
-    // Quitar ID de localStorage
-await supabase.from("bookit_entries")
-  .update({ hidden: false })
-  .eq("id", id);
-  }
-}
-
-let hideMode = false;
-
-document.getElementById("toggleHideMode").onclick = () => {
-  hideMode = !hideMode;
-
-  document.querySelectorAll(".hide-check").forEach(ch => {
-    ch.style.display = hideMode ? "block" : "none";
-  });
-
-  document.getElementById("toggleHideMode").textContent =
-    hideMode ? "👁️‍🗨️ Salir del modo ocultar" : "👁️ Modo Ocultar/Mostrar";
-
-  document.getElementById("showAllBtn").style.display =
-    hideMode ? "block" : "none";
-};
-
-document.getElementById("showAllBtn").onclick = async () => {
-
-  // 🔥 Actualizar TODAS en Supabase (quitar oculto)
-  await supabase
-    .from("bookit_entries")
-    .update({ hidden: false })
-    .eq("hidden", true);
-
-  // 🔥 Quitar la clase visual de los elementos
-  document.querySelectorAll(".hidden-item").forEach(el => {
-    el.classList.remove("hidden-item");
-    const check = el.querySelector(".hide-check");
-    if (check) check.checked = false;
-  });
-
-  alert("✔ Todas las imágenes han sido desocultadas");
-
-  // 🔥 Recargar galería ya limpia
-  loadMore(true);
-};
-
 </script>
 </body>
 </html>
