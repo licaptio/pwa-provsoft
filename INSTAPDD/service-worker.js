@@ -1,4 +1,4 @@
-const CACHE_NAME = "instapdd-cache-v6";  // <-- sube versión para forzar actualización
+const CACHE_NAME = "instapdd-cache-v7";  // <-- sube versión para forzar actualización
 
 const FILES_TO_CACHE = [
   "./",
