@@ -175,6 +175,23 @@ select {
   50%  { box-shadow: 0 0 32px #fffb7a; }
   100% { box-shadow: 0 0 10px #fff200; }
 }
+.edit-btn {
+  position: absolute;
+  top: 6px;
+  left: 40px;
+  background: rgba(0,0,0,0.7);
+  border: none;
+  padding: 4px 8px;
+  color: white;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: .2s;
+}
+.grid-item:hover .edit-btn {
+  opacity: 1;
+}
 
 </style>
 </head>
@@ -261,7 +278,8 @@ async function loadMore(reset = false) {
 let q = supabase.from("bookit_entries")
   .select("*")
   .eq("hidden", false) // 🔥 solo mostrar imágenes no ocultas
-  .order("created_at", { ascending: false })
+  .order("updated_at", { ascending: false })
+.order("created_at", { ascending: false });
   .range(start, end);
   
 
@@ -323,6 +341,7 @@ div.innerHTML = `
       </div>
 
       <button class="delete-btn" onclick="deleteImage('${item.id}', '${item.image_url}', event)">X</button>
+      <button class="edit-btn" onclick="editImage('${item.id}', '${item.caption || ""}', '${item.relation || ""}', event)">✏️</button>
   `;
 
   gallery.appendChild(div);
@@ -346,6 +365,29 @@ async function deleteImage(id, path, ev) {
   await supabase.storage.from("bookit").remove([path]);
 
   alert("✔ Imagen eliminada");
+  loadMore(true);
+}
+async function editImage(id, currentCaption, currentRelation, ev) {
+  ev.stopPropagation();
+
+  const newCaption = prompt("📝 Nuevo comentario:", currentCaption);
+  if (newCaption === null) return;
+
+  const newRelation = prompt("🏷 Nueva relación:", currentRelation);
+  if (newRelation === null) return;
+
+  // 🔥 Actualizar con timestamp automático
+  await supabase.from("bookit_entries")
+    .update({
+      caption: newCaption,
+      relation: newRelation,
+      updated_at: new Date()
+    })
+    .eq("id", id);
+
+  alert("✔ Información actualizada");
+
+  // 🔥 Recargar galería desde cero (sube al top)
   loadMore(true);
 }
 
