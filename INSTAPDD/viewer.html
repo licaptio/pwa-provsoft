@@ -229,8 +229,8 @@ async function loadMore(reset = false) {
   let q = supabase.from("bookit_entries")
     .select("*")
     .eq("hidden", false)
-    🔥 .order("updated_at", { ascending: false })
-    🔥 .order("created_at", { ascending: false })
+.order("updated_at", { ascending: false })
+.order("created_at", { ascending: false })
     .range(start, end);
 
   const rel = document.getElementById("relationFilter").value;
