@@ -42,33 +42,33 @@ select {
   margin: 0;
 }
 
+/* CUADRO PERFECTO 1:1 */
 .grid-item {
   position: relative;
   width: 100%;
-  padding-top: 100%; /* cuadrado perfecto */
+  padding-top: 100%; /* cuadrado */
   overflow: hidden;
   border-radius: 3px;
-  background: #eee;
+  background: black; /* 🔥 RELLENO NEGRO */
   box-sizing: border-box;
 }
 
-/* CONTENEDOR FIJO PARA TODA LA CAPA VISUAL */
+/* CONTENEDOR INTERNO */
 .grid-item .inner-content {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: black; /* 🔥 fondo negro también */
 }
 
-/* Imagen — nunca se deforma */
+/* IMAGEN COMPLETA SIN DESBORDARSE */
 .grid-item .inner-content img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain !important; /* 🔥 NO SE RECORTA */
+  background: black;
 }
 
 /* Hover info */
