@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Corte de Ruta – PROVSOFT Móvil</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #f5f7fa;
+      padding: 15px;
+      margin: 0;
+      color: #222;
+    }
+    h1 {
+      text-align: center;
+      color: #0c6cbd;
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+    .card {
+      background: white;
+      padding: 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      margin-bottom: 20px;
+    }
+    label {
+      font-weight: 600;
+      margin-bottom: 5px;
+      display: block;
+    }
+    input[type="date"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      margin-bottom: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #0c6cbd;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 17px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 3000;
+      color: white;
+      font-size: 20px;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      flex-direction: column;
+    }
+    .spinner {
+      width: 70px;
+      height: 70px;
+      border: 8px solid rgba(255,255,255,0.3);
+      border-top: 8px solid #0c6cbd;
+      border-radius: 50%;
+      margin-bottom: 20px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+
+<body>
+  <h1>CORTE DE RUTA – MÓVIL</h1>
+
+  <!-- Muestra info del vendedor -->
+  <div class="card">
+    <p><strong>Usuario:</strong> <span id="lblUsuario">Cargando...</span></p>
+    <p><strong>Ruta:</strong> <span id="lblRuta">Cargando...</span></p>
+  </div>
+
+  <!-- Fecha -->
+  <div class="card">
+    <label>Seleccione la fecha del corte</label>
+    <input type="date" id="selectFecha">
+  </div>
+
+  <!-- Botón -->
+  <button id="btnGenerarCorte">📊 Generar Corte</button>
+
+  <!-- Overlay -->
+  <div id="overlay">
+    <div class="spinner"></div>
+    <div id="overlayText">Procesando...</div>
+  </div>
+
+<script type="module">
+  // AQUÍ iran la carga de sesión, Firebase y TODA la lógica del corte
+  // (la vamos a añadir en la siguiente parte)
+</script>
+
+</body>
+</html>
