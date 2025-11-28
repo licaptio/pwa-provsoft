@@ -1,109 +1,314 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Corte de Ruta – PROVSOFT Móvil</title>
+  <meta charset="UTF-8" />
+  <title>CORTE MÓVIL – PDD</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c6cbd">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      background: #f5f7fa;
-      padding: 15px;
       margin: 0;
+      background: #eef2f6;
+      padding: 15px;
       color: #222;
     }
-    h1 {
+
+    h2 {
       text-align: center;
-      color: #0c6cbd;
-      font-size: 22px;
-      margin-bottom: 15px;
-    }
-    .card {
-      background: white;
-      padding: 18px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      color: #00416A;
       margin-bottom: 20px;
     }
-    label {
-      font-weight: 600;
-      margin-bottom: 5px;
-      display: block;
-    }
-    input[type="date"] {
+
+    select, input[type="date"], button {
       width: 100%;
-      padding: 10px 12px;
+      padding: 12px;
+      margin-bottom: 15px;
+      font-size: 15px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      font-size: 16px;
-      margin-bottom: 15px;
     }
+
     button {
-      width: 100%;
-      padding: 14px;
       background: #0c6cbd;
-      border: none;
-      border-radius: 10px;
       color: white;
-      font-size: 17px;
-      font-weight: 600;
-      margin-top: 10px;
+      font-weight: bold;
+      border: none;
     }
+
     #overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.7);
-      z-index: 3000;
+      background: rgba(0, 0, 0, .75);
       color: white;
-      font-size: 20px;
-      justify-content: center;
+      font-size: 17px;
+      z-index: 3000;
       align-items: center;
-      text-align: center;
+      justify-content: center;
       flex-direction: column;
+      text-align: center;
     }
+
     .spinner {
-      width: 70px;
-      height: 70px;
-      border: 8px solid rgba(255,255,255,0.3);
-      border-top: 8px solid #0c6cbd;
+      width: 60px;
+      height: 60px;
+      border: 6px solid rgba(255,255,255,0.3);
+      border-top: 6px solid #0c6cbd;
       border-radius: 50%;
-      margin-bottom: 20px;
       animation: spin 1s linear infinite;
+      margin-bottom: 20px;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 
 <body>
-  <h1>CORTE DE RUTA – MÓVIL</h1>
+  <h2>CORTE DE RUTA – VERSIÓN MÓVIL</h2>
 
-  <!-- Muestra info del vendedor -->
-  <div class="card">
-    <p><strong>Usuario:</strong> <span id="lblUsuario">Cargando...</span></p>
-    <p><strong>Ruta:</strong> <span id="lblRuta">Cargando...</span></p>
-  </div>
+  <!-- Filtros -->
+  <select id="selectRuta">
+    <option value="">Selecciona una ruta...</option>
+  </select>
 
-  <!-- Fecha -->
-  <div class="card">
-    <label>Seleccione la fecha del corte</label>
-    <input type="date" id="selectFecha">
-  </div>
+  <input type="date" id="selectFecha">
 
-  <!-- Botón -->
-  <button id="btnGenerarCorte">📊 Generar Corte</button>
+  <button id="btnGenerar">📊 GENERAR CORTE</button>
 
   <!-- Overlay -->
   <div id="overlay">
     <div class="spinner"></div>
-    <div id="overlayText">Procesando...</div>
+    Procesando...
+    <div id="overlayText"></div>
   </div>
 
-<script type="module">
-  // AQUÍ iran la carga de sesión, Firebase y TODA la lógica del corte
-  // (la vamos a añadir en la siguiente parte)
-</script>
+  <!-- ==============================================
+       FIREBASE
+  =============================================== -->
+  <script type="module">
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+    import {
+      getFirestore, collection, query, where, getDocs,
+      addDoc, updateDoc, doc, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+      authDomain: "inventariopv-643f1.firebaseapp.com",
+      projectId: "inventariopv-643f1",
+      storageBucket: "inventariopv-643f1.appspot.com",
+      messagingSenderId: "96242533231",
+      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const selectRuta  = document.getElementById("selectRuta");
+    const selectFecha = document.getElementById("selectFecha");
+    const btnGenerar  = document.getElementById("btnGenerar");
+    const overlay     = document.getElementById("overlay");
+    const overlayText = document.getElementById("overlayText");
+
+    // ===========================================
+    // CARGAR RUTAS CON VENTAS SIN CORTAR
+    // ===========================================
+    async function cargarRutas() {
+      const snap = await getDocs(collection(db, "ventas_rutav2"));
+      const rutas = {};
+
+      snap.forEach(d => {
+        const v = d.data();
+        if (!v.cortado && v.rutaId) {
+          if (!rutas[v.rutaId]) rutas[v.rutaId] = v.usuarioNombre || "Desconocido";
+        }
+      });
+
+      Object.entries(rutas).forEach(([id, nombre]) => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = `${nombre} – ${id}`;
+        selectRuta.appendChild(opt);
+      });
+    }
+
+    await cargarRutas();
+
+    // ===========================================
+    // GENERAR CORTE
+    // ===========================================
+    btnGenerar.addEventListener("click", generarCorteMovil);
+
+    async function generarCorteMovil() {
+      const ruta  = selectRuta.value;
+      const fecha = selectFecha.value;
+
+      if (!ruta || !fecha) {
+        alert("Selecciona ruta y fecha.");
+        return;
+      }
+
+      overlay.style.display = "flex";
+      overlayText.textContent = "Buscando ventas...";
+
+      // Traer ventas
+      const qv = query(
+        collection(db, "ventas_rutav2"),
+        where("rutaId", "==", ruta),
+        where("cortado", "==", false)
+      );
+
+      const snap = await getDocs(qv);
+      const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // Filtrar por fecha, usando fecha_txt tipo "24/11/2025 10:22"
+      const partes = fecha.split("-");
+      const fechaRef = `${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+
+      const ventasDia = ventas.filter(v =>
+        v.fecha_txt?.startsWith(fechaRef) ||
+        v.fecha_txt?.includes(fechaRef)
+      );
+
+      if (!ventasDia.length) {
+        overlay.style.display = "none";
+        alert("No hay ventas sin cortar para esta fecha.");
+        return;
+      }
+
+      // Calcular totales
+      let totalDia = 0;
+      let usuario = ventasDia[0].usuarioNombre || "—";
+
+      ventasDia.forEach(v => {
+        totalDia += Number(v.resumen_financiero?.total || 0);
+      });
+
+      // =======================================
+      // CORTE SIMPLIFICADO para MINIIMPRESORA
+      // =======================================
+      overlayText.textContent = "Imprimiendo corte...";
+
+      const texto = `
+CORTE DE RUTA - ${fechaRef}
+--------------------------------
+Ruta: ${ruta}
+Vendedor: ${usuario}
+Total: $${totalDia.toFixed(2)}
+Ventas: ${ventasDia.length}
+--------------------------------
+¡Gracias por tu trabajo!
+`;
+
+      try {
+        if ("bluetooth" in navigator) {
+          const encoder = new TextEncoder();
+          const data = encoder.encode(texto);
+
+          const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [0x18F0]
+          });
+
+          const server = await device.gatt.connect();
+          const service = await server.getPrimaryService(0x18F0);
+          const characteristic = await service.getCharacteristic(0x2AF1);
+
+          await characteristic.writeValue(data);
+        }
+      } catch (e) {
+        console.warn("Impresión no disponible:", e);
+      }
+
+      // =======================================
+      // GUARDAR CORTE EN FIRESTORE
+      // =======================================
+      overlayText.textContent = "Guardando corte...";
+
+      const resumen = {
+        rutaId: ruta,
+        fecha: fecha,
+        creado_en: new Date().toISOString(),
+        realizado_por: usuario,
+        total_dia: totalDia,
+        ventas_ids: ventasDia.map(v => v.id)
+      };
+
+      await addDoc(collection(db, "cortes_globalesV4"), {
+        rutaId: ruta,
+        fecha_corte: fecha,
+        creado_en: new Date().toISOString(),
+        realizado_por: usuario,
+        resumen
+      });
+
+      // Marcar ventas cortadas
+      for (const v of ventasDia) {
+        await updateDoc(doc(db, "ventas_rutav2", v.id), {
+          cortado: true
+        });
+      }
+
+      // =======================================
+      // PDF GRANDE Y TELEGRAM
+      // =======================================
+
+      overlayText.textContent = "Generando PDF grande...";
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      pdf.text("CORTE DE RUTA – PDD", 10, 10);
+      pdf.text(`Ruta: ${ruta}`, 10, 20);
+      pdf.text(`Vendedor: ${usuario}`, 10, 30);
+      pdf.text(`Fecha: ${fecha}`, 10, 40);
+      pdf.text(`Total Día: $${totalDia.toFixed(2)}`, 10, 50);
+
+      const blob = pdf.output("blob");
+
+      overlayText.textContent = "Enviando PDF a Telegram...";
+
+      const BOT = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+      const CHAT = "6617988297";
+
+      const f = new FormData();
+      f.append("chat_id", CHAT);
+      f.append("caption", `Corte de ruta ${ruta} – ${fecha}\nTotal: $${totalDia.toFixed(2)}`);
+      f.append("document", blob, `Corte_${ruta}_${fecha}.pdf`);
+
+      await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, {
+        method: "POST",
+        body: f
+      });
+
+      // =======================================
+      //  CIERRE DE SESIÓN AUTOMÁTICO
+      // =======================================
+      overlayText.textContent = "Cerrando sesión...";
+
+      localStorage.removeItem("usuario_ruta");
+      localStorage.removeItem("catalogo_cache");
+      localStorage.removeItem("catalogo_fecha");
+
+      await new Promise(r => setTimeout(r, 800));
+
+      window.location.href = "POSV4PASS.html";
+    }
+  </script>
+
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 </body>
 </html>
