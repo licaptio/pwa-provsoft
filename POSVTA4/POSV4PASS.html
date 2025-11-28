@@ -276,6 +276,10 @@ body {
   <button id="btnTestGPS" class="btn" style="background:#f59e0b;margin:6px 0;">📍 Probar GPS</button><br>
 
   <div id="testResult" style="margin-top:10px;color:#333;font-size:14px;text-align:center;"></div>
+<!-- 🔵 BOTÓN NUEVO: CORTE DE RUTA -->
+<button id="btnCorteRuta" class="btn" style="background:#0c6cbd;margin:6px 0;">
+  📊 Generar Corte de Ruta
+</button>
 
   <button id="btnVolverVenta" class="btn" style="margin-top:15px;background:#00416A;">⬅️ Volver a Ventas</button>
 </section>
@@ -2569,6 +2573,11 @@ document.getElementById("btnTestGPS").addEventListener("click", async () => {
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 });
+  // 📊 Ir al módulo de Corte de Ruta
+document.getElementById("btnCorteRuta").addEventListener("click", () => {
+  window.location.href = "corte_ruta.html";  // o el nombre que me digas
+});
+
 </script>
 
 </body>
