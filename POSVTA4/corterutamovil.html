@@ -563,49 +563,11 @@ async function generarPDF(r) {
     y += 6;
   }
 
-  // TABLA TICKETS
-  pdf.addPage();
-  y = 15;
+  // PDF DE TICKETS SE ENVÍA POR SEPARADO
+  await generarPDFtickets(r);
 
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text(`RESUMEN DE TICKETS – ${r.fecha}`, 15, y);
-  y += 8;
-
-  pdf.setFillColor(12, 108, 189);
-  pdf.setTextColor(255, 255, 255);
-  pdf.rect(10, y, 190, 6, "F");
-
-  pdf.text("Folio", 12, y + 4);
-  pdf.text("Hora", 45, y + 4);
-  pdf.text("Total", 100, y + 4, { align: "right" });
-  pdf.text("Costo", 140, y + 4, { align: "right" });
-  pdf.text("Util.", 180, y + 4, { align: "right" });
-
-  y += 8;
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(10);
-  pdf.setTextColor("#000");
-
-  for (const t of r.detalle_ventas) {
-    if (y > 260) { pdf.addPage(); y = 20; }
-
-    const hora = (t.fecha_txt || "").split(" ")[1] || "—";
-    const util = (t.total || 0) - (t.costo || 0);
-
-    pdf.text((t.folio || "").substring(0, 12), 12, y);
-    pdf.text(hora, 45, y);
-    pdf.text(`$${t.total.toFixed(2)}`, 100, y, { align: "right" });
-    pdf.text(`$${t.costo.toFixed(2)}`, 140, y, { align: "right" });
-    pdf.text(`$${util.toFixed(2)}`, 180, y, { align: "right" });
-
-    y += 6;
-  }
-
-  // EXPORTAR
-  const blob = pdf.output("blob");
+  // EXPORTAR SOLO PDF PRINCIPAL
+  const blob = await pdfOutputSeguro(pdf);
 
   await enviarTelegram(
     blob,
@@ -616,6 +578,61 @@ async function generarPDF(r) {
   return true;
 }
 
+async function pdfOutputSeguro(pdf) {
+  return new Promise((resolve, reject) => {
+    try {
+      // jsPDF trabaja interno y a veces necesita un respiro
+      setTimeout(() => {
+        try {
+          const blob = pdf.output("blob");
+          resolve(blob);
+        } catch (e) {
+          reject(e);
+        }
+      }, 50);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+async function generarPDFtickets(r) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: "mm", format: "letter" });
+
+  let y = 15;
+  const azul = "#0c6cbd";
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(14);
+  pdf.setTextColor(azul);
+  pdf.text(`TICKETS – ${r.fecha}`, 105, y, { align: "center" });
+  y += 10;
+
+  pdf.setFontSize(10);
+  pdf.setTextColor("#000");
+
+  for (const t of r.detalle_ventas) {
+    if (y > 260) { pdf.addPage(); y = 20; }
+
+    const hora = (t.fecha_txt || "").split(" ")[1] || "—";
+    const util = (t.total || 0) - (t.costo || 0);
+
+    pdf.text(
+      `${t.folio} | ${hora} | $${t.total.toFixed(2)} | $${t.costo.toFixed(2)} | $${util.toFixed(2)}`,
+      10, y
+    );
+
+    y += 6;
+  }
+
+  const blob = await pdfOutputSeguro(pdf);
+
+  await enviarTelegram(
+    blob,
+    `Tickets_${r.rutaId}_${r.fecha}.pdf`,
+    `🧾 Tickets completos – Ruta ${r.rutaId}`
+  );
+}
 
 /* ============================================================
    📤 ENVIAR PDF A TELEGRAM
