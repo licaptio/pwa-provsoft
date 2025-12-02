@@ -92,59 +92,97 @@
   <!-- ==============================================
        FIREBASE
   =============================================== -->
-  <script type="module">
-    import {
-      initializeApp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+<script type="module">
+import {
+  initializeApp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
-    import {
-      getFirestore, collection, query, where, getDocs,
-      addDoc, updateDoc, doc, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getFirestore, collection, query, where, getDocs,
+  addDoc, updateDoc, doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.appspot.com",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-    };
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-    const selectRuta  = document.getElementById("selectRuta");
-    const selectFecha = document.getElementById("selectFecha");
-    const btnGenerar  = document.getElementById("btnGenerar");
-    const overlay     = document.getElementById("overlay");
-    const overlayText = document.getElementById("overlayText");
+const selectRuta  = document.getElementById("selectRuta");
+const selectFecha = document.getElementById("selectFecha");
+const btnGenerar  = document.getElementById("btnGenerar");
+const overlay     = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
 
-    // ===========================================
-    // CARGAR RUTAS CON VENTAS SIN CORTAR
-    // ===========================================
-    async function cargarRutas() {
-      const snap = await getDocs(collection(db, "ventas_rutav2"));
-      const rutas = {};
+/* ===================================================
+   🔑 LEER USUARIO LOGUEADO DESDE EL POS (LOCALSTORAGE)
+=================================================== */
+let USUARIO = null;
+let RUTA_USUARIO = null;
 
-      snap.forEach(d => {
-        const v = d.data();
-        if (!v.cortado && v.rutaId) {
-          if (!rutas[v.rutaId]) rutas[v.rutaId] = v.usuarioNombre || "Desconocido";
-        }
-      });
+function cargarUsuarioLogueado() {
+  const data = localStorage.getItem("usuario_ruta");
 
-      Object.entries(rutas).forEach(([id, nombre]) => {
-        const opt = document.createElement("option");
-        opt.value = id;
-        opt.textContent = `${nombre} – ${id}`;
-        selectRuta.appendChild(opt);
-      });
+  if (!data) {
+    alert("⚠️ No hay usuario logueado. Vuelve al POS e inicia sesión.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  USUARIO = JSON.parse(data);
+  RUTA_USUARIO = USUARIO.rutaId;
+
+  console.log("👤 Usuario logueado:", USUARIO);
+  console.log("🚚 Ruta asignada:", RUTA_USUARIO);
+
+  // bloquear selector de ruta
+  selectRuta.innerHTML = "";
+
+  const opt = document.createElement("option");
+  opt.value = RUTA_USUARIO;
+  opt.textContent = `${USUARIO.nombre} – Ruta ${RUTA_USUARIO}`;
+  selectRuta.appendChild(opt);
+}
+
+/* ===================================================
+   🔄 CARGAR RUTAS (solo para modo administrador)
+=================================================== */
+async function cargarRutas() {
+  // si el usuario ya tiene ruta, NO cargamos rutas de Firebase
+  if (RUTA_USUARIO) return;
+
+  const snap = await getDocs(collection(db, "ventas_rutav2"));
+  const rutas = {};
+
+  snap.forEach(d => {
+    const v = d.data();
+    if (!v.cortado && v.rutaId) {
+      if (!rutas[v.rutaId]) rutas[v.rutaId] = v.usuarioNombre;
     }
+  });
 
-    await cargarRutas();
+  Object.entries(rutas).forEach(([id, nombre]) => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = `${nombre} – ${id}`;
+    selectRuta.appendChild(opt);
+  });
+}
 
+/* ===================================================
+   ▶️ EJECUCIÓN INICIAL
+=================================================== */
+cargarUsuarioLogueado();
+await cargarRutas();
+
+// Aquí sigue GENERAR CORTE SIN CAMBIOS
     // ===========================================
     // GENERAR CORTE
     // ===========================================
