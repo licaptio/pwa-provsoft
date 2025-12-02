@@ -300,21 +300,71 @@ const ventasDia = ventas.filter(v =>
 
           porNota.push({folio:v.folio||v.id,total,descuento,costo,utilidad,ubicacion:v.ubicacion||{}});
         }
-      // =======================================
-      // CORTE SIMPLIFICADO para MINIIMPRESORA
-      // =======================================
-      overlayText.textContent = "Imprimiendo corte...";
+// =======================================
+// CORTE TÉRMICO ANALÍTICO
+// =======================================
+overlayText.textContent = "Imprimiendo corte...";
 
-      const texto = `
-CORTE DE RUTA - ${fechaRef}
+// Ordenar departamentos por venta
+const listaDeptos = Object.entries(porDepto)
+  .sort((a, b) => b[1].venta - a[1].venta);
+
+// Top 10 artículos
+const topArt = Object.entries(porArticulo)
+  .sort((a, b) => b[1].importe - a[1].importe)
+  .slice(0, 10);
+
+// Construir texto térmico
+let texto = `
+CORTE ANALÍTICO - ${fechaRef}
 --------------------------------
-Ruta: ${ruta}
-Vendedor: ${USUARIO.nombre}
-Total: $${totalDia.toFixed(2)}
-Ventas: ${ventasDia.length}
+RUTA: ${ruta}
+VENDEDOR: ${USUARIO.nombre}
+TOTAL: $${totalDia.toFixed(2)}
+VENTAS: ${ventasDia.length}
 --------------------------------
-¡Gracias por tu trabajo!
+VENTA POR DEPARTAMENTO
+--------------------------------
 `;
+
+for (const [dep, d] of listaDeptos) {
+  texto += `${dep.substring(0,16).padEnd(16)} $${d.venta.toFixed(2)}\n`;
+}
+
+texto += `
+--------------------------------
+TOP ARTÍCULOS (10)
+--------------------------------
+`;
+
+topArt.forEach(([name, d]) => {
+  texto += `${name.substring(0,20)}\n   $${d.importe.toFixed(2)}\n`;
+});
+
+texto += `
+--------------------------------
+¡BONITO DIA!
+`;
+
+try {
+  if ("bluetooth" in navigator) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(texto);
+
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [0x18F0]
+    });
+
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(0x18F0);
+    const characteristic = await service.getCharacteristic(0x2AF1);
+
+    await characteristic.writeValue(data);
+  }
+} catch (e) {
+  console.warn("Impresión no disponible:", e);
+}
 
       try {
         if ("bluetooth" in navigator) {
