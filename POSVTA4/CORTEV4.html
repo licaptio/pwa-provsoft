@@ -241,249 +241,261 @@
         overlayText.innerText="❌ Error al generar el corte";
       }
     }
-</script> 
-<script>
-async function generarPDF(r) {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: "mm", format: "letter" });
 
-  const azul = "#0c6cbd";
-  let y = 15;
+    // ============================================================
+    // [10] FUNCIÓN: GENERAR PDF DEL CORTE
+    // ============================================================
+    async function generarPDF(r){
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({format:"letter",unit:"mm"});
 
-  // ============================================================
-  // ENCABEZADO
-  // ============================================================
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(15);
-  pdf.setTextColor(azul);
-  pdf.text("CORTE DE RUTA – PROVEEDORA DE DULCES Y DESECHABLES", 105, y, { align: "center" });
-  y += 10;
+      // [10.1] Encabezado
+      pdf.setFont("helvetica","bold");pdf.setFontSize(14);
+      pdf.text("CORTE DE RUTAS – PROVEEDORA DE DULCES Y DESECHABLES",10,15);
+      pdf.setFontSize(12);
+      pdf.text(`Usuario: ${r.usuario}`,15,25);
+      pdf.text(`Ruta: ${r.rutaId}`,15,32);
+      pdf.text(`Fecha: ${r.fecha}`,15,39);
 
-  pdf.setFontSize(12);
-  pdf.setTextColor("#000");
-  pdf.text(`Usuario: ${r.usuario}`, 15, y); y += 6;
-  pdf.text(`Ruta: ${r.rutaId}`, 15, y); y += 6;
-  pdf.text(`Fecha: ${r.fecha}`, 15, y); y += 10;
+      // [10.2] Totales
+      const neto=r.totalDia-r.totalDescuento;
+      pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`,15,46);
+      pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`,15,53);
+      pdf.text(`Venta Neta: $${neto.toFixed(2)}`,15,60);
+      pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`,15,67);
+      const margenTotal=neto>0?((r.utilidadTotal/neto)*100).toFixed(2)+"%":"—";
+      pdf.text(`Margen Promedio: ${margenTotal}`,15,74);
 
-  // ============================================================
-  // TOTALES GENERALES
-  // ============================================================
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text("RESUMEN GENERAL", 15, y);
-  y += 7;
+// ============================================================
+// [10.3] TABLA DEPARTAMENTOS EN LA MISMA HOJA (CORREGIDO)
+// ============================================================
+pdf.setFont("helvetica", "bold");
+pdf.setFontSize(12);
+pdf.text("ANÁLISIS POR DEPARTAMENTO", 15, 90);
 
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  pdf.setTextColor("#000");
+pdf.setFontSize(9);
+pdf.setFillColor(12, 108, 189);
+pdf.setTextColor(255, 255, 255);
+pdf.rect(10, 95, 190, 6, "F");
+pdf.text("Departamento", 12, 99);
+pdf.text("Venta", 65, 99);
+pdf.text("Imp.", 88, 99);
+pdf.text("Venta+Imp", 106, 99);
+pdf.text("Costo", 136, 99);
+pdf.text("Utilidad", 158, 99);
+pdf.text("%", 182, 99);
 
-  const neto = r.totalDia - r.totalDescuento;
-  const margen = neto > 0 ? ((r.utilidadTotal / neto) * 100).toFixed(2) + "%" : "—";
+pdf.setTextColor(0, 0, 0);
+let yDepto = 106;
+let totalVenta = 0, totalImp = 0, totalCosto = 0, totalUtil = 0;
 
-  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 15, y);
-  pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`, 110, y); y += 6;
-  pdf.text(`Venta Neta: $${neto.toFixed(2)}`, 15, y);
-  pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`, 110, y); y += 6;
-  pdf.text(`Margen Global: ${margen}`, 15, y); y += 10;
+for (const [dep, d] of Object.entries(r.porDepto)) {
+  const ventaBruta = d.venta || 0;          // total con impuestos
+  const imp = d.impuestos || 0;             // IVA + IEPS
+  const ventaSinImp = ventaBruta - imp;     // 🔹 venta antes de impuestos
+  const ventaConImp = ventaBruta;           // venta total
+  const costo = d.costo || 0;
+  const util = d.utilidad || 0;
+  const marg = ventaSinImp > 0 ? ((util / ventaSinImp) * 100).toFixed(1) + "%" : "—";
 
-  // ============================================================
-  // TABLA DEPARTAMENTOS
-  // ============================================================
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text("VENTA POR DEPARTAMENTO", 15, y);
-  y += 8;
-
-  // Encabezado tabla
-  pdf.setFillColor(12, 108, 189);
-  pdf.setTextColor(255, 255, 255);
-  pdf.rect(10, y, 190, 6, "F");
-
-  pdf.text("Departamento", 12, y + 4);
-  pdf.text("Venta", 75, y + 4, { align: "right" });
-  pdf.text("Imp.", 105, y + 4, { align: "right" });
-  pdf.text("Total", 130, y + 4, { align: "right" });
-  pdf.text("Costo", 155, y + 4, { align: "right" });
-  pdf.text("Utilidad", 180, y + 4, { align: "right" });
-
-  y += 8;
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(10);
-  pdf.setTextColor("#000");
-
-  let sumVenta = 0, sumImp = 0, sumCosto = 0, sumUtil = 0;
-
-  for (const [dep, d] of Object.entries(r.porDepto)) {
-    const venta = d.venta || 0;
-    const imp = d.impuestos || 0;
-    const total = venta;
-    const costo = d.costo || 0;
-    const util = d.utilidad || 0;
-
-    sumVenta += venta;
-    sumImp += imp;
-    sumCosto += costo;
-    sumUtil += util;
-
-    if (y > 260) { pdf.addPage(); y = 20; }
-
-    pdf.text(dep.substring(0, 25), 12, y);
-    pdf.text(`$${venta.toFixed(2)}`, 75, y, { align: "right" });
-    pdf.text(`$${imp.toFixed(2)}`, 105, y, { align: "right" });
-    pdf.text(`$${total.toFixed(2)}`, 130, y, { align: "right" });
-    pdf.text(`$${costo.toFixed(2)}`, 155, y, { align: "right" });
-    pdf.text(`$${util.toFixed(2)}`, 180, y, { align: "right" });
-
-    y += 6;
+  // Color alternado
+  if (Math.floor((yDepto - 106) / 6) % 2 === 1) {
+    pdf.setFillColor(240, 240, 240);
+    pdf.rect(10, yDepto - 4, 190, 6, "F");
   }
 
-  // Totales tabla
-  pdf.setFillColor(220, 220, 220);
-  pdf.rect(10, y - 4, 190, 7, "F");
-  pdf.setFont("helvetica", "bold");
-  pdf.text("TOT.", 12, y);
-  pdf.text(`$${sumVenta.toFixed(2)}`, 75, y, { align: "right" });
-  pdf.text(`$${sumImp.toFixed(2)}`, 105, y, { align: "right" });
-  pdf.text(`$${sumVenta.toFixed(2)}`, 130, y, { align: "right" });
-  pdf.text(`$${sumCosto.toFixed(2)}`, 155, y, { align: "right" });
-  pdf.text(`$${sumUtil.toFixed(2)}`, 180, y, { align: "right" });
+  pdf.text(dep.substring(0, 25), 12, yDepto);
+  pdf.text(`$${ventaSinImp.toFixed(2)}`, 65, yDepto, { align: "right" });
+  pdf.text(`$${imp.toFixed(2)}`, 88, yDepto, { align: "right" });
+  pdf.text(`$${ventaConImp.toFixed(2)}`, 106, yDepto, { align: "right" });
+  pdf.text(`$${costo.toFixed(2)}`, 136, yDepto, { align: "right" });
+  pdf.text(`$${util.toFixed(2)}`, 158, yDepto, { align: "right" });
+  pdf.text(marg, 182, yDepto, { align: "right" });
 
+  totalVenta += ventaSinImp;
+  totalImp += imp;
+  totalCosto += costo;
+  totalUtil += util;
+  yDepto += 6;
+}
+
+// Totales
+const totalVentaImp = totalVenta + totalImp;
+const margenTotalTabla = totalVenta > 0 ? ((totalUtil / totalVenta) * 100).toFixed(1) + "%" : "—";
+
+pdf.setFillColor(220, 220, 220);
+pdf.rect(10, yDepto - 4, 190, 7, "F");
+pdf.setFont("helvetica", "bold");
+pdf.text("TOTALES", 12, yDepto);
+pdf.text(`$${totalVenta.toFixed(2)}`, 65, yDepto, { align: "right" });
+pdf.text(`$${totalImp.toFixed(2)}`, 88, yDepto, { align: "right" });
+pdf.text(`$${totalVentaImp.toFixed(2)}`, 106, yDepto, { align: "right" });
+pdf.text(`$${totalCosto.toFixed(2)}`, 136, yDepto, { align: "right" });
+pdf.text(`$${totalUtil.toFixed(2)}`, 158, yDepto, { align: "right" });
+pdf.text(margenTotalTabla, 182, yDepto, { align: "right" });
+      
   // ============================================================
-  // TABLA DE ARTÍCULOS (TOP 80)
-  // ============================================================
-  pdf.addPage();
-  y = 15;
-
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text("ARTÍCULOS (TOP 80)", 15, y);
-  y += 8;
-
-  pdf.setFillColor(12, 108, 189);
-  pdf.setTextColor(255, 255, 255);
-  pdf.rect(10, y, 190, 6, "F");
-
-  pdf.text("Artículo", 12, y + 4);
-  pdf.text("Cant.", 70, y + 4, { align: "right" });
-  pdf.text("Venta", 105, y + 4, { align: "right" });
-  pdf.text("Costo", 140, y + 4, { align: "right" });
-  pdf.text("Util.", 180, y + 4, { align: "right" });
-
-  y += 8;
-  pdf.setFontSize(10);
-  pdf.setTextColor("#000");
-
-  const listaArticulos = Object.entries(r.porArticulo)
-    .sort((a, b) => b[1].importe - a[1].importe)
-    .slice(0, 80);
-
-  for (const [name, d] of listaArticulos) {
-    if (y > 260) { pdf.addPage(); y = 20; }
-
-    pdf.text(name.substring(0, 38), 12, y);
-    pdf.text(`${d.cantidad}`, 70, y, { align: "right" });
-    pdf.text(`$${d.importe.toFixed(2)}`, 105, y, { align: "right" });
-    pdf.text(`$${d.costo.toFixed(2)}`, 140, y, { align: "right" });
-    pdf.text(`$${(d.importe - d.costo).toFixed(2)}`, 180, y, { align: "right" });
-
-    y += 6;
-  }
-
-  // ============================================================
-  // TABLA DE TICKETS
+  // [10.4] RESUMEN DE TICKETS (POR FECHA DE CORTE)
   // ============================================================
   pdf.addPage();
-  y = 15;
-
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text(`RESUMEN DE TICKETS – ${r.fecha}`, 15, y);
-  y += 8;
+  pdf.setFontSize(14);
+  pdf.text(`RESUMEN DE TICKETS – ${r.fecha}`, 50, 15);
 
+  pdf.setFontSize(10);
+  const tickets = r.detalle_ventas || [];
+
+  // Encabezados
   pdf.setFillColor(12, 108, 189);
   pdf.setTextColor(255, 255, 255);
-  pdf.rect(10, y, 190, 6, "F");
+  pdf.rect(10, 22, 190, 7, "F");
+  pdf.text("Folio", 12, 27);
+  pdf.text("Hora", 42, 27);
+  pdf.text("Venta", 74, 27);
+  pdf.text("Imp.", 96, 27);
+  pdf.text("Total", 112, 27);
+  pdf.text("Costo", 134, 27);
+  pdf.text("Utilidad", 158, 27);
+  pdf.text("%", 182, 27);
 
-  pdf.text("Folio", 12, y + 4);
-  pdf.text("Hora", 42, y + 4);
-  pdf.text("Total", 100, y + 4, { align: "right" });
-  pdf.text("Costo", 140, y + 4, { align: "right" });
-  pdf.text("Util.", 180, y + 4, { align: "right" });
+  pdf.setTextColor(0, 0, 0);
+  let y = 34;
+  let totalVentaT = 0, totalImpT = 0, totalCostoT = 0, totalUtilT = 0;
 
-  y += 8;
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(10);
-  pdf.setTextColor("#000");
 
-  let totVenta = 0, totCosto = 0, totUtil = 0;
-
-  for (const t of r.detalle_ventas) {
-    if (y > 260) { pdf.addPage(); y = 20; }
-
+  for (const t of tickets) {
+    // Datos base
     const folio = t.folio || "—";
-    const hora = (t.fecha_txt || "").split(" ")[1] || "—";
-    const tot = t.total || 0;
-    const costo = t.costo || 0;
-    const util = tot - costo;
+    const fechaTxt = t.fecha_txt || "";
+    const hora = fechaTxt.split(" ")[1] || "";
+    const totalVentaTicket = Number(t.total) || 0;
+    const imp = t.detalle?.reduce((s, d) => s + (d.iva_calculado || 0) + (d.ieps_calculado || 0), 0) || 0;
+    const ventaSinImp = totalVentaTicket - imp;
+    const costo = Number(t.costo) || 0;
+    const utilidad = ventaSinImp - costo;
+    const marg = ventaSinImp > 0 ? ((utilidad / ventaSinImp) * 100).toFixed(1) + "%" : "—";
 
-    totVenta += tot;
-    totCosto += costo;
-    totUtil += util;
+    // Fila
+    if ((y - 34) / 6 % 2 === 1) {
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(10, y - 4, 190, 6, "F");
+    }
 
-    pdf.text(folio.substring(0, 12), 12, y);
-    pdf.text(hora, 42, y);
-    pdf.text(`$${tot.toFixed(2)}`, 100, y, { align: "right" });
-    pdf.text(`$${costo.toFixed(2)}`, 140, y, { align: "right" });
-    pdf.text(`$${util.toFixed(2)}`, 180, y, { align: "right" });
+    pdf.text(folio.substring(0, 10), 12, y);
+    pdf.text(hora || "—", 42, y);
+    pdf.text(`$${ventaSinImp.toFixed(2)}`, 74, y, { align: "right" });
+    pdf.text(`$${imp.toFixed(2)}`, 96, y, { align: "right" });
+    pdf.text(`$${totalVentaTicket.toFixed(2)}`, 112, y, { align: "right" });
+    pdf.text(`$${costo.toFixed(2)}`, 134, y, { align: "right" });
+    pdf.text(`$${utilidad.toFixed(2)}`, 158, y, { align: "right" });
+    pdf.text(marg, 182, y, { align: "right" });
 
+totalVentaT += ventaSinImp;
+totalImpT += imp;
+totalCostoT += costo;
+totalUtilT += utilidad;
     y += 6;
+
+    if (y > 270) { pdf.addPage(); y = 20; }
   }
 
-  // Totales tickets
+const margenGlobal = totalVentaT > 0 ? ((totalUtilT / totalVentaT) * 100).toFixed(1) + "%" : "—";
+const totalConImp = totalVentaT + totalImpT;
+      
   pdf.setFillColor(220, 220, 220);
-  pdf.rect(10, y - 4, 190, 7, "F");
+  pdf.rect(10, y - 4, 190, 8, "F");
   pdf.setFont("helvetica", "bold");
   pdf.text("TOTALES", 12, y);
-  pdf.text(`$${totVenta.toFixed(2)}`, 100, y, { align: "right" });
-  pdf.text(`$${totCosto.toFixed(2)}`, 140, y, { align: "right" });
-  pdf.text(`$${totUtil.toFixed(2)}`, 180, y, { align: "right" });
+  pdf.text(`$${totalVentaT.toFixed(2)}`, 74, y, { align: "right" });
+pdf.text(`$${totalImpT.toFixed(2)}`, 96, y, { align: "right" });
+pdf.text(`$${totalConImp.toFixed(2)}`, 112, y, { align: "right" });
+pdf.text(`$${totalCostoT.toFixed(2)}`, 134, y, { align: "right" });
+pdf.text(`$${totalUtilT.toFixed(2)}`, 158, y, { align: "right" });
+  pdf.text(margenGlobal, 182, y, { align: "right" });
+      
+      // [10.3] Gráfica por Departamento
+      try{
+        overlayText.innerText="Generando gráfica de departamentos...";
+        const imgDepto=await graficaDeptos(r.porDepto);
+        pdf.addPage();pdf.setFont("helvetica","bold");pdf.setFontSize(14);
+        pdf.text("GRÁFICA DE VENTAS POR DEPARTAMENTO",40,15);
+        if(imgDepto) pdf.addImage(imgDepto,"PNG",20,25,170,100);
+      }catch(e){console.error("Error en gráfica deptos:",e);}
 
-  // ============================================================
-  // EXPORTAR PDF Y ENVIAR A TELEGRAM
-  // ============================================================
-  const blob = pdf.output("blob");
+      // [10.4] Gráfica de márgenes bajos
+      try{
+        overlayText.innerText="Generando gráfica de utilidades...";
+        await generarMargenesBajos(pdf,r.porArticulo);
+      }catch(e){console.error("Error en margen bajos:",e);}
 
-  await enviarTelegram(
-    blob,
-    `Corte_${r.rutaId}_${r.fecha}.pdf`,
-    `📦 Corte de Ruta\n👤 ${r.usuario}\n🚚 Ruta ${r.rutaId}\n💰 Total Día $${r.totalDia.toFixed(2)}\n📊 Utilidad $${r.utilidadTotal.toFixed(2)}`
-  );
+      // [10.5] Enviar PDF a Telegram
+      overlayText.innerText="Enviando reporte a Telegram...";
+      const blob=pdf.output("blob");
+      const url=URL.createObjectURL(blob);window.open(url,"_blank");
+      await enviarTelegram(blob,`Corte_${r.rutaId}_${r.fecha}.pdf`,
+        `📦 Corte ${r.usuario}\nTotal: $${r.totalDia.toFixed(2)}\nDescuento: $${r.totalDescuento.toFixed(2)}\nUtilidad: $${r.utilidadTotal.toFixed(2)} (${margenTotal})`);
+    }
 
-  // Abrir en pestaña para prueba
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
-}
+    // ============================================================
+    // [11] FUNCIÓN: GRAFICAR DEPARTAMENTOS
+    // ============================================================
+    async function graficaDeptos(porDepto){
+      return new Promise(resolve=>{
+        const canvas=document.createElement("canvas");canvas.width=800;canvas.height=400;
+        const ctx=canvas.getContext("2d");
+        const labels=Object.keys(porDepto);
+        const data=Object.values(porDepto).map(v=>v.venta);
+        const colors=labels.map((_,i)=>`hsl(${i*360/labels.length},70%,55%)`);
+        new Chart(ctx,{type:"pie",data:{labels,datasets:[{data,backgroundColor:colors}]},
+          options:{responsive:false,plugins:{legend:{position:"bottom"}}}});
+        setTimeout(()=>resolve(canvas.toDataURL("image/png")),800);
+      });
+    }
 
-// ============================================================
-// ENVIAR A TELEGRAM
-// ============================================================
-async function enviarTelegram(pdfBlob, nombre, caption) {
-  const BOT = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-  const CHAT = "6617988297";
+    // ============================================================
+    // [12] FUNCIÓN: GRAFICAR MÁRGENES BAJOS
+    // ============================================================
+    async function generarMargenesBajos(pdf,porArticulo){
+      const articulos=Object.entries(porArticulo).map(([n,d])=>{
+        const imp=d.importe||0,cos=d.costo||0,util=imp-cos,marg=imp?(util/imp)*100:0;
+        return{nombre:n,cantidad:d.cantidad,importe:imp,costo:cos,utilidad:util,margen:marg};
+      }).sort((a,b)=>a.margen-b.margen).slice(0,20);
 
-  const f = new FormData();
-  f.append("chat_id", CHAT);
-  f.append("caption", caption);
-  f.append("document", pdfBlob, nombre);
+      const canvas=document.createElement("canvas");
+      canvas.width=800;canvas.height=400;
+      const ctx=canvas.getContext("2d");
+      new Chart(ctx,{
+        type:"bar",
+        data:{
+          labels:articulos.map(a=>a.nombre.substring(0,15)),
+          datasets:[{data:articulos.map(a=>a.margen),
+            backgroundColor:articulos.map(a=>
+              a.margen<0?"rgba(255,99,132,0.7)":a.margen<10?"rgba(255,205,86,0.7)":"rgba(75,192,192,0.7)"
+            )}]
+        },
+        options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>v+"%"}}}}
+      });
+      await new Promise(r=>setTimeout(r,800));
+      const img=canvas.toDataURL("image/png");
+      pdf.addPage();pdf.text("GRÁFICO DE UTILIDAD – 20 ARTÍCULOS CON MENOR MARGEN",20,15);
+      pdf.addImage(img,"PNG",10,25,190,100);
+    }
 
-  try { await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, { method: "POST", body: f }); }
-  catch (e) { console.error("Telegram error", e); }
-}
-</script>
+    // ============================================================
+    // [13] FUNCIÓN: ENVIAR PDF A TELEGRAM
+    // ============================================================
+    async function enviarTelegram(pdfBlob,nombre,caption){
+      const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+      const CHAT="6617988297";
+      const f=new FormData();
+      f.append("chat_id",CHAT);
+      f.append("caption",caption);
+      f.append("document",pdfBlob,nombre);
+      try{
+        await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`,{method:"POST",body:f});
+      }catch(e){console.error("Telegram error",e);}
+    }
 
+  </script>
 </body>
 </html>
