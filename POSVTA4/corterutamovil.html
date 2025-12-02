@@ -266,14 +266,40 @@ const ventasDia = ventas.filter(v =>
         return;
       }
 
-      // Calcular totales
-      let totalDia = 0;
-      let usuario = ventasDia[0].usuarioNombre || "—";
+        // [9.3] Cálculos globales
+        let totalDia=0,totalDescuento=0,utilidadTotal=0;
+        const porDepto={},porArticulo={},porNota=[];
 
-      ventasDia.forEach(v => {
-        totalDia += Number(v.resumen_financiero?.total || 0);
-      });
+        for(const v of ventasDia){
+          const rf=v.resumen_financiero||{};
+          const total=Number(rf.total)||0;
+          const descuento=Number(rf.descuento)||Number(v.descuento_monto)||0;
+          const costo=Number(rf.costo_total)||0;
+          const utilidad=Number(rf.utilidad_total)||total-costo;
 
+          totalDia+=total; totalDescuento+=descuento; utilidadTotal+=utilidad;
+
+          // [9.4] Detalle por departamento / artículo
+          for(const det of (v.detalle||[])){
+            const dep=det.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
+            const importe=(det.importe||0)-(det.descuento_monto||0);
+            const costoD=det.costo_total||det.costo_unit*(det.cantidad||1)||0;
+            const utilD=det.utilidad||importe-costoD;
+            const iva=det.iva_calculado||0; const ieps=det.ieps_calculado||0;
+
+            if(!porDepto[dep]) porDepto[dep]={venta:0,costo:0,utilidad:0,impuestos:0};
+            porDepto[dep].venta+=importe; porDepto[dep].costo+=costoD;
+            porDepto[dep].utilidad+=utilD; porDepto[dep].impuestos+=iva+ieps;
+
+            const art=det.nombre?.toUpperCase()||"SIN NOMBRE";
+            if(!porArticulo[art]) porArticulo[art]={cantidad:0,importe:0,costo:0};
+            porArticulo[art].cantidad+=det.cantidad||0;
+            porArticulo[art].importe+=importe;
+            porArticulo[art].costo+=costoD;
+          }
+
+          porNota.push({folio:v.folio||v.id,total,descuento,costo,utilidad,ubicacion:v.ubicacion||{}});
+        }
       // =======================================
       // CORTE SIMPLIFICADO para MINIIMPRESORA
       // =======================================
@@ -283,7 +309,7 @@ const ventasDia = ventas.filter(v =>
 CORTE DE RUTA - ${fechaRef}
 --------------------------------
 Ruta: ${ruta}
-Vendedor: ${usuario}
+Vendedor: ${USUARIO.nombre}
 Total: $${totalDia.toFixed(2)}
 Ventas: ${ventasDia.length}
 --------------------------------
@@ -310,27 +336,60 @@ Ventas: ${ventasDia.length}
         console.warn("Impresión no disponible:", e);
       }
 
-      // =======================================
-      // GUARDAR CORTE EN FIRESTORE
-      // =======================================
-      overlayText.textContent = "Guardando corte...";
+// =======================================
+// GUARDAR CORTE EN FIRESTORE
+// =======================================
+overlayText.textContent = "Guardando corte...";
 
-      const resumen = {
-        rutaId: ruta,
-        fecha: fecha,
-        creado_en: new Date().toISOString(),
-        realizado_por: usuario,
-        total_dia: totalDia,
-        ventas_ids: ventasDia.map(v => v.id)
-      };
+const resumen = {
+  empresa: "PROVEEDORA DE DULCES Y DESECHABLES",
 
-      await addDoc(collection(db, "cortes_globalesV4"), {
-        rutaId: ruta,
-        fecha_corte: fecha,
-        creado_en: new Date().toISOString(),
-        realizado_por: usuario,
-        resumen
-      });
+  usuario: USUARIO.nombre,
+  rutaId: ruta,
+  fecha,
+  creado_por: USUARIO.nombre,
+  creado_en: new Date().toISOString(),
+
+  ventas_totales: ventasDia.length,
+  departamentos_unicos: Object.keys(porDepto).length,
+  articulos_unicos: Object.keys(porArticulo).length,
+
+  totalDia,
+  totalDescuento,
+  utilidadTotal,
+
+  margenGlobal: totalDia
+    ? ((utilidadTotal / (totalDia - totalDescuento)) * 100).toFixed(2)
+    : 0,
+
+  detalle_ventas: ventasDia.map(v => ({
+    folio: v.folio || v.id,
+    fecha_txt: v.fecha_txt,
+    total: v.resumen_financiero?.total || 0,
+    descuento: v.resumen_financiero?.descuento || 0,
+    costo: v.resumen_financiero?.costo_total || 0,
+    utilidad: v.resumen_financiero?.utilidad_total || 0,
+    metodo_pago: v.metodo_pago || "—",
+    cliente: v.cliente_nombre || "—",
+    usuarioNombre: v.usuarioNombre || USUARIO.nombre,
+    detalle: v.detalle || []
+  })),
+
+  porDepto,
+  porArticulo,
+  porNota
+};
+
+// Guardar en la colección de cortes
+await addDoc(collection(db, "cortes_globalesV4"), {
+  rutaId: ruta,
+  fecha: new Date().toISOString(),
+  fecha_corte: fecha,
+  creado_por: USUARIO.nombre,
+  creado_en: new Date().toISOString(),
+  resumen
+});
+
 
       // Marcar ventas cortadas
       for (const v of ventasDia) {
@@ -344,33 +403,7 @@ Ventas: ${ventasDia.length}
       // =======================================
 
       overlayText.textContent = "Generando PDF grande...";
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-
-      pdf.text("CORTE DE RUTA – PDD", 10, 10);
-      pdf.text(`Ruta: ${ruta}`, 10, 20);
-      pdf.text(`Vendedor: ${usuario}`, 10, 30);
-      pdf.text(`Fecha: ${fecha}`, 10, 40);
-      pdf.text(`Total Día: $${totalDia.toFixed(2)}`, 10, 50);
-
-      const blob = pdf.output("blob");
-
-      overlayText.textContent = "Enviando PDF a Telegram...";
-
-      const BOT = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-      const CHAT = "6617988297";
-
-      const f = new FormData();
-      f.append("chat_id", CHAT);
-      f.append("caption", `Corte de ruta ${ruta} – ${fecha}\nTotal: $${totalDia.toFixed(2)}`);
-      f.append("document", blob, `Corte_${ruta}_${fecha}.pdf`);
-
-      await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, {
-        method: "POST",
-        body: f
-      });
-
+await generarPDF(resumen);
       // =======================================
       //  CIERRE DE SESIÓN AUTOMÁTICO
       // =======================================
