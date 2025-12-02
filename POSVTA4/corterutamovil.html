@@ -301,9 +301,17 @@ const ventasDia = ventas.filter(v =>
           porNota.push({folio:v.folio||v.id,total,descuento,costo,utilidad,ubicacion:v.ubicacion||{}});
         }
 // =======================================
-// CORTE TÉRMICO ANALÍTICO
+// CORTE TÉRMICO ANALÍTICO (MXN con comas)
 // =======================================
 overlayText.textContent = "Imprimiendo corte...";
+
+// Formato MXN con comas
+function mxn(n) {
+  return Number(n).toLocaleString("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
 
 // Ordenar departamentos por venta
 const listaDeptos = Object.entries(porDepto)
@@ -320,30 +328,30 @@ CORTE ANALÍTICO - ${fechaRef}
 --------------------------------
 RUTA: ${ruta}
 VENDEDOR: ${USUARIO.nombre}
-TOTAL: $${totalDia.toFixed(2)}
+TOTAL MXN: $${mxn(totalDia)}
 VENTAS: ${ventasDia.length}
 --------------------------------
-VENTA POR DEPARTAMENTO
+VENTA POR DEPARTAMENTO (MXN)
 --------------------------------
 `;
 
 for (const [dep, d] of listaDeptos) {
-  texto += `${dep.substring(0,16).padEnd(16)} $${d.venta.toFixed(2)}\n`;
+  texto += `${dep.substring(0,16).padEnd(16)} $${mxn(d.venta)}\n`;
 }
 
 texto += `
 --------------------------------
-TOP ARTÍCULOS (10)
+TOP ARTÍCULOS (MXN)
 --------------------------------
 `;
 
 topArt.forEach(([name, d]) => {
-  texto += `${name.substring(0,20)}\n   $${d.importe.toFixed(2)}\n`;
+  texto += `${name.substring(0,20)}\n   $${mxn(d.importe)}\n`;
 });
 
 texto += `
 --------------------------------
-¡BONITO DIA!
+¡GRAN TRABAJO!
 `;
 
 try {
