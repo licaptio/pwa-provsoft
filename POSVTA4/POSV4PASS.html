@@ -583,20 +583,24 @@ async function cargarCatalogo() {
 
     snap.forEach(d => {
       const x = d.data();
-      const p = {
-        id: d.id,
-        nombre: x.concepto || "SIN NOMBRE",
-        codigo: String(x.codigoBarra || ""),
-        precioPublico: Number(x.precioPublico || 0),
-        mayoreo: Number(x.mayoreo || 0),
-        costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
-        ivaTasa: Number(x.ivaTasa || 0),
-        iepsTasa: Number(x.iepsTasa || 0),
-        departamento_id: x.departamento_id || null,
-        equivalentes: Array.isArray(x.codigosEquivalentes)
-          ? x.codigosEquivalentes.map(String)
-          : []
-      };
+const p = {
+  id: d.id,
+  nombre: x.concepto || "SIN NOMBRE",
+  codigo: String(x.codigoBarra || ""),
+  precioPublico: Number(x.precioPublico || 0),
+  mayoreo: Number(x.mayoreo || 0),
+  costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
+  ivaTasa: Number(x.ivaTasa || 0),
+  iepsTasa: Number(x.iepsTasa || 0),
+
+  // 🚀 CAMPOS SAT DEL CATÁLOGO
+  claveSat: x.claveSat || null,
+  unidadMedidaSat: x.unidadMedidaSat || null,
+
+  departamento_id: x.departamento_id || null,
+  equivalentes: ...
+};
+
       catalogo.push(p);
       if (p.codigo) codeIndex.set(p.codigo, p.id);
       if (Array.isArray(p.equivalentes)) {
@@ -768,12 +772,19 @@ function addProduct(prod, cant = 1) {
   // 🔹 Si es producto de balanza (peso < 1 kg o con código prefijo 2)
   if (cant < 1 || String(prod.codigo || "").startsWith("2")) {
     // No sumar kilos a lo anterior, crear línea nueva separada
-    carrito.push({
-      ...prod,
-      cantidad: cant,
-      precioUnit: Number(prod.precioPublico || 0),
-      importe: cant * Number(prod.precioPublico || 0)
-    });
+carrito.push({
+  ...prod,
+  cantidad: cant,
+  precioUnit: Number(prod.precioPublico || 0),
+  importe: cant * Number(prod.precioPublico || 0),
+
+  // 🚀 CAMPOS SAT QUE FALTAN
+  claveSat: prod.claveSat || null,
+  unidadSat: prod.unidadMedidaSat || null,
+  ivaTasa: prod.ivaTasa ?? 0,
+  iepsTasa: prod.iepsTasa ?? 0
+});
+
     renderDebounced();
     return;
   }
@@ -787,8 +798,19 @@ function addProduct(prod, cant = 1) {
     existente.precioUnit = precioUnit;
     existente.importe = existente.cantidad * precioUnit;
   } else {
-    carrito.push({ ...prod, cantidad: cant, precioUnit, importe: cant * precioUnit });
-  }
+  carrito.push({
+    ...prod,
+    cantidad: cant,
+    precioUnit: Number(prod.precioPublico || 0),
+    importe: cant * Number(prod.precioPublico || 0),
+
+    // 🚀 CAMPOS SAT
+    claveSat: prod.claveSat || null,
+    unidadSat: prod.unidadMedidaSat || null,
+    ivaTasa: prod.ivaTasa ?? 0,
+    iepsTasa: prod.iepsTasa ?? 0
+  });
+}
 
   mostrarConfirmacionProducto(prod, cant, precioUnit);
   renderDebounced();
@@ -1434,24 +1456,31 @@ $("#btnConfirmarCobro").onclick = async () => {
       ubicacion: await obtenerUbicacionRobusta().catch(() => null),
       detalle: carrito.map(it => {
         const dep = departamentos[it.departamento_id] || { id: 0, nombre: "SIN DEP", iva: 0, ieps: 0 };
-        return {
-          id: it.id,
-          nombre: it.nombre,
-          codigo: it.codigo,
-          cantidad: it.cantidad,
-          precio_unit: it.precioUnit,
-          importe: it.importe,
-          costo_unit: +(it.costoUnit || 0).toFixed(2),
-          costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
-          utilidad: +(it.importe - it.cantidad * (it.costoUnit || 0)).toFixed(2),
-          departamento_id: it.departamento_id || "0",
-          departamento_info: {
-            id: dep.id,
-            nombre: dep.nombre,
-            iva: dep.iva,
-            ieps: dep.ieps
-          }
-        };
+return {
+  id: it.id,
+  nombre: it.nombre,
+  codigo: it.codigo,
+  cantidad: it.cantidad,
+  precio_unit: it.precioUnit,
+  importe: it.importe,
+  costo_unit: +(it.costoUnit || 0).toFixed(2),
+  costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+
+  // 🚀 CAMPOS SAT
+  claveSat: it.claveSat,
+  unidadSat: it.unidadSat,
+  ivaTasa: it.ivaTasa,
+  iepsTasa: it.iepsTasa,
+
+  departamento_id: it.departamento_id,
+  departamento_info: {
+    id: dep.id,
+    nombre: dep.nombre,
+    iva: dep.iva,
+    ieps: dep.ieps
+  }
+};
+
       })
     };
 
