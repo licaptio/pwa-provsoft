@@ -78,7 +78,10 @@
     <option value="">Selecciona una ruta...</option>
   </select>
 
-  <input type="date" id="selectFecha">
+  <select id="selectFecha">
+  <option value="">Selecciona una fecha pendiente...</option>
+</select>
+
 
   <button id="btnGenerar">📊 GENERAR CORTE</button>
 
@@ -175,12 +178,47 @@ async function cargarRutas() {
     selectRuta.appendChild(opt);
   });
 }
+/* ===================================================
+   📅 CARGAR FECHAS PENDIENTES DE CORTE
+=================================================== */
+async function cargarFechasPendientes() {
+  const q = query(
+    collection(db, "ventas_rutav2"),
+    where("rutaId", "==", RUTA_USUARIO),
+    where("cortado", "==", false)
+  );
+
+  const snap = await getDocs(q);
+  const ventas = snap.docs.map(d => d.data());
+
+  const fechas = {};
+
+  ventas.forEach(v => {
+    // fecha_txt viene así: "03/02/2025 10:33"
+    if (!v.fecha_txt) return;
+    const fechaSolo = v.fecha_txt.split(" ")[0];
+
+    if (!fechas[fechaSolo]) fechas[fechaSolo] = 0;
+    fechas[fechaSolo]++;
+  });
+
+  const select = document.getElementById("selectFecha");
+  select.innerHTML = "<option value=''>Selecciona una fecha pendiente...</option>";
+
+  Object.entries(fechas).forEach(([fecha, cantidad]) => {
+    const opt = document.createElement("option");
+    opt.value = fecha;
+    opt.textContent = `${fecha} – ${cantidad} ventas pendientes`;
+    select.appendChild(opt);
+  });
+}
 
 /* ===================================================
    ▶️ EJECUCIÓN INICIAL
 =================================================== */
 cargarUsuarioLogueado();
 await cargarRutas();
+await cargarFechasPendientes();
 
 // Aquí sigue GENERAR CORTE SIN CAMBIOS
     // ===========================================
@@ -190,12 +228,17 @@ await cargarRutas();
 
     async function generarCorteMovil() {
       const ruta  = selectRuta.value;
-      const fecha = selectFecha.value;
+const fecha = selectFecha.value;
 
-      if (!ruta || !fecha) {
-        alert("Selecciona ruta y fecha.");
-        return;
-      }
+if (!ruta) {
+  alert("Ruta inválida.");
+  return;
+}
+
+if (!fecha) {
+  alert("Selecciona una fecha pendiente.");
+  return;
+}
 
       overlay.style.display = "flex";
       overlayText.textContent = "Buscando ventas...";
@@ -211,13 +254,11 @@ await cargarRutas();
       const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
       // Filtrar por fecha, usando fecha_txt tipo "24/11/2025 10:22"
-      const partes = fecha.split("-");
-      const fechaRef = `${parseInt(partes[2])}/${parseInt(partes[1])}/${partes[0]}`;
+const fechaRef = fecha; // porque ahora viene en formato dd/mm/aaaa
 
-      const ventasDia = ventas.filter(v =>
-        v.fecha_txt?.startsWith(fechaRef) ||
-        v.fecha_txt?.includes(fechaRef)
-      );
+const ventasDia = ventas.filter(v =>
+  v.fecha_txt && v.fecha_txt.startsWith(fechaRef)
+);
 
       if (!ventasDia.length) {
         overlay.style.display = "none";
