@@ -421,6 +421,166 @@ await generarPDF(resumen);
 
   <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+/* ============================================================
+   📄 GENERAR PDF GRANDE PARA TELEGRAM
+============================================================ */
+async function generarPDF(r) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: "mm", format: "letter" });
+
+  const azul = "#0c6cbd";
+  let y = 15;
+
+  // ENCABEZADO
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.setTextColor(azul);
+  pdf.text("CORTE DE RUTA – PROVEEDORA DE DULCES Y DESECHABLES", 105, y, { align: "center" });
+  y += 10;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(11);
+  pdf.setTextColor("#000");
+
+  pdf.text(`Usuario: ${r.usuario}`, 15, y); y += 6;
+  pdf.text(`Ruta: ${r.rutaId}`, 15, y); y += 6;
+  pdf.text(`Fecha: ${r.fecha}`, 15, y); y += 10;
+
+  // RESUMEN GENERAL
+  const neto = r.totalDia - r.totalDescuento;
+  const margen = neto > 0 ? ((r.utilidadTotal / neto) * 100).toFixed(2) + "%" : "—";
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.setTextColor(azul);
+  pdf.text("RESUMEN GENERAL", 15, y); y += 7;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(11);
+
+  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 15, y);
+  pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`, 110, y); y += 6;
+
+  pdf.text(`Venta Neta: $${neto.toFixed(2)}`, 15, y);
+  pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`, 110, y); y += 6;
+
+  pdf.text(`Margen Global: ${margen}`, 15, y); y += 10;
+
+  // TABLA ARTÍCULOS (TOP 60)
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.setTextColor(azul);
+  pdf.text("ARTÍCULOS – TOP 60", 15, y);
+  y += 8;
+
+  pdf.setFillColor(12, 108, 189);
+  pdf.setTextColor(255, 255, 255);
+  pdf.rect(10, y, 190, 6, "F");
+
+  pdf.text("Artículo", 12, y + 4);
+  pdf.text("Cant.", 60, y + 4, { align: "right" });
+  pdf.text("Venta", 100, y + 4, { align: "right" });
+  pdf.text("Util.", 140, y + 4, { align: "right" });
+  pdf.text("Costo", 180, y + 4, { align: "right" });
+
+  y += 8;
+
+  pdf.setFontSize(10);
+  pdf.setTextColor("#000");
+
+  const topArt = Object.entries(r.porArticulo)
+    .sort((a, b) => b[1].importe - a[1].importe)
+    .slice(0, 60);
+
+  for (const [name, d] of topArt) {
+    if (y > 260) { pdf.addPage(); y = 20; }
+
+    pdf.text(name.substring(0, 38), 12, y);
+    pdf.text(`${d.cantidad}`, 60, y, { align: "right" });
+    pdf.text(`$${d.importe.toFixed(2)}`, 100, y, { align: "right" });
+    pdf.text(`$${(d.importe - d.costo).toFixed(2)}`, 140, y, { align: "right" });
+    pdf.text(`$${d.costo.toFixed(2)}`, 180, y, { align: "right" });
+
+    y += 6;
+  }
+
+  // TABLA TICKETS
+  pdf.addPage();
+  y = 15;
+
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(13);
+  pdf.setTextColor(azul);
+  pdf.text(`RESUMEN DE TICKETS – ${r.fecha}`, 15, y);
+  y += 8;
+
+  pdf.setFillColor(12, 108, 189);
+  pdf.setTextColor(255, 255, 255);
+  pdf.rect(10, y, 190, 6, "F");
+
+  pdf.text("Folio", 12, y + 4);
+  pdf.text("Hora", 45, y + 4);
+  pdf.text("Total", 100, y + 4, { align: "right" });
+  pdf.text("Costo", 140, y + 4, { align: "right" });
+  pdf.text("Util.", 180, y + 4, { align: "right" });
+
+  y += 8;
+
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor("#000");
+
+  for (const t of r.detalle_ventas) {
+    if (y > 260) { pdf.addPage(); y = 20; }
+
+    const hora = (t.fecha_txt || "").split(" ")[1] || "—";
+    const util = (t.total || 0) - (t.costo || 0);
+
+    pdf.text((t.folio || "").substring(0, 12), 12, y);
+    pdf.text(hora, 45, y);
+    pdf.text(`$${t.total.toFixed(2)}`, 100, y, { align: "right" });
+    pdf.text(`$${t.costo.toFixed(2)}`, 140, y, { align: "right" });
+    pdf.text(`$${util.toFixed(2)}`, 180, y, { align: "right" });
+
+    y += 6;
+  }
+
+  // EXPORTAR
+  const blob = pdf.output("blob");
+
+  await enviarTelegram(
+    blob,
+    `Corte_${r.rutaId}_${r.fecha}.pdf`,
+    `📦 Corte de Ruta\n👤 ${r.usuario}\n🚚 Ruta ${r.rutaId}\n💰 Total Día: $${r.totalDia.toFixed(2)}\n📊 Utilidad: $${r.utilidadTotal.toFixed(2)}`
+  );
+
+  return true;
+}
+
+
+/* ============================================================
+   📤 ENVIAR PDF A TELEGRAM
+============================================================ */
+async function enviarTelegram(pdfBlob, nombre, caption) {
+  const BOT  = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+  const CHAT = "6617988297";
+
+  const f = new FormData();
+  f.append("chat_id", CHAT);
+  f.append("caption", caption);
+  f.append("document", pdfBlob, nombre);
+
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, {
+      method: "POST",
+      body: f
+    });
+  } catch (e) {
+    console.error("Telegram error:", e);
+  }
+}
+</script>
 
 </body>
 </html>
