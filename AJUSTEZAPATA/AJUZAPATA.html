@@ -6,104 +6,74 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family: Arial;
-  background:#f4f4f4;
-  padding:20px;
-}
-h2{
-  color:#00416A;
-  font-size:26px;
-  margin-bottom:20px;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:white;
-  margin-top:15px;
-}
-th{
-  border:1px solid #ccc;
-  padding:10px;
-  text-align:center;
-  font-size:15px;
-  background:#00416A;
-  color:white;
-}
-.btn{
-  margin-top:20px;
-  padding:12px 20px;
-  background:#00416A;
-  color:white;
-  border:none;
-  border-radius:6px;
-  font-size:16px;
-  cursor:pointer;
-}
-/* Banda del proveedor - estilo elegante */
-.proveedor-banda {
-  display:flex;
-  align-items:center;
-  font-weight:600;
-  font-size:15px;
-  color:#003d66;
-  padding:8px 6px;
-  margin:0;
-  border-left:4px solid #003d66;
-  background:#f0f6fa;
-  letter-spacing:0.5px;
-}
+ body{
+    font-family: Arial;
+    background:#f4f4f4;
+    margin:0;
+    padding:20px;
+ }
 
-/* Zebra stripes */
-.fila-inv:nth-child(even) {
-  background:#fafafa;
-}
+ h2{
+    color:#003d66;
+    font-size:28px;
+    margin-bottom:25px;
+ }
 
-/* Fila */
-.fila-inv {
-  display:grid;
-  grid-template-columns:140px 1fr 90px 90px 90px 90px 110px 80px;
-  align-items:center;
-  padding:8px 12px;
-  font-size:14px;
-  border-bottom:1px solid #e0e0e0;
-}
+ /* Encabezado */
+ .header-grid{
+    display:grid;
+    grid-template-columns:140px 1fr 90px 90px 90px 90px 120px 90px;
+    background:#003d66;
+    color:white;
+    font-weight:bold;
+    padding:12px;
+    border-radius:6px 6px 0 0;
+ }
 
-/* Input Físico */
-.input-fisico {
-  width:70px;
-  padding:4px;
-  text-align:center;
-  border:1px solid #aaa;
-  border-radius:4px;
-  font-size:14px;
-}
+ /* Banda del proveedor */
+ .proveedor-banda{
+    font-weight:bold;
+    padding:10px 6px;
+    color:#003d66;
+    background:#e9f3f8;
+    border-left:5px solid #003d66;
+    margin-top:15px;
+    margin-bottom:5px;
+ }
 
-/* Diferencia */
-.dif-pos { color:green; font-weight:bold; }
-.dif-neg { color:red; font-weight:bold; }
+ /* Filas */
+ .fila{
+    display:grid;
+    grid-template-columns:140px 1fr 90px 90px 90px 90px 120px 90px;
+    padding:10px;
+    background:white;
+    border-bottom:1px solid #ddd;
+ }
 
+ .fila:nth-child(even){
+    background:#f9f9f9;
+ }
+
+ /* Input físico */
+ .input-fisico{
+    width:80px;
+    padding:5px;
+    border:1px solid #888;
+    border-radius:4px;
+    text-align:center;
+ }
+
+ /* Diferencias */
+ .dif-pos{ color: green; font-weight:bold; }
+ .dif-neg{ color: red; font-weight:bold; }
 </style>
 </head>
 
 <body>
 
-<h2 style="color:#003d66; font-size:28px; margin-bottom:20px;">
-  Ajuste de Inventario – Almacén Zapata
-</h2>
+<h2>Ajuste de Inventario – Almacén Zapata</h2>
 
-<!-- ENCABEZADO PROVSOFT -->
-<div id="tablaHeader" 
-     style="
-        display:grid;
-        grid-template-columns:140px 1fr 90px 90px 90px 90px 110px 80px;
-        background:#003d66;
-        color:white;
-        font-weight:600;
-        padding:10px 12px;
-        border-radius:6px 6px 0 0;
-        box-shadow:0 2px 4px rgba(0,0,0,0.15);
-        ">
+<div class="header-grid">
   <div>Código</div>
   <div>Descripción</div>
   <div>Base</div>
@@ -114,29 +84,21 @@ th{
   <div>Diferencia</div>
 </div>
 
-<!-- CONTENEDOR DEL SCROLL -->
-<div id="tablaInventario" style="width:100%;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;">
-</div>
+<div id="contenedorTabla"></div>
 
-<button id="btnGuardarAjustes" class="btn" 
-        style="margin-top:20px;
-               padding:14px 22px;
-               font-size:18px;
-               background:#003d66;
-               border-radius:6px;">
+<button id="btnGuardar" 
+        style="margin-top:20px;background:#003d66;padding:15px 20px;color:white;font-size:18px;border:none;border-radius:6px;cursor:pointer;">
   Guardar ajustes
 </button>
 
-<script type="module">
 
-// ----------------------------------------------------------
-// FIREBASE
-// ----------------------------------------------------------
+<script type="module">
+/* =======================
+   FIREBASE
+======================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { 
-  getFirestore, collection, doc, query, where,
-  getDocs, onSnapshot, addDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, query, where, getDocs, onSnapshot, addDoc, setDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -148,356 +110,216 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-// ----------------------------------------------------------
-// VARIABLES
-// ----------------------------------------------------------
+/* =======================
+   VARIABLES
+======================= */
 let productos = {};
-let inventarioBase = {};
-let entradasNuevas = {};
-let salidasNuevas = {};
-
-let productosListos = false;
-let baseLista = false;
-let entradasListas = false;
-let salidasListas = false;
-
-let fisicos = {}; // almacena los inventarios físicos
+let baseInv   = {};
+let entradas  = {};
+let salidas   = {};
+let fisicos   = {};
 
 const fechaCorte = new Date("2025-11-24T00:00:00");
 
-function normCodigo(cod){
-  return (cod||"").toString().trim().padStart(12,"0");
-}
+/* Normalización de código */
+function norm(c){ return (c||"").toString().padStart(12,"0"); }
 
-// ----------------------------------------------------------
-// CARGAR PRODUCTOS
-// ----------------------------------------------------------
+/* =======================
+   CARGAS FIRESTORE
+======================= */
 async function cargarProductos() {
-  const q = query(collection(db, "productos"), where("activo","==",true));
+  const q = query(collection(db,"productos"), where("activo","==",true));
   const snap = await getDocs(q);
-
   snap.forEach(d=>{
     const x = d.data();
-    const codigo = normCodigo(x.codigoBarra || x.codigo);
-    productos[codigo] = {
-      descripcion: x.concepto || x.descripcion || "-",
-      proveedor: x.proveedor || "OTROS"
+    const c = norm(x.codigoBarra||x.codigo);
+    productos[c] = {
+      descripcion: x.descripcion || x.concepto || "-",
+      proveedor  : x.proveedor || "OTROS"
     };
   });
-
-  productosListos = true;
-  intentarDibujar();
 }
 
-// ----------------------------------------------------------
-// CARGAR INVENTARIO BASE
-// ----------------------------------------------------------
-async function cargarBase(){
-  const snap = await getDocs(collection(db, "almacenes/almacen_zapata/inventario_base"));
-
+async function cargarBase() {
+  const snap = await getDocs(collection(db,"almacenes/almacen_zapata/inventario_base"));
   snap.forEach(d=>{
-    const codigo = normCodigo(d.id);
-    inventarioBase[codigo] = d.data().existencia || 0;
+    baseInv[norm(d.id)] = d.data().existencia || 0;
   });
-
-  baseLista = true;
-  intentarDibujar();
 }
 
-// ----------------------------------------------------------
-// CARGAR ENTRADAS NUEVAS
-// ----------------------------------------------------------
 function cargarEntradas(){
-  const ref = collection(db, "almacenes/almacen_zapata/entradas");
-
-  onSnapshot(ref, snap=>{
-    entradasNuevas = {};
-    snap.forEach(docu=>{
-      const x = docu.data();
+  onSnapshot(collection(db,"almacenes/almacen_zapata/entradas"),snap=>{
+    entradas = {};
+    snap.forEach(d=>{
+      const x = d.data();
       const f = x.fecha?.toDate?.() || new Date(x.fecha);
       if(f < fechaCorte) return;
-
       if(Array.isArray(x.productos)){
         x.productos.forEach(p=>{
-          const codigo = normCodigo(p.codigoBarra || p.codigo);
-          entradasNuevas[codigo] = (entradasNuevas[codigo]||0) + Number(p.cantidad||0);
+          const c = norm(p.codigo||p.codigoBarra);
+          entradas[c] = (entradas[c]||0) + Number(p.cantidad||0);
         });
       }
     });
-
-    entradasListas = true;
-    intentarDibujar();
+    dibujar();
   });
 }
 
-// ----------------------------------------------------------
-// CARGAR SALIDAS NUEVAS
-// ----------------------------------------------------------
 function cargarSalidas(){
-  const ref = collection(db, "almacenes/almacen_zapata/salidas1.0");
-
-  onSnapshot(ref, snap=>{
-    salidasNuevas = {};
-    snap.forEach(docu=>{
-      const x = docu.data();
+  onSnapshot(collection(db,"almacenes/almacen_zapata/salidas1.0"),snap=>{
+    salidas = {};
+    snap.forEach(d=>{
+      const x = d.data();
       const f = x.timestamp?.toDate?.() || new Date(x.timestamp);
       if(f < fechaCorte) return;
-
       if(Array.isArray(x.articulos)){
         x.articulos.forEach(p=>{
-          const codigo = normCodigo(p.codigoBarra || p.codigo);
-          salidasNuevas[codigo] = (salidasNuevas[codigo]||0) + Number(p.cantidad||0);
+          const c = norm(p.codigo||p.codigoBarra);
+          salidas[c] = (salidas[c]||0) + Number(p.cantidad||0);
         });
       }
     });
-
-    salidasListas = true;
-    intentarDibujar();
+    dibujar();
   });
 }
 
-// ----------------------------------------------------------
-// DIBUJAR TABLA (Optimizado)
-// ----------------------------------------------------------
-let dibujarTimeout = null;
-
-function intentarDibujar(){
-  if(!productosListos || !baseLista || !entradasListas || !salidasListas) return;
-
-  clearTimeout(dibujarTimeout);
-  dibujarTimeout = setTimeout(()=>{ dibujar(); }, 200);
-}
-
-// ----------------------------------------------------------
-// VIRTUAL TABLE CONFIG
-// ----------------------------------------------------------
-const ROW_HEIGHT = 50;
-let proveedorKeys = [];
-let proveedorData = {};
-let totalRows = 0;
-
-let scrollContainer = null;
-let visibleContainer = null;
-
+/* =======================
+   DIBUJAR PÁGINA COMPLETA
+======================= */
 function dibujar(){
+  
+  let grupos = {};
 
-  proveedorData = {};
-  totalRows = 0;
-
-  Object.keys(productos).forEach(codigo=>{
-    const p = productos[codigo];
-    const base = inventarioBase[codigo] || 0;
-    const ent = entradasNuevas[codigo] || 0;
-    const sal = salidasNuevas[codigo] || 0;
+  Object.keys(productos).forEach(c=>{
+    const p = productos[c];
+    const base = baseInv[c] || 0;
+    const ent  = entradas[c] || 0;
+    const sal  = salidas[c] || 0;
     const exis = base + ent - sal;
 
-    if(!proveedorData[p.proveedor]) proveedorData[p.proveedor] = [];
-    proveedorData[p.proveedor].push({codigo, descripcion:p.descripcion, base, ent, sal, exis});
+    if(!grupos[p.proveedor]) grupos[p.proveedor] = [];
+    grupos[p.proveedor].push({codigo:c, descripcion:p.descripcion, base, ent, sal, exis});
   });
 
-  proveedorKeys = Object.keys(proveedorData).sort();
+  const root = document.getElementById("contenedorTabla");
+  root.innerHTML = "";
 
-  proveedorKeys.forEach(pk=>{
-    totalRows += 1;
-    totalRows += proveedorData[pk].length;
-  });
+  Object.keys(grupos).sort().forEach(prov => {
 
-  if(!scrollContainer){
-    const tabla = document.getElementById("tablaInventario");
+    // Banda
+    const banda = document.createElement("div");
+    banda.className = "proveedor-banda";
+    banda.textContent = `── ${prov} ───────────────────────────────────────`;
+    root.appendChild(banda);
 
-    tabla.innerHTML = "";
+    // Productos
+    grupos[prov].forEach(p => {
 
-    scrollContainer = document.createElement("div");
-    scrollContainer.style.height = "75vh";
-    scrollContainer.style.overflowY = "auto";
-    scrollContainer.style.position = "relative";
-    scrollContainer.style.width = "100%";
-    scrollContainer.style.border = "1px solid #ccc";
+      const fila = document.createElement("div");
+      fila.className = "fila";
 
-    visibleContainer = document.createElement("div");
-    visibleContainer.style.position = "absolute";
-    visibleContainer.style.top = "0";
-    visibleContainer.style.left = "0";
-    visibleContainer.style.width = "100%";
+      fila.innerHTML = `
+        <div>${p.codigo}</div>
+        <div>${p.descripcion}</div>
+        <div>${p.base}</div>
+        <div>${p.ent}</div>
+        <div>${p.sal}</div>
+        <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
 
-    scrollContainer.appendChild(visibleContainer);
-    tabla.appendChild(scrollContainer);
+        <div>
+          <input class="input-fisico" 
+                 type="number" 
+                 id="fisico_${p.codigo}"
+                 value="${fisicos[p.codigo] ?? ''}"
+                 oninput="calcular('${p.codigo}',${p.exis})">
+        </div>
 
-    scrollContainer.addEventListener("scroll", renderVisibleRows);
-  }
+        <div id="dif_${p.codigo}" 
+             class="${(fisicos[p.codigo] - p.exis)>=0 ? 'dif-pos':'dif-neg'}">
+             ${fisicos[p.codigo] ? fisicos[p.codigo] - p.exis : 0}
+        </div>
+      `;
 
-  visibleContainer.style.height = (totalRows * ROW_HEIGHT) + "px";
-  renderVisibleRows();
-}
-
-function renderVisibleRows(){
-
-  const scrollTop = scrollContainer.scrollTop;
-  const viewportHeight = scrollContainer.clientHeight;
-
-  const startRow = Math.floor(scrollTop / ROW_HEIGHT);
-  const endRow   = Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT));
-
-  visibleContainer.innerHTML = "";
-
-  let rowIndex = 0;
-
-  // 🔥 RECORRIDO POR CADA PROVEEDOR
-  proveedorKeys.forEach(pk => {
-
-    // ──────── BANDA DE PROVEEDOR ────────
-    if(rowIndex >= startRow && rowIndex <= endRow){
-        const banda = document.createElement("div");
-        banda.className = "proveedor-banda";
-        banda.style.position = "absolute";
-        banda.style.top = (rowIndex * ROW_HEIGHT) + "px";
-        banda.style.height = ROW_HEIGHT + "px";
-        banda.innerHTML = `── ${pk} ─────────────────────────────────────────────`;
-        visibleContainer.appendChild(banda);
-    }
-
-    rowIndex++; // siguiente fila
-
-
-    // ───────── DETALLE DE PRODUCTOS ─────────
-    proveedorData[pk].forEach(p => {
-
-        if(rowIndex >= startRow && rowIndex <= endRow){
-
-            const div = document.createElement("div");
-            div.className = "fila-inv";
-            div.style.position = "absolute";
-            div.style.top = (rowIndex * ROW_HEIGHT) + "px";
-
-            div.innerHTML = `
-              <div>${p.codigo}</div>
-              <div>${p.descripcion}</div>
-              <div>${p.base}</div>
-              <div>${p.ent}</div>
-              <div>${p.sal}</div>
-              <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
-
-              <div>
-                <input 
-                   id="fisico_${p.codigo}" 
-                   type="number" 
-                   class="input-fisico"
-                   oninput="calcular('${p.codigo}', ${p.exis})"
-                   value="${fisicos[p.codigo] ?? ''}"
-                >
-              </div>
-
-              <div id="dif_${p.codigo}" 
-                   class="${fisicos[p.codigo] - p.exis >= 0 ? 'dif-pos':'dif-neg'}">
-                   ${fisicos[p.codigo] ? fisicos[p.codigo] - p.exis : 0}
-              </div>
-            `;
-
-            visibleContainer.appendChild(div);
-        }
-
-        rowIndex++;
-
+      root.appendChild(fila);
     });
 
-  }); // ← este cierre te faltaba
+  });
 }
-// ----------------------------------------------------------
-// CALCULAR DIFERENCIA
-// ----------------------------------------------------------
+
+/* =======================
+   CÁLCULO DIFERENCIA
+======================= */
 window.calcular = function(codigo, existencia){
   const v = Number(document.getElementById("fisico_"+codigo).value);
-
   fisicos[codigo] = v;
-
-  const celda = document.getElementById("dif_"+codigo);
-
-  if(isNaN(v)){ celda.textContent="0"; celda.style.color="#000"; return; }
-
   const dif = v - existencia;
+  const celda = document.getElementById("dif_"+codigo);
   celda.textContent = dif;
-  celda.style.color = dif>0 ? "green" : dif<0 ? "red" : "#000";
+  celda.className = dif >= 0 ? "dif-pos" : "dif-neg";
 };
 
-// ----------------------------------------------------------
-// GUARDAR AJUSTES
-// ----------------------------------------------------------
-async function guardarAjustes(){
+/* =======================
+   GUARDAR
+======================= */
+document.getElementById("btnGuardar").onclick = async () => {
 
-  let movimientos = [];
-  let nuevosBases = {};
+  let movs = {};
+  let lista = [];
 
-  Object.keys(productos).forEach(codigo=>{
-
-    const base = inventarioBase[codigo] || 0;
-    const ent = entradasNuevas[codigo] || 0;
-    const sal = salidasNuevas[codigo] || 0;
+  Object.keys(productos).forEach(c=>{
+    const base = baseInv[c] || 0;
+    const ent  = entradas[c] || 0;
+    const sal  = salidas[c] || 0;
     const exis = base + ent - sal;
-
-    const fis = fisicos[codigo];
-
-    if(fis === undefined || fis === "" || fis === null) return;
-
+    const fis  = fisicos[c];
+    if(fis === undefined) return;
     const dif = fis - exis;
     if(dif === 0) return;
 
-    movimientos.push({
-      codigo,
-      descripcion: productos[codigo].descripcion,
-      cantidad: Math.abs(dif),
-      tipoMovimiento: dif>0 ? "ENTRADA_AJUSTE" : "SALIDA_AJUSTE"
+    lista.push({
+      codigo:c,
+      cantidad:Math.abs(dif),
+      tipoMovimiento: dif>0? "ENTRADA_AJUSTE":"SALIDA_AJUSTE",
+      descripcion: productos[c].descripcion
     });
 
-    nuevosBases[codigo] = fis;
+    movs[c] = fis;
   });
 
-  if(movimientos.length === 0){
+  if(lista.length===0){
     alert("No hay ajustes.");
     return;
   }
 
   const fecha = new Date();
-
-  await addDoc(collection(db, "almacenes/almacen_zapata/ajustes"), {
+  await addDoc(collection(db,"almacenes/almacen_zapata/ajustes"), {
     fecha,
-    movimientos
+    movimientos:lista
   });
 
-  for(const codigo of Object.keys(nuevosBases)){
-    await setDoc(
-      doc(db, "almacenes/almacen_zapata/inventario_base", codigo),
-      {
-        existencia: nuevosBases[codigo],
-        descripcion: productos[codigo].descripcion,
-        proveedor: productos[codigo].proveedor,
-        actualizadoEn: fecha
-      }
-    );
-
-    inventarioBase[codigo] = nuevosBases[codigo];
+  for(const c of Object.keys(movs)){
+    await setDoc(doc(db,"almacenes/almacen_zapata/inventario_base",c),{
+      existencia: movs[c],
+      proveedor: productos[c].proveedor,
+      descripcion: productos[c].descripcion,
+      actualizadoEn: fecha
+    });
   }
 
-  alert("Ajuste guardado correctamente.");
-}
+  alert("Ajuste guardado.");
+};
 
-document.getElementById("btnGuardarAjustes")
-  .addEventListener("click", guardarAjustes);
-
-// ----------------------------------------------------------
-// EJECUTAR
-// ----------------------------------------------------------
+/* =======================
+   EJECUTAR
+======================= */
 await cargarProductos();
 await cargarBase();
 cargarEntradas();
 cargarSalidas();
 
 </script>
+
 </body>
 </html>
-
-
-
-
-
