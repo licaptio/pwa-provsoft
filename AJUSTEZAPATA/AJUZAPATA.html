@@ -333,6 +333,7 @@ function dibujar(){
 }
 
 function renderVisibleRows(){
+
   const scrollTop = scrollContainer.scrollTop;
   const viewportHeight = scrollContainer.clientHeight;
 
@@ -343,59 +344,66 @@ function renderVisibleRows(){
 
   let rowIndex = 0;
 
-if(rowIndex >= startRow && rowIndex <= endRow){
-    const banda = document.createElement("div");
-    banda.className = "proveedor-banda";
-    banda.style.position = "absolute";
-    banda.style.top = (rowIndex * ROW_HEIGHT) + "px";
-    banda.style.height = ROW_HEIGHT + "px";
-    banda.innerHTML = `── ${pk} ─────────────────────────────────────────────`;
-    visibleContainer.appendChild(banda);
+  // 🔥 RECORRIDO POR CADA PROVEEDOR
+  proveedorKeys.forEach(pk => {
+
+    // ──────── BANDA DE PROVEEDOR ────────
+    if(rowIndex >= startRow && rowIndex <= endRow){
+        const banda = document.createElement("div");
+        banda.className = "proveedor-banda";
+        banda.style.position = "absolute";
+        banda.style.top = (rowIndex * ROW_HEIGHT) + "px";
+        banda.style.height = ROW_HEIGHT + "px";
+        banda.innerHTML = `── ${pk} ─────────────────────────────────────────────`;
+        visibleContainer.appendChild(banda);
+    }
+
+    rowIndex++; // siguiente fila
+
+
+    // ───────── DETALLE DE PRODUCTOS ─────────
+    proveedorData[pk].forEach(p => {
+
+        if(rowIndex >= startRow && rowIndex <= endRow){
+
+            const div = document.createElement("div");
+            div.className = "fila-inv";
+            div.style.position = "absolute";
+            div.style.top = (rowIndex * ROW_HEIGHT) + "px";
+
+            div.innerHTML = `
+              <div>${p.codigo}</div>
+              <div>${p.descripcion}</div>
+              <div>${p.base}</div>
+              <div>${p.ent}</div>
+              <div>${p.sal}</div>
+              <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
+
+              <div>
+                <input 
+                   id="fisico_${p.codigo}" 
+                   type="number" 
+                   class="input-fisico"
+                   oninput="calcular('${p.codigo}', ${p.exis})"
+                   value="${fisicos[p.codigo] ?? ''}"
+                >
+              </div>
+
+              <div id="dif_${p.codigo}" 
+                   class="${fisicos[p.codigo] - p.exis >= 0 ? 'dif-pos':'dif-neg'}">
+                   ${fisicos[p.codigo] ? fisicos[p.codigo] - p.exis : 0}
+              </div>
+            `;
+
+            visibleContainer.appendChild(div);
+        }
+
+        rowIndex++;
+
+    });
+
+  }); // ← este cierre te faltaba
 }
-rowIndex++;
-
-
-proveedorData[pk].forEach(p=>{
-
-  if(rowIndex >= startRow && rowIndex <= endRow){
-
-      const div = document.createElement("div");
-      div.className = "fila-inv";
-      div.style.position = "absolute";
-      div.style.top = (rowIndex * ROW_HEIGHT) + "px";
-
-      div.innerHTML = `
-        <div>${p.codigo}</div>
-        <div>${p.descripcion}</div>
-        <div>${p.base}</div>
-        <div>${p.ent}</div>
-        <div>${p.sal}</div>
-        <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
-
-        <div>
-          <input 
-             id="fisico_${p.codigo}" 
-             type="number" 
-             class="input-fisico"
-             oninput="calcular('${p.codigo}', ${p.exis})"
-             value="${fisicos[p.codigo] ?? ''}"
-          >
-        </div>
-
-        <div id="dif_${p.codigo}" 
-             class="${fisicos[p.codigo] - p.exis >= 0 ? 'dif-pos':'dif-neg'}">
-             ${fisicos[p.codigo] ? fisicos[p.codigo] - p.exis : 0}
-        </div>
-      `;
-
-      visibleContainer.appendChild(div);
-  }
-
-  rowIndex++;
-});
-
-}
-
 // ----------------------------------------------------------
 // CALCULAR DIFERENCIA
 // ----------------------------------------------------------
@@ -488,6 +496,7 @@ cargarSalidas();
 </script>
 </body>
 </html>
+
 
 
 
