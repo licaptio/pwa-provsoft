@@ -598,7 +598,7 @@ const p = {
   unidadMedidaSat: x.unidadMedidaSat || null,
 
   departamento_id: x.departamento_id || null,
-  equivalentes: ...
+  equivalentes: Array.isArray(x.codigosEquivalentes) ? x.codigosEquivalentes : [],
 };
 
       catalogo.push(p);
@@ -2067,7 +2067,7 @@ function toast(msg, color = "#0c6cbd") {
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
 if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("./sw.js")
+  navigator.serviceWorker.register("./sw.js?v=2")
   .then(r=>console.log("✅ Service Worker registrado:",r.scope))
   .catch(e=>console.error("❌ Error registrando SW:",e));
 }
