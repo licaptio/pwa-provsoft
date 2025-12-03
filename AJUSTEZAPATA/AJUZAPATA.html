@@ -47,20 +47,25 @@ th{
 
 <h2>Ajuste de Inventario – Almacén Zapata</h2>
 
-<table>
-<thead>
-   <tr>
-     <th>Código</th>
-     <th>Descripción</th>
-     <th>Base</th>
-     <th>Entradas nuevas</th>
-     <th>Salidas nuevas</th>
-     <th>Existencia</th>
-     <th>Inventario físico</th>
-     <th>Diferencia</th>
-   </tr>
-</thead>
-</table>
+<table><div id="tablaHeader" 
+     style="display:grid;
+            grid-template-columns:140px 1fr 90px 90px 90px 90px 120px 80px;
+            background:#00416A;
+            color:white;
+            font-weight:bold;
+            padding:10px 8px;
+            border:1px solid #ccc;
+            margin-bottom:0;">
+  <div>Código</div>
+  <div>Descripción</div>
+  <div>Base</div>
+  <div>Entradas nuevas</div>
+  <div>Salidas nuevas</div>
+  <div>Existencia</div>
+  <div>Inventario físico</div>
+  <div>Diferencia</div>
+</div>
+
  
 <div id="tablaInventario" style="width:100%;"></div>
 
@@ -441,4 +446,5 @@ cargarSalidas();
 </script>
 </body>
 </html>
+
 
