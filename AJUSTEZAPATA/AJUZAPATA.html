@@ -40,36 +40,92 @@ th{
   font-size:16px;
   cursor:pointer;
 }
+/* Banda del proveedor - estilo elegante */
+.proveedor-banda {
+  display:flex;
+  align-items:center;
+  font-weight:600;
+  font-size:15px;
+  color:#003d66;
+  padding:8px 6px;
+  margin:0;
+  border-left:4px solid #003d66;
+  background:#f0f6fa;
+  letter-spacing:0.5px;
+}
+
+/* Zebra stripes */
+.fila-inv:nth-child(even) {
+  background:#fafafa;
+}
+
+/* Fila */
+.fila-inv {
+  display:grid;
+  grid-template-columns:140px 1fr 90px 90px 90px 90px 110px 80px;
+  align-items:center;
+  padding:8px 12px;
+  font-size:14px;
+  border-bottom:1px solid #e0e0e0;
+}
+
+/* Input Físico */
+.input-fisico {
+  width:70px;
+  padding:4px;
+  text-align:center;
+  border:1px solid #aaa;
+  border-radius:4px;
+  font-size:14px;
+}
+
+/* Diferencia */
+.dif-pos { color:green; font-weight:bold; }
+.dif-neg { color:red; font-weight:bold; }
+
 </style>
 </head>
 
 <body>
 
-<h2>Ajuste de Inventario – Almacén Zapata</h2>
+<h2 style="color:#003d66; font-size:28px; margin-bottom:20px;">
+  Ajuste de Inventario – Almacén Zapata
+</h2>
 
-<table><div id="tablaHeader" 
-     style="display:grid;
-            grid-template-columns:140px 1fr 90px 90px 90px 90px 120px 80px;
-            background:#00416A;
-            color:white;
-            font-weight:bold;
-            padding:10px 8px;
-            border:1px solid #ccc;
-            margin-bottom:0;">
+<!-- ENCABEZADO PROVSOFT -->
+<div id="tablaHeader" 
+     style="
+        display:grid;
+        grid-template-columns:140px 1fr 90px 90px 90px 90px 110px 80px;
+        background:#003d66;
+        color:white;
+        font-weight:600;
+        padding:10px 12px;
+        border-radius:6px 6px 0 0;
+        box-shadow:0 2px 4px rgba(0,0,0,0.15);
+        ">
   <div>Código</div>
   <div>Descripción</div>
   <div>Base</div>
-  <div>Entradas nuevas</div>
-  <div>Salidas nuevas</div>
+  <div>Entradas</div>
+  <div>Salidas</div>
   <div>Existencia</div>
-  <div>Inventario físico</div>
+  <div>Físico</div>
   <div>Diferencia</div>
 </div>
 
- 
-<div id="tablaInventario" style="width:100%;"></div>
+<!-- CONTENEDOR DEL SCROLL -->
+<div id="tablaInventario" style="width:100%;border:1px solid #ccc;border-top:none;border-radius:0 0 6px 6px;">
+</div>
 
-<button id="btnGuardarAjustes" class="btn">Guardar ajustes</button>
+<button id="btnGuardarAjustes" class="btn" 
+        style="margin-top:20px;
+               padding:14px 22px;
+               font-size:18px;
+               background:#003d66;
+               border-radius:6px;">
+  Guardar ajustes
+</button>
 
 <script type="module">
 
@@ -287,71 +343,57 @@ function renderVisibleRows(){
 
   let rowIndex = 0;
 
-  proveedorKeys.forEach(pk=>{
+if(rowIndex >= startRow && rowIndex <= endRow){
+    const banda = document.createElement("div");
+    banda.className = "proveedor-banda";
+    banda.style.position = "absolute";
+    banda.style.top = (rowIndex * ROW_HEIGHT) + "px";
+    banda.style.height = ROW_HEIGHT + "px";
+    banda.innerHTML = `── ${pk} ─────────────────────────────────────────────`;
+    visibleContainer.appendChild(banda);
+}
+rowIndex++;
 
-    if(rowIndex >= startRow && rowIndex <= endRow){
+
+proveedorData[pk].forEach(p=>{
+
+  if(rowIndex >= startRow && rowIndex <= endRow){
+
       const div = document.createElement("div");
+      div.className = "fila-inv";
       div.style.position = "absolute";
       div.style.top = (rowIndex * ROW_HEIGHT) + "px";
-      div.style.height = ROW_HEIGHT + "px";
-      div.style.lineHeight = ROW_HEIGHT + "px";
-      div.style.background = "#00416A";
-      div.style.color = "white";
-      div.style.fontWeight = "bold";
-      div.style.fontSize = "17px";
-      div.style.paddingLeft = "10px";
-      div.style.borderBottom = "2px solid #022f4f";
-      div.textContent = pk;
-      visibleContainer.appendChild(div);
-    }
-    rowIndex++;
 
-    proveedorData[pk].forEach(p=>{
-      
-      if(rowIndex >= startRow && rowIndex <= endRow){
+      div.innerHTML = `
+        <div>${p.codigo}</div>
+        <div>${p.descripcion}</div>
+        <div>${p.base}</div>
+        <div>${p.ent}</div>
+        <div>${p.sal}</div>
+        <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
 
-        const div = document.createElement("div");
-        div.style.position = "absolute";
-        div.style.top = (rowIndex * ROW_HEIGHT) + "px";
-        div.style.height = ROW_HEIGHT + "px";
-        div.style.display = "grid";
+        <div>
+          <input 
+             id="fisico_${p.codigo}" 
+             type="number" 
+             class="input-fisico"
+             oninput="calcular('${p.codigo}', ${p.exis})"
+             value="${fisicos[p.codigo] ?? ''}"
+          >
+        </div>
 
-        div.style.gridTemplateColumns =
-          "140px 1fr 90px 90px 90px 90px 120px 80px";
-
-        div.style.alignItems = "center";
-        div.style.padding = "4px 8px";
-        div.style.fontSize   = "14px";
-        div.style.background = "white";
-        div.style.borderBottom = "1px solid #ccc";
-
-        div.innerHTML = `
-          <div>${p.codigo}</div>
-          <div>${p.descripcion}</div>
-          <div>${p.base}</div>
-          <div>${p.ent}</div>
-          <div>${p.sal}</div>
-          <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
-
-          <div>
-            <input id="fisico_${p.codigo}" 
-                   type="number"
-                   style="width:70px;padding:4px;border:1px solid #aaa;border-radius:4px;text-align:center;"
-                   oninput="calcular('${p.codigo}', ${p.exis})"
-                   value="${fisicos[p.codigo] ?? ''}">
-          </div>
-
-          <div id="dif_${p.codigo}" style="font-weight:bold;">
+        <div id="dif_${p.codigo}" 
+             class="${fisicos[p.codigo] - p.exis >= 0 ? 'dif-pos':'dif-neg'}">
              ${fisicos[p.codigo] ? fisicos[p.codigo] - p.exis : 0}
-          </div>
-        `;
+        </div>
+      `;
 
-        visibleContainer.appendChild(div);
-      }
+      visibleContainer.appendChild(div);
+  }
 
-      rowIndex++;
-    });
-  });
+  rowIndex++;
+});
+});
 }
 
 // ----------------------------------------------------------
@@ -446,5 +488,6 @@ cargarSalidas();
 </script>
 </body>
 </html>
+
 
 
