@@ -35,10 +35,9 @@
      <th>Diferencia</th>
    </tr>
 </thead>
-
-<tbody id="tablaInventario"></tbody>
 </table>
-
+ 
+<div id="tablaInventario"></div>
 <button id="btnGuardarAjustes" class="btn">Guardar ajustes</button>
 
 <script type="module">
@@ -171,18 +170,36 @@ function cargarSalidas(){
 }
 
 // ----------------------------------------------------------
-// DIBUJAR TABLA
+// DIBUJAR TABLA (Optimizado anti-freeze)
 // ----------------------------------------------------------
+let dibujarTimeout = null;
+
 function intentarDibujar(){
   if(!productosListos || !baseLista || !entradasListas || !salidasListas) return;
-  dibujar();
+
+  // Evita que dibujar() se ejecute demasiadas veces al recibir snapshots
+  clearTimeout(dibujarTimeout);
+
+  dibujarTimeout = setTimeout(()=>{
+    dibujar();
+  }, 300); // puedes subirlo a 500 si tu tabla tiene +5,000 productos
 }
+// ----------------------------------------------------------
+// CONFIG VIRTUAL TABLE
+// ----------------------------------------------------------
+const ROW_HEIGHT = 48; // altura estimada de una fila
+let proveedorKeys = [];
+let proveedorData = {};
+let totalRows = 0;
+
+let scrollContainer = null;
+let visibleContainer = null;
 
 function dibujar(){
-  const tabla = document.getElementById("tablaInventario");
-  tabla.innerHTML = "";
 
-  let proveedores = {};
+  // Construimos grupos nuevamente
+  proveedorData = {};
+  totalRows = 0;
 
   Object.keys(productos).forEach(codigo=>{
     const p = productos[codigo];
@@ -191,38 +208,111 @@ function dibujar(){
     const sal = salidasNuevas[codigo] || 0;
     const exis = base + ent - sal;
 
-    if(!proveedores[p.proveedor]) proveedores[p.proveedor] = [];
-    proveedores[p.proveedor].push({codigo, descripcion:p.descripcion, base, ent, sal, exis});
+    if(!proveedorData[p.proveedor]) proveedorData[p.proveedor] = [];
+    proveedorData[p.proveedor].push({codigo, descripcion:p.descripcion, base, ent, sal, exis});
   });
 
-  Object.keys(proveedores).sort().forEach(prov=>{
+  proveedorKeys = Object.keys(proveedorData).sort();
 
-    tabla.innerHTML += `
-      <tr>
-        <td colspan="8" style="background:#00416A;color:white;font-weight:bold;font-size:20px;">
-          ${prov}
-        </td>
-      </tr>
-    `;
+  // Calcular cuántas filas totales tendrá la tabla
+  proveedorKeys.forEach(pk=>{
+    // 1 fila para el título del proveedor
+    totalRows += 1;
+    // + filas del detalle
+    totalRows += proveedorData[pk].length;
+  });
 
-    proveedores[prov].forEach(p=>{
-      tabla.innerHTML += `
-        <tr>
-          <td>${p.codigo}</td>
-          <td>${p.descripcion}</td>
-          <td>${p.base}</td>
-          <td>${p.ent}</td>
-          <td>${p.sal}</td>
-          <td class="${p.exis < 0 ? 'negativo':'positivo'}">${p.exis}</td>
+  // Crear contenedor virtual si aún no existe
+  if(!scrollContainer){
+    const tabla = document.getElementById("tablaInventario");
+    tabla.innerHTML = "";
 
-          <td><input id="fisico_${p.codigo}" type="number" style="width:80px;padding:5px"
-                     oninput="calcular('${p.codigo}', ${p.exis})"></td>
+    // contenedor que hará scroll
+    scrollContainer = document.createElement("div");
+    scrollContainer.style.height = "75vh";
+    scrollContainer.style.overflowY = "auto";
+    scrollContainer.style.position = "relative";
+    scrollContainer.style.border = "1px solid #ccc";
 
-          <td id="dif_${p.codigo}" style="font-weight:bold;">0</td>
-        </tr>
-      `;
+    // contenedor que contiene solo las filas visibles
+    visibleContainer = document.createElement("div");
+    visibleContainer.style.position = "absolute";
+    visibleContainer.style.top = "0";
+    visibleContainer.style.left = "0";
+    visibleContainer.style.right = "0";
+
+    scrollContainer.appendChild(visibleContainer);
+    tabla.appendChild(scrollContainer);
+
+    scrollContainer.addEventListener("scroll", renderVisibleRows);
+  }
+
+  // altura total virtual
+  scrollContainer.style.height = "75vh";
+  visibleContainer.style.height = (totalRows * ROW_HEIGHT) + "px";
+
+  // Render de las filas visibles
+  renderVisibleRows();
+}
+function renderVisibleRows(){
+  const scrollTop = scrollContainer.scrollTop;
+  const viewportHeight = scrollContainer.clientHeight;
+
+  const startRow = Math.floor(scrollTop / ROW_HEIGHT);
+  const endRow = Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT));
+
+  // limpiar
+  visibleContainer.innerHTML = "";
+
+  let rowIndex = 0;
+  let offsetTop = startRow * ROW_HEIGHT;
+
+  proveedorKeys.forEach(pk=>{
+    // título proveedor
+    if(rowIndex >= startRow && rowIndex <= endRow){
+      const div = document.createElement("div");
+      div.style.position = "absolute";
+      div.style.top = (rowIndex * ROW_HEIGHT) + "px";
+      div.style.height = ROW_HEIGHT + "px";
+      div.style.lineHeight = ROW_HEIGHT + "px";
+      div.style.background = "#00416A";
+      div.style.color = "white";
+      div.style.fontWeight = "bold";
+      div.style.paddingLeft = "10px";
+      div.textContent = pk;
+      visibleContainer.appendChild(div);
+    }
+    rowIndex++;
+
+    // productos
+    proveedorData[pk].forEach(p=>{
+      if(rowIndex >= startRow && rowIndex <= endRow){
+        const div = document.createElement("div");
+        div.style.position = "absolute";
+        div.style.top = (rowIndex * ROW_HEIGHT) + "px";
+        div.style.height = ROW_HEIGHT + "px";
+        div.style.display = "grid";
+        div.style.gridTemplateColumns = "120px 1fr 80px 80px 80px 80px 120px 80px";
+        div.style.alignItems = "center";
+        div.style.borderBottom = "1px solid #ccc";
+        div.style.background = "white";
+
+        div.innerHTML = `
+          <div>${p.codigo}</div>
+          <div>${p.descripcion}</div>
+          <div>${p.base}</div>
+          <div>${p.ent}</div>
+          <div>${p.sal}</div>
+          <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
+          <div><input id="fisico_${p.codigo}" type="number" style="width:90%;padding:4px"
+                      oninput="calcular('${p.codigo}', ${p.exis})"></div>
+          <div id="dif_${p.codigo}" style="font-weight:bold;">0</div>
+        `;
+
+        visibleContainer.appendChild(div);
+      }
+      rowIndex++;
     });
-
   });
 }
 
@@ -314,4 +404,5 @@ cargarSalidas();
 </script>
 
 </body>
+
 </html>
