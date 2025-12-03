@@ -6,15 +6,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
- body{font-family: Arial; background:#f4f4f4; padding:20px;}
- h2{color:#00416A; font-size:26px; margin-bottom:20px;}
- table{width:100%; border-collapse:collapse; background:white; margin-top:15px;}
- th,td{border:1px solid #ccc; padding:10px; text-align:center; font-size:15px;}
- th{background:#00416A; color:white;}
- .positivo{color:green; font-weight:bold;}
- .negativo{color:red; font-weight:bold;}
- .btn{margin-top:20px; padding:12px 20px; background:#00416A; color:white; border:none;
-      border-radius:6px; font-size:16px; cursor:pointer;}
+body{
+  font-family: Arial;
+  background:#f4f4f4;
+  padding:20px;
+}
+h2{
+  color:#00416A;
+  font-size:26px;
+  margin-bottom:20px;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:white;
+  margin-top:15px;
+}
+th{
+  border:1px solid #ccc;
+  padding:10px;
+  text-align:center;
+  font-size:15px;
+  background:#00416A;
+  color:white;
+}
+.btn{
+  margin-top:20px;
+  padding:12px 20px;
+  background:#00416A;
+  color:white;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+  cursor:pointer;
+}
 </style>
 </head>
 
@@ -37,7 +62,8 @@
 </thead>
 </table>
  
-<div id="tablaInventario"></div>
+<div id="tablaInventario" style="width:100%;"></div>
+
 <button id="btnGuardarAjustes" class="btn">Guardar ajustes</button>
 
 <script type="module">
@@ -49,7 +75,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { 
   getFirestore, collection, doc, query, where,
   getDocs, onSnapshot, addDoc, setDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -75,6 +101,8 @@ let productosListos = false;
 let baseLista = false;
 let entradasListas = false;
 let salidasListas = false;
+
+let fisicos = {}; // almacena los inventarios físicos
 
 const fechaCorte = new Date("2025-11-24T00:00:00");
 
@@ -170,24 +198,21 @@ function cargarSalidas(){
 }
 
 // ----------------------------------------------------------
-// DIBUJAR TABLA (Optimizado anti-freeze)
+// DIBUJAR TABLA (Optimizado)
 // ----------------------------------------------------------
 let dibujarTimeout = null;
 
 function intentarDibujar(){
   if(!productosListos || !baseLista || !entradasListas || !salidasListas) return;
 
-  // Evita que dibujar() se ejecute demasiadas veces al recibir snapshots
   clearTimeout(dibujarTimeout);
-
-  dibujarTimeout = setTimeout(()=>{
-    dibujar();
-  }, 300); // puedes subirlo a 500 si tu tabla tiene +5,000 productos
+  dibujarTimeout = setTimeout(()=>{ dibujar(); }, 200);
 }
+
 // ----------------------------------------------------------
-// CONFIG VIRTUAL TABLE
+// VIRTUAL TABLE CONFIG
 // ----------------------------------------------------------
-const ROW_HEIGHT = 48; // altura estimada de una fila
+const ROW_HEIGHT = 50;
 let proveedorKeys = [];
 let proveedorData = {};
 let totalRows = 0;
@@ -197,7 +222,6 @@ let visibleContainer = null;
 
 function dibujar(){
 
-  // Construimos grupos nuevamente
   proveedorData = {};
   totalRows = 0;
 
@@ -214,36 +238,28 @@ function dibujar(){
 
   proveedorKeys = Object.keys(proveedorData).sort();
 
-  // Calcular cuántas filas totales tendrá la tabla
   proveedorKeys.forEach(pk=>{
-    // 1 fila para el título del proveedor
     totalRows += 1;
-    // + filas del detalle
     totalRows += proveedorData[pk].length;
   });
 
-  // Crear contenedor virtual si aún no existe
   if(!scrollContainer){
-const tabla = document.getElementById("tablaInventario");
+    const tabla = document.getElementById("tablaInventario");
 
-// SOLO BORRAR UNA VEZ, si NO existe contenedor
-if (!scrollContainer) {
     tabla.innerHTML = "";
-}
 
-    // contenedor que hará scroll
     scrollContainer = document.createElement("div");
     scrollContainer.style.height = "75vh";
     scrollContainer.style.overflowY = "auto";
     scrollContainer.style.position = "relative";
+    scrollContainer.style.width = "100%";
     scrollContainer.style.border = "1px solid #ccc";
 
-    // contenedor que contiene solo las filas visibles
     visibleContainer = document.createElement("div");
     visibleContainer.style.position = "absolute";
     visibleContainer.style.top = "0";
     visibleContainer.style.left = "0";
-    visibleContainer.style.right = "0";
+    visibleContainer.style.width = "100%";
 
     scrollContainer.appendChild(visibleContainer);
     tabla.appendChild(scrollContainer);
@@ -251,28 +267,23 @@ if (!scrollContainer) {
     scrollContainer.addEventListener("scroll", renderVisibleRows);
   }
 
-  // altura total virtual
-  scrollContainer.style.height = "75vh";
   visibleContainer.style.height = (totalRows * ROW_HEIGHT) + "px";
-
-  // Render de las filas visibles
   renderVisibleRows();
 }
+
 function renderVisibleRows(){
   const scrollTop = scrollContainer.scrollTop;
   const viewportHeight = scrollContainer.clientHeight;
 
   const startRow = Math.floor(scrollTop / ROW_HEIGHT);
-  const endRow = Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT));
+  const endRow   = Math.min(totalRows, Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT));
 
-  // limpiar
   visibleContainer.innerHTML = "";
 
   let rowIndex = 0;
-  let offsetTop = startRow * ROW_HEIGHT;
 
   proveedorKeys.forEach(pk=>{
-    // título proveedor
+
     if(rowIndex >= startRow && rowIndex <= endRow){
       const div = document.createElement("div");
       div.style.position = "absolute";
@@ -282,24 +293,32 @@ function renderVisibleRows(){
       div.style.background = "#00416A";
       div.style.color = "white";
       div.style.fontWeight = "bold";
+      div.style.fontSize = "17px";
       div.style.paddingLeft = "10px";
+      div.style.borderBottom = "2px solid #022f4f";
       div.textContent = pk;
       visibleContainer.appendChild(div);
     }
     rowIndex++;
 
-    // productos
     proveedorData[pk].forEach(p=>{
+      
       if(rowIndex >= startRow && rowIndex <= endRow){
+
         const div = document.createElement("div");
         div.style.position = "absolute";
         div.style.top = (rowIndex * ROW_HEIGHT) + "px";
         div.style.height = ROW_HEIGHT + "px";
         div.style.display = "grid";
-        div.style.gridTemplateColumns = "120px 1fr 80px 80px 80px 80px 120px 80px";
+
+        div.style.gridTemplateColumns =
+          "140px 1fr 90px 90px 90px 90px 120px 80px";
+
         div.style.alignItems = "center";
-        div.style.borderBottom = "1px solid #ccc";
+        div.style.padding = "4px 8px";
+        div.style.fontSize   = "14px";
         div.style.background = "white";
+        div.style.borderBottom = "1px solid #ccc";
 
         div.innerHTML = `
           <div>${p.codigo}</div>
@@ -308,23 +327,36 @@ function renderVisibleRows(){
           <div>${p.ent}</div>
           <div>${p.sal}</div>
           <div style="color:${p.exis<0?'red':'green'}">${p.exis}</div>
-          <div><input id="fisico_${p.codigo}" type="number" style="width:90%;padding:4px"
-                      oninput="calcular('${p.codigo}', ${p.exis})"></div>
-          <div id="dif_${p.codigo}" style="font-weight:bold;">0</div>
+
+          <div>
+            <input id="fisico_${p.codigo}" 
+                   type="number"
+                   style="width:70px;padding:4px;border:1px solid #aaa;border-radius:4px;text-align:center;"
+                   oninput="calcular('${p.codigo}', ${p.exis})"
+                   value="${fisicos[p.codigo] ?? ''}">
+          </div>
+
+          <div id="dif_${p.codigo}" style="font-weight:bold;">
+             ${fisicos[p.codigo] ? fisicos[p.codigo] - p.exis : 0}
+          </div>
         `;
 
         visibleContainer.appendChild(div);
       }
+
       rowIndex++;
     });
   });
 }
 
 // ----------------------------------------------------------
-// CALCULAR DIF
+// CALCULAR DIFERENCIA
 // ----------------------------------------------------------
 window.calcular = function(codigo, existencia){
   const v = Number(document.getElementById("fisico_"+codigo).value);
+
+  fisicos[codigo] = v;
+
   const celda = document.getElementById("dif_"+codigo);
 
   if(isNaN(v)){ celda.textContent="0"; celda.style.color="#000"; return; }
@@ -335,7 +367,7 @@ window.calcular = function(codigo, existencia){
 };
 
 // ----------------------------------------------------------
-// GUARDAR AJUSTES (AFECTA SOLO EL PRODUCTO AJUSTADO)
+// GUARDAR AJUSTES
 // ----------------------------------------------------------
 async function guardarAjustes(){
 
@@ -343,13 +375,16 @@ async function guardarAjustes(){
   let nuevosBases = {};
 
   Object.keys(productos).forEach(codigo=>{
+
     const base = inventarioBase[codigo] || 0;
     const ent = entradasNuevas[codigo] || 0;
     const sal = salidasNuevas[codigo] || 0;
     const exis = base + ent - sal;
 
-    const fis = Number(document.getElementById("fisico_"+codigo)?.value);
-    if(isNaN(fis)) return;
+    const fis = fisicos[codigo];
+
+    if(fis === undefined || fis === "" || fis === null) return;
+
     const dif = fis - exis;
     if(dif === 0) return;
 
@@ -370,13 +405,11 @@ async function guardarAjustes(){
 
   const fecha = new Date();
 
-  // ENTRADA DE AJUSTE
   await addDoc(collection(db, "almacenes/almacen_zapata/ajustes"), {
     fecha,
     movimientos
   });
 
-  // SOLO SE ACTUALIZAN LOS PRODUCTOS AJUSTADOS
   for(const codigo of Object.keys(nuevosBases)){
     await setDoc(
       doc(db, "almacenes/almacen_zapata/inventario_base", codigo),
@@ -388,10 +421,10 @@ async function guardarAjustes(){
       }
     );
 
-    inventarioBase[codigo] = nuevosBases[codigo]; // REFRESCO INMEDIATO
+    inventarioBase[codigo] = nuevosBases[codigo];
   }
 
-  alert("Ajuste guardado correctamente (solo productos ajustados).");
+  alert("Ajuste guardado correctamente.");
 }
 
 document.getElementById("btnGuardarAjustes")
@@ -406,8 +439,5 @@ cargarEntradas();
 cargarSalidas();
 
 </script>
-
 </body>
-
 </html>
-
