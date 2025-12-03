@@ -224,8 +224,12 @@ function dibujar(){
 
   // Crear contenedor virtual si aún no existe
   if(!scrollContainer){
-    const tabla = document.getElementById("tablaInventario");
+const tabla = document.getElementById("tablaInventario");
+
+// SOLO BORRAR UNA VEZ, si NO existe contenedor
+if (!scrollContainer) {
     tabla.innerHTML = "";
+}
 
     // contenedor que hará scroll
     scrollContainer = document.createElement("div");
@@ -406,3 +410,4 @@ cargarSalidas();
 </body>
 
 </html>
+
