@@ -1,135 +1,109 @@
 /* ===========================================================
-   🛰️ SERVICE WORKER – PROVSOFT POS
-   Autor: Gerardo Ríos Quesada
-   Fecha: 02-Nov-2025
-   Descripción: Cache inteligente + sincronización ventas
+   🛰️ SERVICE WORKER – PROVSOFT POS 2025
+   Optimizado para carga instantánea + cache persistente
    =========================================================== */
 
-const CACHE_NAME = 'provsoft-pos-v4';
-const STATIC_ASSETS = [
-  './',
-  './POSV4PASS.html',                // HTML principal
-  './manifest.json',
-  './logo_proveedora.webp',
-  './html5-qrcode.min.js',
-  './geoHelper.js',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/maskable_icon.png',
-  './offline.html',
-  'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap'
+const VERSION = "v7-prosoft-pos";
+const CACHE = VERSION;
+
+// Archivos críticos
+const ASSETS = [
+  "./",
+  "./POSV4PASS.html",
+  "./manifest.json",
+  "./offline.html",
+  "./logo_proveedora.webp",
+  "./html5-qrcode.min.js",
+  "./geoHelper.js",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png",
+  "./icons/maskable_icon.png",
+
+  // Firebase
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+  "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+
+  // jsPDF
+  "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
+
+  // Google Fonts (CSS)
+  "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
 ];
 
 /* ===========================================================
-   📦 INSTALACIÓN: cachea los archivos base
+   📦 INSTALL — Cache first, no revalidación
    =========================================================== */
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(async (cache) => {
-        for (const url of STATIC_ASSETS) {
-          try {
-            const res = await fetch(url, { cache: 'no-cache' });
-            if (res.ok) await cache.put(url, res.clone());
-            else console.warn(`⚠️ No se pudo cachear: ${url} (${res.status})`);
-          } catch (err) {
-            console.warn(`⚠️ Error cacheando ${url}:`, err.message);
-          }
+    caches.open(CACHE).then(async (cache) => {
+      for (const asset of ASSETS) {
+        try {
+          const res = await fetch(asset, { cache: "no-store" });
+          if (res.ok) cache.put(asset, res.clone());
+        } catch (err) {
+          console.warn("⚠ No se pudo cachear:", asset);
         }
-      })
-      .then(() => self.skipWaiting())
+      }
+    })
   );
+  self.skipWaiting();
 });
 
 /* ===========================================================
-   ⚙️ ACTIVACIÓN: limpia versiones antiguas
+   🧹 ACTIVATE — Limpia versiones viejas
    =========================================================== */
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => k !== CACHE && caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
 /* ===========================================================
-   ⚡️ FETCH: estrategia mixta “stale-while-revalidate + network first”
+   ⚡ FETCH — Estrategia OFFLINE-FIRST para todo
    =========================================================== */
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   const req = event.request;
 
-  // ⛔ Ignorar peticiones a Firestore, Telegram o HTTP externos no seguros
+  // Ignorar API externas (Telegram, Firestore, etc.)
   if (
-    req.url.includes('firestore') ||
-    req.url.includes('telegram') ||
-    req.url.startsWith('chrome-extension') ||
-    req.url.startsWith('data:')
-  ) return;
-
-  // 🧱 Archivos estáticos → cache first
-  if (
-    req.url.endsWith('.js') ||
-    req.url.endsWith('.css') ||
-    req.url.endsWith('.png') ||
-    req.url.endsWith('.webp') ||
-    req.url.endsWith('.json')
+    req.url.includes("googleapis.com") ||
+    req.url.includes("gstatic.com") ||
+    req.url.includes("firestore") ||
+    req.url.includes("googleusercontent") ||
+    req.url.includes("telegram")
   ) {
-    event.respondWith(
-      caches.match(req).then(cached => {
-        const fetchAndUpdate = fetch(req).then(res => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
-          }
-          return res;
-        }).catch(() => cached); // si falla la red, devuelve el caché
-        return cached || fetchAndUpdate;
-      })
-    );
     return;
   }
 
-  // 🌐 Resto de peticiones → network first con fallback offline
   event.respondWith(
-    fetch(req)
-      .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
-        return res;
-      })
-      .catch(() => {
-        // Si es navegación y no hay red, mostrar página offline
-        if (req.mode === 'navigate') return caches.match('./offline.html');
-        return caches.match(req);
-      })
+    caches.match(req).then((cached) => {
+      // Si existe en caché → usar ya
+      if (cached) return cached;
+
+      // Si no → descargar y guardar
+      return fetch(req)
+        .then((res) => {
+          const clone = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, clone));
+          return res;
+        })
+        .catch(() => {
+          if (req.mode === "navigate") return caches.match("./offline.html");
+          return new Response("Offline", { status: 503 });
+        });
+    })
   );
 });
 
 /* ===========================================================
-   🔁 SINCRONIZACIÓN EN SEGUNDO PLANO
+   🔁 SYNC — Reenviar ventas pendientes
    =========================================================== */
-self.addEventListener('sync', async (event) => {
-  if (event.tag === 'sync-ventas-pendientes') {
-    console.log('🔁 Sincronizando ventas pendientes...');
+self.addEventListener("sync", async (event) => {
+  if (event.tag === "sync-ventas-pendientes") {
     const clients = await self.clients.matchAll({ includeUncontrolled: true });
-    clients.forEach((client) =>
-      client.postMessage({ action: 'sincronizar' })
-    );
+    clients.forEach((c) => c.postMessage({ action: "sincronizar" }));
   }
 });
-
-/* ===========================================================
-   📡 RECONEXIÓN AUTOMÁTICA
-   =========================================================== */
-self.addEventListener('online', async () => {
-  const clients = await self.clients.matchAll({ includeUncontrolled: true });
-  clients.forEach((client) =>
-    client.postMessage({ action: 'sincronizar' })
-  );
-});
-
-/* ===========================================================
-   ✅ CONFIRMACIÓN DE REGISTRO
-   =========================================================== */
-console.log("🛰️ Service Worker PROVSOFT POS activo:", CACHE_NAME);
