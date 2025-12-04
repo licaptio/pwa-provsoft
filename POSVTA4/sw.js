@@ -1,13 +1,13 @@
 /* ===========================================================
-   🛰️ SERVICE WORKER – PROVSOFT POS 2025
-   Optimizado para carga instantánea + cache persistente
+   🛰️ SERVICE WORKER – PROVSOFT POS OFFLINE TOTAL (v10)
+   Autor: Gerardo Ríos Quesada
    =========================================================== */
 
-const VERSION = "v7-prosoft-pos";
+const VERSION = "provsoft-pos-v10";
 const CACHE = VERSION;
 
-// Archivos críticos
-const ASSETS = [
+// Cache estático fundamental
+const STATIC_ASSETS = [
   "./",
   "./POSV4PASS.html",
   "./manifest.json",
@@ -26,21 +26,21 @@ const ASSETS = [
   // jsPDF
   "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js",
 
-  // Google Fonts (CSS)
-  "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap",
+  // Google Fonts
+  "https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap"
 ];
 
 /* ===========================================================
-   📦 INSTALL — Cache first, no revalidación
+   📦 INSTALL — Cache estático
    =========================================================== */
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then(async (cache) => {
-      for (const asset of ASSETS) {
+      for (const asset of STATIC_ASSETS) {
         try {
           const res = await fetch(asset, { cache: "no-store" });
           if (res.ok) cache.put(asset, res.clone());
-        } catch (err) {
+        } catch (e) {
           console.warn("⚠ No se pudo cachear:", asset);
         }
       }
@@ -50,7 +50,7 @@ self.addEventListener("install", (event) => {
 });
 
 /* ===========================================================
-   🧹 ACTIVATE — Limpia versiones viejas
+   🧹 ACTIVATE — Limpieza de versiones viejas
    =========================================================== */
 self.addEventListener("activate", (event) => {
   event.waitUntil(
@@ -62,44 +62,61 @@ self.addEventListener("activate", (event) => {
 });
 
 /* ===========================================================
-   ⚡ FETCH — Estrategia OFFLINE-FIRST para todo
+   📦 CACHE DINÁMICO — Catálogo, precios, equivalencias, departamentos
+   =========================================================== */
+const DYNAMIC_KEYS = [
+  "/catalogo",
+  "/precios",
+  "/equivalencias",
+  "/departamentos"
+];
+
+/* ===========================================================
+   ⚡ FETCH OFFLINE FIRST + CACHE DINÁMICO
    =========================================================== */
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  const url = req.url;
 
-  // Ignorar API externas (Telegram, Firestore, etc.)
-  if (
-    req.url.includes("googleapis.com") ||
-    req.url.includes("gstatic.com") ||
-    req.url.includes("firestore") ||
-    req.url.includes("googleusercontent") ||
-    req.url.includes("telegram")
-  ) {
+  // Ignorar Firestore real → solo manejamos catálogo si la app lo manda
+  if (url.includes("firestore")) return;
+
+  // Rutas dinámicas (la app las usa con fetch)
+  if (DYNAMIC_KEYS.some((key) => url.includes(key))) {
+    event.respondWith(
+      caches.match(req).then((cachedRes) => {
+        const fetchAndUpdate = fetch(req)
+          .then((netRes) => {
+            caches.open(CACHE).then((cache) => cache.put(req, netRes.clone()));
+            return netRes;
+          })
+          .catch(() => cachedRes || new Response("[]"));
+        return cachedRes || fetchAndUpdate;
+      })
+    );
     return;
   }
 
+  // Archivos estáticos → offline first
   event.respondWith(
     caches.match(req).then((cached) => {
-      // Si existe en caché → usar ya
       if (cached) return cached;
 
-      // Si no → descargar y guardar
       return fetch(req)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, clone));
+          caches.open(CACHE).then((c) => c.put(req, res.clone()));
           return res;
         })
-        .catch(() => {
-          if (req.mode === "navigate") return caches.match("./offline.html");
-          return new Response("Offline", { status: 503 });
-        });
+        .catch(() => req.mode === "navigate"
+          ? caches.match("./offline.html")
+          : new Response("Offline", { status: 503 })
+        );
     })
   );
 });
 
 /* ===========================================================
-   🔁 SYNC — Reenviar ventas pendientes
+   🧾 VENTAS OFFLINE — Guardadas en SW para sincronizar
    =========================================================== */
 self.addEventListener("sync", async (event) => {
   if (event.tag === "sync-ventas-pendientes") {
