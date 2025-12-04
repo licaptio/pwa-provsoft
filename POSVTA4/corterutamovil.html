@@ -96,6 +96,9 @@ async function generarCorteMovil(){
     }
     porNota.push({folio:v.folio||v.id,total,desc,costo,utilidad:util});
   }
+  const utilidadPorcentaje = totalDia
+  ? ((utilidadTotal / (totalDia - totalDescuento)) * 100).toFixed(2)
+  : 0;
 
   overlayText.textContent="Imprimiendo corte...";
   function mxn(n){return Number(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});}
