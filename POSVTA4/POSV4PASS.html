@@ -534,6 +534,40 @@ window.addEventListener("DOMContentLoaded", async () => {
     localStorage.removeItem("usuario_ruta");
   }
 });
+/* ===========================================================
+   📦 CACHE DINÁMICO–PROVSOFT (SW)
+   =========================================================== */
+
+// 🔹 Guarda datos en el caché del Service Worker
+async function cachearDatos(ruta, data) {
+  try {
+    const url = location.origin + ruta;
+    const res = new Response(JSON.stringify(data), {
+      headers: { "Content-Type": "application/json" }
+    });
+    const cache = await caches.open("provsoft-pos-v10");
+    await cache.put(url, res);
+    console.log("💾 Guardado en caché SW:", ruta);
+  } catch (err) {
+    console.warn("⚠️ No se pudo cachear:", ruta, err);
+  }
+}
+
+// 🔹 Lee datos del caché del Service Worker
+async function leerCache(ruta) {
+  try {
+    const url = location.origin + ruta;
+    const cache = await caches.open("provsoft-pos-v10");
+    const res = await cache.match(url);
+    if (!res) return null;
+    const json = await res.json();
+    console.log("⚡ Leído desde cache SW:", ruta, json.length || Object.keys(json).length);
+    return json;
+  } catch (err) {
+    console.warn("⚠️ No se pudo leer cache:", ruta);
+    return null;
+  }
+}
 
 /* ===========================================================
    🧾 SECCIÓN 5: CARGA DE CATÁLOGO Y DEPARTAMENTOS (OPTIMIZADO)
@@ -554,6 +588,27 @@ async function cargarCatalogo() {
     box-shadow:0 2px 6px rgba(0,0,0,.2);
   `;
   document.body.appendChild(statusBox);
+// =====================================================
+// 🟢 1) Intentar cargar desde cache del Service Worker
+// =====================================================
+const catalogoSW = await leerCache("/catalogo");
+if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
+
+  // reconstruir codeIndex
+  catalogo = catalogoSW;
+  codeIndex.clear();
+  catalogo.forEach(p => {
+    if (p.codigo) codeIndex.set(p.codigo, p.id);
+    if (Array.isArray(p.equivalentes)) {
+      p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
+    }
+  });
+
+  console.log("⚡ Catálogo cargado OFFLINE desde SW");
+  statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
+  setTimeout(() => statusBox.remove(), 1500);
+  return; // ← MUY IMPORTANTE
+}
 
   try {
     // ⚡ Si hay cache válido de menos de 24 h
@@ -607,6 +662,10 @@ const p = {
         p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
       }
     });
+// =====================================================
+// 💾 Guardar catálogo en caché del Service Worker
+// =====================================================
+cachearDatos("/catalogo", catalogo);
 
     // 💾 Guardar cache local por 24 h
     localStorage.setItem(cacheKey, JSON.stringify({
@@ -629,38 +688,44 @@ const p = {
    🏷️ CARGA DE DEPARTAMENTOS (CON CONTROL DE ERRORES)
    =========================================================== */
 async function cargarDepartamentos() {
-  const statusBox = document.createElement("div");
-  statusBox.textContent = "🔄 Cargando departamentos...";
-  statusBox.style.cssText = `
-    position:fixed;top:50px;left:50%;transform:translateX(-50%);
-    background:#0c6cbd;color:#fff;padding:8px 14px;
-    border-radius:10px;z-index:5000;font-size:13px;
-    box-shadow:0 2px 6px rgba(0,0,0,.2);
-  `;
-  document.body.appendChild(statusBox);
+  const statusBox = crearStatusBox("Cargando departamentos...");
 
+  // 🟢 Intentar cargar desde cache del Service Worker
+  const depSW = await leerCache("/departamentos");
+  if (depSW && Object.keys(depSW).length > 0) {
+    departamentos = depSW;
+    console.log("⚡ Departamentos cargados desde cache SW");
+    statusBox.textContent = "⚡ Departamentos offline cargados";
+    setTimeout(() => statusBox.remove(), 1000);
+    return; // ← IMPORTANTE PARA NO IR A FIRESTORE
+  }
+
+  // ===========================================================
+  // 🔵 Si no hay cache → cargar de Firestore
+  // ===========================================================
   try {
-    const snap = await getDocs(collection(db, "departamentos_venta"));
-    departamentos = {};
+    const depSnap = await getDocs(collection(db, "departamentos"));
+    let depTemp = []; 
 
-    snap.forEach(d => {
-      const x = d.data();
-      departamentos[d.id] = {
-        id: Number(x.id || d.id),
-        nombre: x.nombre || "SIN DEP",
-        iva: Number(x.iva || 0),
-        ieps: Number(x.ieps || 0)
-      };
+    depSnap.forEach(doc => {
+      depTemp.push({
+        id: doc.id,
+        nombre: doc.data().nombre,
+        icono: doc.data().icono
+      });
     });
 
-    console.log("🏷️ Departamentos cargados:", Object.keys(departamentos).length);
-    statusBox.textContent = `🏷️ ${Object.keys(departamentos).length} departamentos cargados`;
+    departamentos = depTemp;
+
+    // 💾 Guardar en cache SW para uso offline
+    cachearDatos("/departamentos", departamentos);
+
+    statusBox.textContent = `Departamentos cargados (${departamentos.length})`;
     setTimeout(() => statusBox.remove(), 1500);
 
   } catch (err) {
-    console.error("❌ Error cargando departamentos:", err);
-    statusBox.textContent = "⚠️ Error al cargar departamentos";
-    statusBox.style.background = "#c0392b";
+    console.error("❌ Error al cargar departamentos:", err);
+    statusBox.textContent = "Error cargando departamentos";
   }
 }
 
