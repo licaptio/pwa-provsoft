@@ -1,659 +1,163 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>CORTE MÓVIL – PDD</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0c6cbd">
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
-
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      background: #eef2f6;
-      padding: 15px;
-      color: #222;
-    }
-
-    h2 {
-      text-align: center;
-      color: #00416A;
-      margin-bottom: 20px;
-    }
-
-    select, input[type="date"], button {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      font-size: 15px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      background: #0c6cbd;
-      color: white;
-      font-weight: bold;
-      border: none;
-    }
-
-    #overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .75);
-      color: white;
-      font-size: 17px;
-      z-index: 3000;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .spinner {
-      width: 60px;
-      height: 60px;
-      border: 6px solid rgba(255,255,255,0.3);
-      border-top: 6px solid #0c6cbd;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-  </style>
+<!DOCTYPE html><html lang="es"><head>
+<meta charset="UTF-8"/>
+<title>CORTE MÓVIL – PDD</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0c6cbd">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+body{font-family:'Poppins',sans-serif;margin:0;background:#eef2f6;padding:15px;color:#222}
+h2{text-align:center;color:#00416A;margin-bottom:20px}
+select,input[type="date"],button{width:100%;padding:12px;margin-bottom:15px;font-size:15px;border-radius:8px;border:1px solid #ccc}
+button{background:#0c6cbd;color:#fff;font-weight:bold;border:none}
+#overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);color:#fff;font-size:17px;z-index:3000;align-items:center;justify-content:center;flex-direction:column;text-align:center}
+.spinner{width:60px;height:60px;border:6px solid rgba(255,255,255,0.3);border-top:6px solid #0c6cbd;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+</style>
 </head>
 
 <body>
-  <h2>CORTE DE RUTA – VERSIÓN MÓVIL</h2>
+<h2>CORTE DE RUTA – VERSIÓN MÓVIL</h2>
 
-  <!-- Filtros -->
-  <select id="selectRuta">
-    <option value="">Selecciona una ruta...</option>
-  </select>
+<select id="selectRuta"><option value="">Selecciona una ruta...</option></select>
+<select id="selectFecha"><option value="">Selecciona una fecha pendiente...</option></select>
+<button id="btnGenerar">📊 GENERAR CORTE</button>
 
-  <select id="selectFecha">
-  <option value="">Selecciona una fecha pendiente...</option>
-</select>
+<div id="overlay"><div class="spinner"></div>Procesando...<div id="overlayText"></div></div>
 
-
-  <button id="btnGenerar">📊 GENERAR CORTE</button>
-
-  <!-- Overlay -->
-  <div id="overlay">
-    <div class="spinner"></div>
-    Procesando...
-    <div id="overlayText"></div>
-  </div>
-
-  <!-- ==============================================
-       FIREBASE
-  =============================================== -->
 <script type="module">
-import {
-  initializeApp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import{getFirestore,collection,query,where,getDocs,addDoc,updateDoc,doc}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-  getFirestore, collection, query, where, getDocs,
-  addDoc, updateDoc, doc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",authDomain:"inventariopv-643f1.firebaseapp.com",projectId:"inventariopv-643f1",storageBucket:"inventariopv-643f1.appspot.com",messagingSenderId:"96242533231",appId:"1:96242533231:web:aae75a18fbaf9840529e9a"};
+const app=initializeApp(firebaseConfig),db=getFirestore(app);
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.appspot.com",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-};
+const selectRuta=document.getElementById("selectRuta"),
+selectFecha=document.getElementById("selectFecha"),
+btnGenerar=document.getElementById("btnGenerar"),
+overlay=document.getElementById("overlay"),
+overlayText=document.getElementById("overlayText");
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+let USUARIO=null,RUTA_USUARIO=null;
 
-const selectRuta  = document.getElementById("selectRuta");
-const selectFecha = document.getElementById("selectFecha");
-const btnGenerar  = document.getElementById("btnGenerar");
-const overlay     = document.getElementById("overlay");
-const overlayText = document.getElementById("overlayText");
-
-/* ===================================================
-   🔑 LEER USUARIO LOGUEADO DESDE EL POS (LOCALSTORAGE)
-=================================================== */
-let USUARIO = null;
-let RUTA_USUARIO = null;
-
-function cargarUsuarioLogueado() {
-  const data = localStorage.getItem("usuario_ruta");
-
-  if (!data) {
-    alert("⚠️ No hay usuario logueado. Vuelve al POS e inicia sesión.");
-    window.location.href = "index.html";
-    return;
-  }
-
-  USUARIO = JSON.parse(data);
-  RUTA_USUARIO = USUARIO.rutaId;
-
-  console.log("👤 Usuario logueado:", USUARIO);
-  console.log("🚚 Ruta asignada:", RUTA_USUARIO);
-
-  // bloquear selector de ruta
-  selectRuta.innerHTML = "";
-
-  const opt = document.createElement("option");
-  opt.value = RUTA_USUARIO;
-  opt.textContent = `${USUARIO.nombre} – Ruta ${RUTA_USUARIO}`;
+function cargarUsuarioLogueado(){
+  const data=localStorage.getItem("usuario_ruta");
+  if(!data){alert("⚠️ No hay usuario logueado.");return(location.href="index.html");}
+  USUARIO=JSON.parse(data);RUTA_USUARIO=USUARIO.rutaId;
+  selectRuta.innerHTML="";
+  const opt=document.createElement("option");
+  opt.value=RUTA_USUARIO;opt.textContent=`${USUARIO.nombre} – Ruta ${RUTA_USUARIO}`;
   selectRuta.appendChild(opt);
 }
 
-/* ===================================================
-   🔄 CARGAR RUTAS (solo para modo administrador)
-=================================================== */
-async function cargarRutas() {
-  // si el usuario ya tiene ruta, NO cargamos rutas de Firebase
-  if (RUTA_USUARIO) return;
-
-  const snap = await getDocs(collection(db, "ventas_rutav2"));
-  const rutas = {};
-
-  snap.forEach(d => {
-    const v = d.data();
-    if (!v.cortado && v.rutaId) {
-      if (!rutas[v.rutaId]) rutas[v.rutaId] = v.usuarioNombre;
-    }
-  });
-
-  Object.entries(rutas).forEach(([id, nombre]) => {
-    const opt = document.createElement("option");
-    opt.value = id;
-    opt.textContent = `${nombre} – ${id}`;
-    selectRuta.appendChild(opt);
-  });
-}
-/* ===================================================
-   📅 CARGAR FECHAS PENDIENTES DE CORTE
-=================================================== */
-async function cargarFechasPendientes() {
-  const q = query(
-    collection(db, "ventas_rutav2"),
-    where("rutaId", "==", RUTA_USUARIO),
-    where("cortado", "==", false)
-  );
-
-  const snap = await getDocs(q);
-  const ventas = snap.docs.map(d => d.data());
-
-  const fechas = {};
-
-  ventas.forEach(v => {
-    // fecha_txt viene así: "03/02/2025 10:33"
-    if (!v.fecha_txt) return;
-    const fechaSolo = v.fecha_txt.split(" ")[0];
-
-    if (!fechas[fechaSolo]) fechas[fechaSolo] = 0;
-    fechas[fechaSolo]++;
-  });
-
-  const select = document.getElementById("selectFecha");
-  select.innerHTML = "<option value=''>Selecciona una fecha pendiente...</option>";
-
-  Object.entries(fechas).forEach(([fecha, cantidad]) => {
-    const opt = document.createElement("option");
-    opt.value = fecha;
-    opt.textContent = `${fecha} – ${cantidad} ventas pendientes`;
-    select.appendChild(opt);
+async function cargarFechasPendientes(){
+  const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",RUTA_USUARIO),where("cortado","==",false));
+  const snap=await getDocs(q),ventas=snap.docs.map(d=>d.data()),fechas={};
+  ventas.forEach(v=>{if(v.fecha_txt){const f=v.fecha_txt.split(" ")[0];fechas[f]=(fechas[f]||0)+1;}});
+  selectFecha.innerHTML="<option value=''>Selecciona una fecha pendiente...</option>";
+  Object.entries(fechas).forEach(([f,c])=>{
+    const o=document.createElement("option");o.value=f;o.textContent=`${f} – ${c} ventas pendientes`;selectFecha.appendChild(o);
   });
 }
 
-/* ===================================================
-   ▶️ EJECUCIÓN INICIAL
-=================================================== */
 cargarUsuarioLogueado();
-await cargarRutas();
 await cargarFechasPendientes();
 
-// Aquí sigue GENERAR CORTE SIN CAMBIOS
-    // ===========================================
-    // GENERAR CORTE
-    // ===========================================
-    btnGenerar.addEventListener("click", generarCorteMovil);
+btnGenerar.addEventListener("click",generarCorteMovil);
 
-    async function generarCorteMovil() {
-      const ruta  = selectRuta.value;
-const fecha = selectFecha.value;
+async function generarCorteMovil(){
+  const ruta=selectRuta.value,fecha=selectFecha.value;
+  if(!ruta)return alert("Ruta inválida.");
+  if(!fecha)return alert("Selecciona una fecha.");
 
-if (!ruta) {
-  alert("Ruta inválida.");
-  return;
-}
+  overlay.style.display="flex";overlayText.textContent="Buscando ventas...";
 
-if (!fecha) {
-  alert("Selecciona una fecha pendiente.");
-  return;
-}
+  const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
+  const snap=await getDocs(q),ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
+  const ventasDia=ventas.filter(v=>v.fecha_txt&&v.fecha_txt.startsWith(fecha));
+  if(!ventasDia.length){overlay.style.display="none";return alert("No hay ventas sin cortar.");}
 
-      overlay.style.display = "flex";
-      overlayText.textContent = "Buscando ventas...";
+  let totalDia=0,totalDescuento=0,utilidadTotal=0,porDepto={},porArticulo={},porNota=[];
+  for(const v of ventasDia){
+    const rf=v.resumen_financiero||{},total=+rf.total||0,desc=+rf.descuento||+v.descuento_monto||0,costo=+rf.costo_total||0,util=total-costo;
+    totalDia+=total;totalDescuento+=desc;utilidadTotal+=util;
 
-      // Traer ventas
-      const qv = query(
-        collection(db, "ventas_rutav2"),
-        where("rutaId", "==", ruta),
-        where("cortado", "==", false)
-      );
+    for(const d of(v.detalle||[])){
+      const dep=d.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
+      const imp=(d.importe||0)-(d.descuento_monto||0);
+      const c=d.costo_total||d.costo_unit*(d.cantidad||1)||0;
+      if(!porDepto[dep])porDepto[dep]={venta:0,costo:0,utilidad:0};
+      porDepto[dep].venta+=imp;porDepto[dep].costo+=c;porDepto[dep].utilidad+=(imp-c);
 
-      const snap = await getDocs(qv);
-      const ventas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const art=d.nombre?.toUpperCase()||"SIN NOMBRE";
+      if(!porArticulo[art])porArticulo[art]={cantidad:0,importe:0,costo:0};
+      porArticulo[art].cantidad+=d.cantidad||0;
+      porArticulo[art].importe+=imp;
+      porArticulo[art].costo+=c;
+    }
+    porNota.push({folio:v.folio||v.id,total,desc,costo,utilidad:util});
+  }
 
-      // Filtrar por fecha, usando fecha_txt tipo "24/11/2025 10:22"
-const fechaRef = fecha; // porque ahora viene en formato dd/mm/aaaa
+  overlayText.textContent="Imprimiendo corte...";
+  function mxn(n){return Number(n).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2});}
 
-const ventasDia = ventas.filter(v =>
-  v.fecha_txt && v.fecha_txt.startsWith(fechaRef)
-);
+  const listaDeptos=Object.entries(porDepto).sort((a,b)=>b[1].venta-a[1].venta);
+  const topArt=Object.entries(porArticulo).sort((a,b)=>b[1].importe-a[1].importe).slice(0,10);
 
-      if (!ventasDia.length) {
-        overlay.style.display = "none";
-        alert("No hay ventas sin cortar para esta fecha.");
-        return;
-      }
-
-        // [9.3] Cálculos globales
-        let totalDia=0,totalDescuento=0,utilidadTotal=0;
-        const porDepto={},porArticulo={},porNota=[];
-
-        for(const v of ventasDia){
-          const rf=v.resumen_financiero||{};
-          const total=Number(rf.total)||0;
-          const descuento=Number(rf.descuento)||Number(v.descuento_monto)||0;
-          const costo=Number(rf.costo_total)||0;
-          const utilidad=Number(rf.utilidad_total)||total-costo;
-
-          totalDia+=total; totalDescuento+=descuento; utilidadTotal+=utilidad;
-
-          // [9.4] Detalle por departamento / artículo
-          for(const det of (v.detalle||[])){
-            const dep=det.departamento_info?.nombre?.toUpperCase()||"SIN DEPTO";
-            const importe=(det.importe||0)-(det.descuento_monto||0);
-            const costoD=det.costo_total||det.costo_unit*(det.cantidad||1)||0;
-            const utilD=det.utilidad||importe-costoD;
-            const iva=det.iva_calculado||0; const ieps=det.ieps_calculado||0;
-
-            if(!porDepto[dep]) porDepto[dep]={venta:0,costo:0,utilidad:0,impuestos:0};
-            porDepto[dep].venta+=importe; porDepto[dep].costo+=costoD;
-            porDepto[dep].utilidad+=utilD; porDepto[dep].impuestos+=iva+ieps;
-
-            const art=det.nombre?.toUpperCase()||"SIN NOMBRE";
-            if(!porArticulo[art]) porArticulo[art]={cantidad:0,importe:0,costo:0};
-            porArticulo[art].cantidad+=det.cantidad||0;
-            porArticulo[art].importe+=importe;
-            porArticulo[art].costo+=costoD;
-          }
-
-          porNota.push({folio:v.folio||v.id,total,descuento,costo,utilidad,ubicacion:v.ubicacion||{}});
-        }
-// =======================================
-// CORTE TÉRMICO ANALÍTICO (MXN con comas)
-// =======================================
-overlayText.textContent = "Imprimiendo corte...";
-
-// Formato MXN con comas
-function mxn(n) {
-  return Number(n).toLocaleString("es-MX", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
-
-// Ordenar departamentos por venta
-const listaDeptos = Object.entries(porDepto)
-  .sort((a, b) => b[1].venta - a[1].venta);
-
-// Top 10 artículos
-const topArt = Object.entries(porArticulo)
-  .sort((a, b) => b[1].importe - a[1].importe)
-  .slice(0, 10);
-
-// Construir texto térmico
-let texto = `
-CORTE ANALÍTICO - ${fechaRef}
+  let texto=`CORTE ANALÍTICO - ${fecha}
 --------------------------------
 RUTA: ${ruta}
 VENDEDOR: ${USUARIO.nombre}
 TOTAL MXN: $${mxn(totalDia)}
 VENTAS: ${ventasDia.length}
 --------------------------------
-VENTA POR DEPARTAMENTO (MXN)
+VENTA POR DEPARTAMENTO
 --------------------------------
 `;
 
-for (const [dep, d] of listaDeptos) {
-  texto += `${dep.substring(0,16).padEnd(16)} $${mxn(d.venta)}\n`;
-}
+  listaDeptos.forEach(([d,v])=>texto+=`${d.substring(0,16).padEnd(16)} $${mxn(v.venta)}\n`);
+  texto+=`\n--------------------------------\nTOP ARTÍCULOS\n--------------------------------\n`;
+  topArt.forEach(([n,v])=>texto+=`${n.substring(0,20)}\n   $${mxn(v.importe)}\n`);
+  texto+="\n--------------------------------\n¡GRAN TRABAJO!\n";
 
-texto += `
---------------------------------
-TOP ARTÍCULOS (MXN)
---------------------------------
-`;
-
-topArt.forEach(([name, d]) => {
-  texto += `${name.substring(0,20)}\n   $${mxn(d.importe)}\n`;
-});
-
-texto += `
---------------------------------
-¡GRAN TRABAJO!
-`;
-
-try {
-  if ("bluetooth" in navigator) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(texto);
-
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [0x18F0]
-    });
-
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(0x18F0);
-    const characteristic = await service.getCharacteristic(0x2AF1);
-
-    await characteristic.writeValue(data);
-  }
-} catch (e) {
-  console.warn("Impresión no disponible:", e);
-}
-
-      try {
-        if ("bluetooth" in navigator) {
-          const encoder = new TextEncoder();
-          const data = encoder.encode(texto);
-
-          const device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: [0x18F0]
-          });
-
-          const server = await device.gatt.connect();
-          const service = await server.getPrimaryService(0x18F0);
-          const characteristic = await service.getCharacteristic(0x2AF1);
-
-          await characteristic.writeValue(data);
-        }
-      } catch (e) {
-        console.warn("Impresión no disponible:", e);
-      }
-
-// =======================================
-// GUARDAR CORTE EN FIRESTORE
-// =======================================
-overlayText.textContent = "Guardando corte...";
-
-const resumen = {
-  empresa: "PROVEEDORA DE DULCES Y DESECHABLES",
-
-  usuario: USUARIO.nombre,
-  rutaId: ruta,
-  fecha,
-  creado_por: USUARIO.nombre,
-  creado_en: new Date().toISOString(),
-
-  ventas_totales: ventasDia.length,
-  departamentos_unicos: Object.keys(porDepto).length,
-  articulos_unicos: Object.keys(porArticulo).length,
-
-  totalDia,
-  totalDescuento,
-  utilidadTotal,
-
-  margenGlobal: totalDia
-    ? ((utilidadTotal / (totalDia - totalDescuento)) * 100).toFixed(2)
-    : 0,
-
-  detalle_ventas: ventasDia.map(v => ({
-    folio: v.folio || v.id,
-    fecha_txt: v.fecha_txt,
-    total: v.resumen_financiero?.total || 0,
-    descuento: v.resumen_financiero?.descuento || 0,
-    costo: v.resumen_financiero?.costo_total || 0,
-    utilidad: v.resumen_financiero?.utilidad_total || 0,
-    metodo_pago: v.metodo_pago || "—",
-    cliente: v.cliente_nombre || "—",
-    usuarioNombre: v.usuarioNombre || USUARIO.nombre,
-    detalle: v.detalle || []
-  })),
-
-  porDepto,
-  porArticulo,
-  porNota
-};
-
-// Guardar en la colección de cortes
-await addDoc(collection(db, "cortes_globalesV4"), {
-  rutaId: ruta,
-  fecha: new Date().toISOString(),
-  fecha_corte: fecha,
-  creado_por: USUARIO.nombre,
-  creado_en: new Date().toISOString(),
-  resumen
-});
-
-
-      // Marcar ventas cortadas
-      for (const v of ventasDia) {
-        await updateDoc(doc(db, "ventas_rutav2", v.id), {
-          cortado: true
-        });
-      }
-
-      // =======================================
-      // PDF GRANDE Y TELEGRAM
-      // =======================================
-
-      overlayText.textContent = "Generando PDF grande...";
-await generarPDF(resumen);
-      // =======================================
-      //  CIERRE DE SESIÓN AUTOMÁTICO
-      // =======================================
-      overlayText.textContent = "Cerrando sesión...";
-
-      localStorage.removeItem("usuario_ruta");
-      localStorage.removeItem("catalogo_cache");
-      localStorage.removeItem("catalogo_fecha");
-
-      await new Promise(r => setTimeout(r, 800));
-
-      window.location.href = "POSV4PASS.html";
+  try{
+    if("bluetooth"in navigator){
+      const enc=new TextEncoder(),data=enc.encode(texto);
+      const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[0x18F0]});
+      const srv=await dev.gatt.connect(),svc=await srv.getPrimaryService(0x18F0),ch=await svc.getCharacteristic(0x2AF1);
+      await ch.writeValue(data);
     }
-  </script>
+  }catch(e){console.warn("BT no disponible:",e);}
 
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
-/* ============================================================
-   📄 GENERAR PDF GRANDE PARA TELEGRAM
-============================================================ */
-async function generarPDF(r) {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: "mm", format: "letter" });
+  overlayText.textContent="Enviando a Telegram...";
+  await enviarTelegramTexto(texto);
 
-  const azul = "#0c6cbd";
-  let y = 15;
-
-  // ENCABEZADO
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(16);
-  pdf.setTextColor(azul);
-  pdf.text("CORTE DE RUTA – PROVEEDORA DE DULCES Y DESECHABLES", 105, y, { align: "center" });
-  y += 10;
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-  pdf.setTextColor("#000");
-
-  pdf.text(`Usuario: ${r.usuario}`, 15, y); y += 6;
-  pdf.text(`Ruta: ${r.rutaId}`, 15, y); y += 6;
-  pdf.text(`Fecha: ${r.fecha}`, 15, y); y += 10;
-
-  // RESUMEN GENERAL
-  const neto = r.totalDia - r.totalDescuento;
-  const margen = neto > 0 ? ((r.utilidadTotal / neto) * 100).toFixed(2) + "%" : "—";
-
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text("RESUMEN GENERAL", 15, y); y += 7;
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(11);
-
-  pdf.text(`Total Día: $${r.totalDia.toFixed(2)}`, 15, y);
-  pdf.text(`Descuento Total: $${r.totalDescuento.toFixed(2)}`, 110, y); y += 6;
-
-  pdf.text(`Venta Neta: $${neto.toFixed(2)}`, 15, y);
-  pdf.text(`Utilidad Neta: $${r.utilidadTotal.toFixed(2)}`, 110, y); y += 6;
-
-  pdf.text(`Margen Global: ${margen}`, 15, y); y += 10;
-
-  // TABLA ARTÍCULOS (TOP 60)
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(13);
-  pdf.setTextColor(azul);
-  pdf.text("ARTÍCULOS – TOP 60", 15, y);
-  y += 8;
-
-  pdf.setFillColor(12, 108, 189);
-  pdf.setTextColor(255, 255, 255);
-  pdf.rect(10, y, 190, 6, "F");
-
-  pdf.text("Artículo", 12, y + 4);
-  pdf.text("Cant.", 60, y + 4, { align: "right" });
-  pdf.text("Venta", 100, y + 4, { align: "right" });
-  pdf.text("Util.", 140, y + 4, { align: "right" });
-  pdf.text("Costo", 180, y + 4, { align: "right" });
-
-  y += 8;
-
-  pdf.setFontSize(10);
-  pdf.setTextColor("#000");
-
-  const topArt = Object.entries(r.porArticulo)
-    .sort((a, b) => b[1].importe - a[1].importe)
-    .slice(0, 60);
-
-  for (const [name, d] of topArt) {
-    if (y > 260) { pdf.addPage(); y = 20; }
-
-    pdf.text(name.substring(0, 38), 12, y);
-    pdf.text(`${d.cantidad}`, 60, y, { align: "right" });
-    pdf.text(`$${d.importe.toFixed(2)}`, 100, y, { align: "right" });
-    pdf.text(`$${(d.importe - d.costo).toFixed(2)}`, 140, y, { align: "right" });
-    pdf.text(`$${d.costo.toFixed(2)}`, 180, y, { align: "right" });
-
-    y += 6;
-  }
-
-  // PDF DE TICKETS SE ENVÍA POR SEPARADO
-  await generarPDFtickets(r);
-
-  // EXPORTAR SOLO PDF PRINCIPAL
-  const blob = await pdfOutputSeguro(pdf);
-
-  await enviarTelegram(
-    blob,
-    `Corte_${r.rutaId}_${r.fecha}.pdf`,
-    `📦 Corte de Ruta\n👤 ${r.usuario}\n🚚 Ruta ${r.rutaId}\n💰 Total Día: $${r.totalDia.toFixed(2)}\n📊 Utilidad: $${r.utilidadTotal.toFixed(2)}`
-  );
-
-  return true;
-}
-
-async function pdfOutputSeguro(pdf) {
-  return new Promise((resolve, reject) => {
-    try {
-      // jsPDF trabaja interno y a veces necesita un respiro
-      setTimeout(() => {
-        try {
-          const blob = pdf.output("blob");
-          resolve(blob);
-        } catch (e) {
-          reject(e);
-        }
-      }, 50);
-    } catch (e) {
-      reject(e);
-    }
+  overlayText.textContent="Guardando corte...";
+  await addDoc(collection(db,"cortes_globalesV4"),{
+    rutaId:ruta,fecha:new Date().toISOString(),fecha_corte:fecha,
+    creado_por:USUARIO.nombre,creado_en:new Date().toISOString(),
+    resumen:{totalDia,totalDescuento,utilidadTotal,porDepto,porArticulo,porNota}
   });
+
+  for(const v of ventasDia)await updateDoc(doc(db,"ventas_rutav2",v.id),{cortado:true});
+
+  overlayText.textContent="Cerrando sesión...";
+  localStorage.removeItem("usuario_ruta");
+  localStorage.removeItem("catalogo_cache");
+  localStorage.removeItem("catalogo_fecha");
+  await new Promise(r=>setTimeout(r,600));
+  location.href="POSV4PASS.html";
 }
-async function generarPDFtickets(r) {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ unit: "mm", format: "letter" });
+</script>
 
-  let y = 15;
-  const azul = "#0c6cbd";
-
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(14);
-  pdf.setTextColor(azul);
-  pdf.text(`TICKETS – ${r.fecha}`, 105, y, { align: "center" });
-  y += 10;
-
-  pdf.setFontSize(10);
-  pdf.setTextColor("#000");
-
-  for (const t of r.detalle_ventas) {
-    if (y > 260) { pdf.addPage(); y = 20; }
-
-    const hora = (t.fecha_txt || "").split(" ")[1] || "—";
-    const util = (t.total || 0) - (t.costo || 0);
-
-    pdf.text(
-      `${t.folio} | ${hora} | $${t.total.toFixed(2)} | $${t.costo.toFixed(2)} | $${util.toFixed(2)}`,
-      10, y
-    );
-
-    y += 6;
-  }
-
-  const blob = await pdfOutputSeguro(pdf);
-
-  await enviarTelegram(
-    blob,
-    `Tickets_${r.rutaId}_${r.fecha}.pdf`,
-    `🧾 Tickets completos – Ruta ${r.rutaId}`
-  );
-}
-
-/* ============================================================
-   📤 ENVIAR PDF A TELEGRAM
-============================================================ */
-async function enviarTelegram(pdfBlob, nombre, caption) {
-  const BOT  = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-  const CHAT = "6617988297";
-
-  const f = new FormData();
-  f.append("chat_id", CHAT);
-  f.append("caption", caption);
-  f.append("document", pdfBlob, nombre);
-
-  try {
-    await fetch(`https://api.telegram.org/bot${BOT}/sendDocument`, {
-      method: "POST",
-      body: f
+<script>
+async function enviarTelegramTexto(texto){
+  const BOT="8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q",CHAT="6617988297";
+  try{
+    await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({chat_id:CHAT,text:texto})
     });
-  } catch (e) {
-    console.error("Telegram error:", e);
-  }
+  }catch(e){console.error("Telegram:",e);}
 }
 </script>
 
