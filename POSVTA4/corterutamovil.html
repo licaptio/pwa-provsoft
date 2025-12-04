@@ -133,10 +133,14 @@ VENTA POR DEPARTAMENTO
 });
   texto+="\n--------------------------------\n¡BONITO DIA!\n";
   overlayText.textContent = "Imprimiendo corte...";
-imprimirRAWBT(texto);  // ← ESTA LÍNEA ES LA QUE FALTABA
+imprimirRAWBT(texto);
+
+// Esperar un poco para que RAWBT abra
+await new Promise(r => setTimeout(r, 1200));
 
 overlayText.textContent="Enviando a Telegram...";
 await enviarTelegramTexto(texto);
+
   overlayText.textContent="Guardando corte...";
   await addDoc(collection(db,"cortes_globalesV4"),{
     rutaId:ruta,fecha:new Date().toISOString(),fecha_corte:fecha,
