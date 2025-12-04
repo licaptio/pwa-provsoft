@@ -774,11 +774,11 @@ function addProduct(prod, cant = 1) {
     // No sumar kilos a lo anterior, crear línea nueva separada
 carrito.push({
   ...prod,
+  codigo: prod.codigo,    // ← 🔥 obligatorio para mayoreo
   cantidad: cant,
   precioUnit: Number(prod.precioPublico || 0),
   importe: cant * Number(prod.precioPublico || 0),
 
-  // 🚀 CAMPOS SAT QUE FALTAN
   claveSat: prod.claveSat || null,
   unidadSat: prod.unidadMedidaSat || null,
   ivaTasa: prod.ivaTasa ?? 0,
@@ -798,18 +798,18 @@ carrito.push({
     existente.precioUnit = precioUnit;
     existente.importe = existente.cantidad * precioUnit;
   } else {
-  carrito.push({
-    ...prod,
-    cantidad: cant,
-    precioUnit: Number(prod.precioPublico || 0),
-    importe: cant * Number(prod.precioPublico || 0),
+carrito.push({
+  ...prod,
+  codigo: prod.codigo,  // ← 🔥 IMPORTANTE PARA MAYOREO
+  cantidad: cant,
+  precioUnit: Number(prod.precioPublico || 0),
+  importe: cant * Number(prod.precioPublico || 0),
 
-    // 🚀 CAMPOS SAT
-    claveSat: prod.claveSat || null,
-    unidadSat: prod.unidadMedidaSat || null,
-    ivaTasa: prod.ivaTasa ?? 0,
-    iepsTasa: prod.iepsTasa ?? 0
-  });
+  claveSat: prod.claveSat || null,
+  unidadSat: prod.unidadMedidaSat || null,
+  ivaTasa: prod.ivaTasa ?? 0,
+  iepsTasa: prod.iepsTasa ?? 0
+});
 }
 
   mostrarConfirmacionProducto(prod, cant, precioUnit);
