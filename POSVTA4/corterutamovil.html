@@ -64,8 +64,8 @@ await cargarFechasPendientes();
 
 btnGenerar.addEventListener("click",generarCorteMovil);
 function imprimirRAWBT(texto) {
-  // Inicializar impresora ESC/POS y agregar saltos finales
-  texto = "\x1B\x40" + texto + "\n\n\n";
+  // Inicializar impresora ESC/POS + saltos finales obligatorios
+  texto = "\x1B\x40" + texto + "\n\n\n\n";
 
   const intent = `intent://print/?data=${
     encodeURIComponent(texto)
