@@ -63,6 +63,13 @@ cargarUsuarioLogueado();
 await cargarFechasPendientes();
 
 btnGenerar.addEventListener("click",generarCorteMovil);
+function imprimirRAWBT(texto) {
+  const intent = `intent://print/?data=${
+    encodeURIComponent(texto)
+  }#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+
+  window.location.href = intent;
+}
 
 async function generarCorteMovil(){
   const ruta=selectRuta.value,fecha=selectFecha.value;
@@ -125,19 +132,11 @@ VENTA POR DEPARTAMENTO
   texto += `${nombre}$${mxn(v.importe)}\n`;
 });
   texto+="\n--------------------------------\n¡BONITO DIA!\n";
+  overlayText.textContent = "Imprimiendo corte...";
+imprimirRAWBT(texto);  // ← ESTA LÍNEA ES LA QUE FALTABA
 
-  try{
-    if("bluetooth"in navigator){
-      const enc=new TextEncoder(),data=enc.encode(texto);
-      const dev=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:[0x18F0]});
-      const srv=await dev.gatt.connect(),svc=await srv.getPrimaryService(0x18F0),ch=await svc.getCharacteristic(0x2AF1);
-      await ch.writeValue(data);
-    }
-  }catch(e){console.warn("BT no disponible:",e);}
-
-  overlayText.textContent="Enviando a Telegram...";
-  await enviarTelegramTexto(texto);
-
+overlayText.textContent="Enviando a Telegram...";
+await enviarTelegramTexto(texto);
   overlayText.textContent="Guardando corte...";
   await addDoc(collection(db,"cortes_globalesV4"),{
     rutaId:ruta,fecha:new Date().toISOString(),fecha_corte:fecha,
