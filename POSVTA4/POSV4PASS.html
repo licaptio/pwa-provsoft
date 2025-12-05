@@ -771,7 +771,7 @@ function addProduct(prod, cant = 1) {
     // No sumar kilos a lo anterior, crear línea nueva separada
 carrito.push({
   ...prod,
-  codigo: prod.codigo,    // ← 🔥 obligatorio para mayoreo
+  codigo: prod.codigo || prod.codigoBarra,    // ← 🔥 obligatorio para mayoreo
   cantidad: cant,
   precioUnit: Number(prod.precioPublico || 0),
   importe: cant * Number(prod.precioPublico || 0),
