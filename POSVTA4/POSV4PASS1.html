@@ -1,0 +1,2679 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- 🧱 BLOQUE 1: CABECERA Y CONFIGURACIÓN GLOBAL -->
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#0c6cbd">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>POS – Ruta de Venta con Descuento</title>
+
+  <!-- 🧩 FUENTE PRINCIPAL -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
+
+  <!-- 🧩 ESTILOS GLOBALES -->
+  <style>
+   /* 🔹 Contenedor general (mantiene estructura móvil) */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom right, #00416A, #E4E5E6);
+}
+
+/* 🔹 Sección principal scrollable */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* 🔹 Carrito fijo inferior */
+#carrito-container {
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-radius: 15px 15px 0 0;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
+  max-height: 40vh; /* ajusta la altura del carrito visible */
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* 🔹 Ítems dentro del carrito */
+.carrito-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.carrito-item:last-child { border-bottom: none; }
+
+    /* 🎨 VARIABLES GENERALES */
+    :root {
+      --azul:#00416A;--resalte:#0c6cbd;--ok:#1e8e3e;
+      --bg-grad:linear-gradient(to right,#00416A,#E4E5E6);
+      --card:rgba(255,255,255,.9);--muted:rgba(0,0,0,.55);
+      --shadow:0 6px 18px rgba(0,0,0,.18);
+      --radius:14px;--radius-sm:10px;
+    }
+
+    /* 🧩 RESETEO Y ESTILO BASE */
+    * { box-sizing:border-box; }
+    html, body { height:100%; }
+    body {
+      margin:0; font-family:'Poppins',system-ui,Arial;
+      color:#111; background:var(--bg-grad);
+      display:flex; flex-direction:column;
+      -webkit-font-smoothing:antialiased;
+      -webkit-tap-highlight-color:transparent;
+    }
+
+    /* 🧭 ENCABEZADO PRINCIPAL */
+    header {
+      position:sticky; top:0; z-index:50;
+      background:rgba(0,0,0,.6); color:#fff;
+      padding:10px 14px;
+      display:flex; justify-content:center; align-items:center; gap:8px;
+      font-weight:700; font-size:18px;
+      backdrop-filter:saturate(120%) blur(4px);
+      height:50px;
+    }
+    header img { height:75px; object-fit:contain; }
+
+    /* 🧩 CONTENEDORES GENERALES */
+    .wrap { flex:1; padding:12px; display:flex; flex-direction:column; gap:12px; max-width:720px; margin:0 auto; }
+    .controls { display:flex; flex-direction:column; gap:10px; }
+
+    /* 🧱 CAMPOS DE FORMULARIO */
+    .field {
+      display:flex; gap:8px; background:rgba(255,255,255,.12);
+      padding:10px; border-radius:var(--radius-sm);
+      align-items:center; backdrop-filter:blur(2px);
+    }
+    .field label { min-width:78px; color:#fff; font-size:13px; }
+    .field input {
+      flex:1; padding:10px 12px; border:none;
+      border-radius:8px; font-size:15px;
+      background:#fff; outline:none;
+    }
+
+    /* 🔍 RESULTADOS DE BÚSQUEDA */
+    .searchbox { position:relative; z-index:300; }
+    .search-results {
+      position:absolute; left:90px; right:10px; top:calc(100% + 6px);
+      background:#fff; border-radius:12px; box-shadow:var(--shadow);
+      max-height:260px; overflow:auto; display:none; z-index:310;
+    }
+    .result-item { padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+    .result-item small { color:var(--muted); }
+    .result-item:hover { background:#f2f4f7; }
+
+    /* 🧾 TABLAS Y TOTALES */
+    .card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+    .table-wrap { max-height:260px; overflow:auto; }
+    table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    thead th {
+      background:var(--azul); color:#fff;
+      padding:10px; font-size:13px; position:sticky; top:0; z-index:100;
+    }
+    thead th:nth-child(1){ width:55%; text-align:left; }
+    thead th:nth-child(2){ width:15%; text-align:center; }
+    thead th:nth-child(3){ width:20%; text-align:right; }
+    thead th:nth-child(4){ width:10%; text-align:center; }
+    td.del-col { text-align:center; }
+    td.del-col .del {
+      background:#e74c3c; color:#fff; border:none; border-radius:50%;
+      width:22px; height:22px; font-size:14px; line-height:20px; cursor:pointer;
+    }
+    td.del-col .del:hover { background:#c0392b; }
+
+    /* 🧾 TOTALES */
+    .totals { display:flex; flex-direction:column; gap:6px; padding:12px 14px; background:#fff; }
+    .row { display:flex; justify-content:space-between; align-items:center; font-size:15px; }
+    .row.muted { color:var(--muted); }
+    .row.big { font-weight:700; font-size:18px; }
+
+    /* 🔘 BOTONES GENERALES */
+    .btn {
+      width:100%; border:none; padding:14px; border-radius:12px;
+      font-size:18px; font-weight:700; color:#fff;
+      background:linear-gradient(180deg,var(--resalte),#094d85);
+      box-shadow:var(--shadow); cursor:pointer;
+    }
+    .btn:active { transform:translateY(1px); }
+
+    /* 🔐 PANTALLA DE LOGIN */
+    #loginScreen {
+      height:100vh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background:#00416A; color:#fff;
+    }
+    #loginScreen input { padding:10px; border-radius:8px; margin:5px; border:none; }
+    #loginMsg { color:#fbb; border-radius:8px; margin-top:8px; }
+
+    /* 📷 BOTÓN DE CÁMARA */
+    .cam-btn {
+      position:absolute; right:14px; top:50%; transform:translateY(-50%);
+      border:none; padding:8px 10px; border-radius:10px; cursor:pointer;
+      background:#0c6cbd; color:#fff; font-size:16px;
+    }
+    .cam-btn:active { transform:translateY(-49%); }
+
+    /* 🌀 ANIMACIÓN LOGO LOGIN */
+    #loginLogo {
+      width:120px; height:120px; margin-bottom:20px;
+      animation:spinY 10s linear infinite; transform-style:preserve-3d;
+    }
+    @keyframes spinY { from{transform:rotateY(0deg);} to{transform:rotateY(360deg);} }
+
+    /* 🧾 IMPRESIÓN PARA TICKET TÉRMICO */
+    @media print {
+      body * { visibility:hidden!important; }
+      #ticketArea, #ticketArea * { visibility:visible!important; }
+      #ticketArea {
+        display:block!important; position:relative!important;
+        margin:0 auto!important; padding:0; width:100%; background:#fff;
+      }
+      #ticket {
+        width:72mm!important; margin:0 auto!important; padding:0 2mm!important;
+        font-size:14px!important; line-height:1.45; color:#000;
+        transform:none!important; page-break-inside:avoid!important;
+      }
+      header, .btn, .actions, #loginScreen, #modalCobro, #qrReaderContainer { display:none!important; }
+    }
+    @page { size:72mm auto; margin:0; }
+#pantallaVenta, #pantallaCarrito {
+  transition: all 0.3s ease-in-out;
+}
+#pantallaCarrito {
+  margin-top: 10px;
+}
+#btnRegresar {
+  background: linear-gradient(180deg, #888, #666);
+  color: #fff;
+}
+
+  </style>
+</head>
+
+<body>
+  <!-- 🔑 BLOQUE 2: LOGIN DE USUARIO -->
+  <div id="loginScreen">
+    <img id="loginLogo" src="logo_proveedora.webp" alt="Logo La Proveedora">
+    <h2>Acceso Ruta de Venta</h2>
+    <input id="loginUsuario" type="text" placeholder="Usuario"/>
+    <input id="loginPassword" type="password" placeholder="Contraseña"/>
+    <button id="btnLogin" class="btn">Entrar</button>
+    
+    <div id="loginMsg"></div>
+  </div>
+
+<!-- 📦 BLOQUE 3: INTERFAZ PRINCIPAL DEL POS -->
+<div id="posApp" style="display:none;">
+
+  <!-- 🧭 ENCABEZADO FIJO SUPERIOR -->
+<header>
+  <span>POS – Ruta de Venta / Descuento</span>
+  <img src="logo_proveedora.webp" alt="Logo">
+
+
+</header>
+
+</header>
+
+<!-- 🧩 CUERPO PRINCIPAL -->
+<div class="main-content">
+
+  <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
+  <section id="pantallaVenta" class="controls">
+    <!-- 🧍‍♂️ CAMPO CLIENTE -->
+    <div class="field">
+      <label>Cliente</label>
+      <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+      <datalist id="clientesList"></datalist>
+    </div>
+
+    <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
+    <div class="field searchbox">
+      <label>Buscar</label>
+      <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+      <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
+      <button id="btnCam" class="cam-btn" type="button">📷</button>
+      <div id="resultados" class="search-results"></div>
+    </div>
+  </section>
+
+</div>
+
+<!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
+<div id="carrito-container">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Cant.</th>
+          <th>Importe</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 🧪 SECCIÓN DE PRUEBAS DEL SISTEMA (OCULTA POR DEFECTO) -->
+<section id="pantallaTest" style="display:none; padding:15px; background:#fff;
+  border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin:15px;">
+  <h2 style="text-align:center;color:#00416A;">🔧 Pruebas del Sistema POS</h2>
+
+  <button id="btnTestPrinter" class="btn" style="background:#16a34a;margin:6px 0;">🖨️ Probar Impresora</button><br>
+  <button id="btnTestGPS" class="btn" style="background:#f59e0b;margin:6px 0;">📍 Probar GPS</button><br>
+
+  <div id="testResult" style="margin-top:10px;color:#333;font-size:14px;text-align:center;"></div>
+<!-- 🔵 BOTÓN NUEVO: CORTE DE RUTA -->
+<button id="btnCorteRuta" class="btn" style="background:#0c6cbd;margin:6px 0;">
+  📊 Generar Corte de Ruta
+</button>
+
+  <button id="btnVolverVenta" class="btn" style="margin-top:15px;background:#00416A;">⬅️ Volver a Ventas</button>
+</section>
+
+  <div class="totals">
+    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="btnCobrar">Cobrar</button>
+  </div>
+</section>
+
+<!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
+<div id="bottomBar">
+  <button id="btnVerCarrito" class="bar-btn"> Test Funcion </button>
+  <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
+  <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
+</div>
+</div> <!-- 👈 cierre de #posApp --> 
+<!-- 📸 LIBRERÍAS EXTERNAS -->
+
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="./html5-qrcode.min.js"></script> <!-- 👈 Asegúrate de que esta ruta sea correcta -->
+
+<!-- 💳 MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO -->
+<div id="modalCobro"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+            z-index:1200;align-items:center;justify-content:center;">
+  <div class="modal-card"
+       style="width:min(420px,92vw);background:#fff;border-radius:14px;
+              box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;">
+    <div class="modal-h"
+         style="padding:12px 16px;background:#0c6cbd;color:#fff;font-weight:700;">
+      Cobro
+    </div>
+<div class="modal-b"
+     style="padding:18px;display:flex;flex-direction:column;gap:14px;font-size:16px;">
+
+  <!-- 💰 Total -->
+  <div class="row big" style="justify-content:space-between;font-size:22px;">
+    <span>Total a pagar:</span>
+    <span id="cobroTotal" 
+          style="font-weight:700;color:#0c6cbd;font-size:24px;">$0.00</span>
+  </div>
+
+  <!-- 💵 Monto recibido -->
+  <label for="montoRecibido" style="font-weight:600;">Monto recibido</label>
+  <input id="montoRecibido" type="number" step="0.01" min="0" inputmode="decimal"
+         placeholder="Ej. 7000.00"
+         style="padding:16px 12px;border-radius:10px;border:1px solid #ccc;
+                font-size:22px;text-align:center;font-weight:700;
+                background:#f9f9f9;">
+
+  <!-- 💸 Cambio -->
+  <div class="row big" 
+       style="justify-content:space-between;align-items:center;
+              padding:10px 0;border-top:2px dashed #ddd;
+              border-bottom:2px dashed #ddd;">
+    <span style="font-size:22px;font-weight:700;color:#111;">Cambio:</span>
+    <span id="montoCambio"
+          style="font-size:26px;font-weight:800;color:#1e8e3e;">$0.00</span>
+  </div>
+
+  <!-- 🗒️ Notas -->
+  <label for="notasCobro" style="font-weight:600;">Notas (opcional)</label>
+  <textarea id="notasCobro" rows="2" style="resize:none;padding:10px;
+            border-radius:10px;border:1px solid #ccc;font-size:15px;"></textarea>
+
+  <!-- 🧾 Descuento aplicado -->
+  <div id="descuentoInfo"
+       style="font-size:15px;color:#00416A;font-weight:600;
+              text-align:right;display:none;">
+    Descuento aplicado: <span id="descuentoResumen">$0.00</span>
+  </div>
+
+  <!-- 🔘 Botones principales -->
+  <div style="display:flex;gap:10px;justify-content:space-between;margin-top:10px;">
+    <button class="btn" id="btnSolicitarDescuento"
+            style="flex:1;background:linear-gradient(180deg,#888,#666);
+                   font-size:16px;">🧾 Descuento</button>
+    <button class="btn" id="btnCancelarCobro" 
+            style="flex:1;background:#aaa;font-size:16px;">Cancelar</button>
+    <button class="btn" id="btnConfirmarCobro" 
+            style="flex:1;background:linear-gradient(180deg,#0c6cbd,#094d85);
+                   font-size:16px;">Confirmar</button>
+  </div>
+</div>
+  </div>
+</div>
+
+<script type="text/javascript">
+"use strict";
+
+// ⚠️ Cargar módulos Firebase con import dinámico (compatible móviles)
+(async () => {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+  const { 
+    getFirestore, collection, addDoc, setDoc, serverTimestamp,
+    runTransaction, doc, getDocs, query, where, limit 
+  } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const { enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+  const { obtenerUbicacionRobusta } = await import("./geoHelper.js");
+
+// ⚙️ BLOQUE 5: SCRIPT PRINCIPAL (FIREBASE + LÓGICA POS)
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off:", err));
+
+/* ===========================================================
+   🔧 SECCIÓN 2: VARIABLES GLOBALES
+   =========================================================== */
+const $ = s => document.querySelector(s);
+let carrito = [];
+let catalogo = [];
+let departamentos = {};
+let rutaId = null;
+let USUARIO_LOGUEADO = null;
+let clienteSeleccionado = null;
+const money = n => '$' + (Number(n) || 0).toFixed(2);
+const codeIndex = new Map();
+
+/* ===========================================================
+   💸 SECCIÓN 3: PRODUCTOS DE MAYOREO (CIGARROS)
+   =========================================================== */
+const productosMayoreo = [
+  "08339412","08346917","75001315","75001322","75001476","75016777",
+  "75021597","75031053","75035259","75046521","75046781","75052836",
+  "75056308","75059514","75063801","75064648","75066345","75068738",
+  "75068745","75068776","75068783","75068844","75069902","75071295",
+  "75071776","75080495","7501020540666"
+];
+
+// 🧮 Función que selecciona precio según cantidad
+function obtenerPrecioSegunCantidad(prod, cantidad) {
+  if (!productosMayoreo.includes(String(prod.codigo))) {
+    return Number(prod.precioPublico || 0);
+  }
+  if (cantidad >= 5 && prod.mayoreo) {
+    console.log("💸 Mayoreo aplicado:", prod.nombre);
+    return Number(prod.mayoreo);
+  }
+  return Number(prod.precioPublico || 0);
+}
+
+/* ===========================================================
+   🔑 SECCIÓN 4: LOGIN Y CARGA INICIAL (OPTIMIZADO)
+   =========================================================== */
+async function loginUsuario() {
+const u = document.getElementById("loginUsuario").value.trim();
+const p = document.getElementById("loginPassword").value.trim();
+const msg = document.getElementById("loginMsg");
+
+  // 🔸 Validación básica
+  if (!u || !p) {
+    msg.textContent = "Por favor, introduce usuario y contraseña.";
+    return;
+  }
+
+  // 🎬 Animación visual de progreso
+  msg.textContent = "🔄 Verificando usuario...";
+  msg.style.background = "rgba(255,255,255,.15)";
+  msg.style.padding = "6px 10px";
+  msg.style.borderRadius = "6px";
+  msg.style.transition = "all 0.3s ease";
+
+  try {
+    const q = query(
+      collection(db, "usuarios_ruta"),
+      where("usuario", "==", u),
+      where("password", "==", p),
+      where("activo", "==", true)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      msg.textContent = "❌ Usuario o contraseña incorrectos";
+      msg.style.background = "rgba(255,50,50,.3)";
+      return;
+    }
+
+    const data = snap.docs[0].data();
+    USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
+    rutaId = data.rutaId || null;
+
+    // 🧹 Limpia cache de catálogo al cambiar usuario
+    localStorage.removeItem("catalogo_cache");
+
+    // 💾 Guarda sesión para acceso rápido
+    localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
+
+    // 🟢 Mostrar transición visual
+    msg.textContent = "✅ Bienvenido " + (data.nombre || u);
+    msg.style.background = "rgba(0,150,80,.4)";
+
+    // 🌀 Cargar datos principales
+document.getElementById("loginScreen").style.display = "none";
+document.getElementById("posApp").style.display = "block";
+
+    // Carga simultánea
+    await Promise.all([
+      cargarCatalogo(),
+      cargarDepartamentos(),
+      fijarClientePublico()
+    ]);
+
+    console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
+    msg.textContent = "";
+
+  } catch (e) {
+    console.error("❌ Error en login:", e);
+    msg.textContent = "⚠️ Error de conexión con el servidor.";
+    msg.style.background = "rgba(255,150,0,.3)";
+  }
+}
+
+$("#btnLogin").onclick = loginUsuario;
+/* ===========================================================
+   🔁 SECCIÓN 4.1: RECUPERAR SESIÓN AUTOMÁTICA
+   =========================================================== */
+window.addEventListener("DOMContentLoaded", async () => {
+  const guardado = localStorage.getItem("usuario_ruta");
+  if (!guardado) return;
+
+  try {
+    USUARIO_LOGUEADO = JSON.parse(guardado);
+    rutaId = USUARIO_LOGUEADO?.rutaId || null;
+    console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
+
+    $("#loginScreen").style.display = "none";
+    $("#posApp").style.display = "block";
+
+    await Promise.all([
+      cargarCatalogo(),
+      cargarDepartamentos(),
+      fijarClientePublico()
+    ]);
+  } catch (err) {
+    console.warn("⚠️ No se pudo restaurar sesión previa:", err);
+    localStorage.removeItem("usuario_ruta");
+  }
+});
+/* ===========================================================
+   📦 CACHE DINÁMICO–PROVSOFT (SW)
+   =========================================================== */
+
+// 🔹 Guarda datos en el caché del Service Worker
+async function cachearDatos(ruta, data) {
+  try {
+    const url = location.origin + ruta;
+    const res = new Response(JSON.stringify(data), {
+      headers: { "Content-Type": "application/json" }
+    });
+    const cache = await caches.open("provsoft-pos-v10");
+    await cache.put(url, res);
+    console.log("💾 Guardado en caché SW:", ruta);
+  } catch (err) {
+    console.warn("⚠️ No se pudo cachear:", ruta, err);
+  }
+}
+
+// 🔹 Lee datos del caché del Service Worker
+async function leerCache(ruta) {
+  try {
+    const url = location.origin + ruta;
+    const cache = await caches.open("provsoft-pos-v10");
+    const res = await cache.match(url);
+    if (!res) return null;
+    const json = await res.json();
+    console.log("⚡ Leído desde cache SW:", ruta, json.length || Object.keys(json).length);
+    return json;
+  } catch (err) {
+    console.warn("⚠️ No se pudo leer cache:", ruta);
+    return null;
+  }
+}
+
+/* ===========================================================
+   🧾 SECCIÓN 5: CARGA DE CATÁLOGO Y DEPARTAMENTOS (OPTIMIZADO)
+   =========================================================== */
+
+async function cargarCatalogo() {
+  const cacheKey = "catalogo_cache";
+  const cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
+  const unDia = 24 * 60 * 60 * 1000;
+  const statusBox = document.createElement("div");
+
+  // 🟦 Muestra un mensaje flotante mientras carga
+  statusBox.textContent = "🔄 Cargando catálogo de productos...";
+  statusBox.style.cssText = `
+    position:fixed;top:10px;left:50%;transform:translateX(-50%);
+    background:#00416A;color:#fff;padding:10px 16px;
+    border-radius:10px;z-index:5000;font-size:14px;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);
+  `;
+  document.body.appendChild(statusBox);
+// =====================================================
+// 🟢 1) Intentar cargar desde cache del Service Worker
+// =====================================================
+const catalogoSW = await leerCache("/catalogo");
+if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
+
+  // reconstruir codeIndex
+  catalogo = catalogoSW;
+  codeIndex.clear();
+  catalogo.forEach(p => {
+    if (p.codigo) codeIndex.set(p.codigo, p.id);
+    if (Array.isArray(p.equivalentes)) {
+      p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
+    }
+  });
+
+  console.log("⚡ Catálogo cargado OFFLINE desde SW");
+  statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
+  setTimeout(() => statusBox.remove(), 1500);
+  return; // ← MUY IMPORTANTE
+}
+
+  try {
+    // ⚡ Si hay cache válido de menos de 24 h
+    if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.data)) {
+      catalogo = cache.data;
+      codeIndex.clear();
+
+      catalogo.forEach(p => {
+        if (p.codigo) codeIndex.set(p.codigo, p.id);
+        if (Array.isArray(p.equivalentes)) {
+          p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
+        }
+      });
+
+      console.log("⚡ Catálogo cargado desde cache:", catalogo.length);
+      statusBox.textContent = `⚡ Catálogo cargado (${catalogo.length} productos, desde cache)`;
+      setTimeout(() => statusBox.remove(), 2000);
+      return;
+    }
+
+    // 🔄 Cargar desde Firestore si no hay cache o está vencido
+    const ref = collection(db, "productos");
+    const q = query(ref, where("activo", "==", true));
+    const snap = await getDocs(q);
+    catalogo = [];
+    codeIndex.clear();
+
+    snap.forEach(d => {
+      const x = d.data();
+const p = {
+  id: d.id,
+  nombre: x.concepto || "SIN NOMBRE",
+  codigo: String(x.codigoBarra || ""),
+  precioPublico: Number(x.precioPublico || 0),
+  mayoreo: Number(x.mayoreo || 0),
+  costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
+  ivaTasa: Number(x.ivaTasa || 0),
+  iepsTasa: Number(x.iepsTasa || 0),
+
+  // 🚀 CAMPOS SAT DEL CATÁLOGO
+  claveSat: x.claveSat || null,
+  unidadMedidaSat: x.unidadMedidaSat || null,
+
+  departamento_id: x.departamento_id || null,
+  equivalentes: Array.isArray(x.codigosEquivalentes) ? x.codigosEquivalentes : [],
+};
+
+      catalogo.push(p);
+      if (p.codigo) codeIndex.set(p.codigo, p.id);
+      if (Array.isArray(p.equivalentes)) {
+        p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
+      }
+    });
+// =====================================================
+// 💾 Guardar catálogo en caché del Service Worker
+// =====================================================
+cachearDatos("/catalogo", catalogo);
+
+    // 💾 Guardar cache local por 24 h
+    localStorage.setItem(cacheKey, JSON.stringify({
+      fecha: Date.now(),
+      data: catalogo
+    }));
+
+    console.log("📦 Catálogo cargado desde Firestore:", catalogo.length);
+    statusBox.textContent = `📦 Catálogo cargado (${catalogo.length} productos, guardado en cache)`;
+    setTimeout(() => statusBox.remove(), 2500);
+
+  } catch (err) {
+    console.error("❌ Error cargando catálogo:", err);
+    statusBox.textContent = "⚠️ Error al cargar catálogo. Intenta recargar o verifica conexión.";
+    statusBox.style.background = "#c0392b";
+  }
+}
+
+/* ===========================================================
+   🏷️ CARGA DE DEPARTAMENTOS (CON CONTROL DE ERRORES)
+   =========================================================== */
+async function cargarDepartamentos() {
+  const statusBox = crearStatusBox("Cargando departamentos...");
+
+  // 🟢 Intentar cargar desde cache del Service Worker
+  const depSW = await leerCache("/departamentos");
+  if (depSW && Object.keys(depSW).length > 0) {
+    departamentos = depSW;
+    console.log("⚡ Departamentos cargados desde cache SW");
+    statusBox.textContent = "⚡ Departamentos offline cargados";
+    setTimeout(() => statusBox.remove(), 1000);
+    return; // ← IMPORTANTE PARA NO IR A FIRESTORE
+  }
+
+  // ===========================================================
+  // 🔵 Si no hay cache → cargar de Firestore
+  // ===========================================================
+  try {
+    const depSnap = await getDocs(collection(db, "departamentos"));
+    let depTemp = []; 
+
+    depSnap.forEach(doc => {
+      depTemp.push({
+        id: doc.id,
+        nombre: doc.data().nombre,
+        icono: doc.data().icono
+      });
+    });
+
+    departamentos = depTemp;
+
+    // 💾 Guardar en cache SW para uso offline
+    cachearDatos("/departamentos", departamentos);
+
+    statusBox.textContent = `Departamentos cargados (${departamentos.length})`;
+    setTimeout(() => statusBox.remove(), 1500);
+
+  } catch (err) {
+    console.error("❌ Error al cargar departamentos:", err);
+    statusBox.textContent = "Error cargando departamentos";
+  }
+}
+
+
+/* ===========================================================
+   🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
+   =========================================================== */
+function buscarLocal(qraw) {
+  const q = (qraw || "").trim().toLowerCase();
+  if (!q) return [];
+
+  // 1️⃣ Etiquetas de báscula (7 dígitos + peso)
+  if (/^2\d{12,}$/.test(q)) {
+    const codigoBase = q.substring(0, 7);
+    const pesoStr = q.substring(7, 12);
+    const peso = parseFloat(pesoStr) / 1000;
+    const idMatch = Array.from(codeIndex.entries()).find(([cod]) =>
+      cod.startsWith(codigoBase)
+    );
+    if (idMatch) {
+      const p = catalogo.find(x => x.id === idMatch[1]);
+      if (p) {
+        $("#cantidadInput").value = peso.toFixed(3);
+        return [p];
+      }
+    }
+  }
+
+  // 2️⃣ Coincidencia exacta
+  const idByCode = codeIndex.get(q);
+  if (idByCode) {
+    const p = catalogo.find(x => x.id === idByCode);
+    if (p) return [p];
+  }
+
+  // 3️⃣ Coincidencia parcial por equivalentes
+  const matchEq = catalogo.find(p => {
+    if (!Array.isArray(p.equivalentes)) return false;
+    return p.equivalentes.some(eq => eq && q.startsWith(eq.toLowerCase()));
+  });
+  if (matchEq) return [matchEq];
+
+  // 4️⃣ Coincidencia por nombre
+  return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
+}
+/* ===========================================================
+   🔗 SECCIÓN 6.1: CONSULTA DE EQUIVALENCIAS EN FIRESTORE
+   =========================================================== */
+async function buscarEquivalenteRemoto(codigo) {
+  try {
+    const ref = collection(db, "equivalentes");
+
+    // 1️⃣ Busca si el código es origen
+    const qOrigen = query(ref, where("codigo_origen", "==", codigo));
+    // 2️⃣ O si es un equivalente
+    const qEquiv = query(ref, where("codigo_equivalente", "==", codigo));
+
+    const [snapOrigen, snapEquiv] = await Promise.all([
+      getDocs(qOrigen),
+      getDocs(qEquiv)
+    ]);
+
+    let codigoReal = null;
+
+    // Si escaneó el código original, buscamos su equivalente (por si acaso)
+    if (!snapOrigen.empty) {
+      codigoReal = snapOrigen.docs[0].data().codigo_origen;
+    }
+    // Si escaneó un equivalente, regresamos el código original vinculado
+    else if (!snapEquiv.empty) {
+      codigoReal = snapEquiv.docs[0].data().codigo_origen;
+    }
+
+    if (codigoReal) {
+      console.log("🔁 Código equivalente encontrado:", codigoReal);
+      toast(`🔄 Código equivalente detectado (${codigoReal})`, "#f59e0b");
+      const producto = buscarLocal(codigoReal);
+      if (producto.length > 0) return producto;
+    }
+
+    return [];
+  } catch (err) {
+    console.error("❌ Error buscando equivalencia:", err);
+    return [];
+  }
+}
+/* ===========================================================
+   ⚖️ SECCIÓN 6.2: DECODIFICAR CÓDIGOS DE BALANZA
+   =========================================================== */
+function decodificarBalanza(codigo) {
+  // Códigos tipo 2000097001308 → 2000097 + 0.130 kg
+  if (codigo.startsWith("2") && codigo.length === 13) {
+    const codigoProducto = codigo.substring(0, 7);  // 2000097
+    const pesoBruto = codigo.substring(7, 12);      // 00130
+    const pesoKg = parseFloat(pesoBruto) / 1000;    // 0.130
+    return { esBalanza: true, codigoProducto, pesoKg };
+  }
+  return { esBalanza: false };
+}
+
+/* ===========================================================
+   🧮 SECCIÓN 7: CARRITO DE COMPRAS
+   =========================================================== */
+function addProduct(prod, cant = 1) {
+  if (!prod) return;
+  cant = parseFloat(cant);  // 🧮 asegúrate de que puede ser decimal
+  const existente = carrito.find(x => x.id === prod.id);
+
+  // 🔹 Si es producto de balanza (peso < 1 kg o con código prefijo 2)
+  if (cant < 1 || String(prod.codigo || "").startsWith("2")) {
+    // No sumar kilos a lo anterior, crear línea nueva separada
+carrito.push({
+  ...prod,
+  codigo: prod.codigo,    // ← 🔥 obligatorio para mayoreo
+  cantidad: cant,
+  precioUnit: Number(prod.precioPublico || 0),
+  importe: cant * Number(prod.precioPublico || 0),
+
+  claveSat: prod.claveSat || null,
+  unidadSat: prod.unidadMedidaSat || null,
+  ivaTasa: prod.ivaTasa ?? 0,
+  iepsTasa: prod.iepsTasa ?? 0
+});
+
+    renderDebounced();
+    return;
+  }
+
+  // 🔹 Normal (piezas)
+  const cantidadNueva = existente ? existente.cantidad + cant : cant;
+  const precioUnit = obtenerPrecioSegunCantidad(prod, cantidadNueva);
+
+  if (existente) {
+    existente.cantidad = cantidadNueva;
+    existente.precioUnit = precioUnit;
+    existente.importe = existente.cantidad * precioUnit;
+  } else {
+carrito.push({
+  ...prod,
+  codigo: prod.codigo,  // ← 🔥 IMPORTANTE PARA MAYOREO
+  cantidad: cant,
+  precioUnit: Number(prod.precioPublico || 0),
+  importe: cant * Number(prod.precioPublico || 0),
+
+  claveSat: prod.claveSat || null,
+  unidadSat: prod.unidadMedidaSat || null,
+  ivaTasa: prod.ivaTasa ?? 0,
+  iepsTasa: prod.iepsTasa ?? 0
+});
+}
+
+  mostrarConfirmacionProducto(prod, cant, precioUnit);
+  renderDebounced();
+}
+
+/* ===========================================================
+   🧭 FUNCIÓN VISUAL: CONFIRMACIÓN DE PRODUCTO ESCANEADO
+   =========================================================== */
+function mostrarConfirmacionProducto(prod, cant, precioUnit) {
+  // Borra avisos anteriores si aún están visibles
+  const avisoPrevio = document.getElementById("toastProducto");
+  if (avisoPrevio) avisoPrevio.remove();
+
+  const total = (cant * precioUnit).toFixed(2);
+  const aviso = document.createElement("div");
+  aviso.id = "toastProducto";
+  aviso.innerHTML = `
+    ✅ ${cant} × <strong>${prod.nombre}</strong><br>
+    💰 $${total}
+  `;
+  aviso.style.cssText = `
+    position:fixed;bottom:75px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.85);color:#fff;padding:10px 16px;
+    border-radius:12px;text-align:center;z-index:9999;
+    font-size:15px;font-weight:600;
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+    opacity:0;transition:opacity .3s ease;
+  `;
+
+  document.body.appendChild(aviso);
+  setTimeout(() => aviso.style.opacity = 1, 80);
+  setTimeout(() => {
+    aviso.style.opacity = 0;
+    setTimeout(() => aviso.remove(), 400);
+  }, 2500);
+}
+  
+  
+function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+window.delItem=delItem;
+
+/* ===========================================================
+   🧮 SECCIÓN 8: CÁLCULO DE TOTALES CON DESCUENTO (OPTIMIZADO)
+   =========================================================== */
+function calcularTotales(descPorc = 0) {
+  let subtotal = 0, iva = 0, ieps = 0, total = 0;
+  let subtotalElegible = 0, subtotalNoElegible = 0;
+
+  // 💰 Asegura que el porcentaje de descuento sea válido (0–100)
+  const descuento = Math.min(100, Math.max(0, descPorc || 0)) / 100;
+
+  // 🔢 Recorre todos los productos del carrito
+  carrito.forEach(it => {
+    const imp = it.cantidad * it.precioUnit;
+    const dep = departamentos[it.departamento_id] || { iva: 0, ieps: 0 };
+
+    const ivaT = dep.iva / 100;
+    const iepsT = dep.ieps / 100;
+    let base = imp;
+
+    // Descompone el precio si ya incluye IVA o IEPS
+    if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
+    else if (iepsT > 0) base = imp / (1 + iepsT);
+    else if (ivaT > 0) base = imp / (1 + ivaT);
+
+    subtotal += base;
+    iva += base * ivaT;
+    ieps += base * iepsT;
+    total += imp;
+
+    // Clasifica productos elegibles o no para descuento
+    if (productosMayoreo.includes(String(it.codigo))) subtotalNoElegible += base;
+    else subtotalElegible += base;
+  });
+
+  // 🧮 Cálculo seguro de descuentos (sin dividir por cero)
+  const montoDesc = subtotalElegible * descuento;
+  const proporción = subtotal > 0 ? montoDesc / subtotal : 0;
+
+  // 💸 Totales finales
+  const subtotalFinal = subtotal - montoDesc;
+  const ivaFinal = iva - (iva * proporción);
+  const iepsFinal = ieps - (ieps * proporción);
+  const totalFinal = subtotalFinal + ivaFinal + iepsFinal;
+
+  return {
+    subtotal: +subtotal.toFixed(2),
+    descuento: +montoDesc.toFixed(2),
+    impuestos: +(ivaFinal + iepsFinal).toFixed(2),
+    total: +totalFinal.toFixed(2)
+  };
+}
+
+
+  /* ===========================================================
+   🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
+   =========================================================== */
+function render(desc = 0) {
+  const tbody = $("#tbody");
+  tbody.innerHTML = "";
+
+  carrito.forEach(it => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${it.nombre}</td>
+      <td style="text-align:center">
+        <input type="number" min="0" step="0.01" value="${it.cantidad}"
+          style="width:70px;text-align:center;padding:4px;border-radius:6px;
+          border:1px solid #ccc;font-size:14px;"
+          onchange="actualizarCantidad('${it.id}', this.value)"
+          oninput="actualizarCantidad('${it.id}', this.value)">
+      </td>
+      <td style="text-align:right">${money(it.importe)}</td>
+      <td class='del-col'>
+        <button class='del' onclick="delItem('${it.id}')">×</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
+  $("#lblSubtotal").textContent = money(subtotal);
+  $("#lblImpuestos").textContent = money(impuestos);
+  $("#lblTotal").textContent = money(total);
+}
+
+/* ===========================================================
+   ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
+   =========================================================== */  
+
+function actualizarCantidad(id, nuevaCant) {
+  const item = carrito.find(x => x.id === id);
+  if (!item) return;
+
+  const cant = parseFloat(nuevaCant);
+  if (isNaN(cant) || cant < 0) return;
+
+  const precioAnterior = item.precioUnit;
+
+  item.cantidad = cant;
+  item.precioUnit = obtenerPrecioSegunCantidad(item, cant);
+  item.importe = item.cantidad * item.precioUnit;
+
+  if (productosMayoreo.includes(String(item.codigo))) {
+    if (cant >= 5 && item.precioUnit !== precioAnterior) {
+      beep(600, 0.15);
+      toast(`💸 Mayoreo aplicado a ${item.nombre}`, "#1e8e3e");
+    } else if (cant < 5 && item.precioUnit !== precioAnterior) {
+      beep(400, 0.15);
+      toast(`🔁 Precio público restaurado (${item.nombre})`, "#c0392b");
+    }
+  }
+
+  // 🧮 Mantener descuento activo automáticamente
+  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
+  render(desc);
+}
+  
+/* ===========================================================
+   ⚙️ SECCIÓN 9.2: RENDER OPTIMIZADO CON DEBOUNCE
+   =========================================================== */
+let renderTimer;
+
+function renderDebounced() {
+  clearTimeout(renderTimer);      // Cancelar render pendiente
+  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
+}
+
+/* ===========================================================
+   ⌨️ SECCIÓN 10: FLUJO DE ENTRADA (BUSCADOR + CANTIDAD)
+   =========================================================== */
+window.addProduct = addProduct;
+window.render = render;
+let productoTemporal = null;
+
+// 🔁 Escaneo continuo: cada código se agrega directo al carrito
+function seleccionarProducto(prod) {
+  addProduct(prod, 1); // agrega 1 unidad automáticamente
+
+  // 🔊 Confirmación de escaneo
+  beep(950, 0.12);
+
+  // 🧹 Limpieza visual
+  resultadosDiv.style.display = "none";
+  buscador.value = "";
+  buscador.focus();
+}
+
+// 📱 Modal con teclado numérico en móviles + beep al abrir
+function solicitarCantidadYAgregar(prod) {
+  const modal = document.getElementById("modalCantidad");
+  const input = document.getElementById("inputCantidadModal");
+  const btnAceptar = document.getElementById("btnAceptarCant");
+  const btnCancelar = document.getElementById("btnCancelarCant");
+
+  // 🎵 Beep al solicitar cantidad
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.value = 950;
+    osc.start(); gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (err) { console.warn("No se pudo reproducir beep:", err); }
+
+  modal.style.display = "flex";
+  input.value = "1";
+  input.focus();
+
+  function cerrar() {
+    modal.style.display = "none";
+    btnAceptar.removeEventListener("click", confirmar);
+    btnCancelar.removeEventListener("click", cancelar);
+  }
+
+  function confirmar() {
+    const cantidad = parseFloat(input.value.replace(",", "."));
+    if (isNaN(cantidad) || cantidad <= 0) {
+      alert("Introduce una cantidad válida (solo números).");
+      return;
+    }
+    addProduct(prod, cantidad);
+    $("#buscador").value = "";
+    $("#buscador").focus();
+    cerrar();
+  }
+
+  function cancelar() {
+    cerrar();
+    $("#buscador").focus();
+  }
+
+  btnAceptar.addEventListener("click", confirmar);
+  btnCancelar.addEventListener("click", cancelar);
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") confirmar();
+  });
+}
+/* ===========================================================
+   🔎 BÚSQUEDA POR CÓDIGO, PALABRA Y ESCÁNER (MEJORADA)
+   =========================================================== */
+const buscador = document.getElementById("buscador");
+const resultadosDiv = document.getElementById("resultados");
+
+// 🎵 Beep reutilizable
+function beep(freq = 800, duration = 0.1) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = "sine"; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch (err) {}
+}
+
+// Permitir que el escáner la use
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
+// 🔍 Función central que ejecuta la búsqueda y muestra resultados
+async function ejecutarBusqueda(texto) {
+  const balanza = decodificarBalanza(texto);
+
+  // ⚖️ Caso 1: Código de balanza detectado
+  if (balanza.esBalanza) {
+    console.log("⚖️ Código de balanza detectado:", balanza);
+
+    // 1️⃣ Buscar en equivalentes si ese código está vinculado
+    const ref = collection(db, "equivalentes");
+    const q = query(ref, where("codigo_equivalente", "==", balanza.codigoProducto));
+    const snap = await getDocs(q);
+
+    let codigoBase = balanza.codigoProducto;
+    if (!snap.empty) {
+      codigoBase = snap.docs[0].data().codigo_origen;
+      console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
+    }
+
+    // 2️⃣ Buscar el producto real
+    const producto = buscarLocal(codigoBase);
+if (producto.length > 0) {
+  const p = producto[0];
+  const peso = parseFloat(balanza.pesoKg.toFixed(3));
+  const total = p.precioPublico * peso;
+
+  // 🔹 Agrega directo al carrito con el peso correcto
+  addProduct(p, peso);
+
+  beep(950);
+  toast(`⚖️ ${p.nombre} (${peso.toFixed(3)} kg) – $${total.toFixed(2)}`, "#16a34a");
+  return;
+} 
+    else {
+      console.warn("❌ Producto de balanza no encontrado:", codigoBase);
+      toast("❌ Producto no encontrado en catálogo", "#dc2626");
+      return;
+    }
+  }
+
+  // 🧾 Caso 2: Código normal
+  let resultados = buscarLocal(texto);
+
+  if (resultados.length === 0) {
+    console.log("🔍 Buscando equivalencias remotas...");
+    resultados = await buscarEquivalenteRemoto(texto);
+  }
+
+  resultadosDiv.innerHTML = "";
+
+  if (resultados.length === 1) {
+    beep(950);
+    seleccionarProducto(resultados[0]);
+    resultadosDiv.style.display = "none";
+  } else if (resultados.length > 1) {
+    resultados.forEach(p => {
+      const item = document.createElement("div");
+      item.className = "result-item";
+      const regex = new RegExp(texto, "ig");
+      const nombreResaltado = p.nombre.replace(regex, m => `<strong style="color:#0c6cbd">${m}</strong>`);
+      item.innerHTML = `<span>${nombreResaltado}</span><small>${money(p.precioPublico)}</small>`;
+      item.addEventListener("click", () => {
+        beep(950);
+        seleccionarProducto(p);
+        resultadosDiv.style.display = "none";
+      });
+      resultadosDiv.appendChild(item);
+    });
+    resultadosDiv.style.display = "block";
+    beep(700);
+  } else {
+    resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
+    resultadosDiv.style.display = "block";
+    beep(500);
+  }
+}
+
+/* ===========================================================
+   🔎 DETECTOR UNIVERSAL DE ESCÁNER (v4.1 híbrido Android/PC)
+   =========================================================== */
+let scanBuffer = "";
+let scanTimer = null;
+let modoScanner = false;
+
+function procesarCodigoEscaneado(codigo) {
+  const limpio = codigo.trim();
+  if (!limpio) return;
+
+  console.log("📦 Código detectado:", limpio);
+  beep(950, 0.1);
+  ejecutarBusqueda(limpio);
+  buscador.value = "";
+  scanBuffer = "";
+  modoScanner = false;
+}
+
+/* 🧩 MODO PC (keydown HID) */
+buscador.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && scanBuffer.length > 0) {
+    e.preventDefault();
+    procesarCodigoEscaneado(scanBuffer);
+    return;
+  }
+
+  if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    scanBuffer += e.key;
+    modoScanner = true;
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(() => procesarCodigoEscaneado(scanBuffer), 400);
+  }
+});
+
+/* 🧩 MODO ANDROID (evento input HID-Bluetooth) */
+buscador.addEventListener("input", (e) => {
+  const valor = e.target.value.trim();
+  if (!valor) return;
+
+  modoScanner = true;
+  scanBuffer = valor;
+  clearTimeout(scanTimer);
+
+  // Espera 300 ms sin nuevos caracteres antes de procesar
+  scanTimer = setTimeout(() => {
+    procesarCodigoEscaneado(scanBuffer);
+  }, 300);
+});
+
+/* 🔹 Procesar también si el input pierde el foco */
+buscador.addEventListener("blur", () => {
+  if (modoScanner && scanBuffer.length > 0) procesarCodigoEscaneado(scanBuffer);
+});
+
+/* ===========================================================
+   🔍 BUSCADOR MANUAL INDEPENDIENTE (no ligado al cajón)
+   =========================================================== */
+const btnBuscarManual = document.getElementById("btnBuscarManual");
+
+btnBuscarManual.addEventListener("click", async () => {
+  // 🪟 Modal contenedor
+  const modal = document.createElement("div");
+  modal.style.cssText = `
+    position:fixed;inset:0;z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.6);backdrop-filter:blur(4px);
+  `;
+
+  const box = document.createElement("div");
+  box.style.cssText = `
+    background:#fff;border-radius:14px;padding:16px;width:90%;
+    max-width:400px;max-height:80vh;display:flex;flex-direction:column;
+  `;
+  box.innerHTML = `
+    <h3 style="margin:0 0 10px;text-align:center;color:#00416A">
+      🔍 Buscar producto
+    </h3>
+    <input id="inputBusquedaManual" type="text" placeholder="Nombre o código..."
+      style="padding:10px;border-radius:8px;border:1px solid #ccc;
+             font-size:16px;margin-bottom:10px;">
+    <div id="resultadosManual"
+      style="flex:1;overflow-y:auto;border-top:1px solid #ddd;
+             padding-top:10px;font-size:15px;"></div>
+    <button id="cerrarBusquedaManual" class="btn"
+      style="margin-top:10px;background:#c0392b;">Cerrar</button>
+  `;
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+
+  const inputManual = box.querySelector("#inputBusquedaManual");
+  const resultadosManual = box.querySelector("#resultadosManual");
+  const cerrarBtn = box.querySelector("#cerrarBusquedaManual");
+
+  inputManual.focus();
+
+  // 🧠 Escucha escritura dentro del input del modal
+  inputManual.addEventListener("input", async () => {
+    const texto = inputManual.value.trim().toLowerCase();
+    resultadosManual.innerHTML = "";
+    if (texto.length < 2) return;
+
+    let resultados = buscarLocal(texto);
+    if (resultados.length === 0) resultados = await buscarEquivalenteRemoto(texto);
+
+    if (resultados.length === 0) {
+      resultadosManual.innerHTML = `<div style="padding:8px;color:#777;">Sin coincidencias</div>`;
+      return;
+    }
+
+    resultados.forEach(p => {
+      const item = document.createElement("div");
+      item.style.cssText = `
+        padding:8px;border-bottom:1px solid #eee;cursor:pointer;
+        display:flex;justify-content:space-between;align-items:center;
+      `;
+      item.innerHTML = `
+        <span>${p.nombre}</span>
+        <strong style="color:#0c6cbd">${money(p.precioPublico)}</strong>
+      `;
+item.addEventListener("click", () => {
+  solicitarCantidadYAgregar(p); // abre el modal de cantidad
+  modal.remove();
+});
+
+      resultadosManual.appendChild(item);
+    });
+  });
+
+  cerrarBtn.addEventListener("click", () => modal.remove());
+});
+
+
+
+
+/* ===========================================================
+   💳 SECCIÓN 11: MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO
+   =========================================================== */
+const modalCobro = $("#modalCobro");
+const cobroTotal = $("#cobroTotal");
+const montoRecibido = $("#montoRecibido");
+const montoCambio = $("#montoCambio");
+const descuentoInfo = $("#descuentoInfo");
+const descuentoResumen = $("#descuentoResumen");
+
+let descuentoAutorizado = 0;
+
+function abrirCobro() {
+  if (carrito.length === 0) {
+    alert("Agrega productos antes de cobrar.");
+    return;
+  }
+
+  const tot = calcularTotales(0);
+  cobroTotal.textContent = money(tot.total);
+  montoRecibido.value = "";
+  montoCambio.textContent = "$0.00";
+  descuentoInfo.style.display = "none";
+  descuentoAutorizado = 0;
+
+  modalCobro.style.display = "flex";
+  $("#montoRecibido").focus();
+}
+
+function cerrarCobro() {
+  modalCobro.style.display = "none";
+  descuentoAutorizado = 0;
+}
+
+$("#btnCobrar").onclick = abrirCobro;
+$("#btnCancelarCobro").onclick = cerrarCobro;
+
+// 💵 Calcular cambio automáticamente
+montoRecibido.addEventListener("input", () => {
+  const valRec = parseFloat(montoRecibido.value) || 0;
+  const tot = calcularTotales(descuentoAutorizado);
+  const cambio = valRec - tot.total;
+  montoCambio.textContent = money(cambio > 0 ? cambio : 0);
+});
+
+// 🔐 Aplicar descuento con contraseña “”
+// 🔐 Aplicar descuento con contraseña “MADERO690*”
+$("#btnSolicitarDescuento").addEventListener("click", async () => {
+  const porcStr = prompt("Introduce el descuento (%)");
+  const porc = parseFloat(porcStr);
+  if (isNaN(porc) || porc <= 0 || porc > 100) {
+    alert("Porcentaje inválido."); return;
+  }
+
+  const pass = prompt("Introduce la contraseña de autorización");
+  const CLAVE_DESCUENTO = "MADERO690*";
+
+  if (pass !== CLAVE_DESCUENTO) {
+    alert("❌ Contraseña incorrecta. No se aplicó el descuento.");
+    return;
+  }
+
+  // ✅ Descuento autorizado
+  descuentoAutorizado = porc;
+  const tot = calcularTotales(porc);
+
+  // 🔁 Actualiza visualmente total y resumen
+  cobroTotal.textContent = money(tot.total);
+  descuentoResumen.textContent = money(tot.descuento);
+  descuentoInfo.style.display = "block";
+
+  // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
+  const pago = parseFloat(montoRecibido.value) || 0;
+  if (pago > 0) {
+    const cambio = pago - tot.total;
+    montoCambio.textContent = money(cambio > 0 ? cambio : 0);
+  } else {
+    // si no hay pago todavía, simplemente resetea el cambio
+    montoCambio.textContent = "$0.00";
+  }
+
+  alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
+});
+
+// ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
+
+/* ===========================================================
+   ✅ SECCIÓN 11.1: CONFIRMAR VENTA (VERSIÓN CORREGIDA)
+   =========================================================== */
+$("#btnConfirmarCobro").onclick = async () => {
+  try {
+    // 🚧 Bloqueo visual temporal
+    const overlay = document.createElement("div");
+    overlay.id = "overlayBloqueo";
+    overlay.innerHTML = `
+      <div style="
+        position:fixed;inset:0;background:rgba(0,0,0,.75);
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        color:#fff;z-index:99999;font-size:20px;font-weight:600;">
+        <div style="animation:spin 1s linear infinite;border:5px solid #fff;
+          border-top-color:#0c6cbd;border-radius:50%;width:70px;height:70px;margin-bottom:16px;">
+        </div>
+        <div>GENERANDO TICKET<br>FAVOR DE ESPERAR...</div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+    `;
+    document.body.appendChild(overlay);
+
+    // 🔒 Deshabilitar botones para evitar doble clic
+    document.querySelectorAll("button").forEach(b => b.disabled = true);
+
+    // 🚧 VALIDACIONES
+    if (carrito.length === 0) {
+      alert("No hay productos en el carrito.");
+      return;
+    }  
+    if (!rutaId || !USUARIO_LOGUEADO) {
+      alert("⚠️ Usuario o ruta no detectados. Vuelve a iniciar sesión.");
+      return;
+    }
+
+    const tot = calcularTotales(descuentoAutorizado);
+    const pago = parseFloat($("#montoRecibido").value) || 0;
+    const cambio = pago - tot.total;
+    if (cambio < 0) {
+      alert("⚠️ El monto recibido es menor al total a pagar.");
+      return;
+    }
+
+    // 🧮 Folio incremental por usuario y fecha
+    let folio = "";
+    const hoy = new Date();
+    const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, "");
+    const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR").toUpperCase().replace(/\s+/g, "").slice(0, 8);
+    const folioId = `${usuarioTag}_${fechaTag}`;
+    const folioRef = doc(db, "contadores", folioId);
+
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(folioRef);
+      let consecutivo = snap.exists() ? (snap.data().ultimo || 0) + 1 : 1;
+      tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
+      folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
+    });
+
+    // 🧾 Armar venta completa
+    const venta = {
+      folio,
+      rutaId,
+      cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
+      cortado: false,
+      descuento_porcentaje: descuentoAutorizado,
+      descuento_monto: tot.descuento,
+      resumen_financiero: {
+        subtotal: tot.subtotal,
+        descuento: tot.descuento,
+        impuestos: tot.impuestos,
+        total: tot.total,
+        costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
+        utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
+        margen_porcentaje: (() => {
+          const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
+          return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
+        })()
+      },
+      fecha: serverTimestamp(),
+      fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+      usuarioId: USUARIO_LOGUEADO?.id || "",
+      usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
+      notas: $("#notasCobro").value || "",
+      autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
+      ubicacion: await obtenerUbicacionRobusta().catch(() => null),
+      detalle: carrito.map(it => {
+        const dep = departamentos[it.departamento_id] || { id: 0, nombre: "SIN DEP", iva: 0, ieps: 0 };
+return {
+  id: it.id,
+  nombre: it.nombre,
+  codigo: it.codigo,
+  cantidad: it.cantidad,
+  precio_unit: it.precioUnit,
+  importe: it.importe,
+  costo_unit: +(it.costoUnit || 0).toFixed(2),
+  costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+
+  // 🚀 CAMPOS SAT
+  claveSat: it.claveSat,
+  unidadSat: it.unidadSat,
+  ivaTasa: it.ivaTasa,
+  iepsTasa: it.iepsTasa,
+
+  departamento_id: it.departamento_id,
+  departamento_info: {
+    id: dep.id,
+    nombre: dep.nombre,
+    iva: dep.iva,
+    ieps: dep.ieps
+  }
+};
+
+      })
+    };
+
+    // 💾 GUARDAR VENTA UNA SOLA VEZ
+    console.log("💾 Guardando venta en Firestore...");
+    await guardarVentaEnFirestore(venta);
+    
+    // 📲 Enviar a Telegram
+    console.log("📲 Enviando a Telegram...");
+    await enviarTelegram(venta);
+    
+    // 🧾 Generar e imprimir ticket
+    console.log("🧾 Generando ticket...");
+    rellenarTicket(venta);
+    imprimirTicketEstilado();
+
+
+    // 🧹 Limpieza y regreso
+    console.log("✅ Venta completada, limpiando carrito...");
+    carrito = [];
+    renderDebounced();
+    cerrarCobro();
+    pantallaCarrito.style.display = "none";
+    pantallaVenta.style.display = "flex";
+    document.getElementById("buscador").focus();
+
+  } catch (err) {
+    console.error("❌ Error al confirmar venta:", err);
+    alert("Error al generar venta. Intenta de nuevo.");
+  } finally {
+    // 🔓 Reactivar todo y quitar overlay
+    document.querySelectorAll("button").forEach(b => b.disabled = false);
+    const overlay = document.getElementById("overlayBloqueo");
+    if (overlay) overlay.remove();
+  }
+};
+
+/* ===========================================================
+   💾 FUNCIÓN GUARDAR VENTA (SIMPLIFICADA)
+   =========================================================== */
+async function guardarVentaEnFirestore(v) {
+  try {
+    const ref = collection(db, "ventas_rutav2");
+        // 🧮 Cálculo de impuestos por artículo antes de guardar
+    v.detalle = v.detalle.map(it => {
+      const ivaPct = Number(it.departamento_info?.iva || 0);
+      const iepsPct = Number(it.departamento_info?.ieps || 0);
+      const base = Number(it.importe || 0);
+
+      const ivaCalc = +(base * ivaPct / 100).toFixed(2);
+      const iepsCalc = +(base * iepsPct / 100).toFixed(2);
+
+      return {
+        ...it,
+        iva_calculado: ivaCalc,
+        ieps_calculado: iepsCalc
+      };
+    });
+
+    // 🧾 Sumar total de impuestos al resumen financiero
+    const totalIVA = v.detalle.reduce((acc, x) => acc + (x.iva_calculado || 0), 0);
+    const totalIEPS = v.detalle.reduce((acc, x) => acc + (x.ieps_calculado || 0), 0);
+    v.resumen_financiero.impuestos = +(totalIVA + totalIEPS).toFixed(2);
+
+    const docRef = await addDoc(ref, v);
+    console.log("✅ Venta guardada UNA VEZ en Firestore:", v.folio, "ID:", docRef.id);
+    return docRef.id;
+  } catch (e) {
+    console.error("❌ Error guardando venta:", e);
+    throw e; // Propagar el error para manejarlo arriba
+  }
+}
+/* ===========================================================
+   📲 SECCIÓN 13: ENVÍO A TELEGRAM (CON UBICACIÓN)
+   =========================================================== */
+async function enviarTelegram(v) {
+  try {
+    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
+    const CHAT_ID = "6617988297";
+    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+
+    // 📦 Datos base
+    const folio = v.folio;
+    const total = formatoNum(v.resumen_financiero?.total);
+    const subtotal = formatoNum(v.resumen_financiero?.subtotal);
+    const desc = formatoNum(v.descuento_monto || 0);
+    const imp = formatoNum(v.resumen_financiero?.impuestos || 0);
+    const pago = formatoNum(v.recibido || v.resumen_financiero?.total || 0);
+    const cambio = formatoNum(v.cambio || 0);
+    const articulos = (v.detalle || []).reduce((a, b) => a + Number(b.cantidad || 0), 0);
+    const cajero = v.usuarioNombre || "—";
+    const cliente = v.cliente || "PÚBLICO EN GENERAL";
+    const descPorc = v.descuento_porcentaje || 0;
+
+    // 📍 Información de ubicación
+    let ubicacionInfo = "📍 Ubicación no disponible";
+    let mapsUrl = null;
+    
+    if (v.ubicacion) {
+      if (v.ubicacion.direccion) {
+        ubicacionInfo = `📍 ${v.ubicacion.direccion}`;
+        if (v.ubicacion.metodo) {
+          ubicacionInfo += ` (${v.ubicacion.metodo})`;
+        }
+      } else if (v.ubicacion.lat && v.ubicacion.lng) {
+        ubicacionInfo = `📍 Coordenadas: ${v.ubicacion.lat.toFixed(6)}, ${v.ubicacion.lng.toFixed(6)}`;
+        if (v.ubicacion.metodo) {
+          ubicacionInfo += ` (${v.ubicacion.metodo})`;
+        }
+        // Crear URL de Google Maps
+        mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
+      }
+    }
+
+    // 🧾 Construir texto térmico para Telegram (incluyendo ubicación)
+    let ticket = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, NUEVO LEÓN, 67700
+RFC: PDD-031204-KL5
+TEL: (821) 212-1805
+RÉGIMEN GENERAL DE LEY
+PERSONAS MORALES
+--------------------------------
+# Venta : ${folio}
+Fecha   : ${v.fecha_txt}
+Cliente : ${cliente}
+--------------------------------
+`;
+
+    (v.detalle || []).forEach(it => {
+      const nombre = (it.nombre || "").substring(0, 32);
+      const cant = it.cantidad.toFixed(3).padStart(5, " ");
+      const prec = it.precio_unit.toFixed(2).padStart(8, " ");
+      const imp = it.importe.toFixed(2).padStart(9, " ");
+      ticket += `${nombre}\n`;
+      ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
+    });
+
+    ticket += `--------------------------------
+Subtotal : $${subtotal}
+Desc. ${descPorc}% : $${desc}
+Impuestos: $${imp}
+Total    : $${total}
+Su Pago  : $${pago}
+Cambio   : $${cambio}
+--------------------------------
+Artículos vendidos: ${articulos}
+Incluye ${imp} de Impuestos
+Cajero: ${cajero}
+--------------------------------
+${ubicacionInfo}
+--------------------------------
+¡Gracias por su compra!
+`;
+
+    // ✉️ Enviar texto del ticket
+    const ticketResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: "```" + ticket + "```",
+        parse_mode: "Markdown"
+      })
+    });
+
+    if (!ticketResponse.ok) {
+      throw new Error(`Error enviando ticket: ${ticketResponse.status}`);
+    }
+
+    console.log("✅ Ticket enviado a Telegram");
+
+    // 📍 Enviar ubicación en Google Maps como mensaje SEPARADO si hay coordenadas
+    if (mapsUrl) {
+      console.log("📍 Enviando enlace de Google Maps:", mapsUrl);
+      
+      // Pequeña pausa para evitar rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const mapsResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: `🗺️ *Ubicación de la venta:*\n[Ver en Google Maps](${mapsUrl})`,
+          parse_mode: "Markdown",
+          disable_web_page_preview: false
+        })
+      });
+
+      if (!mapsResponse.ok) {
+        console.warn("⚠️ No se pudo enviar el enlace de Google Maps, pero el ticket se envió correctamente");
+      } else {
+        console.log("✅ Enlace de Google Maps enviado");
+      }
+    }
+
+    // 🧾 Generar PDF opcional (para respaldo)
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      pdf.setFont("courier", "bold");
+      pdf.setFontSize(11);
+      let y = 10;
+      ticket.split("\n").forEach(linea => {
+        pdf.text(linea, 10, y);
+        y += 5;
+        if (y > 280) { pdf.addPage(); y = 10; }
+      });
+      const pdfBlob = pdf.output("blob");
+
+      // Pequeña pausa para evitar rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 📎 Enviar PDF como respaldo (opcional)
+      const formData = new FormData();
+      formData.append("chat_id", CHAT_ID);
+      formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+        method: "POST",
+        body: formData
+      });
+
+      console.log("✅ PDF enviado a Telegram");
+    } catch (pdfErr) {
+      console.warn("⚠️ Error generando/enviando PDF:", pdfErr);
+    }
+
+    console.log("✅ Todo enviado correctamente a Telegram:", folio);
+    
+  } catch (err) {
+    console.error("❌ Error enviando a Telegram:", err);
+
+    // 🚨 NUEVO BLOQUE: si hay error, guardamos la venta pendiente
+    if (!navigator.onLine || err.message.includes("Failed to fetch")) {
+      guardarVentaPendiente(v);
+      console.warn("📦 Venta guardada para reintento al reconectarse:", v.folio);
+      toast("📦 Venta guardada localmente (sin conexión)", "#f59e0b");
+    } else {
+      console.warn("⚠️ Error no relacionado con conexión:", err.message);
+    }
+  }
+}
+
+/* ===========================================================
+   📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
+   =========================================================== */
+
+/**
+ * Guarda una venta pendiente de enviar a Telegram.
+ */
+function guardarVentaPendiente(v) {
+  try {
+    const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
+    pendientes.push(v);
+    localStorage.setItem("ventas_pendientes_telegram", JSON.stringify(pendientes));
+    console.warn("📦 Venta guardada en cola offline:", v.folio);
+  } catch (err) {
+    console.error("❌ Error guardando venta pendiente:", err);
+  }
+}
+
+/**
+ * Intenta reenviar todas las ventas pendientes cuando hay conexión.
+ */
+async function reenviarVentasPendientes() {
+  const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
+  if (pendientes.length === 0) return;
+
+  console.log(`📨 Intentando reenviar ${pendientes.length} ventas pendientes...`);
+
+  for (const v of pendientes) {
+    try {
+      await enviarTelegram(v);
+      console.log("✅ Venta reenviada:", v.folio);
+    } catch (err) {
+      console.error("⚠️ Fallo al reenviar:", v.folio, err);
+      // Si vuelve a fallar, no la eliminamos aún
+      return;
+    }
+  }
+
+  // Si todo salió bien, limpiamos la cola
+  localStorage.removeItem("ventas_pendientes_telegram");
+  console.log("🧹 Cola de ventas pendiente vaciada.");
+}
+
+/**
+ * Detecta cuando vuelve la conexión y reintenta los envíos.
+ */
+window.addEventListener("online", () => {
+  toast("✅ Conexión restaurada. Reenviando ventas pendientes...", "#1e8e3e");
+  setTimeout(reenviarVentasPendientes, 1000);
+});
+
+/* ===========================================================
+   🧾 SECCIÓN 14: TICKET VISUAL E IMPRESIÓN
+   =========================================================== */
+function rellenarTicket(v){
+  const t=v.resumen_financiero;
+  const pago=parseFloat($("#montoRecibido").value)||0;
+  const cambio=pago - t.total;
+  $("#tFolio").textContent=v.folio;
+  $("#tFecha").textContent=v.fecha_txt;
+  $("#tCliente").textContent=v.cliente||"PÚBLICO EN GENERAL";
+  $("#tSubtotal").textContent=money(t.subtotal);
+  $("#tDescPorc").textContent=v.descuento_porcentaje+"%";
+  $("#tDescMonto").textContent=money(v.descuento_monto);
+  $("#tTotal").textContent=money(t.total);
+  $("#tPago").textContent=money(pago);
+  $("#tCambio").textContent=money(cambio>0?cambio:0);
+  $("#tImpuestos").textContent=money(t.impuestos);
+  $("#tArticulos").textContent=carrito.reduce((a,b)=>a+b.cantidad,0);
+  $("#tCajero").textContent=USUARIO_LOGUEADO?.nombre || "—";
+
+  const tbody=document.getElementById("tLineas");
+  tbody.innerHTML="";
+v.detalle.forEach(p => {
+  const tr = document.createElement("tr");
+  const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
+  const cantidad = p.cantidad ?? 0;
+  const importe = cantidad * precioUnit;
+
+  tr.innerHTML = `
+    <td>${p.nombre}</td>
+    <td style="text-align:center">${cantidad.toFixed(2)}</td>
+    <td style="text-align:right">${precioUnit.toFixed(2)}</td>
+    <td style="text-align:right">${importe.toFixed(2)}</td>`;
+  tbody.appendChild(tr);
+});
+
+}
+
+function imprimirTicketEstilado() {
+  try {
+    // 🧮 Función auxiliar para formatear números
+    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    // 📦 Obtener datos de la venta actual
+    const folio = $("#tFolio").textContent.trim();
+    const fecha = $("#tFecha").textContent.trim();
+    const cliente = $("#tCliente").textContent.trim();
+    const subtotal = $("#tSubtotal").textContent.trim();
+    const descPorc = $("#tDescPorc").textContent.trim();
+    const descMonto = $("#tDescMonto").textContent.trim();
+    const total = $("#tTotal").textContent.trim();
+    const pago = $("#tPago").textContent.trim();
+    const cambio = $("#tCambio").textContent.trim();
+    const impuestos = $("#tImpuestos").textContent.trim();
+    const articulos = $("#tArticulos").textContent.trim();
+    const cajero = $("#tCajero").textContent.trim();
+
+    // 🧾 Construir texto del ticket en formato térmico
+    let ticket = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, NUEVO LEÓN, 67700
+RFC: PDD-031204-KL5
+TEL: (821) 212-1805
+RÉGIMEN GENERAL DE LEY
+PERSONAS MORALES
+--------------------------------
+# Venta : ${folio}
+Fecha   : ${fecha}
+Cliente : ${cliente}
+--------------------------------
+`;
+
+    // 📋 Detalle de productos
+    const filas = document.querySelectorAll("#tLineas tr");
+    filas.forEach(f => {
+      const cols = f.querySelectorAll("td");
+      if (cols.length >= 4) {
+        const nombre = (cols[0].textContent || "").substring(0, 32);
+        const cant = (cols[1].textContent || "").padStart(5, " ");
+        const prec = (cols[2].textContent || "").padStart(8, " ");
+        const imp = (cols[3].textContent || "").padStart(9, " ");
+        ticket += `${nombre}\n`;
+        ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
+      }
+    });
+
+    // 💵 Totales
+    ticket += `--------------------------------
+Subtotal: ${subtotal}
+Desc. ${descPorc}: ${descMonto}
+Total: ${total}
+Su Pago: ${pago}
+Cambio: ${cambio}
+--------------------------------
+Artículos vendidos: ${articulos}
+Incluye ${impuestos} de Impuestos
+Cajero: ${cajero}
+--------------------------------
+¡Gracias por su compra!
+`;
+
+    // 🖨️ Prioridad 1: InnerPrinter
+    if (window.InnerPrinter) {
+      try {
+        if (typeof window.InnerPrinter.printText === "function") {
+          window.InnerPrinter.printText(ticket);
+          return;
+        }
+        if (typeof window.InnerPrinter.printHtml === "function") {
+          window.InnerPrinter.printHtml(`<pre>${ticket}</pre>`);
+          return;
+        }
+      } catch (err) {
+        console.error("❌ Error con InnerPrinter:", err);
+      }
+    }
+
+    // 🖨️ Prioridad 2: RawBT (Android)
+    if (/Android/i.test(navigator.userAgent)) {
+      try {
+        const encoded = encodeURIComponent(ticket);
+        window.location.href = `rawbt:print?data=${encoded}`;
+        return;
+      } catch (err) {
+        console.error("❌ Error con RawBT:", err);
+      }
+    }
+
+    // 🖨️ Prioridad 3: Impresión navegador (fallback)
+    const w = window.open("", "_blank");
+    w.document.write(`<pre style="font-family:monospace;font-size:13px;">${ticket}</pre>`);
+    w.document.close();
+    w.print();
+
+  } catch (err) {
+    console.error("❌ Error generando ticket:", err);
+    alert("Error al generar ticket térmico.");
+  }
+}
+
+/* ===========================================================
+   🙋‍♂️ SECCIÓN 15: CLIENTE PÚBLICO AUTOMÁTICO
+   =========================================================== */
+async function fijarClientePublico(){
+  try{
+    const q=query(collection(db,"clientes"),where("nombre","==","PUBLICO EN GENERAL"));
+    const snap=await getDocs(q);
+    if(!snap.empty){
+      const c=snap.docs[0].data();
+      clienteSeleccionado={id:snap.docs[0].id,nombre:c.nombre};
+      const el=$("#cliente");
+      el.value=c.nombre; el.readOnly=true;
+      el.style.background="#e5e7eb"; el.style.color="#555";
+    }
+  }catch(e){console.warn("Cliente público no encontrado");}
+}
+// 👇 AGREGA ESTO AL FINAL
+/* ===========================================================
+   🌐 SECCIÓN 16: CONTROL DE CONEXIÓN OFFLINE / ONLINE
+   =========================================================== */
+window.addEventListener("offline", () => {
+  const aviso = document.createElement("div");
+  aviso.textContent = "⚠️ Estás sin conexión. Las ventas se guardarán localmente.";
+aviso.style.cssText = `
+  position:fixed;top:0;left:0;right:0;
+  background:#c0392b;color:#fff;padding:8px;text-align:center;
+  font-size:13px;z-index:9999;transition:opacity .3s ease;
+`;
+  document.body.appendChild(aviso);
+  setTimeout(()=>aviso.style.opacity=1,50);
+  setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},4000);
+
+  console.warn("🚫 Sin conexión: las operaciones se almacenarán en IndexedDB");
+});
+
+window.addEventListener("online", () => {
+  const aviso = document.createElement("div");
+  aviso.textContent = "✅ Conexión restaurada. Sincronizando ventas pendientes...";
+  aviso.style.cssText = `
+    position:fixed;bottom:15px;left:50%;transform:translateX(-50%);
+    background:#1e8e3e;color:#fff;padding:10px 18px;
+    border-radius:10px;font-size:14px;z-index:9999;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);opacity:0;
+    transition:opacity .3s ease;
+  `;
+  document.body.appendChild(aviso);
+  setTimeout(()=>aviso.style.opacity=1,50);
+  setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},4000);
+
+  console.log("✅ Conexión restaurada, Firestore volverá a sincronizar automáticamente.");
+});
+function toast(msg, color = "#0c6cbd") {
+  const aviso = document.createElement("div");
+  aviso.textContent = msg;
+  aviso.style.cssText = `
+    position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+    background:${color};color:#fff;padding:8px 14px;border-radius:10px;
+    font-size:14px;z-index:9999;opacity:0;transition:opacity .3s ease;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+  `;
+  document.body.appendChild(aviso);
+  setTimeout(()=>aviso.style.opacity=1,50);
+  setTimeout(()=>{aviso.style.opacity=0;setTimeout(()=>aviso.remove(),400)},2500);
+}
+// ✅ cierre del async
+})(); 
+
+</script>
+
+<!-- 🧾 BLOQUE 6: PLANTILLA DEL TICKET DE VENTA -->
+<div id="ticketArea" style="display:none;">
+  <div id="ticket" class="ticket" style="font-family:monospace;width:72mm;">
+    <div style="text-align:center;margin-bottom:4px;">
+      <div style="font-weight:bold;font-size:16px;">PROVEEDORA MATRIZ</div>
+      <div style="font-size:13px;">MADERO 690 SUR, CENTRO</div>
+      <div style="font-size:13px;">LINARES, NUEVO LEON, 67700</div>
+      <div style="font-size:13px;">RFC: PDD-031204-KL5</div>
+      <div style="font-size:13px;">TEL: (821) 212-1805</div>
+      <div style="font-size:13px;">RÉGIMEN GENERAL DE LEY</div>
+      <div style="font-size:13px;">PERSONAS MORALES</div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <div style="font-size:13px;">
+      <div># Venta: <span id="tFolio"></span></div>
+      <div>Fecha: <span id="tFecha"></span></div>
+      <div>Cliente: <span id="tCliente">PÚBLICO EN GENERAL</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <!-- 📋 Tabla del ticket -->
+    <table style="width:100%;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;">Descripción</th>
+          <th style="text-align:center;">Cant</th>
+          <th style="text-align:right;">P.Unit</th>
+          <th style="text-align:right;">Importe</th>
+        </tr>
+      </thead>
+      <tbody id="tLineas"></tbody>
+    </table>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <!-- 💵 Totales -->
+    <div style="font-size:13px;text-align:right;">
+      <div>Subtotal: <span id="tSubtotal">$0.00</span></div>
+      <div>Descuento <span id="tDescPorc">0%</span>: <span id="tDescMonto">$0.00</span></div>
+      <div>Total: <span id="tTotal">$0.00</span></div>
+      <div>Su Pago: <span id="tPago">$0.00</span></div>
+      <div>Cambio: <span id="tCambio">$0.00</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+
+    <!-- 🧾 Información adicional -->
+    <div style="font-size:13px;">
+      <div>Artículos vendidos: <span id="tArticulos">0</span></div>
+      <div>Incluye <span id="tImpuestos">$0.00</span> de Impuestos</div>
+      <div>Cajero: <span id="tCajero">—</span></div>
+    </div>
+
+    <hr style="border:none;border-top:1px dashed #000;margin:6px 0;">
+    <div style="text-align:center;font-size:13px;">¡Gracias por su compra!</div>
+  </div>
+</div>
+
+<!-- 📷 BLOQUE 7: LECTOR DE CÓDIGO QR -->
+<div id="qrReaderContainer"
+     style="display:none;flex-direction:column;align-items:center;justify-content:center;
+            position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:3000;">
+  <div id="reader"
+       style="width:90%;max-width:360px;margin:auto;background:#fff;border-radius:12px;padding:8px;">
+  </div>
+  <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
+  
+</div>
+
+<!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("./sw.js?v=7")
+  .then(r=>console.log("✅ Service Worker registrado:",r.scope))
+  .catch(e=>console.error("❌ Error registrando SW:",e));
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  const b=document.getElementById("btnLogout");
+  if(b){
+    b.addEventListener("click",()=>{
+      localStorage.removeItem("usuario_ruta");
+      localStorage.removeItem("catalogo_cache");
+      localStorage.removeItem("catalogo_fecha");
+      document.getElementById("posApp").style.display="none";
+      document.getElementById("loginScreen").style.display="flex";
+      document.getElementById("loginUsuario").value="";
+      document.getElementById("loginPassword").value="";
+      document.getElementById("loginMsg").textContent="";
+      alert("Sesión cerrada correctamente.");
+    });
+  }
+});
+  // 📊 Acceso rápido al Resumen Diario
+const btnResumen = document.getElementById("btnResumen");
+if (btnResumen) {
+  btnResumen.addEventListener("click", () => {
+    window.location.href = "ticketsresumen.html";
+  });
+}
+</script>
+<script>
+// =====================================================
+// 🔄 Reintento automático de sincronización de ventas
+// =====================================================
+
+// Cuando el navegador recupere conexión
+window.addEventListener('online', async () => {
+  try {
+    // Verifica que existan SW y Background Sync
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.sync.register('sync-ventas-pendientes');
+      console.log('📡 Evento de sincronización registrado');
+    } else {
+      // Si el navegador no soporta SyncManager, fuerza reenvío inmediato
+      console.warn('⚠️ Background Sync no soportado, reenviando manualmente');
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ action: 'sincronizar' });
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error al registrar sincronización:', err);
+  }
+});
+</script>
+<script>
+// =====================================================
+// 📬 Receptor de mensajes del Service Worker
+// =====================================================
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.action === 'sincronizar') {
+      console.log('📦 Orden recibida: sincronizar ventas pendientes');
+      if (typeof reenviarVentasPendientes === 'function') {
+        reenviarVentasPendientes(); // Llama tu función de reenvío
+      } else {
+        console.warn('⚠️ Función reenviarVentasPendientes() no encontrada');
+      }
+    }
+  });
+}
+</script>
+
+</body>
+</html>
+
+<script>
+/* ===========================================================
+   📷 ESCÁNER QR CORREGIDO - FUNCIONAMIENTO COMPLETO
+   =========================================================== */
+document.addEventListener("DOMContentLoaded", function() {
+  const btnCam = document.getElementById("btnCam");
+  const camDiv = document.getElementById("qrReaderContainer");
+  const cerrarCam = document.getElementById("cerrarCam");
+  const buscador = document.getElementById("buscador");
+  
+  let html5QrCode = null;
+  let escaneoExitoso = false;
+
+  // Función para hacer beep
+  function beep(freq = 800, duration = 0.1) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); 
+      gain.connect(ctx.destination);
+      osc.type = "sine"; 
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      osc.start(); 
+      osc.stop(ctx.currentTime + duration);
+    } catch (err) {}
+  }
+
+  // Función para mostrar toast
+  function toast(msg, color = "#0c6cbd") {
+    const aviso = document.createElement("div");
+    aviso.textContent = msg;
+    aviso.style.cssText = `
+      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
+      background:${color};color:#fff;padding:8px 14px;border-radius:10px;
+      font-size:14px;z-index:9999;opacity:0;transition:opacity .3s ease;
+      box-shadow:0 2px 8px rgba(0,0,0,.3);
+    `;
+    document.body.appendChild(aviso);
+    setTimeout(() => aviso.style.opacity = 1, 50);
+    setTimeout(() => {
+      aviso.style.opacity = 0;
+      setTimeout(() => aviso.remove(), 400);
+    }, 2500);
+  }
+
+  // 🚀 Abrir cámara
+  btnCam.addEventListener("click", async () => {
+    try {
+      escaneoExitoso = false;
+      camDiv.style.display = "flex";
+
+      // 🔹 Limpiar instancia previa
+      if (html5QrCode) {
+        try {
+          await html5QrCode.stop();
+          html5QrCode.clear();
+        } catch (e) {
+          console.log("🧹 Limpiando instancia previa...");
+        }
+        html5QrCode = null;
+      }
+
+      // 🕐 Pequeño delay para renderizado
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Verificar que la librería esté cargada
+      if (typeof Html5Qrcode === 'undefined') {
+        alert("❌ Librería de escáner no cargada. Verifica html5-qrcode.min.js");
+        cerrarCamara();
+        return;
+      }
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      // 🔍 Detectar cámaras
+      const devices = await Html5Qrcode.getCameras();
+      if (!devices || devices.length === 0) {
+        alert("❌ No se detectó cámara disponible.");
+        cerrarCamara();
+        return;
+      }
+
+      // 🎥 Seleccionar cámara trasera o primera disponible
+      const backCam = devices.find(d => /back|rear|environment/gi.test(d.label));
+      const cameraId = backCam ? backCam.id : devices[0].id;
+
+      // ⚙️ Configuración optimizada
+      const config = {
+        fps: 15,
+        qrbox: { 
+          width: 250, 
+          height: 250 
+        },
+        aspectRatio: 1.0,
+        focusMode: "continuous"
+      };
+
+      // 🎬 Iniciar escáner
+await html5QrCode.start(
+  cameraId, 
+  config, 
+  async (decodedText) => {
+    // ⚙️ Bloqueo contra escaneos múltiples
+    if (escaneoExitoso) return;
+    escaneoExitoso = true;
+
+    // 📦 Evita doble ejecución: desactiva lector antes de procesar
+    try {
+      await html5QrCode.stop();
+      html5QrCode.clear();
+    } catch (e) {
+      console.warn("⚠️ Error al detener lector:", e);
+    }
+
+    console.log("✅ Código escaneado:", decodedText);
+    beep(950, 0.1);
+
+    // 🧠 Espera mínima para evitar doble inserción
+    setTimeout(() => {
+      procesarCodigoEscaneado(decodedText);
+    }, 200);
+
+    // 🚪 Cierra la interfaz visual con un ligero delay
+    setTimeout(cerrarCamara, 500);
+  },
+
+        (errorMessage) => {
+          // Mensajes normales de escaneo, no mostrar errores
+          if (!errorMessage.includes("No QR code found")) {
+            console.log("🔍 Escaneando...", errorMessage);
+          }
+        }
+      );
+
+      console.log("📷 Cámara iniciada correctamente");
+
+    } catch (err) {
+      console.error("❌ Error iniciando cámara:", err);
+      alert("No se pudo abrir la cámara: " + (err.message || err));
+      cerrarCamara();
+    }
+  });
+
+  // 🚪 Función para cerrar cámara correctamente
+  async function cerrarCamara() {
+    try {
+      if (html5QrCode) {
+        console.log("🛑 Deteniendo cámara...");
+        await html5QrCode.stop();
+        html5QrCode.clear();
+        html5QrCode = null;
+      }
+    } catch (stopErr) {
+      console.log("⚠️ Error al detener cámara:", stopErr);
+    } finally {
+      camDiv.style.display = "none";
+      escaneoExitoso = false;
+      console.log("📷 Cámara cerrada");
+      
+      // 🔄 Enfocar el buscador para continuar trabajando
+      setTimeout(() => {
+        if (buscador) buscador.focus();
+      }, 300);
+    }
+  }
+
+  // ❌ Cerrar manualmente
+  if (cerrarCam) {
+    cerrarCam.addEventListener("click", cerrarCamara);
+  }
+
+  // 🎯 Cerrar al hacer clic fuera del lector
+  camDiv.addEventListener("click", (e) => {
+    if (e.target.id === "qrReaderContainer") {
+      cerrarCamara();
+    }
+  });
+
+  // 🔍 Función para procesar códigos escaneados
+  function procesarCodigoEscaneado(codigo) {
+    const limpio = codigo.trim();
+    if (!limpio) return;
+
+    console.log("📦 Código detectado por cámara:", limpio);
+    
+    // Simular la búsqueda como si se hubiera escrito en el buscador
+    if (buscador) {
+      buscador.value = limpio;
+    }
+    
+    // Ejecutar búsqueda usando la función global
+    if (typeof window.ejecutarBusqueda === 'function') {
+      window.ejecutarBusqueda(limpio);
+    } else {
+      // Fallback: mostrar mensaje
+      console.warn("Función ejecutarBusqueda no disponible");
+      toast("✅ Código escaneado: " + limpio, "#16a34a");
+    }
+  }
+});
+
+// ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
+window.ejecutarBusqueda = async function(texto) {
+  try {
+    // Reutiliza la función ya existente declarada antes en tu script principal
+    if (typeof window.ejecutarBusquedaOriginal === "function") {
+      return window.ejecutarBusquedaOriginal(texto);
+    }
+    // Si no existe, busca directamente el producto local
+    if (typeof buscarLocal === "function") {
+      const resultados = buscarLocal(texto);
+      if (resultados.length > 0) {
+        beep(950, 0.1);
+        seleccionarProducto(resultados[0]);
+        toast("✅ Producto agregado: " + resultados[0].nombre, "#16a34a");
+      } else {
+        toast("❌ No se encontró el código: " + texto, "#c0392b");
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error en ejecutarBusqueda:", err);
+    toast("⚠️ Error al procesar código", "#f59e0b");
+  }
+};
+
+</script>
+
+<style>
+/* 🎨 ESTILOS MEJORADOS PARA EL ESCÁNER */
+#qrReaderContainer {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  z-index: 3000;
+  backdrop-filter: blur(5px);
+}
+
+#reader {
+  width: 90%;
+  max-width: 400px;
+  margin: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+#cerrarCam {
+  margin-top: 20px;
+  background: #c0392b;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+#cerrarCam:hover {
+  background: #a93226;
+  transform: scale(1.05);
+}
+</style>
+</script>
+
+<!-- 🛡️ BLOQUE 10: BLOQUEO DE SALIDA Y REFRESCO ACCIDENTAL -->
+<script>
+let bloqueoSalida=true;
+
+// 🚫 Bloquear F5 y Ctrl+R
+window.addEventListener("keydown",e=>{
+  if(e.key==="F5" || (e.ctrlKey && e.key.toLowerCase()==="r")){
+    e.preventDefault();
+    alert("Usa el botón 🚪 Salir para cerrar sesión correctamente.");
+  }
+});
+
+// ⚠️ Confirmar antes de salir o recargar
+window.addEventListener("beforeunload",e=>{
+  if(bloqueoSalida){
+    e.preventDefault();
+    e.returnValue="¿Deseas salir del sistema?";
+    return "¿Deseas salir del sistema?";
+  }
+});
+
+// ✅ Al cerrar sesión, desbloquear salida
+document.getElementById("btnLogout").addEventListener("click",()=>{
+  bloqueoSalida=false;
+});
+/* ===========================================================
+   🧪 BOTÓN "TEST FUNCIÓN" PARA ABRIR PANTALLA DE PRUEBAS
+   =========================================================== */
+const btnTestFuncion = document.getElementById("btnVerCarrito");
+const pantallaVenta = document.getElementById("pantallaVenta");
+const pantallaTest = document.getElementById("pantallaTest");
+const carritoContainer = document.getElementById("carrito-container");
+
+// 🧩 Mostrar pantalla de pruebas
+btnTestFuncion.addEventListener("click", () => {
+  pantallaVenta.style.display = "none";
+  if (carritoContainer) carritoContainer.style.display = "none";
+  pantallaTest.style.display = "block";
+  beep(850, 0.1);
+  toast("🧪 Modo de Pruebas Activo", "#f59e0b");
+});
+
+// 🧩 Volver al POS principal
+document.getElementById("btnVolverVenta").addEventListener("click", () => {
+  pantallaTest.style.display = "none";
+  pantallaVenta.style.display = "flex";
+  if (carritoContainer) carritoContainer.style.display = "block";
+  beep(950, 0.1);
+  toast("✅ Regresando al POS", "#16a34a");
+});
+
+</script>
+<!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
+<div id="modalCantidad" 
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+            z-index:4000;align-items:center;justify-content:center;">
+  <div style="background:#fff;padding:20px;border-radius:12px;width:80%;max-width:320px;
+              text-align:center;box-shadow:0 6px 18px rgba(0,0,0,.2);">
+    <h3 style="margin-bottom:10px;color:#00416A;">Cantidad</h3>
+    <input id="inputCantidadModal" type="number" inputmode="decimal" min="0" step="0.01"
+           style="width:100%;padding:10px;font-size:18px;border-radius:8px;border:1px solid #ccc;text-align:center;">
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button id="btnCancelarCant" class="btn" style="background:#aaa;">Cancelar</button>
+      <button id="btnAceptarCant" class="btn">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* 🎯 Barra inferior fija profesional */
+  #bottomBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(90deg, #003366, #0c6cbd);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 10px 0;
+    box-shadow: 0 -3px 10px rgba(0,0,0,0.25);
+    z-index: 9999;
+  }
+  .bar-btn {
+    flex: 1;
+    margin: 0 6px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(180deg, #0c6cbd, #00416A);
+    font-size: 16px;
+    padding: 10px 8px;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  .bar-btn:active { transform: scale(0.95); opacity: 0.85; }
+  .bar-btn.azul { background: linear-gradient(180deg, #0c6cbd, #00416A); }
+  .bar-btn.rojo { background: linear-gradient(180deg, #c0392b, #8e2620); }
+  #btnVerCarrito { background: linear-gradient(180deg, #00416A, #0c6cbd); }
+  
+  /* 📱 Adaptación a móvil */
+  @media (max-width: 600px) {
+    #bottomBar { padding: 8px 0; }
+    .bar-btn { font-size: 14px; padding: 8px 4px; }
+  }
+ /* 🚫 Ocultar barra inferior cuando el POS esté oculto */
+  #posApp[style*="display: none"] #bottomBar {
+    display: none !important;
+  }
+
+</style>
+<script>
+/* ===========================================================
+   🧪 BLOQUE DE PRUEBAS FUNCIONALES DEL SISTEMA POS
+   =========================================================== */
+const testResult = document.getElementById("testResult");
+
+// 🖨️ Prueba de impresora térmica
+document.getElementById("btnTestPrinter").addEventListener("click", () => {
+  testResult.innerHTML = "🖨️ Enviando ticket de prueba...";
+  const ticketPrueba = `
+*** PRUEBA DE IMPRESORA POS ***
+Fecha: ${new Date().toLocaleString()}
+Sucursal: PROVEEDORA MATRIZ
+-----------------------------
+Artículo         Cant  Precio
+PRUEBA IMPRESIÓN  1.00   $1.00
+-----------------------------
+TOTAL: $1.00
+-----------------------------
+✅ Impresora funcionando correctamente.
+`;
+  try {
+    if (window.InnerPrinter && typeof window.InnerPrinter.printText === "function") {
+      window.InnerPrinter.printText(ticketPrueba);
+      testResult.innerHTML = "✅ Impresora (InnerPrinter) respondió correctamente.";
+      beep(600, 0.15);
+    } else if (/Android/i.test(navigator.userAgent)) {
+      const encoded = encodeURIComponent(ticketPrueba);
+      window.location.href = `rawbt:print?data=${encoded}`;
+      testResult.innerHTML = "✅ Ticket enviado a RawBT. Revisa la app de impresión.";
+      beep(600, 0.15);
+    } else {
+      const w = window.open("", "_blank");
+      w.document.write(`<pre>${ticketPrueba}</pre>`);
+      w.print();
+      w.close();
+      testResult.innerHTML = "✅ Impresión del navegador ejecutada.";
+      beep(600, 0.15);
+    }
+  } catch (err) {
+    console.error("❌ Error impresora:", err);
+    testResult.innerHTML = "❌ Fallo al imprimir.<br>Verifica conexión Bluetooth o RawBT.";
+    toast("❌ Error de impresión", "#c0392b");
+  }
+});
+
+// 📍 Prueba de geolocalización
+document.getElementById("btnTestGPS").addEventListener("click", async () => {
+  testResult.innerHTML = "📡 Obteniendo ubicación...";
+  if (!navigator.geolocation) {
+    testResult.innerHTML = "❌ Geolocalización no soportada por este dispositivo.";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const { latitude, longitude } = pos.coords;
+      testResult.innerHTML = `
+        ✅ Ubicación obtenida:<br>
+        Lat: ${latitude.toFixed(6)}<br>
+        Lng: ${longitude.toFixed(6)}<br>
+        <a href="https://maps.google.com/?q=${latitude},${longitude}" target="_blank">
+          🌍 Ver en Google Maps
+        </a>
+      `;
+      beep(950, 0.15);
+    },
+    err => {
+      console.error("❌ Error GPS:", err);
+      testResult.innerHTML = "❌ No se pudo obtener ubicación.<br>Verifica permisos de GPS.";
+      toast("⚠️ Sin acceso a ubicación", "#f59e0b");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+});
+  // 📊 Ir al módulo de Corte de Ruta
+document.getElementById("btnCorteRuta").addEventListener("click", () => {
+  window.location.href = "corterutamovil.html";  // o el nombre que me digas
+});
+
+</script>
+
+
+</body>
+</html>
