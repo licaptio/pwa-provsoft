@@ -12,193 +12,123 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
 
   <!-- 🧩 ESTILOS GLOBALES -->
-  <style>
-   /* 🔹 Contenedor general (mantiene estructura móvil) */
-body {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  margin: 0;
-  font-family: 'Poppins', sans-serif;
-  background: linear-gradient(to bottom right, #00416A, #E4E5E6);
+<style>
+:root{
+--azul:#00416A;--res:#0c6cbd;--ok:#1e8e3e;--card:rgba(255,255,255,.9);
+--muted:rgba(0,0,0,.55);--shadow:0 6px 18px rgba(0,0,0,.18);--r:14px;--rs:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+height:100vh;display:flex;flex-direction:column;font-family:'Poppins',sans-serif;
+background:linear-gradient(to bottom right,#00416A,#E4E5E6);color:#111;
+}
+header{
+position:sticky;top:0;z-index:50;background:rgba(0,0,0,.6);color:#fff;
+padding:8px 10px;display:flex;justify-content:center;align-items:center;
+gap:8px;font-weight:700;font-size:17px;height:48px;backdrop-filter:blur(4px);
+}
+header img{height:65px;object-fit:contain}
+
+.main-content{flex:1;overflow-y:auto;padding:8px}
+
+#carrito-container{
+position:sticky;bottom:0;background:#fff;border-radius:14px 14px 0 0;
+box-shadow:0 -2px 8px rgba(0,0,0,.25);max-height:42vh;overflow-y:auto;padding:10px;
+}
+.carrito-item{
+display:flex;justify-content:space-between;border-bottom:1px solid #eee;
+padding:5px 0;font-size:.88rem;
+}
+.carrito-item:last-child{border:none}
+
+.field{
+display:flex;gap:8px;background:rgba(255,255,255,.15);padding:8px;
+border-radius:var(--rs);align-items:center;backdrop-filter:blur(2px);
+}
+.field label{min-width:70px;color:#fff;font-size:12px}
+.field input{
+flex:1;padding:10px;border:none;border-radius:8px;font-size:15px;outline:none;
 }
 
-/* 🔹 Sección principal scrollable */
-.main-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 10px;
+.searchbox{position:relative;z-index:300}
+.search-results{
+position:absolute;left:90px;right:10px;top:calc(100% + 4px);background:#fff;
+border-radius:12px;box-shadow:var(--shadow);max-height:240px;overflow:auto;
+display:none;z-index:350;
 }
-
-/* 🔹 Carrito fijo inferior */
-#carrito-container {
-  position: sticky;
-  bottom: 0;
-  background: #fff;
-  border-radius: 15px 15px 0 0;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.2);
-  max-height: 40vh; /* ajusta la altura del carrito visible */
-  overflow-y: auto;
-  padding: 10px;
+.result-item{
+padding:10px;cursor:pointer;display:flex;justify-content:space-between;gap:6px;
 }
+.result-item small{color:var(--muted)}
+.result-item:hover{background:#f0f2f5}
 
-/* 🔹 Ítems dentro del carrito */
-.carrito-item {
-  display: flex;
-  justify-content: space-between;
-  border-bottom: 1px solid #eee;
-  padding: 6px 0;
-  font-size: 0.9rem;
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.table-wrap{max-height:230px;overflow:auto}
+table{width:100%;border-collapse:collapse}
+thead th{
+background:var(--azul);color:#fff;padding:8px;font-size:12px;position:sticky;
+top:0;z-index:80;text-align:center;
 }
-
-.carrito-item:last-child { border-bottom: none; }
-
-    /* 🎨 VARIABLES GENERALES */
-    :root {
-      --azul:#00416A;--resalte:#0c6cbd;--ok:#1e8e3e;
-      --bg-grad:linear-gradient(to right,#00416A,#E4E5E6);
-      --card:rgba(255,255,255,.9);--muted:rgba(0,0,0,.55);
-      --shadow:0 6px 18px rgba(0,0,0,.18);
-      --radius:14px;--radius-sm:10px;
-    }
-
-    /* 🧩 RESETEO Y ESTILO BASE */
-    * { box-sizing:border-box; }
-    html, body { height:100%; }
-    body {
-      margin:0; font-family:'Poppins',system-ui,Arial;
-      color:#111; background:var(--bg-grad);
-      display:flex; flex-direction:column;
-      -webkit-font-smoothing:antialiased;
-      -webkit-tap-highlight-color:transparent;
-    }
-
-    /* 🧭 ENCABEZADO PRINCIPAL */
-    header {
-      position:sticky; top:0; z-index:50;
-      background:rgba(0,0,0,.6); color:#fff;
-      padding:10px 14px;
-      display:flex; justify-content:center; align-items:center; gap:8px;
-      font-weight:700; font-size:18px;
-      backdrop-filter:saturate(120%) blur(4px);
-      height:50px;
-    }
-    header img { height:75px; object-fit:contain; }
-
-    /* 🧩 CONTENEDORES GENERALES */
-    .wrap { flex:1; padding:12px; display:flex; flex-direction:column; gap:12px; max-width:720px; margin:0 auto; }
-    .controls { display:flex; flex-direction:column; gap:10px; }
-
-    /* 🧱 CAMPOS DE FORMULARIO */
-    .field {
-      display:flex; gap:8px; background:rgba(255,255,255,.12);
-      padding:10px; border-radius:var(--radius-sm);
-      align-items:center; backdrop-filter:blur(2px);
-    }
-    .field label { min-width:78px; color:#fff; font-size:13px; }
-    .field input {
-      flex:1; padding:10px 12px; border:none;
-      border-radius:8px; font-size:15px;
-      background:#fff; outline:none;
-    }
-
-    /* 🔍 RESULTADOS DE BÚSQUEDA */
-    .searchbox { position:relative; z-index:300; }
-    .search-results {
-      position:absolute; left:90px; right:10px; top:calc(100% + 6px);
-      background:#fff; border-radius:12px; box-shadow:var(--shadow);
-      max-height:260px; overflow:auto; display:none; z-index:310;
-    }
-    .result-item { padding:10px 12px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
-    .result-item small { color:var(--muted); }
-    .result-item:hover { background:#f2f4f7; }
-
-    /* 🧾 TABLAS Y TOTALES */
-    .card { background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
-    .table-wrap { max-height:260px; overflow:auto; }
-    table { width:100%; border-collapse:collapse; table-layout:fixed; }
-    thead th {
-      background:var(--azul); color:#fff;
-      padding:10px; font-size:13px; position:sticky; top:0; z-index:100;
-    }
-    thead th:nth-child(1){ width:55%; text-align:left; }
-    thead th:nth-child(2){ width:15%; text-align:center; }
-    thead th:nth-child(3){ width:20%; text-align:right; }
-    thead th:nth-child(4){ width:10%; text-align:center; }
-    td.del-col { text-align:center; }
-    td.del-col .del {
-      background:#e74c3c; color:#fff; border:none; border-radius:50%;
-      width:22px; height:22px; font-size:14px; line-height:20px; cursor:pointer;
-    }
-    td.del-col .del:hover { background:#c0392b; }
-
-    /* 🧾 TOTALES */
-    .totals { display:flex; flex-direction:column; gap:6px; padding:12px 14px; background:#fff; }
-    .row { display:flex; justify-content:space-between; align-items:center; font-size:15px; }
-    .row.muted { color:var(--muted); }
-    .row.big { font-weight:700; font-size:18px; }
-
-    /* 🔘 BOTONES GENERALES */
-    .btn {
-      width:100%; border:none; padding:14px; border-radius:12px;
-      font-size:18px; font-weight:700; color:#fff;
-      background:linear-gradient(180deg,var(--resalte),#094d85);
-      box-shadow:var(--shadow); cursor:pointer;
-    }
-    .btn:active { transform:translateY(1px); }
-
-    /* 🔐 PANTALLA DE LOGIN */
-    #loginScreen {
-      height:100vh; display:flex; flex-direction:column;
-      align-items:center; justify-content:center;
-      background:#00416A; color:#fff;
-    }
-    #loginScreen input { padding:10px; border-radius:8px; margin:5px; border:none; }
-    #loginMsg { color:#fbb; border-radius:8px; margin-top:8px; }
-
-    /* 📷 BOTÓN DE CÁMARA */
-    .cam-btn {
-      position:absolute; right:14px; top:50%; transform:translateY(-50%);
-      border:none; padding:8px 10px; border-radius:10px; cursor:pointer;
-      background:#0c6cbd; color:#fff; font-size:16px;
-    }
-    .cam-btn:active { transform:translateY(-49%); }
-
-    /* 🌀 ANIMACIÓN LOGO LOGIN */
-    #loginLogo {
-      width:120px; height:120px; margin-bottom:20px;
-      animation:spinY 10s linear infinite; transform-style:preserve-3d;
-    }
-    @keyframes spinY { from{transform:rotateY(0deg);} to{transform:rotateY(360deg);} }
-
-    /* 🧾 IMPRESIÓN PARA TICKET TÉRMICO */
-    @media print {
-      body * { visibility:hidden!important; }
-      #ticketArea, #ticketArea * { visibility:visible!important; }
-      #ticketArea {
-        display:block!important; position:relative!important;
-        margin:0 auto!important; padding:0; width:100%; background:#fff;
-      }
-      #ticket {
-        width:72mm!important; margin:0 auto!important; padding:0 2mm!important;
-        font-size:14px!important; line-height:1.45; color:#000;
-        transform:none!important; page-break-inside:avoid!important;
-      }
-      header, .btn, .actions, #loginScreen, #modalCobro, #qrReaderContainer { display:none!important; }
-    }
-    @page { size:72mm auto; margin:0; }
-#pantallaVenta, #pantallaCarrito {
-  transition: all 0.3s ease-in-out;
+thead th:nth-child(1){width:55%;text-align:left}
+thead th:nth-child(2){width:15%}
+thead th:nth-child(3){width:20%}
+thead th:nth-child(4){width:10%}
+td{text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+td.del-col{text-align:center}
+td.del-col .del{
+background:#e74c3c;color:#fff;border:none;border-radius:50%;
+width:20px;height:20px;font-size:13px;cursor:pointer;
 }
-#pantallaCarrito {
-  margin-top: 10px;
-}
-#btnRegresar {
-  background: linear-gradient(180deg, #888, #666);
-  color: #fff;
-}
+td.del-col .del:active{transform:scale(.92)}
 
-  </style>
+.totals{display:flex;flex-direction:column;gap:5px;padding:10px;background:#fff}
+.row{display:flex;justify-content:space-between;font-size:15px}
+.row.muted{color:var(--muted)}
+.row.big{font-weight:700;font-size:18px}
+
+.btn{
+width:100%;padding:14px;border:none;border-radius:12px;font-size:17px;
+font-weight:700;color:#fff;background:linear-gradient(180deg,var(--res),#094d85);
+box-shadow:var(--shadow);cursor:pointer;
+}
+.btn:active{transform:translateY(1px)}
+
+#loginScreen{
+height:100vh;display:flex;flex-direction:column;align-items:center;
+justify-content:center;background:#00416A;color:#fff;
+}
+#loginScreen input{padding:10px;border-radius:8px;margin:5px;border:none}
+#loginMsg{color:#fbb;margin-top:8px}
+
+.cam-btn{
+position:absolute;right:10px;top:50%;transform:translateY(-50%);
+background:#0c6cbd;color:#fff;border:none;padding:8px 10px;border-radius:10px;
+font-size:15px;cursor:pointer;
+}
+.cam-btn:active{transform:translateY(-49%)}
+
+#loginLogo{
+width:110px;height:110px;margin-bottom:18px;animation:spinY 10s linear infinite;
+}
+@keyframes spinY{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+
+@media print{
+body *{visibility:hidden!important}
+#ticketArea,#ticketArea *{visibility:visible!important}
+#ticketArea{display:block!important;width:100%;background:#fff}
+#ticket{
+width:72mm!important;margin:0 auto!important;padding:0 2mm!important;
+font-size:14px!important;line-height:1.45;
+}
+header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
+}
+@page{size:72mm auto;margin:0}
+
+#pantallaVenta,#pantallaCarrito{transition:.25s}
+#pantallaCarrito{margin-top:10px}
+#btnRegresar{background:linear-gradient(180deg,#888,#666);color:#fff}
+</style>
+
 </head>
 
 <body>
