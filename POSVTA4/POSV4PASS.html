@@ -775,53 +775,59 @@ function decodificarBalanza(codigo) {
    =========================================================== */
 function addProduct(prod, cant = 1) {
   if (!prod) return;
-  cant = parseFloat(cant);  // 🧮 asegúrate de que puede ser decimal
+
+  cant = parseFloat(cant);
   const existente = carrito.find(x => x.id === prod.id);
 
-  // 🔹 Si es producto de balanza (peso < 1 kg o con código prefijo 2)
+  // -------------------------------
+  // 🚨 PRODUCTO DE BALANZA
+  // -------------------------------
   if (cant < 1 || String(prod.codigo || "").startsWith("2")) {
-    // No sumar kilos a lo anterior, crear línea nueva separada
-carrito.push({
-  ...prod,
-  codigo: prod.codigo || prod.codigoBarra || "",
-  cantidad: cant,
-  precioUnit: Number(prod.precioPublico || 0),
-  importe: cant * Number(prod.precioPublico || 0),
+    carrito.push({
+      ...prod,
+      codigo: prod.codigo || prod.codigoBarra || "",
+      cantidad: cant,
+      precioUnit: Number(prod.precioPublico || 0),
+      importe: cant * Number(prod.precioPublico || 0),
 
-  claveSat: prod.claveSat || null,
-  unidadSat: prod.unidadMedidaSat || null,
-  ivaTasa: prod.ivaTasa ?? 0,
-  iepsTasa: prod.iepsTasa ?? 0
-});
+      claveSat: prod.claveSat || null,
+      unidadSat: prod.unidadMedidaSat || null,
+      ivaTasa: prod.ivaTasa ?? 0,
+      iepsTasa: prod.iepsTasa ?? 0
+    });
 
     renderDebounced();
     return;
   }
 
-  // 🔹 Normal (piezas)
+  // -------------------------------
+  // 🧮 PRODUCTO NORMAL (PZ)
+  // -------------------------------
   const cantidadNueva = existente ? existente.cantidad + cant : cant;
-  const precioUnit = obtenerPrecioSegunCantidad(prod, cantidadNueva);
+  const precioCorrecto = obtenerPrecioSegunCantidad(prod, cantidadNueva);
 
   if (existente) {
     existente.cantidad = cantidadNueva;
-    existente.precioUnit = precioUnit;
-    existente.importe = existente.cantidad * precioUnit;
+    existente.precioUnit = precioCorrecto;
+    existente.importe = cantidadNueva * precioCorrecto;
   } else {
-carrito.push({
-  ...prod,
-  codigo: prod.codigo || prod.codigoBarra || "",  // ← 🔥 IMPORTANTE PARA MAYOREO
-  cantidad: cant,
-  precioUnit: Number(prod.precioPublico || 0),
-  importe: cant * Number(prod.precioPublico || 0),
+    carrito.push({
+      ...prod,
+      codigo: prod.codigo || prod.codigoBarra || "",
+      cantidad: cant,
+      precioUnit: precioCorrecto,
+      importe: cant * precioCorrecto,
 
-  claveSat: prod.claveSat || null,
-  unidadSat: prod.unidadMedidaSat || null,
-  ivaTasa: prod.ivaTasa ?? 0,
-  iepsTasa: prod.iepsTasa ?? 0
-});
-}
+      claveSat: prod.claveSat || null,
+      unidadSat: prod.unidadMedidaSat || null,
+      ivaTasa: prod.ivaTasa ?? 0,
+      iepsTasa: prod.iepsTasa ?? 0
+    });
+  }
 
-  mostrarConfirmacionProducto(prod, cant, precioUnit);
+  // Mostrar notificación
+  mostrarConfirmacionProducto(prod, cant, precioCorrecto);
+
   renderDebounced();
 }
 
