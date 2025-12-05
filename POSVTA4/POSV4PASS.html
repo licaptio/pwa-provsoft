@@ -526,14 +526,27 @@ const catalogoSW = await leerCache("/catalogo");
 if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
 
   // reconstruir codeIndex
-  catalogo = catalogoSW;
-  codeIndex.clear();
-  catalogo.forEach(p => {
-    if (p.codigo) codeIndex.set(p.codigo, p.id);
-    if (Array.isArray(p.equivalentes)) {
-      p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
-    }
-  });
+catalogo = catalogoSW.map(x => ({
+    id: x.id,
+    nombre: x.nombre || x.concepto || "SIN NOMBRE",
+    codigo: String(x.codigo || x.codigoBarra || ""),
+    precioPublico: Number(x.precioPublico || 0),
+    mayoreo: Number(x.mayoreo || 0),
+    medioMayoreo: Number(x.medioMayoreo || 0),
+
+    // impuestos
+    ivaTasa: Number(x.ivaTasa || 0),
+    iepsTasa: Number(x.iepsTasa || 0),
+
+    // equivalentes
+    equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
+    claveSat: x.claveSat || null,
+    unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
+
+    departamento_id: x.departamento_id || null,
+    costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
+}));
+
 
   console.log("⚡ Catálogo cargado OFFLINE desde SW");
   statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
@@ -983,6 +996,7 @@ let productoTemporal = null;
 
 // 🔁 Escaneo continuo: cada código se agrega directo al carrito
 function seleccionarProducto(prod) {
+   prod.codigo = prod.codigo || prod.codigoBarra || "";
   addProduct(prod, 1); // agrega 1 unidad automáticamente
 
   // 🔊 Confirmación de escaneo
@@ -1091,6 +1105,7 @@ async function ejecutarBusqueda(texto) {
 if (producto.length > 0) {
   const p = producto[0];
   const peso = parseFloat(balanza.pesoKg.toFixed(3));
+  p.codigo = p.codigo || p.codigoBarra || "";
   const total = p.precioPublico * peso;
 
   // 🔹 Agrega directo al carrito con el peso correcto
@@ -1265,6 +1280,7 @@ btnBuscarManual.addEventListener("click", async () => {
         <strong style="color:#0c6cbd">${money(p.precioPublico)}</strong>
       `;
 item.addEventListener("click", () => {
+    p.codigo = p.codigo || p.codigoBarra || "";
   solicitarCantidadYAgregar(p); // abre el modal de cantidad
   modal.remove();
 });
