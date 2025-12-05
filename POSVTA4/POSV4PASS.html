@@ -797,7 +797,7 @@ carrito.push({
   } else {
 carrito.push({
   ...prod,
-  codigo: prod.codigo,  // ← 🔥 IMPORTANTE PARA MAYOREO
+  codigo: prod.codigo || prod.codigoBarra || "",  // ← 🔥 IMPORTANTE PARA MAYOREO
   cantidad: cant,
   precioUnit: Number(prod.precioPublico || 0),
   importe: cant * Number(prod.precioPublico || 0),
