@@ -409,7 +409,10 @@ const msg = document.getElementById("loginMsg");
     rutaId = data.rutaId || null;
 
     // 🧹 Limpia cache de catálogo al cambiar usuario
-    localStorage.removeItem("catalogo_cache");
+// NO BORRAR catalogo_cache NI su fecha
+// Solo borramos la sesión:
+localStorage.removeItem("usuario_ruta");
+
 
     // 💾 Guarda sesión para acceso rápido
     localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
@@ -2095,8 +2098,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   if(b){
     b.addEventListener("click",()=>{
       localStorage.removeItem("usuario_ruta");
-      localStorage.removeItem("catalogo_cache");
-      localStorage.removeItem("catalogo_fecha");
       document.getElementById("posApp").style.display="none";
       document.getElementById("loginScreen").style.display="flex";
       document.getElementById("loginUsuario").value="";
