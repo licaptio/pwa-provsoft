@@ -17,6 +17,56 @@ import { db } from "./pos-firebase.js";
 // ------------------------------------
 let cacheProductos = new Map();
 
+
+// ======================================================
+// 🟦 NORMALIZACIÓN UNIVERSAL DE PRODUCTOS
+// ======================================================
+function normalizarProducto(prod, idForzado = null) {
+  if (!prod) return null;
+
+  return {
+    id: idForzado || prod.id || prod.codigo || prod.codigoBarra || null,
+
+    nombre:
+      prod.nombre ||
+      prod.concepto ||
+      prod.descripcion ||
+      "SIN NOMBRE",
+
+    precio:
+      prod.precio ||
+      prod.precioPublico ||
+      prod.preciou ||
+      0,
+
+    precioPublico:
+      prod.precioPublico ||
+      prod.precio ||
+      0,
+
+    codigo:
+      prod.codigo ||
+      prod.codigoBarra ||
+      prod.clave ||
+      "",
+
+    clave:
+      prod.clave ||
+      prod.codigo ||
+      prod.codigoBarra ||
+      idForzado ||
+      null,
+
+    // Extras opcionales
+    mayoreo: prod.mayoreo ?? null,
+    medioMayoreo: prod.medioMayoreo ?? null,
+    departamento: prod.departamento || "",
+    departamento_id: prod.departamento_id || "",
+    marca: prod.marca || ""
+  };
+}
+
+
 // ======================================================
 // 🔍 BÚSQUEDA LOCAL
 // ======================================================
@@ -25,12 +75,15 @@ window.buscarLocal = function (texto) {
 
   texto = texto.toLowerCase();
 
-  return window.catalogo.filter(p =>
-    (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
-    (p.codigo && p.codigo.includes(texto)) ||
-    (p.clave && p.clave.includes(texto))
-  );
+  return window.catalogo
+    .filter(p =>
+      (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
+      (p.codigo && p.codigo.includes(texto)) ||
+      (p.clave && p.clave.includes(texto))
+    )
+    .map(p => normalizarProducto(p));  // 🔥 Normalizar aquí
 };
+
 
 // ======================================================
 // 🔥 BUSCAR PRODUCTO EN FIRESTORE POR CÓDIGO DE BARRAS
@@ -40,7 +93,6 @@ async function buscarProductoFirestore(codigo) {
 
   // 1. Revisar cache
   if (cacheProductos.has(codigo)) {
-    console.log("🔵 Producto desde cache Firestore");
     return cacheProductos.get(codigo);
   }
 
@@ -50,24 +102,25 @@ async function buscarProductoFirestore(codigo) {
 
     const snap = await ref.get();
 
-    if (snap.empty) {
-      return null;
-    }
+    if (snap.empty) return null;
 
     let doc = snap.docs[0];
     let data = doc.data();
 
-    // Guardar en cache
-    cacheProductos.set(codigo, data);
+    // 🔥 Normalizar antes de usar
+    const prod = normalizarProducto(data, doc.id);
 
-    console.log("🟢 Producto Firestore:", data);
-    return data;
+    // Guardar en cache el producto YA normalizado
+    cacheProductos.set(codigo, prod);
+
+    return prod;
 
   } catch (err) {
     console.error("🔥 Error Firestore:", err);
     return null;
   }
 }
+
 
 // ======================================================
 // ⚖️ CÓDIGOS DE BALANZA
@@ -83,14 +136,19 @@ function parsearBalanza(code) {
   };
 }
 
+
 // ======================================================
 // ✔ SELECCIONAR PRODUCTO
 // ======================================================
 function seleccionarProducto(prod, cantidad = 1) {
   if (!prod) return;
-  window.addProduct(prod, cantidad);
+
+  const p = normalizarProducto(prod);  // 🔥 Normalizar SIEMPRE antes del carrito
+
+  window.addProduct(p, cantidad);
   ocultarResultados();
 }
+
 
 // ======================================================
 // ✔ OCULTAR RESULTADOS
@@ -99,6 +157,7 @@ function ocultarResultados() {
   resultadosDiv.innerHTML = "";
   resultadosDiv.style.display = "none";
 }
+
 
 // ======================================================
 // ✔ MOSTRAR LISTA
@@ -114,7 +173,7 @@ function mostrarLista(list, texto) {
     div.className = "result-item";
 
     div.innerHTML = `
-      <span>${p.concepto?.replace(regex, m => `<b style='color:#0c6cbd'>${m}</b>`) || p.nombre}</span>
+      <span>${p.nombre.replace(regex, m => `<b style='color:#0c6cbd'>${m}</b>`)}</span>
       <small>${window.money(p.precioPublico)}</small>
     `;
 
@@ -126,6 +185,7 @@ function mostrarLista(list, texto) {
     resultadosDiv.appendChild(div);
   });
 }
+
 
 // ======================================================
 // 🔎 EJECUTAR BÚSQUEDA PRINCIPAL
@@ -143,8 +203,8 @@ window.ejecutarBusqueda = async function () {
   // -----------------------------
   if (esBalanza(texto)) {
     const { clave, pesoKg } = parsearBalanza(texto);
-    const prod = window.catalogo.find(p =>
-      p.codigo === clave || p.clave === clave
+    let prod = window.catalogo.find(
+      p => p.codigo === clave || p.clave === clave
     );
 
     if (!prod) {
@@ -153,6 +213,7 @@ window.ejecutarBusqueda = async function () {
     }
 
     seleccionarProducto(prod, pesoKg);
+
     inputBuscador.value = "";
     window.beep(900);
     return;
@@ -191,6 +252,7 @@ window.ejecutarBusqueda = async function () {
   window.beep(500);
 };
 
+
 // ======================================================
 // 🔠 ESCÁNER POR TECLADO (LECTOR DE BARRAS)
 // ======================================================
@@ -217,6 +279,7 @@ function procesarScanner(code) {
   window.ejecutarBusqueda();
 }
 
+
 // ======================================================
 // 🔍 EVENTO DE INPUT
 // ======================================================
@@ -224,12 +287,14 @@ inputBuscador?.addEventListener("input", () => {
   window.ejecutarBusqueda();
 });
 
+
 // ======================================================
 // 🔍 BOTÓN MANUAL
 // ======================================================
 $("#btnBuscarManual")?.addEventListener("click", () => {
   window.ejecutarBusqueda();
 });
+
 
 // ======================================================
 // 📷 QR
