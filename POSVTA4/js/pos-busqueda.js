@@ -75,13 +75,19 @@ window.buscarLocal = function (texto) {
 
   texto = texto.toLowerCase();
 
-  return window.catalogo
-    .filter(p =>
-      (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
-      (p.codigo && p.codigo.includes(texto)) ||
-      (p.clave && p.clave.includes(texto))
-    )
-    .map(p => normalizarProducto(p));  // 🔥 Normalizar aquí
+  return window.catalogo.filter(p => {
+    
+    // 1️⃣ Coincidencia exacta por código
+    if (p.codigo && p.codigo === texto) return true;
+
+    // 2️⃣ Coincidencia exacta por clave
+    if (p.clave && p.clave === texto) return true;
+
+    // 3️⃣ Coincidencia por nombre (esta sí puede ser parcial)
+    if (p.nombre && p.nombre.toLowerCase().includes(texto)) return true;
+
+    return false;
+  });
 };
 
 
@@ -302,3 +308,4 @@ $("#btnBuscarManual")?.addEventListener("click", () => {
 $("#btnCam")?.addEventListener("click", () => {
   import("./pos-qr.js").then(m => m.activarQR());
 });
+
