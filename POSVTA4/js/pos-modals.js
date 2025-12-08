@@ -106,12 +106,15 @@ document.addEventListener("wheel", e => {
   }
 }, { passive: false });
 
-// 🛑 Bloqueo del teclado
+// 🛑 Bloqueo del teclado SOLO si el modal es realmente visible
 document.addEventListener("keydown", e => {
 
-  if (!window.MODO_COBRO) return;
+  // Verificar visibilidad real del modal (no solo MODO_COBRO)
+  const modalVisible = modalCobro && modalCobro.offsetParent !== null;
 
-  // Si está en el input de monto SOLO permitir números y control
+  if (!modalVisible) return;  // Modal cerrado → NO bloquear nada
+
+  // Si está dentro del input monto → permitir números
   if (document.activeElement === inputMonto) {
 
     const permitido = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"];
@@ -124,7 +127,9 @@ document.addEventListener("keydown", e => {
     return;
   }
 
-  // Si está fuera del input → bloquear TODO
+  // Si modal abierto y fuera del input → BLOQUEAR TODO
   e.preventDefault();
   e.stopPropagation();
 }, true);
+
+
