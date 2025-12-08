@@ -407,11 +407,25 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 <script type="module" src="./js/pos-modals.js"></script>
 <script type="module" src="./js/pos-test.js"></script>
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const cli = document.getElementById("cliente");
-    cli.value = "PUBLICO GENERAL";
-    cli.setAttribute("disabled", true);
+document.addEventListener("DOMContentLoaded", () => {
+
+  // Cliente fijo por default
+  const cli = document.getElementById("cliente");
+  cli.value = "PUBLICO GENERAL";
+  cli.disabled = true;
+
+  // Cuando el POS abre, esperar a que el login desaparezca
+  const obs = new MutationObserver(() => {
+    const pos = document.getElementById("posApp");
+    if (pos.style.display !== "none") {
+      setTimeout(() => {
+        document.getElementById("buscador").focus();
+      }, 200);
+    }
   });
+
+  obs.observe(document.body, { attributes: true, childList: true, subtree: true });
+});
 </script>
 
 </body>
