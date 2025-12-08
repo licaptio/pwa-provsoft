@@ -1889,26 +1889,19 @@ Cajero: ${cajero}
       }
     }
 
-    // 🖨️ Prioridad 2: RawBT (Android)
-    if (/Android/i.test(navigator.userAgent)) {
-      try {
-        const encoded = encodeURIComponent(ticket);
-        window.location.href = `rawbt:print?data=${encoded}`;
-        return;
-      } catch (err) {
-        console.error("❌ Error con RawBT:", err);
-      }
-    }
+// 🖨️ Prioridad 2: RawBT (Android)
+if (/Android/i.test(navigator.userAgent)) {
+  try {
+    const encoded = encodeURIComponent(ticket.replace(/[^\x00-\x7F]/g, ""));
+    const iframe = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.src = `rawbt:print?data=${encoded}`;
+    document.body.appendChild(iframe);
 
-    // 🖨️ Prioridad 3: Impresión navegador (fallback)
-    const w = window.open("", "_blank");
-    w.document.write(`<pre style="font-family:monospace;font-size:13px;">${ticket}</pre>`);
-    w.document.close();
-    w.print();
-
+    setTimeout(() => iframe.remove(), 1500);
+    return;
   } catch (err) {
-    console.error("❌ Error generando ticket:", err);
-    alert("Error al generar ticket térmico.");
+    console.error("❌ Error con RawBT:", err);
   }
 }
 
