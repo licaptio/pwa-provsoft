@@ -224,6 +224,8 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
+export const db = firebase.firestore();
+
 
 
 
