@@ -2364,26 +2364,46 @@ await html5QrCode.start(
 });
 
 // ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
+// 🔧 Ejecutar búsqueda REAL del POS
 window.ejecutarBusqueda = async function(texto) {
   try {
-    // Reutiliza la función ya existente declarada antes en tu script principal
+    // 1️⃣ Usa ejecutarBusquedaOriginal si existe
     if (typeof window.ejecutarBusquedaOriginal === "function") {
       return window.ejecutarBusquedaOriginal(texto);
     }
-    // Si no existe, busca directamente el producto local
-    if (typeof buscarLocal === "function") {
-      const resultados = buscarLocal(texto);
-      if (resultados.length > 0) {
-        beep(950, 0.1);
-        seleccionarProducto(resultados[0]);
-        toast("✅ Producto agregado: " + resultados[0].nombre, "#16a34a");
-      } else {
-        toast("❌ No se encontró el código: " + texto, "#c0392b");
-      }
+
+    // 2️⃣ Si no existe, buscar localmente
+    let resultados = buscarLocal(texto);
+
+    if (resultados.length === 0) {
+      resultados = await buscarEquivalenteRemoto(texto);
     }
+
+    if (resultados.length === 1) {
+      seleccionarProducto(resultados[0]);
+      beep(950);
+      return;
+    }
+
+    if (resultados.length > 1) {
+      // Abre lista de coincidencias
+      resultadosDiv.innerHTML = "";
+      resultados.forEach(p => {
+        const item = document.createElement("div");
+        item.className = "result-item";
+        item.innerHTML = `<span>${p.nombre}</span><small>${money(p.precioPublico)}</small>`;
+        item.onclick = () => seleccionarProducto(p);
+        resultadosDiv.appendChild(item);
+      });
+      resultadosDiv.style.display = "block";
+      beep(750);
+      return;
+    }
+
+    toast("❌ Producto no encontrado", "#c0392b");
+
   } catch (err) {
-    console.error("❌ Error en ejecutarBusqueda:", err);
-    toast("⚠️ Error al procesar código", "#f59e0b");
+    console.error("❌ Error ejecutarBusqueda:", err);
   }
 };
 
