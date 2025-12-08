@@ -11,9 +11,14 @@ window.USUARIO_LOGUEADO = null;
 window.clienteSeleccionado = null;
 
 // --------------------------------
-// 🔢 Formateo monetario rápido
-// --------------------------------
-window.money = n => "$" + (Number(n) || 0).toFixed(2);
+// 🔢 Formateo monetario con separador de miles estilo MX
+window.money = n => {
+  n = Number(n) || 0;
+  return "$" + n.toLocaleString("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
 
 // --------------------------------
 // Acceso DOM cortito
@@ -185,3 +190,4 @@ window.renderDebounced = () => {
   clearTimeout(timer);
   timer = setTimeout(window.render, 35);
 };
+
