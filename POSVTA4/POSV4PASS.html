@@ -930,7 +930,13 @@ function calcularTotales(descPorc = 0) {
   };
 }
 
-
+function acortarNombre(nombre) {
+  if (!nombre) return "";
+  const max = 12; // cámbialo a 7 si quieres más compacto
+  return nombre.length > max
+    ? nombre.substring(0, max) + "…"
+    : nombre;
+}
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
@@ -941,7 +947,7 @@ function render(desc = 0) {
   carrito.forEach(it => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${(it.nombre || "").substring(0, 10)}...</td>
+      <td>${acortarNombre(it.nombre)}</td>
       <td style="text-align:center">
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
           style="width:70px;text-align:center;padding:4px;border-radius:6px;
