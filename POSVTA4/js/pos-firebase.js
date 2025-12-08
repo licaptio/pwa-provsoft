@@ -37,7 +37,8 @@ if (!firebase.apps?.length) {
     firebase.initializeApp(firebaseConfig);
 }
 
-const db = firebase.firestore();
+export const db = firebase.firestore();
+
 
 // ===============================
 // 🔐 LOGIN CORRECTO
@@ -225,11 +226,3 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 
 window.guardarVenta = guardarVenta;
 export const db = firebase.firestore();
-
-
-
-
-
-
-
-
