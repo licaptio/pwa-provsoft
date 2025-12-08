@@ -167,7 +167,12 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   <!-- 🧍‍♂️ CAMPO CLIENTE -->
   <div class="field">
     <label>Cliente</label>
-    <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+    <input id="cliente" 
+       type="text" 
+       value="PUBLICO GENERAL" 
+       disabled 
+       style="background:#ddd;color:#444;font-weight:600;">
+
     <datalist id="clientesList"></datalist>
   </div>
 
@@ -354,6 +359,13 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 <script type="module" src="./js/pos-offline.js"></script>
 <script type="module" src="./js/pos-modals.js"></script>
 <script type="module" src="./js/pos-test.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const cli = document.getElementById("cliente");
+    cli.value = "PUBLICO GENERAL";
+    cli.setAttribute("disabled", true);
+  });
+</script>
 
 </body>
 </html>
