@@ -410,11 +410,15 @@ document.getElementById("loginScreen").style.display = "none";
 document.getElementById("posApp").style.display = "block";
 
     // Carga simultánea
-    await Promise.all([
-      cargarCatalogo(),
-      cargarDepartamentos(),
-      fijarClientePublico()
-    ]);
+// 🔥 Cargar lo mínimo indispensable para encender el POS
+await Promise.all([
+  cargarDepartamentos(),
+  fijarClientePublico()
+]);
+
+// ⚡ Cargar el catálogo en segundo plano (no bloquea la interfaz)
+setTimeout(() => cargarCatalogoLazy(), 50);
+
 
     console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
     msg.textContent = "";
@@ -444,7 +448,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   $("#posApp").style.display = "block";
 
   await Promise.all([
-    cargarCatalogo(),
+    cargarCatalogoLazy(),
     cargarDepartamentos(),
     fijarClientePublico()
   ]);
@@ -489,7 +493,7 @@ async function leerCache(ruta) {
    🧾 SECCIÓN 5: CARGA DE CATÁLOGO Y DEPARTAMENTOS (OPTIMIZADO)
    =========================================================== */
 
-async function cargarCatalogo() {
+async function cargarCatalogoLazy() {
   const cacheKey = "catalogo_cache";
   const cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
   const unDia = 24 * 60 * 60 * 1000;
@@ -1068,9 +1072,13 @@ function beep(freq = 800, duration = 0.1) {
 // Permitir que el escáner la use
 window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
 window.ejecutarBusqueda = ejecutarBusquedaOriginal;  // ← ESTA LÍNEA NUEVA
+
   // 🔍 Función central que ejecuta la búsqueda y muestra resultados
 // ⚡ BÚSQUEDA ULTRARÁPIDA
-async function ejecutarBusqueda(q) {
+if (!catalogoCargado) {
+  toast("⏳ Cargando catálogo…", "#0c6cbd");
+}
+  async function ejecutarBusqueda(q) {
   q = (q || "").trim();
   if (!q) return;
 
