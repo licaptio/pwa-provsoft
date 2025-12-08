@@ -2534,7 +2534,7 @@ btnTestFuncion.addEventListener("click", () => {
 document.getElementById("btnVolverVenta").addEventListener("click", () => {
   pantallaTest.style.display = "none";
   pantallaVenta.style.display = "flex";
-  if (carritoContainer) carritoContainer.style.display = "block";
+  if (carritoContainer) carritoContainer.style.display = "";
   beep(950, 0.1);
   toast("✅ Regresando al POS", "#16a34a");
 });
