@@ -1,6 +1,6 @@
 // ======================================================
 // POS-BUSQUEDA — PROVSOFT
-// Búsqueda local + Firestore + balanza + FIXES de escáner
+// Búsqueda local + Firestore + balanza + FIXES FULL
 // ======================================================
 
 // ------------------------------------
@@ -16,7 +16,6 @@ import { db } from "./pos-firebase.js";
 // 🟦 Cache Firestore
 // ------------------------------------
 let cacheProductos = new Map();
-
 
 // ======================================================
 // 🟦 NORMALIZACIÓN UNIVERSAL DE PRODUCTOS
@@ -59,23 +58,20 @@ function normalizarProducto(prod, idForzado = null) {
   };
 }
 
-
 // ======================================================
-// 🔒 FIX #1 — BLOQUEAR ESCANER CUANDO COBRO ESTÁ ABIERTO
+// 🔒 FIX GLOBAL — BLOQUEAR ESCÁNER Y BUSCADOR EN MODO COBRO
 // ======================================================
-function scannerActivo() {
-  const modal = document.querySelector("#modalCobro");
-  if (!modal) return true;
-  return modal.style.display === "none";
+function bloqueoCobro() {
+  return window.MODO_COBRO === true;  // 🔥 bandera global del archivo pos-modals.js
 }
 
 // ======================================================
-// 🔒 FIX #2 — BUSCADOR SOLO FUNCIONA SI ESTÁ ENFOCADO
+// 🔒 SOLO BUSCADOR ACTIVO SI TIENE FOCUS Y NO ESTAMOS COBRANDO
 // ======================================================
 function buscadorActivo() {
+  if (bloqueoCobro()) return false;
   return document.activeElement === inputBuscador;
 }
-
 
 // ======================================================
 // 🔍 BÚSQUEDA LOCAL
@@ -93,7 +89,6 @@ window.buscarLocal = function (texto) {
   });
 };
 
-
 // ======================================================
 // 🔥 BUSCAR PRODUCTO EN FIRESTORE POR CÓDIGO
 // ======================================================
@@ -105,9 +100,7 @@ async function buscarProductoFirestore(codigo) {
   }
 
   try {
-    const ref = db.collection("productos")
-      .where("codigoBarra", "==", codigo);
-
+    const ref = db.collection("productos").where("codigoBarra", "==", codigo);
     const snap = await ref.get();
 
     if (snap.empty) return null;
@@ -124,7 +117,6 @@ async function buscarProductoFirestore(codigo) {
   }
 }
 
-
 // ======================================================
 // ⚖️ CÓDIGOS DE BALANZA
 // ======================================================
@@ -139,7 +131,6 @@ function parsearBalanza(code) {
   };
 }
 
-
 // ======================================================
 // ✔ SELECCIONAR PRODUCTO
 // ======================================================
@@ -150,7 +141,6 @@ function seleccionarProducto(prod, cantidad = 1) {
   ocultarResultados();
 }
 
-
 // ======================================================
 // ✔ OCULTAR RESULTADOS
 // ======================================================
@@ -158,7 +148,6 @@ function ocultarResultados() {
   resultadosDiv.innerHTML = "";
   resultadosDiv.style.display = "none";
 }
-
 
 // ======================================================
 // ✔ MOSTRAR LISTA
@@ -187,13 +176,14 @@ function mostrarLista(list, texto) {
   });
 }
 
-
 // ======================================================
 // 🔎 EJECUTAR BÚSQUEDA PRINCIPAL
 // ======================================================
 window.ejecutarBusqueda = async function () {
 
-  // 👉 FIX: no buscar si el buscador NO está activo
+  // 👉 BLOQUEO TOTAL EN MODO COBRO
+  if (bloqueoCobro()) return;
+
   if (!buscadorActivo()) return;
 
   const texto = inputBuscador.value.trim();
@@ -250,7 +240,6 @@ window.ejecutarBusqueda = async function () {
   window.beep(500);
 };
 
-
 // ======================================================
 // 🔠 ESCÁNER POR TECLADO (Lector de barras)
 // ======================================================
@@ -259,10 +248,10 @@ let scannerTimer = null;
 
 document.addEventListener("keydown", e => {
 
-  // 👉 FIX: No escanear si modal cobro está abierto
-  if (!scannerActivo()) return;
+  // 👉 BLOQUE COMPLETO DE ESCANEO EN MODO COBRO
+  if (bloqueoCobro()) return;
 
-  // 👉 FIX: No escanear si estoy en otro input
+  // 👉 SOLO ESCANEA SI EL BUSCADOR TIENE FOCUS
   if (document.activeElement !== inputBuscador) return;
 
   if (e.key === "Enter") {
@@ -284,7 +273,6 @@ function procesarScanner(code) {
   window.ejecutarBusqueda();
 }
 
-
 // ======================================================
 // 🔍 INPUT + DEBOUNCE AVANZADO
 // ======================================================
@@ -292,8 +280,8 @@ let typingTimer = null;
 
 inputBuscador?.addEventListener("input", () => {
 
-  // 👉 No buscar si modal cobro está activo
-  if (!scannerActivo()) return;
+  // 👉 BLOQUE TOTAL EN MODO COBRO
+  if (bloqueoCobro()) return;
 
   clearTimeout(typingTimer);
   typingTimer = setTimeout(() => {
@@ -301,18 +289,18 @@ inputBuscador?.addEventListener("input", () => {
   }, 200);
 });
 
-
 // ======================================================
 // 🔍 BOTÓN MANUAL
 // ======================================================
 $("#btnBuscarManual")?.addEventListener("click", () => {
+  if (bloqueoCobro()) return;
   window.ejecutarBusqueda();
 });
-
 
 // ======================================================
 // 📷 QR
 // ======================================================
 $("#btnCam")?.addEventListener("click", () => {
+  if (bloqueoCobro()) return;
   import("./pos-qr.js").then(m => m.activarQR());
 });
