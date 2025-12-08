@@ -3,7 +3,9 @@
 // Panel de pruebas: GPS, impresora, corte, navegación
 // ==========================================================
 
-import { beep, toast } from "./pos-core.js";
+// Usamos funciones globales
+const beep = window.beep;
+const toast = window.toast;
 
 const pantallaVenta = document.getElementById("pantallaVenta");
 const pantallaTest = document.getElementById("pantallaTest");
@@ -16,10 +18,11 @@ const carritoContainer = document.getElementById("carrito-container");
 document.getElementById("btnVerCarrito")?.addEventListener("click", () => {
   pantallaVenta.style.display = "none";
   if (carritoContainer) carritoContainer.style.display = "none";
+
   pantallaTest.style.display = "block";
 
-  beep(900);
-  toast("🧪 Modo Test Activo", "#f59e0b");
+  if (beep) beep(900);
+  if (toast) toast("🧪 Modo Test Activo", "#f59e0b");
 });
 
 // ===============================
@@ -28,10 +31,11 @@ document.getElementById("btnVerCarrito")?.addEventListener("click", () => {
 document.getElementById("btnVolverVenta")?.addEventListener("click", () => {
   pantallaTest.style.display = "none";
   pantallaVenta.style.display = "flex";
+
   if (carritoContainer) carritoContainer.style.display = "block";
 
-  beep(870);
-  toast("Regresando al POS", "#16a34a");
+  if (beep) beep(870);
+  if (toast) toast("Regresando al POS", "#16a34a");
 });
 
 // ===============================
@@ -53,21 +57,24 @@ TOTAL: $1.00
 `;
 
   try {
+    // InnerPrinter (Android)
     if (window.InnerPrinter?.printText) {
       window.InnerPrinter.printText(ticket);
       testResult.innerHTML = "✅ InnerPrinter OK";
-      beep(600);
+      if (beep) beep(600);
       return;
     }
 
+    // RawBT (Android)
     if (/Android/i.test(navigator.userAgent)) {
       const enc = encodeURIComponent(ticket);
       window.location.href = `rawbt:print?data=${enc}`;
       testResult.innerHTML = "✅ RawBT OK";
-      beep(600);
+      if (beep) beep(600);
       return;
     }
 
+    // Impresión por navegador (PC)
     const w = window.open("", "_blank");
     w.document.write(`<pre>${ticket}</pre>`);
     w.print();
@@ -96,11 +103,11 @@ document.getElementById("btnTestGPS")?.addEventListener("click", () => {
         <a href="https://maps.google.com/?q=${latitude},${longitude}" target="_blank">
           🌎 Ver en Google Maps
         </a>`;
-      beep(900);
+
+      if (beep) beep(900);
     },
-    err => {
+    () => {
       testResult.innerHTML = "❌ GPS no disponible";
-      console.error(err);
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
