@@ -3,7 +3,9 @@
 // Generador e impresión profesional de tickets
 // ======================================================
 
-import { money, carrito } from "./pos-core.js";
+// Tomamos funciones globales del POS
+const money = window.money;
+const carrito = window.carrito;
 
 // ------------------------------
 // 🔧 Formato 40 columnas
@@ -19,9 +21,9 @@ function center(text, width = 40) {
 }
 
 // ======================================================
-// 🧾 GENERAR TICKET DE VENTA (TEXTO LISTO PARA IMPRESORA)
+// 🧾 GENERAR TICKET
 // ======================================================
-export function generarTicket(venta) {
+function generarTicket(venta) {
   let out = "";
 
   out += center("PROVSOFT POS") + "\n";
@@ -54,18 +56,18 @@ export function generarTicket(venta) {
 // ======================================================
 // 🖨️ IMPRIMIR TICKET (RawBT, InnerPrinter o navegador)
 // ======================================================
-export function imprimirTicket(venta) {
+function imprimirTicket(venta) {
   const texto = generarTicket(venta);
 
   try {
-    // 1️⃣ Impresoras internas Android (InnerPrinter)
-    if (window.InnerPrinter && typeof window.InnerPrinter.printText === "function") {
+    // 1️⃣ InnerPrinter (Android)
+    if (window.InnerPrinter?.printText) {
       window.InnerPrinter.printText(texto);
       console.log("🖨️ Impreso vía InnerPrinter");
       return;
     }
 
-    // 2️⃣ RawBT
+    // 2️⃣ RawBT (Android)
     if (/Android/i.test(navigator.userAgent)) {
       const encoded = encodeURIComponent(texto);
       window.location.href = `rawbt:print?data=${encoded}`;
@@ -73,7 +75,7 @@ export function imprimirTicket(venta) {
       return;
     }
 
-    // 3️⃣ Impresión navegador (fallback)
+    // 3️⃣ Impresión por navegador (Fallback PC)
     const w = window.open("", "_blank");
     w.document.write(`<pre>${texto}</pre>`);
     w.print();
@@ -89,9 +91,11 @@ export function imprimirTicket(venta) {
 // ======================================================
 // 🚀 FUNCIÓN DE ALTO NIVEL: GUARDAR + IMPRIMIR
 // ======================================================
-import { guardarVenta } from "./pos-firebase.js";
 
-export async function guardarEImprimir(tipoPago = "EFECTIVO") {
+// Tomamos la función global generada por pos-firebase.js
+const guardarVenta = window.guardarVenta;
+
+async function guardarEImprimir(tipoPago = "EFECTIVO") {
   const venta = await guardarVenta(tipoPago);
 
   if (venta) {
@@ -99,5 +103,6 @@ export async function guardarEImprimir(tipoPago = "EFECTIVO") {
   }
 }
 
-// Exponer para HTML
+// Exponer global
 window.guardarEImprimir = guardarEImprimir;
+window.imprimirTicket = imprimirTicket;
