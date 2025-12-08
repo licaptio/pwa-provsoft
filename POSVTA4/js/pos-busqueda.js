@@ -252,3 +252,12 @@ export async function buscarProducto(codigo) {
   }
 }
 
+document.getElementById("buscador").addEventListener("input", async (e) => {
+  const codigo = e.target.value.trim();
+
+  if (codigo.length < 3) return;
+
+  const prod = await buscarProducto(codigo);
+
+  mostrarResultados(prod);
+});
