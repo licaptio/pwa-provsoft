@@ -1,6 +1,6 @@
 // =====================================================
 // POS-CORE — PROVSOFT
-// Carrito, totales, utilidades globales
+// Carrito, totales, utilidades globales + FIX MODO_COBRO
 // =====================================================
 
 // ---- Variables Globales ----
@@ -10,8 +10,16 @@ window.departamentos = {};
 window.USUARIO_LOGUEADO = null;
 window.clienteSeleccionado = null;
 
+// =====================================================
+// 🔒 FUNCIÓN GLOBAL PARA BLOQUEAR OPERACIONES EN COBRO
+// =====================================================
+function bloqueoCobro() {
+  return window.MODO_COBRO === true;
+}
+
 // --------------------------------
 // 🔢 Formateo monetario con separador de miles estilo MX
+// --------------------------------
 window.money = n => {
   n = Number(n) || 0;
   return "$" + n.toLocaleString("es-MX", {
@@ -82,10 +90,13 @@ window.obtenerPrecioSegunCantidad = (prod, cant) => {
   return Number(prod.precioPublico || 0);
 };
 
-// --------------------------------
-// ➕ AGREGAR PRODUCTO
-// --------------------------------
+// =====================================================
+// ➕ AGREGAR PRODUCTO — BLOQUEADO EN COBRO
+// =====================================================
 window.addProduct = (prod, cant = 1) => {
+
+  if (bloqueoCobro()) return;  // 🔥 PROTECCIÓN
+
   if (!prod) return;
 
   cant = parseFloat(cant);
@@ -113,18 +124,23 @@ window.addProduct = (prod, cant = 1) => {
   window.beep(900);
 };
 
-// --------------------------------
-// ❌ ELIMINAR PRODUCTO
-// --------------------------------
+// =====================================================
+// ❌ ELIMINAR PRODUCTO — BLOQUEADO EN COBRO
+// =====================================================
 window.delItem = id => {
+  if (bloqueoCobro()) return;  // 🔥 PROTECCIÓN
+
   window.carrito = window.carrito.filter(p => p.id !== id);
   window.renderDebounced();
 };
 
-// --------------------------------
-// 🔄 ACTUALIZAR CANTIDAD
-// --------------------------------
+// =====================================================
+// 🔄 ACTUALIZAR CANTIDAD — BLOQUEADO EN COBRO
+// =====================================================
 window.actualizarCantidad = (id, nueva) => {
+
+  if (bloqueoCobro()) return;  // 🔥 PROTECCIÓN
+
   const it = window.carrito.find(x => x.id === id);
   if (!it) return;
 
@@ -138,9 +154,9 @@ window.actualizarCantidad = (id, nueva) => {
   window.renderDebounced();
 };
 
-// --------------------------------
+// =====================================================
 // 🧮 CALCULAR TOTALES
-// --------------------------------
+// =====================================================
 window.calcularTotales = (desc = 0) => {
   let subtotal = 0;
   window.carrito.forEach(it => subtotal += it.importe);
@@ -156,9 +172,9 @@ window.calcularTotales = (desc = 0) => {
   };
 };
 
-// --------------------------------
+// =====================================================
 // 🖼️ RENDER DEL CARRITO
-// --------------------------------
+// =====================================================
 window.render = (desc = 0) => {
   const tbody = $("#tbody");
   if (!tbody) return;
@@ -167,13 +183,24 @@ window.render = (desc = 0) => {
     .map(it => `
       <tr>
         <td>${it.nombre}</td>
+
         <td>
-          <input type="number" value="${it.cantidad}"
+          <input 
+            type="number" 
+            value="${it.cantidad}"
             onchange="actualizarCantidad('${it.id}',this.value)"
+            ${window.MODO_COBRO ? "disabled" : ""}   <!-- 🔥 NO MODIFICABLE EN COBRO -->
             style="width:60px;text-align:center;">
         </td>
+
         <td style="text-align:right;">${money(it.importe)}</td>
-        <td><button onclick="delItem('${it.id}')" style="background:#ff4444;color:#fff;">×</button></td>
+
+        <td>
+          <button 
+            onclick="delItem('${it.id}')" 
+            style="background:#ff4444;color:#fff;"
+            ${window.MODO_COBRO ? "disabled" : ""}>×</button>
+        </td>
       </tr>
     `)
     .join("");
@@ -184,10 +211,11 @@ window.render = (desc = 0) => {
   $("#lblTotal").textContent = money(t.total);
 };
 
+// =====================================================
 // Render con debounce
+// =====================================================
 let timer = null;
 window.renderDebounced = () => {
   clearTimeout(timer);
   timer = setTimeout(window.render, 35);
 };
-
