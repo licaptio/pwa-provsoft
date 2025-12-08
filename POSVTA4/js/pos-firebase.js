@@ -3,35 +3,46 @@
 // Login, catálogo, departamentos y guardar ventas
 // ======================================================
 
-// No usar imports — todo viene del global (window)
-const $ = s => document.querySelector(s);
+// Usamos funciones del core desde window (SIN IMPORTS)
+const toast = window.toast;
+const beep = window.beep;
+const render = window.render;
+const calcularTotales = window.calcularTotales;
 
-// -----------------------------------------
-// 🔥 CONFIGURACIÓN FIREBASE (TU PROYECTO)
-// -----------------------------------------
+// Variables compartidas del core
+const carrito = window.carrito;
+const catalogo = window.catalogo;
+const departamentos = window.departamentos;
+
+// Offline
+const reenviarVentasPendientes = window.reenviarVentasPendientes;
+
+// Atajo para DOM
+const $ = window.$;
+
+// -------------------------------
+// 🔥 CONFIGURACIÓN FIREBASE
+// -------------------------------
 const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.appspot.com",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+  apiKey: "AIzaSyD9yXXX",
+  authDomain: "provsoft.firebaseapp.com",
+  projectId: "provsoft",
+  storageBucket: "provsoft.appspot.com",
+  messagingSenderId: "0000000",
+  appId: "1:000000:web:aaaaaa"
 };
 
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
+// Inicializar Firebase (solo una vez)
+if (!firebase.apps?.length) {
+    firebase.initializeApp(firebaseConfig);
+}
 
-// Exponer Firestore y Auth globalmente
-window.db = firebase.firestore();
-window.auth = firebase.auth();
-window.firebase = firebase;
-
+const db = firebase.firestore();
 
 // ===============================
 // 🔐 LOGIN
 // ===============================
-
-document.getElementById("btnLogin")?.addEventListener("click", loginUsuario);
+$("#btnLogin")?.addEventListener("click", loginUsuario);
 
 async function loginUsuario() {
   const user = $("#loginUsuario").value.trim();
@@ -58,11 +69,10 @@ async function loginUsuario() {
       return;
     }
 
-    // Guardar sesión
+    // Guardamos la sesión
     localStorage.setItem("usuario_ruta", user);
     window.USUARIO_LOGUEADO = user;
 
-    // Mostrar POS
     $("#loginScreen").style.display = "none";
     $("#posApp").style.display = "block";
 
@@ -78,42 +88,38 @@ async function loginUsuario() {
   }
 }
 
-
 // ===============================
 // 📦 CARGAR CATÁLOGO
 // ===============================
-window.cargarCatalogo = async function () {
+async function cargarCatalogo() {
   try {
     const cache = localStorage.getItem("catalogo_cache");
     const cacheFecha = localStorage.getItem("catalogo_fecha");
 
-    // Cache válido 24h
     if (cache && cacheFecha && Date.now() - cacheFecha < 86400000) {
       const data = JSON.parse(cache);
-      window.catalogo.length = 0;
-      window.catalogo.push(...data);
-      console.log("📦 Catálogo desde localStorage");
+      catalogo.length = 0;
+      catalogo.push(...data);
+      console.log("📦 Catálogo desde cache");
       return;
     }
 
-    // Desde Firestore
     const snap = await db.collection("catalogo").get();
     const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    window.catalogo.length = 0;
-    window.catalogo.push(...arr);
+    catalogo.length = 0;
+    catalogo.push(...arr);
 
     localStorage.setItem("catalogo_cache", JSON.stringify(arr));
     localStorage.setItem("catalogo_fecha", Date.now());
 
-    console.log("🔥 Catálogo desde Firestore");
+    console.log("🔥 Catálogo Firebase");
 
   } catch (err) {
-    console.error("❌ Error cargando catálogo:", err);
+    console.error("❌ Error catálogo:", err);
     toast("No se pudo cargar catálogo", "#e74c3c");
   }
-};
-
+}
 
 // ===============================
 // 🗂️ CARGAR DEPARTAMENTOS
@@ -122,22 +128,20 @@ async function cargarDepartamentos() {
   try {
     const snap = await db.collection("departamentos").get();
     snap.forEach(d => {
-      window.departamentos[d.id] = d.data();
+      departamentos[d.id] = d.data();
     });
 
     console.log("🗂️ Departamentos cargados");
-
   } catch (e) {
-    console.error("❌ Error cargando departamentos:", e);
+    console.error("❌ Error departamentos:", e);
   }
 }
-
 
 // ===============================
 // 🧾 GUARDAR VENTA
 // ===============================
-window.guardarVenta = async function (tipoPago = "EFECTIVO") {
-  if (window.carrito.length === 0) {
+async function guardarVenta(tipoPago = "EFECTIVO") {
+  if (carrito.length === 0) {
     toast("Carrito vacío", "#c0392b");
     return;
   }
@@ -151,7 +155,7 @@ window.guardarVenta = async function (tipoPago = "EFECTIVO") {
     tipoPago,
     subtotal: tot.subtotal,
     total: tot.total,
-    items: window.carrito.map(p => ({
+    items: carrito.map(p => ({
       id: p.id,
       nombre: p.nombre,
       cantidad: p.cantidad,
@@ -166,21 +170,16 @@ window.guardarVenta = async function (tipoPago = "EFECTIVO") {
     beep(900);
     toast("Venta registrada", "#16a34a");
 
-    // limpiar carrito
-    window.carrito.length = 0;
+    carrito.length = 0;
     render();
 
-    // reenviar ventas offline
-    if (window.reenviarVentasPendientes) {
-      window.reenviarVentasPendientes();
-    }
+    reenviarVentasPendientes();
 
     return venta;
 
   } catch (err) {
     console.error("❌ Error guardando venta:", err);
 
-    // Guardar OFFLINE
     let pendientes = JSON.parse(localStorage.getItem("ventas_pendientes") || "[]");
     pendientes.push(venta);
     localStorage.setItem("ventas_pendientes", JSON.stringify(pendientes));
@@ -188,4 +187,6 @@ window.guardarVenta = async function (tipoPago = "EFECTIVO") {
     toast("Venta guardada offline", "#f39c12");
     return venta;
   }
-};
+}
+
+window.guardarVenta = guardarVenta;
