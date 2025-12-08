@@ -287,11 +287,17 @@ function procesarScanner(code) {
 
 
 // ======================================================
-// 🔍 EVENTO DE INPUT
+// 🔍 EVENTO DE INPUT con DEBOUNCE
 // ======================================================
+let typingTimer = null;
+
 inputBuscador?.addEventListener("input", () => {
-  window.ejecutarBusqueda();
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    window.ejecutarBusqueda();
+  }, 250); // Espera 250ms para evitar activación por tecleo humano
 });
+
 
 
 // ======================================================
@@ -308,4 +314,5 @@ $("#btnBuscarManual")?.addEventListener("click", () => {
 $("#btnCam")?.addEventListener("click", () => {
   import("./pos-qr.js").then(m => m.activarQR());
 });
+
 
