@@ -3,7 +3,10 @@
 // Cámara, QR Scanner y captura de códigos rápidos
 // ======================================================
 
-// NO imports. Usamos window.ejecutarBusqueda, window.toast, window.beep
+// Tomamos funciones globales desde window
+const ejecutarBusqueda = window.ejecutarBusqueda;
+const beep = window.beep;
+const toast = window.toast;
 
 let scanner = null;
 let cameraActivo = false;
@@ -11,7 +14,8 @@ let cameraActivo = false;
 const $ = s => document.querySelector(s);
 
 // Crear contenedor de cámara si no existe
-let camDiv = document.querySelector("#qrCamDiv");
+let camDiv = document.getElementById("qrCamDiv");
+
 if (!camDiv) {
   camDiv = document.createElement("div");
   camDiv.id = "qrCamDiv";
@@ -38,9 +42,9 @@ if (!camDiv) {
 }
 
 // ======================================================
-// 🚀 ACTIVAR LA CÁMARA Y ESCANEAR
+// 🚀 ACTIVAR LA CÁMARA PARA ESCANEAR QR
 // ======================================================
-window.activarQR = function () {
+function activarQR() {
   if (cameraActivo) return;
 
   camDiv.style.display = "flex";
@@ -53,50 +57,51 @@ window.activarQR = function () {
       { facingMode: "environment" },
       { fps: 10, qrbox: { width: 240, height: 240 } },
 
-      // 🎯 QR DETECTADO
+      // 🎯 Cuando se detecta el código
       code => {
         console.log("QR detectado:", code);
+        beep(900);
 
-        if (window.beep) window.beep(900, 0.1);
+        $("#buscador").value = code;
 
-        const inp = $("#buscador");
-        if (inp) {
-          inp.value = code;
-          if (window.ejecutarBusqueda) window.ejecutarBusqueda();
+        if (typeof ejecutarBusqueda === "function") {
+          ejecutarBusqueda();
         }
 
-        window.cerrarQR();
+        cerrarQR();
       },
 
-      // Ignorar errores repetitivos
-      () => {}
+      // Error silencioso para no saturar pantalla
+      err => {}
     );
 
   } catch (err) {
-    console.error("❌ Error al activar cámara:", err);
-    if (window.toast) window.toast("No se pudo activar la cámara", "#c0392b");
-    window.cerrarQR();
+    console.error("❌ Error activando cámara:", err);
+    toast("No se pudo activar la cámara", "#c0392b");
+    cerrarQR();
   }
-};
+}
 
 // ======================================================
-// ❌ CERRAR LA CÁMARA
+// ❌ CERRAR QR
 // ======================================================
-window.cerrarQR = function () {
+function cerrarQR() {
   camDiv.style.display = "none";
   cameraActivo = false;
 
   if (scanner) {
-    scanner.stop().catch(() => {}).finally(() => {
-      scanner.clear();
-      scanner = null;
-    });
+    scanner.stop()
+      .catch(() => {})
+      .finally(() => {
+        scanner.clear();
+        scanner = null;
+      });
   }
-};
+}
 
 // Botón cerrar
-document.addEventListener("click", e => {
-  if (e.target.id === "btnCerrarQR") {
-    window.cerrarQR();
-  }
-});
+document.getElementById("btnCerrarQR")?.addEventListener("click", cerrarQR);
+
+// Exponer globalmente para otros módulos
+window.activarQR = activarQR;
+window.cerrarQR = cerrarQR;
