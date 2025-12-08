@@ -127,6 +127,12 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 #pantallaVenta,#pantallaCarrito{transition:.25s}
 #pantallaCarrito{margin-top:10px}
 #btnRegresar{background:linear-gradient(180deg,#888,#666);color:#fff}
+/* ⭐ Asegurar que los resultados SIEMPRE queden por encima del carrito */
+.search-results {
+  z-index: 99999 !important;
+  position: absolute !important;
+}
+
 </style>
 
 </head>
@@ -1164,8 +1170,20 @@ if (producto.length > 0) {
     resultadosDiv.style.display = "block";
     beep(700);
   } else {
-resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
+resultadosDiv.innerHTML = `
+  <div style="
+    padding:10px;
+    color:#999;
+    position:relative;
+    z-index:99999;
+    background:#fff;
+    border-radius:8px;
+  ">
+    Sin coincidencias
+  </div>`;
+resultadosDiv.style.zIndex = "99999";
 resultadosDiv.style.display = "block";
+
 beep(500);
 
 // 🔥 Reset seguro del escáner para evitar bloqueo
