@@ -126,20 +126,50 @@ async function cargarCatalogo() {
 }
 
 // ===============================
-// 🗂️ CARGAR DEPARTAMENTOS
+// 🗂️ CARGAR DEPARTAMENTOS (CON CACHE)
 // ===============================
 async function cargarDepartamentos() {
   try {
+
+    // 1️⃣ Intentar leer cache local
+    const cache = localStorage.getItem("departamentos_cache");
+    const cacheFecha = localStorage.getItem("departamentos_fecha");
+
+    // Cache válido por 24 horas
+    if (cache && cacheFecha && Date.now() - cacheFecha < 86400000) {
+      const data = JSON.parse(cache);
+
+      // Limpia el objeto y repuebla
+      Object.keys(departamentos).forEach(k => delete departamentos[k]);
+      Object.assign(departamentos, data);
+
+      console.log("📁 Departamentos desde cache");
+      return;
+    }
+
+    // 2️⃣ Si no hay cache o ya expiró → FIREBASE
     const snap = await db.collection("departamentos").get();
+    const data = {};
+
     snap.forEach(d => {
-      departamentos[d.id] = d.data();
+      data[d.id] = d.data();
     });
 
-    console.log("🗂️ Departamentos cargados");
+    // Llenar la variable global
+    Object.keys(departamentos).forEach(k => delete departamentos[k]);
+    Object.assign(departamentos, data);
+
+    // Guardar cache
+    localStorage.setItem("departamentos_cache", JSON.stringify(data));
+    localStorage.setItem("departamentos_fecha", Date.now());
+
+    console.log("🔥 Departamentos Firebase");
+
   } catch (e) {
     console.error("❌ Error departamentos:", e);
   }
 }
+
 
 // ===============================
 // 🧾 GUARDAR VENTA
@@ -194,6 +224,7 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
+
 
 
 
