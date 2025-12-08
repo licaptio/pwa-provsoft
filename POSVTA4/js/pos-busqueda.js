@@ -3,81 +3,78 @@
 // Maneja búsqueda, equivalentes y balanza
 // ==========================================
 
-import { catalogo, toast, beep, addProduct } from "./pos-core.js";
-
+// Todo se toma de window, no imports
 const $ = s => document.querySelector(s);
 
-// Elementos de UI
 const inputBuscador = $("#buscador");
 const resultadosDiv = $("#resultados");
 
+
 // ------------------------------
-// 🔎 BÚSQUEDA LOCAL SIMPLIFICADA
+// 🔎 BÚSQUEDA LOCAL
 // ------------------------------
-export function buscarLocal(texto) {
+window.buscarLocal = function (texto) {
   if (!texto) return [];
 
   texto = texto.toLowerCase();
 
-  return catalogo.filter(p =>
+  return window.catalogo.filter(p =>
     p.nombre?.toLowerCase().includes(texto) ||
     p.codigo?.includes(texto) ||
     p.clave?.includes(texto)
   );
-}
+};
+
 
 // -----------------------------------
 // 🌐 BÚSQUEDA REMOTA DE EQUIVALENTES
 // -----------------------------------
-export async function buscarEquivalenteRemoto(texto) {
+window.buscarEquivalenteRemoto = async function (texto) {
   try {
     const url = `https://us-east-1.aws.data.mongodb-api.com/...buscar=${texto}`;
     const res = await fetch(url);
     const data = await res.json();
-
     return data || [];
   } catch (err) {
     console.error("❌ Error buscando equivalente remoto:", err);
     return [];
   }
-}
+};
+
 
 // ---------------------------------------------
 // ⚖️ DETECCIÓN DE CÓDIGOS DE BALANZA
-// EJ: 20 + código + peso
 // ---------------------------------------------
 function esBalanza(codigo) {
-  return (
-    codigo.length >= 13 &&
-    codigo.startsWith("20")
-  );
+  return codigo.length >= 13 && codigo.startsWith("20");
 }
 
 function parsearBalanza(codigo) {
-  const clave = codigo.substring(2, 7);     // código real
-  const pesoEnGr = Number(codigo.substring(7, 12)); // gramos
-  const pesoKg = pesoEnGr / 1000;
-
-  return { clave, pesoKg };
+  const clave = codigo.substring(2, 7);
+  const pesoEnGr = Number(codigo.substring(7, 12));
+  return { clave, pesoKg: pesoEnGr / 1000 };
 }
 
+
 // ----------------------------------
-// 🎯 SELECCIONAR PRODUCTO ENCONTRADO
+// 🎯 SELECCIONAR PRODUCTO
 // ----------------------------------
 function seleccionarProducto(prod, cantidad = 1) {
   if (!prod) return;
 
-  addProduct(prod, cantidad);
+  window.addProduct(prod, cantidad);
   ocultarResultados();
 }
 
-// ----------------------------------
+
+// ------------------------------
 // 🟦 OCULTAR RESULTADOS
-// ----------------------------------
+// ------------------------------
 function ocultarResultados() {
   resultadosDiv.innerHTML = "";
   resultadosDiv.style.display = "none";
 }
+
 
 // ----------------------------------
 // 🟧 MOSTRAR LISTA DE RESULTADOS
@@ -91,6 +88,7 @@ function mostrarLista(resultados, texto) {
     item.className = "result-item";
 
     const regex = new RegExp(texto, "ig");
+
     const nombreResaltado = p.nombre.replace(
       regex,
       m => `<strong style="color:#0c6cbd">${m}</strong>`
@@ -102,7 +100,7 @@ function mostrarLista(resultados, texto) {
     `;
 
     item.addEventListener("click", () => {
-      beep(950);
+      window.beep(950);
       seleccionarProducto(p);
     });
 
@@ -110,10 +108,11 @@ function mostrarLista(resultados, texto) {
   });
 }
 
+
 // --------------------------------------------
-// 🔍 EJECUTAR BÚSQUEDA PRINCIPAL (INPUT)
+// 🔍 BÚSQUEDA PRINCIPAL
 // --------------------------------------------
-export async function ejecutarBusqueda() {
+window.ejecutarBusqueda = async function () {
   const texto = inputBuscador.value.trim();
 
   if (!texto) {
@@ -121,48 +120,50 @@ export async function ejecutarBusqueda() {
     return;
   }
 
-  // ----------- ⚖️ BALANZA -----------
+  // -------- ⚖️ CÓDIGO DE BALANZA --------
   if (esBalanza(texto)) {
     const { clave, pesoKg } = parsearBalanza(texto);
 
-    const prod = catalogo.find(p => p.codigo === clave || p.clave === clave);
+    const prod = window.catalogo.find(p =>
+      p.codigo === clave || p.clave === clave
+    );
 
     if (!prod) {
-      toast("❌ Producto de balanza no encontrado", "#dc2626");
+      window.toast("❌ Producto de balanza no encontrado", "#dc2626");
       return;
     }
 
     seleccionarProducto(prod, pesoKg);
     inputBuscador.value = "";
-    beep(900);
+    window.beep(900);
     return;
   }
 
-  // --------- 🔍 BÚSQUEDA LOCAL --------
-  let resultados = buscarLocal(texto);
+  // -------- 🔍 LOCAL --------
+  let resultados = window.buscarLocal(texto);
 
-  // --------- 🌐 REMOTO SI NO HAY LOCAL --------
+  // -------- 🌐 REMOTO --------
   if (resultados.length === 0) {
-    resultados = await buscarEquivalenteRemoto(texto);
+    resultados = await window.buscarEquivalenteRemoto(texto);
   }
 
-  // ------------- ACCIONES -------------
+  // -------- ACCIÓN FINAL --------
   if (resultados.length === 1) {
-    beep(950);
+    window.beep(950);
     seleccionarProducto(resultados[0]);
-    ocultarResultados();
   } else if (resultados.length > 1) {
-    beep(700);
+    window.beep(700);
     mostrarLista(resultados, texto);
   } else {
     resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
     resultadosDiv.style.display = "block";
-    beep(500);
+    window.beep(500);
   }
-}
+};
+
 
 // ========================================
-// 🧩 SCANNER POR TECLADO (CÓDIGO DE BARRAS)
+// 🧩 LECTOR DE BARRAS (TECLADO)
 // ========================================
 let bufferScanner = "";
 let scannerTimer = null;
@@ -182,27 +183,31 @@ document.addEventListener("keydown", e => {
   }
 });
 
-// Proceso final del scanner
+
 function procesarCodigoScanner(code) {
   inputBuscador.value = code;
-  ejecutarBusqueda();
+  window.ejecutarBusqueda();
 }
 
+
 // ========================================
-// 🎯 EVENTO DEL INPUT MANUAL
+// 🎯 INPUT MANUAL
 // ========================================
 inputBuscador.addEventListener("input", () => {
-  ejecutarBusqueda();
+  window.ejecutarBusqueda();
 });
 
-// =====================================
-// 🧩 BOTÓN BUSCAR MANUAL
-// =====================================
-$("#btnBuscarManual")?.addEventListener("click", ejecutarBusqueda);
 
 // =====================================
-// 📷 BOTÓN ABRIR CÁMARA QR (módulo QR)
+// 🧩 BOTÓN LUPA
+// =====================================
+$("#btnBuscarManual")?.addEventListener("click", window.ejecutarBusqueda);
+
+
+// =====================================
+// 📷 BOTÓN CÁMARA QR
 // =====================================
 $("#btnCam")?.addEventListener("click", () => {
-  import("./pos-qr.js").then(m => m.activarQR());
+  // carga dinámica sin imports reales
+  window.activarQR && window.activarQR();
 });
