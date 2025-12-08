@@ -1,18 +1,24 @@
 // ======================================================
 // POS-BUSQUEDA — PROVSOFT
-// Búsqueda local, remota, balanza y scanner
+// Búsqueda local + Firestore + balanza
 // ======================================================
 
 // ------------------------------------
 // Acceso rápido al DOM
 // ------------------------------------
 const $ = s => document.querySelector(s);
-
 const inputBuscador = $("#buscador");
 const resultadosDiv = $("#resultados");
 
+import { db } from "./pos-firebase.js";
+
+// ------------------------------------
+// 🟦 Cache Firestore
+// ------------------------------------
+let cacheProductos = new Map();
+
 // ======================================================
-// 🔍 BÚSQUEDA LOCAL (SUPER RÁPIDA)
+// 🔍 BÚSQUEDA LOCAL
 // ======================================================
 window.buscarLocal = function (texto) {
   if (!texto) return [];
@@ -27,22 +33,44 @@ window.buscarLocal = function (texto) {
 };
 
 // ======================================================
-// 🌐 BÚSQUEDA REMOTA DE EQUIVALENTES
+// 🔥 BUSCAR PRODUCTO EN FIRESTORE POR CÓDIGO DE BARRAS
 // ======================================================
-window.buscarEquivalenteRemoto = async function (texto) {
-  try {
-    const url = `https://us-east-1.aws.data.mongodb-api.com/...buscar=${texto}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    return data || [];
-  } catch (err) {
-    console.warn("Error remoto:", err);
-    return [];
+async function buscarProductoFirestore(codigo) {
+  if (!codigo || codigo.length < 3) return null;
+
+  // 1. Revisar cache
+  if (cacheProductos.has(codigo)) {
+    console.log("🔵 Producto desde cache Firestore");
+    return cacheProductos.get(codigo);
   }
-};
+
+  try {
+    const ref = db.collection("productos")
+      .where("codigoBarra", "==", codigo);
+
+    const snap = await ref.get();
+
+    if (snap.empty) {
+      return null;
+    }
+
+    let doc = snap.docs[0];
+    let data = doc.data();
+
+    // Guardar en cache
+    cacheProductos.set(codigo, data);
+
+    console.log("🟢 Producto Firestore:", data);
+    return data;
+
+  } catch (err) {
+    console.error("🔥 Error Firestore:", err);
+    return null;
+  }
+}
 
 // ======================================================
-// ⚖️ DETECCIÓN DE CÓDIGOS DE BALANZA
+// ⚖️ CÓDIGOS DE BALANZA
 // ======================================================
 function esBalanza(code) {
   return code.length >= 13 && code.startsWith("20");
@@ -73,7 +101,7 @@ function ocultarResultados() {
 }
 
 // ======================================================
-// ✔ MOSTRAR LISTA DE RESULTADOS
+// ✔ MOSTRAR LISTA
 // ======================================================
 function mostrarLista(list, texto) {
   resultadosDiv.innerHTML = "";
@@ -86,7 +114,7 @@ function mostrarLista(list, texto) {
     div.className = "result-item";
 
     div.innerHTML = `
-      <span>${p.nombre.replace(regex, m => `<b style='color:#0c6cbd'>${m}</b>`)}</span>
+      <span>${p.concepto?.replace(regex, m => `<b style='color:#0c6cbd'>${m}</b>`) || p.nombre}</span>
       <small>${window.money(p.precioPublico)}</small>
     `;
 
@@ -100,7 +128,7 @@ function mostrarLista(list, texto) {
 }
 
 // ======================================================
-// 🔎 BUSCAR (FUNCIÓN PRINCIPAL)
+// 🔎 EJECUTAR BÚSQUEDA PRINCIPAL
 // ======================================================
 window.ejecutarBusqueda = async function () {
   const texto = inputBuscador.value.trim();
@@ -110,13 +138,13 @@ window.ejecutarBusqueda = async function () {
     return;
   }
 
-  // ============================
-  // ⚖️ 1) CÓDIGO DE BALANZA
-  // ============================
+  // -----------------------------
+  // 1) CÓDIGO DE BALANZA
+  // -----------------------------
   if (esBalanza(texto)) {
     const { clave, pesoKg } = parsearBalanza(texto);
-    const prod = window.catalogo.find(
-      p => p.codigo === clave || p.clave === clave
+    const prod = window.catalogo.find(p =>
+      p.codigo === clave || p.clave === clave
     );
 
     if (!prod) {
@@ -130,21 +158,22 @@ window.ejecutarBusqueda = async function () {
     return;
   }
 
-  // ============================
-  // 🔍 2) BÚSQUEDA LOCAL
-  // ============================
+  // -----------------------------
+  // 2) BÚSQUEDA LOCAL
+  // -----------------------------
   let resultados = window.buscarLocal(texto);
 
-  // ============================
-  // 🌐 3) EQUIVALENTES REMOTOS
-  // ============================
+  // -----------------------------
+  // 3) FIRESTORE si no está local
+  // -----------------------------
   if (resultados.length === 0) {
-    resultados = await window.buscarEquivalenteRemoto(texto);
+    const prodFS = await buscarProductoFirestore(texto);
+    if (prodFS) resultados = [prodFS];
   }
 
-  // ============================
-  // 🎯 4) MANEJO RESULTADOS
-  // ============================
+  // -----------------------------
+  // 4) RESULTADOS
+  // -----------------------------
   if (resultados.length === 1) {
     seleccionarProducto(resultados[0]);
     window.beep(900);
@@ -157,7 +186,7 @@ window.ejecutarBusqueda = async function () {
     return;
   }
 
-  resultadosDiv.innerHTML = "<div style='padding:10px;color:#777;'>Sin coincidencias</div>";
+  resultadosDiv.innerHTML = "<div class='result-item'>Sin coincidencias</div>";
   resultadosDiv.style.display = "block";
   window.beep(500);
 };
@@ -189,75 +218,22 @@ function procesarScanner(code) {
 }
 
 // ======================================================
-// 🔍 EVENTO DE INPUT DIRECTO
+// 🔍 EVENTO DE INPUT
 // ======================================================
 inputBuscador?.addEventListener("input", () => {
   window.ejecutarBusqueda();
 });
 
 // ======================================================
-// 🔍 BOTÓN BUSCAR MANUAL
+// 🔍 BOTÓN MANUAL
 // ======================================================
 $("#btnBuscarManual")?.addEventListener("click", () => {
   window.ejecutarBusqueda();
 });
 
 // ======================================================
-// 📷 BOTÓN ABRIR QR
+// 📷 QR
 // ======================================================
 $("#btnCam")?.addEventListener("click", () => {
   import("./pos-qr.js").then(m => m.activarQR());
-});
-
-import { db } from "./pos-firebase.js";
-
-// 🟦 Cache local para acelerar búsquedas
-let cacheProductos = new Map();
-
-// 🔍 Buscar por código de barras o parte del código
-export async function buscarProducto(codigo) {
-  if (!codigo || codigo.length < 3) return null;
-
-  // 🟩 1. Revisar cache primero
-  if (cacheProductos.has(codigo)) {
-    console.log("🔵 Producto desde cache");
-    return cacheProductos.get(codigo);
-  }
-
-  try {
-    // 🟦 2. Buscar en Firestore por el campo códigoBarra
-    const ref = db.collection("productos")
-                  .where("codigoBarra", "==", codigo);
-
-    const snap = await ref.get();
-
-    if (snap.empty) {
-      console.warn("❌ No existe producto con ese código");
-      return null;
-    }
-
-    // 🟦 3. Tomar el producto
-    let doc = snap.docs[0];
-    let data = doc.data();
-
-    // 🟦 4. Guardar en cache para búsquedas futuras
-    cacheProductos.set(codigo, data);
-
-    console.log("🟢 Producto cargado desde Firestore:", data);
-    return data;
-
-  } catch (err) {
-    console.error("🔥 Error consultando producto:", err);
-    return null;
-  }
-}
-
-document.getElementById("buscador").addEventListener("input", async (e) => {
-  const codigo = e.target.value.trim();
-
-  if (codigo.length < 3) return;
-
-  const prod = await buscarProducto(codigo);
-
-  mostrarResultados(prod);
 });
