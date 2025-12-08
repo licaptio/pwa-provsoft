@@ -132,6 +132,52 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 #pantallaVenta,#pantallaCarrito{transition:.25s}
 #pantallaCarrito{margin-top:10px}
 #btnRegresar{background:linear-gradient(180deg,#888,#666);color:#fff}
+/* 🔵 BARRA INFERIOR FIJA */
+#bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #003458;
+  padding: 10px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -3px 10px rgba(0,0,0,0.35);
+  z-index: 999;
+}
+
+/* 🔘 BOTONES DE LA BARRA */
+.bar-btn {
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  color: white;
+  min-width: 90px;
+  text-align: center;
+  transition: 0.15s;
+}
+
+.bar-btn:active {
+  transform: scale(0.95);
+}
+
+/* 🎛️ COLORES DE BOTONES */
+.bar-btn.azul {
+  background: linear-gradient(180deg, #0c6cbd, #094d85);
+}
+
+.bar-btn.rojo {
+  background: linear-gradient(180deg, #c0392b, #962d22);
+}
+
+.bar-btn.gris {
+  background: linear-gradient(180deg, #777, #555);
+}
+
 </style>
 
 </head>
@@ -267,10 +313,11 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 
 <!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
 <div id="bottomBar">
-  <button id="btnVerCarrito" class="bar-btn"> Test Funcion </button>
+  <button id="btnVerCarrito" class="bar-btn gris">⚙️ Test</button>
   <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
   <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
 </div>
+
 </div> <!-- 👈 cierre de #posApp --> 
 <!-- 📸 LIBRERÍAS EXTERNAS -->
 
