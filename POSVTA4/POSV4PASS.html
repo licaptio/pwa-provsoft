@@ -469,11 +469,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   ]);
 });
 
-  } catch (err) {
-    console.warn("⚠️ No se pudo restaurar sesión previa:", err);
-    localStorage.removeItem("usuario_ruta");
-  }
-});
 /* ===========================================================
    📦 CACHE DINÁMICO–PROVSOFT (SW)
    =========================================================== */
@@ -1359,7 +1354,32 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
 
-// ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
+function limpiarEstadoPOS() {
+  // 🛒 Carrito vacío
+  carrito = [];
+  render(0);
+
+  // 🧹 Limpieza de scanner
+  scanBuffer = "";
+  modoScanner = false;
+
+  // 🧽 limpiar buscador
+  if (buscador) {
+    buscador.value = "";
+    buscador.blur();
+    setTimeout(() => buscador.focus(), 300);
+  }
+
+  // 🔍 ocultar resultados
+  if (resultadosDiv) resultadosDiv.style.display = "none";
+
+  // 🧾 Cerrar modales
+  const modal = document.getElementById("modalCobro");
+  if (modal) modal.style.display = "none";
+
+  // 🎯 Cliente público de nuevo
+  clienteSeleccionado = { nombre: "PÚBLICO EN GENERAL" };
+}
 
 /* ===========================================================
    ✅ SECCIÓN 11.1: CONFIRMAR VENTA (VERSIÓN CORREGIDA)
@@ -1495,8 +1515,12 @@ return {
     carrito = [];
     renderDebounced();
     cerrarCobro();
-    pantallaCarrito.style.display = "none";
-    pantallaVenta.style.display = "flex";
+// 🔥 Reset POS después de venta
+limpiarEstadoPOS();
+
+// 🔄 Regresar VISTA
+if (pantallaVenta) pantallaVenta.style.display = "flex";
+if (carritoContainer) carritoContainer.style.display = "block";
     document.getElementById("buscador").focus();
 
   } catch (err) {
@@ -2567,34 +2591,6 @@ document.getElementById("btnTestGPS").addEventListener("click", async () => {
 document.getElementById("btnCorteRuta").addEventListener("click", () => {
   window.location.href = "corterutamovil.html";  // o el nombre que me digas
 });
-function limpiarEstadoPOS() {
-  carrito = [];
-  render(0);
-
-  // limpiamos buffers de escáner
-  scanBuffer = "";
-  modoScanner = false;
-
-  // vaciar buscador
-  const b = document.getElementById("buscador");
-  if (b) {
-    b.value = "";
-    b.blur();
-    setTimeout(() => b.focus(), 200);
-  }
-
-  // ocultar resultados de búsqueda
-  const r = document.getElementById("resultados");
-  if (r) r.style.display = "none";
-
-  // limpiar modal cobro si quedó abierto
-  const modal = document.getElementById("modalCobro");
-  if (modal) modal.style.display = "none";
-
-  // asegurar cliente público
-  clienteSeleccionado = { nombre: "PÚBLICO EN GENERAL" };
-}
-
 </script>
 
 
