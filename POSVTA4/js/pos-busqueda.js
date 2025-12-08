@@ -208,3 +208,47 @@ $("#btnBuscarManual")?.addEventListener("click", () => {
 $("#btnCam")?.addEventListener("click", () => {
   import("./pos-qr.js").then(m => m.activarQR());
 });
+
+import { db } from "./pos-firebase.js";
+
+// 🟦 Cache local para acelerar búsquedas
+let cacheProductos = new Map();
+
+// 🔍 Buscar por código de barras o parte del código
+export async function buscarProducto(codigo) {
+  if (!codigo || codigo.length < 3) return null;
+
+  // 🟩 1. Revisar cache primero
+  if (cacheProductos.has(codigo)) {
+    console.log("🔵 Producto desde cache");
+    return cacheProductos.get(codigo);
+  }
+
+  try {
+    // 🟦 2. Buscar en Firestore por el campo códigoBarra
+    const ref = db.collection("productos")
+                  .where("codigoBarra", "==", codigo);
+
+    const snap = await ref.get();
+
+    if (snap.empty) {
+      console.warn("❌ No existe producto con ese código");
+      return null;
+    }
+
+    // 🟦 3. Tomar el producto
+    let doc = snap.docs[0];
+    let data = doc.data();
+
+    // 🟦 4. Guardar en cache para búsquedas futuras
+    cacheProductos.set(codigo, data);
+
+    console.log("🟢 Producto cargado desde Firestore:", data);
+    return data;
+
+  } catch (err) {
+    console.error("🔥 Error consultando producto:", err);
+    return null;
+  }
+}
+
