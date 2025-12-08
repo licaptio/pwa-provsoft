@@ -1,19 +1,28 @@
-// ===============================
-// POS CORE – PROVSOFT
-// Manejo de carrito, totales y UI
-// ===============================
+// =====================================================
+// POS-CORE — PROVSOFT
+// Carrito, totales, utilidades globales
+// =====================================================
 
-// --------- VARIABLES GLOBALES ---------
+// ---- Variables Globales ----
 window.carrito = [];
 window.catalogo = [];
 window.departamentos = {};
-window.rutaId = null;
 window.USUARIO_LOGUEADO = null;
 window.clienteSeleccionado = null;
 
+// --------------------------------
+// 🔢 Formateo monetario rápido
+// --------------------------------
 window.money = n => "$" + (Number(n) || 0).toFixed(2);
+
+// --------------------------------
+// Acceso DOM cortito
+// --------------------------------
 window.$ = s => document.querySelector(s);
 
+// --------------------------------
+// Lista de productos con MAYOREO
+// --------------------------------
 window.productosMayoreo = [
   "08339412","08346917","75001315","75001322","75001476","75016777",
   "75021597","75031053","75035259","75046521","75046781","75052836",
@@ -22,8 +31,10 @@ window.productosMayoreo = [
   "75071776","75080495","7501020540666"
 ];
 
-// ========= BEEP UNIVERSAL =========
-window.beep = function (freq = 800, duration = 0.1) {
+// --------------------------------
+// 🔊 Beep universal
+// --------------------------------
+window.beep = (freq = 800, duration = 0.1) => {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -36,42 +47,46 @@ window.beep = function (freq = 800, duration = 0.1) {
   } catch {}
 };
 
-// ========= TOAST UNIVERSAL =========
-window.toast = function (msg, color = "#0c6cbd") {
+// --------------------------------
+// 🔥 Toast universal
+// --------------------------------
+window.toast = (msg, color = "#0c6cbd") => {
   const d = document.createElement("div");
   d.textContent = msg;
   d.style.cssText = `
     position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-    background:${color};color:white;padding:8px 12px;border-radius:12px;
-    font-size:14px;z-index:99999;opacity:0;transition:opacity .3s;
+    background:${color};color:white;padding:10px 14px;border-radius:14px;
+    font-size:15px;z-index:99999;opacity:0;transition:opacity .35s;
   `;
   document.body.appendChild(d);
-  setTimeout(() => (d.style.opacity = 1), 30);
+  setTimeout(() => (d.style.opacity = 1), 20);
   setTimeout(() => {
     d.style.opacity = 0;
     setTimeout(() => d.remove(), 400);
   }, 2200);
 };
 
-// ========= PRECIO POR CANTIDAD =========
-window.obtenerPrecioSegunCantidad = function (prod, cant) {
+// --------------------------------
+// 💰 Precio según cantidad
+// --------------------------------
+window.obtenerPrecioSegunCantidad = (prod, cant) => {
   if (!window.productosMayoreo.includes(String(prod.codigo))) {
     return Number(prod.precioPublico || 0);
   }
-  if (cant >= 5 && prod.mayoreo) {
-    return Number(prod.mayoreo);
-  }
+  if (cant >= 5 && prod.mayoreo) return Number(prod.mayoreo);
   return Number(prod.precioPublico || 0);
 };
 
-// ========= AGREGAR PRODUCTO =========
-window.addProduct = function (prod, cant = 1) {
+// --------------------------------
+// ➕ AGREGAR PRODUCTO
+// --------------------------------
+window.addProduct = (prod, cant = 1) => {
   if (!prod) return;
 
   cant = parseFloat(cant);
-  const existe = carrito.find(x => x.id === prod.id);
+  const existe = window.carrito.find(x => x.id === prod.id);
 
-  const precioCorrecto = obtenerPrecioSegunCantidad(
+  const precioCorrecto = window.obtenerPrecioSegunCantidad(
     prod,
     existe ? existe.cantidad + cant : cant
   );
@@ -81,7 +96,7 @@ window.addProduct = function (prod, cant = 1) {
     existe.precioUnit = precioCorrecto;
     existe.importe = existe.cantidad * precioCorrecto;
   } else {
-    carrito.push({
+    window.carrito.push({
       ...prod,
       cantidad: cant,
       precioUnit: precioCorrecto,
@@ -89,35 +104,41 @@ window.addProduct = function (prod, cant = 1) {
     });
   }
 
-  renderDebounced();
-  beep(850);
+  window.renderDebounced();
+  window.beep(900);
 };
 
-// ========= ELIMINAR PRODUCTO =========
-window.delItem = function (id) {
-  carrito = carrito.filter(p => p.id !== id);
-  renderDebounced();
+// --------------------------------
+// ❌ ELIMINAR PRODUCTO
+// --------------------------------
+window.delItem = id => {
+  window.carrito = window.carrito.filter(p => p.id !== id);
+  window.renderDebounced();
 };
 
-// ========= ACTUALIZAR CANTIDAD =========
-window.actualizarCantidad = function (id, nueva) {
-  const it = carrito.find(x => x.id === id);
+// --------------------------------
+// 🔄 ACTUALIZAR CANTIDAD
+// --------------------------------
+window.actualizarCantidad = (id, nueva) => {
+  const it = window.carrito.find(x => x.id === id);
   if (!it) return;
 
   const cant = parseFloat(nueva);
   if (isNaN(cant) || cant <= 0) return;
 
   it.cantidad = cant;
-  it.precioUnit = obtenerPrecioSegunCantidad(it, cant);
+  it.precioUnit = window.obtenerPrecioSegunCantidad(it, cant);
   it.importe = cant * it.precioUnit;
 
-  renderDebounced();
+  window.renderDebounced();
 };
 
-// ========= CALCULAR TOTALES =========
-window.calcularTotales = function (desc = 0) {
+// --------------------------------
+// 🧮 CALCULAR TOTALES
+// --------------------------------
+window.calcularTotales = (desc = 0) => {
   let subtotal = 0;
-  carrito.forEach(it => subtotal += it.importe);
+  window.carrito.forEach(it => subtotal += it.importe);
 
   const descMonto = subtotal * (desc / 100);
   const total = subtotal - descMonto;
@@ -130,29 +151,37 @@ window.calcularTotales = function (desc = 0) {
   };
 };
 
-// ========= RENDER =========
-window.render = function (desc = 0) {
+// --------------------------------
+// 🖼️ RENDER DEL CARRITO
+// --------------------------------
+window.render = (desc = 0) => {
   const tbody = $("#tbody");
-  tbody.innerHTML = carrito
+  if (!tbody) return;
+
+  tbody.innerHTML = window.carrito
     .map(it => `
       <tr>
         <td>${it.nombre}</td>
-        <td><input type="number" value="${it.cantidad}"
-              onchange="actualizarCantidad('${it.id}',this.value)"
-              style="width:60px;text-align:center;"></td>
+        <td>
+          <input type="number" value="${it.cantidad}"
+            onchange="actualizarCantidad('${it.id}',this.value)"
+            style="width:60px;text-align:center;">
+        </td>
         <td style="text-align:right;">${money(it.importe)}</td>
-        <td><button onclick="delItem('${it.id}')">×</button></td>
+        <td><button onclick="delItem('${it.id}')" style="background:#ff4444;color:#fff;">×</button></td>
       </tr>
     `)
     .join("");
 
-  const t = calcularTotales(desc);
+  const t = window.calcularTotales(desc);
+
   $("#lblSubtotal").textContent = money(t.subtotal);
   $("#lblTotal").textContent = money(t.total);
 };
 
-let timer;
-window.renderDebounced = function () {
+// Render con debounce
+let timer = null;
+window.renderDebounced = () => {
   clearTimeout(timer);
-  timer = setTimeout(render, 50);
+  timer = setTimeout(window.render, 35);
 };
