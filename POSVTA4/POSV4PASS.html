@@ -162,24 +162,28 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 <div class="main-content">
 
   <!-- 🎯 BLOQUE 3.1 — CONTROLES SUPERIORES -->
-  <section id="pantallaVenta" class="controls">
-    <!-- 🧍‍♂️ CAMPO CLIENTE -->
-    <div class="field">
-      <label>Cliente</label>
-      <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
-      <datalist id="clientesList"></datalist>
-    </div>
+<section id="pantallaVenta" class="controls">
 
-    <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
-    <div class="field searchbox">
-      <label>Buscar</label>
-      <input id="buscador" type="text" placeholder="Escribe o escanea código…">
-      <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
-      <button id="btnCam" class="cam-btn" type="button">📷</button>
-      <div id="resultados" class="search-results"></div>
-    </div>
-  </section>
-<!-- 🧪 PANTALLA DE PRUEBAS DEL POS -->
+  <!-- 🧍‍♂️ CAMPO CLIENTE -->
+  <div class="field">
+    <label>Cliente</label>
+    <input id="cliente" list="clientesList" type="text" placeholder="Nombre del cliente"/>
+    <datalist id="clientesList"></datalist>
+  </div>
+
+  <!-- 🔍 BUSCADOR DE PRODUCTOS CON CÁMARA -->
+  <div class="field searchbox">
+    <label>Buscar</label>
+    <input id="buscador" type="text" placeholder="Escribe o escanea código…">
+    <button id="btnBuscarManual" class="cam-btn" type="button" style="right:60px;">🔍</button>
+    <button id="btnCam" class="cam-btn" type="button">📷</button>
+    <div id="resultados" class="search-results"></div>
+  </div>
+
+</section> <!-- 👈 AQUI TERMINA LA PANTALLA DE VENTA -->
+
+
+<!-- 🧪 PANTALLA DE PRUEBAS DEL POS (CORRECTAMENTE FUERA DE VENTAS) -->
 <section id="pantallaTest" style="
   display:none;
   padding:15px;
@@ -227,6 +231,7 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 
 </section>
 
+
 <!-- 🧾 BLOQUE NUEVO — CARRITO FIJO -->
 <div id="carrito-container">
   <div class="table-wrap">
@@ -244,17 +249,16 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   </div>
 </div>
 
+<!-- 🔢 TOTALES -->
+<div class="totals">
+  <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
+  <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
+  <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
+</div>
 
-  <div class="totals">
-    <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
-    <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
-    <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
-  </div>
-
-  <div class="actions">
-    <button class="btn" id="btnCobrar">Cobrar</button>
-  </div>
-</section>
+<div class="actions">
+  <button class="btn" id="btnCobrar">Cobrar</button>
+</div>
 
 <!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
 <div id="bottomBar">
