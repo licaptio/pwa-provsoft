@@ -295,9 +295,10 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
                    font-size:16px;">🧾 Descuento</button>
     <button class="btn" id="btnCancelarCobro" 
             style="flex:1;background:#aaa;font-size:16px;">Cancelar</button>
-    <button class="btn" id="btnConfirmarCobro" 
-            style="flex:1;background:linear-gradient(180deg,#0c6cbd,#094d85);
-                   font-size:16px;">Confirmar</button>
+  <button class="btn" id="btnConfirmarCobro" type="button"
+        style="flex:1;background:linear-gradient(180deg,#0c6cbd,#094d85);
+               font-size:16px;">Confirmar</button>
+
   </div>
 </div>
   </div>
@@ -1087,7 +1088,8 @@ function beep(freq = 800, duration = 0.1) {
 
 // Permitir que el escáner la use
 window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
-// 🔍 Función central que ejecuta la búsqueda y muestra resultados
+window.ejecutarBusqueda = ejecutarBusquedaOriginal;  // ← ESTA LÍNEA NUEVA
+  // 🔍 Función central que ejecuta la búsqueda y muestra resultados
 async function ejecutarBusqueda(texto) {
   const balanza = decodificarBalanza(texto);
 
@@ -2362,50 +2364,6 @@ await html5QrCode.start(
     }
   }
 });
-
-// ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
-// 🔧 Ejecutar búsqueda REAL del POS
-window.ejecutarBusqueda = async function(texto) {
-  try {
-    // 1️⃣ Usa ejecutarBusquedaOriginal si existe
-    if (typeof window.ejecutarBusquedaOriginal === "function") {
-      return window.ejecutarBusquedaOriginal(texto);
-    }
-
-    // 2️⃣ Si no existe, buscar localmente
-    let resultados = buscarLocal(texto);
-
-    if (resultados.length === 0) {
-      resultados = await buscarEquivalenteRemoto(texto);
-    }
-
-    if (resultados.length === 1) {
-      seleccionarProducto(resultados[0]);
-      beep(950);
-      return;
-    }
-
-    if (resultados.length > 1) {
-      // Abre lista de coincidencias
-      resultadosDiv.innerHTML = "";
-      resultados.forEach(p => {
-        const item = document.createElement("div");
-        item.className = "result-item";
-        item.innerHTML = `<span>${p.nombre}</span><small>${money(p.precioPublico)}</small>`;
-        item.onclick = () => seleccionarProducto(p);
-        resultadosDiv.appendChild(item);
-      });
-      resultadosDiv.style.display = "block";
-      beep(750);
-      return;
-    }
-
-    toast("❌ Producto no encontrado", "#c0392b");
-
-  } catch (err) {
-    console.error("❌ Error ejecutarBusqueda:", err);
-  }
-};
 
 </script>
 
