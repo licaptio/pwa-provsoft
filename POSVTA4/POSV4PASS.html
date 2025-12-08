@@ -19,9 +19,14 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{
-height:100vh;display:flex;flex-direction:column;font-family:'Poppins',sans-serif;
-background:linear-gradient(to bottom right,#00416A,#E4E5E6);color:#111;
+height:100vh;
+display:flex;
+flex-direction:column;
+font-family:'Poppins',sans-serif;
+background:#00416A;
+color:#111;
 }
+
 header{
 position:sticky;top:0;z-index:50;background:rgba(0,0,0,.6);color:#fff;
 padding:8px 10px;display:flex;justify-content:center;align-items:center;
@@ -925,32 +930,27 @@ function calcularTotales(descPorc = 0) {
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
 function render(desc = 0) {
-  const tbody = $("#tbody");
-  tbody.innerHTML = "";
-
-  carrito.forEach(it => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+  const rows = carrito.map(it => `
+    <tr>
       <td>${it.nombre}</td>
       <td style="text-align:center">
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
-          style="width:70px;text-align:center;padding:4px;border-radius:6px;
-          border:1px solid #ccc;font-size:14px;"
-          onchange="actualizarCantidad('${it.id}', this.value)"
-          oninput="actualizarCantidad('${it.id}', this.value)">
+        onchange="actualizarCantidad('${it.id}',this.value)"
+        oninput="actualizarCantidad('${it.id}',this.value)"
+        style="width:70px;text-align:center;border-radius:6px;border:1px solid #ccc;">
       </td>
       <td style="text-align:right">${money(it.importe)}</td>
-      <td class='del-col'>
-        <button class='del' onclick="delItem('${it.id}')">×</button>
-      </td>`;
-    tbody.appendChild(tr);
-  });
+      <td class="del-col"><button class="del" onclick="delItem('${it.id}')">×</button></td>
+    </tr>`).join("");
 
-  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
-  $("#lblSubtotal").textContent = money(subtotal);
-  $("#lblImpuestos").textContent = money(impuestos);
-  $("#lblTotal").textContent = money(total);
+  $("#tbody").innerHTML = rows;
+
+  const t = calcularTotales(desc);
+  $("#lblSubtotal").textContent = money(t.subtotal);
+  $("#lblImpuestos").textContent = money(t.impuestos);
+  $("#lblTotal").textContent = money(t.total);
 }
+
 
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
@@ -1090,82 +1090,51 @@ function beep(freq = 800, duration = 0.1) {
 window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
 window.ejecutarBusqueda = ejecutarBusquedaOriginal;  // ← ESTA LÍNEA NUEVA
   // 🔍 Función central que ejecuta la búsqueda y muestra resultados
-async function ejecutarBusqueda(texto) {
-  const balanza = decodificarBalanza(texto);
+// ⚡ BÚSQUEDA ULTRARÁPIDA
+async function ejecutarBusqueda(q) {
+  q = (q || "").trim();
+  if (!q) return;
 
-  // ⚖️ Caso 1: Código de balanza detectado
-  if (balanza.esBalanza) {
-    console.log("⚖️ Código de balanza detectado:", balanza);
-
-    // 1️⃣ Buscar en equivalentes si ese código está vinculado
-    const ref = collection(db, "equivalentes");
-    const q = query(ref, where("codigo_equivalente", "==", balanza.codigoProducto));
-    const snap = await getDocs(q);
-
-    let codigoBase = balanza.codigoProducto;
-    if (!snap.empty) {
-      codigoBase = snap.docs[0].data().codigo_origen;
-      console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
-    }
-
-    // 2️⃣ Buscar el producto real
-    const producto = buscarLocal(codigoBase);
-if (producto.length > 0) {
-  const p = producto[0];
-  const peso = parseFloat(balanza.pesoKg.toFixed(3));
-  p.codigo = p.codigo || p.codigoBarra || "";
-  const total = p.precioPublico * peso;
-
-  // 🔹 Agrega directo al carrito con el peso correcto
-  addProduct(p, peso);
-
-  beep(950);
-  toast(`⚖️ ${p.nombre} (${peso.toFixed(3)} kg) – $${total.toFixed(2)}`, "#16a34a");
-  return;
-} 
-    else {
-      console.warn("❌ Producto de balanza no encontrado:", codigoBase);
-      toast("❌ Producto no encontrado en catálogo", "#dc2626");
-      return;
-    }
-  }
-
-  // 🧾 Caso 2: Código normal
-  let resultados = buscarLocal(texto);
-
-  if (resultados.length === 0) {
-    console.log("🔍 Buscando equivalencias remotas...");
-    resultados = await buscarEquivalenteRemoto(texto);
-  }
-
-  resultadosDiv.innerHTML = "";
-
-  if (resultados.length === 1) {
+  const bal = decodificarBalanza(q);
+  if (bal.esBalanza) {
+    const equiv = await buscarEquivalenteRemoto(bal.codigoProducto);
+    const base = equiv.length ? equiv[0] : (buscarLocal(bal.codigoProducto)[0]);
+    if (!base) return toast("❌ Producto no encontrado","#c0392b");
+    addProduct(base, bal.pesoKg);
     beep(950);
-    seleccionarProducto(resultados[0]);
-    resultadosDiv.style.display = "none";
-  } else if (resultados.length > 1) {
-    resultados.forEach(p => {
-      const item = document.createElement("div");
-      item.className = "result-item";
-      const regex = new RegExp(texto, "ig");
-      const nombreResaltado = p.nombre.replace(regex, m => `<strong style="color:#0c6cbd">${m}</strong>`);
-      item.innerHTML = `<span>${nombreResaltado}</span><small>${money(p.precioPublico)}</small>`;
-      item.addEventListener("click", () => {
-        beep(950);
-        seleccionarProducto(p);
-        resultadosDiv.style.display = "none";
-      });
-      resultadosDiv.appendChild(item);
-    });
-    resultadosDiv.style.display = "block";
-    beep(700);
-  } else {
-    resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
-    resultadosDiv.style.display = "block";
-    beep(500);
+    return;
   }
+
+  let res = buscarLocal(q);
+  if (!res.length) res = await buscarEquivalenteRemoto(q);
+  if (!res.length) {
+    resultadosDiv.innerHTML = "<div style='padding:10px;color:#777'>Sin coincidencias</div>";
+    resultadosDiv.style.display = "block";
+    return;
+  }
+
+  if (res.length === 1) {
+    beep(950); seleccionarProducto(res[0]);
+    return resultadosDiv.style.display="none";
+  }
+
+  // ⚡ render múltiple comprimido
+  resultadosDiv.innerHTML = res.map(p => `
+    <div class="result-item">
+      <span>${p.nombre}</span>
+      <small>${money(p.precioPublico)}</small>
+    </div>
+  `).join("");
+
+  [...resultadosDiv.children].forEach((el,i)=> el.onclick =()=>{
+    beep(950); seleccionarProducto(res[i]);
+    resultadosDiv.style.display="none";
+  });
+
+  resultadosDiv.style.display="block";
+  beep(750);
 }
+ 
 
 /* ===========================================================
    🔎 DETECTOR UNIVERSAL DE ESCÁNER (v4.1 híbrido Android/PC)
