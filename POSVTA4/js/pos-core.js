@@ -4,18 +4,17 @@
 // ===============================
 
 // --------- VARIABLES GLOBALES ---------
-export let carrito = [];
-export let catalogo = [];
-export let departamentos = {};
-export let rutaId = null;
-export let USUARIO_LOGUEADO = null;
-export let clienteSeleccionado = null;
+window.carrito = [];
+window.catalogo = [];
+window.departamentos = {};
+window.rutaId = null;
+window.USUARIO_LOGUEADO = null;
+window.clienteSeleccionado = null;
 
-export const money = n => "$" + (Number(n) || 0).toFixed(2);
+window.money = n => "$" + (Number(n) || 0).toFixed(2);
+window.$ = s => document.querySelector(s);
 
-export const $ = s => document.querySelector(s);
-
-export const productosMayoreo = [
+window.productosMayoreo = [
   "08339412","08346917","75001315","75001322","75001476","75016777",
   "75021597","75031053","75035259","75046521","75046781","75052836",
   "75056308","75059514","75063801","75064648","75066345","75068738",
@@ -24,7 +23,7 @@ export const productosMayoreo = [
 ];
 
 // ========= BEEP UNIVERSAL =========
-export function beep(freq = 800, duration = 0.1) {
+window.beep = function (freq = 800, duration = 0.1) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -35,10 +34,10 @@ export function beep(freq = 800, duration = 0.1) {
     osc.start();
     osc.stop(ctx.currentTime + duration);
   } catch {}
-}
+};
 
 // ========= TOAST UNIVERSAL =========
-export function toast(msg, color = "#0c6cbd") {
+window.toast = function (msg, color = "#0c6cbd") {
   const d = document.createElement("div");
   d.textContent = msg;
   d.style.cssText = `
@@ -48,28 +47,34 @@ export function toast(msg, color = "#0c6cbd") {
   `;
   document.body.appendChild(d);
   setTimeout(() => (d.style.opacity = 1), 30);
-  setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 400); }, 2200);
-}
+  setTimeout(() => {
+    d.style.opacity = 0;
+    setTimeout(() => d.remove(), 400);
+  }, 2200);
+};
 
 // ========= PRECIO POR CANTIDAD =========
-export function obtenerPrecioSegunCantidad(prod, cant) {
-  if (!productosMayoreo.includes(String(prod.codigo))) {
+window.obtenerPrecioSegunCantidad = function (prod, cant) {
+  if (!window.productosMayoreo.includes(String(prod.codigo))) {
     return Number(prod.precioPublico || 0);
   }
   if (cant >= 5 && prod.mayoreo) {
     return Number(prod.mayoreo);
   }
   return Number(prod.precioPublico || 0);
-}
+};
 
 // ========= AGREGAR PRODUCTO =========
-export function addProduct(prod, cant = 1) {
+window.addProduct = function (prod, cant = 1) {
   if (!prod) return;
 
   cant = parseFloat(cant);
   const existe = carrito.find(x => x.id === prod.id);
 
-  const precioCorrecto = obtenerPrecioSegunCantidad(prod, existe ? existe.cantidad + cant : cant);
+  const precioCorrecto = obtenerPrecioSegunCantidad(
+    prod,
+    existe ? existe.cantidad + cant : cant
+  );
 
   if (existe) {
     existe.cantidad += cant;
@@ -86,16 +91,16 @@ export function addProduct(prod, cant = 1) {
 
   renderDebounced();
   beep(850);
-}
+};
 
 // ========= ELIMINAR PRODUCTO =========
-export function delItem(id) {
+window.delItem = function (id) {
   carrito = carrito.filter(p => p.id !== id);
   renderDebounced();
-}
+};
 
 // ========= ACTUALIZAR CANTIDAD =========
-export function actualizarCantidad(id, nueva) {
+window.actualizarCantidad = function (id, nueva) {
   const it = carrito.find(x => x.id === id);
   if (!it) return;
 
@@ -107,12 +112,11 @@ export function actualizarCantidad(id, nueva) {
   it.importe = cant * it.precioUnit;
 
   renderDebounced();
-}
+};
 
 // ========= CALCULAR TOTALES =========
-export function calcularTotales(desc = 0) {
+window.calcularTotales = function (desc = 0) {
   let subtotal = 0;
-
   carrito.forEach(it => subtotal += it.importe);
 
   const descMonto = subtotal * (desc / 100);
@@ -124,10 +128,10 @@ export function calcularTotales(desc = 0) {
     total: total.toFixed(2),
     impuestos: 0
   };
-}
+};
 
 // ========= RENDER =========
-export function render(desc = 0) {
+window.render = function (desc = 0) {
   const tbody = $("#tbody");
   tbody.innerHTML = carrito
     .map(it => `
@@ -145,16 +149,10 @@ export function render(desc = 0) {
   const t = calcularTotales(desc);
   $("#lblSubtotal").textContent = money(t.subtotal);
   $("#lblTotal").textContent = money(t.total);
-}
+};
 
 let timer;
-export function renderDebounced() {
+window.renderDebounced = function () {
   clearTimeout(timer);
   timer = setTimeout(render, 50);
-}
-
-// Exponer para HTML
-window.addProduct = addProduct;
-window.render = render;
-window.actualizarCantidad = actualizarCantidad;
-window.delItem = delItem;
+};
