@@ -940,7 +940,7 @@ function calcularTotales(descPorc = 0) {
 
 function acortarNombre(nombre) {
   if (!nombre) return "";
-  const max = 12; // cámbialo a 7 si quieres más compacto
+  const max = 10; // cámbialo a 7 si quieres más compacto
   return nombre.length > max
     ? nombre.substring(0, max) + "…"
     : nombre;
