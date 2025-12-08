@@ -1164,9 +1164,13 @@ if (producto.length > 0) {
     resultadosDiv.style.display = "block";
     beep(700);
   } else {
-    resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
-    resultadosDiv.style.display = "block";
-    beep(500);
+resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
+resultadosDiv.style.display = "block";
+beep(500);
+
+// 🔥 Reset seguro del escáner para evitar bloqueo
+resetScanner();
+
   }
 }
 
@@ -1176,6 +1180,13 @@ if (producto.length > 0) {
 let scanBuffer = "";
 let scanTimer = null;
 let modoScanner = false;
+
+  function resetScanner() {
+  scanBuffer = "";
+  modoScanner = false;
+  clearTimeout(scanTimer);
+  buscador.value = "";
+}
 
 function procesarCodigoEscaneado(codigo) {
   const limpio = codigo.trim();
