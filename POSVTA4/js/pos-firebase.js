@@ -54,7 +54,7 @@ async function loginUsuario() {
   }
 
   try {
-    const ref = db.collection("usuarios").doc(user);
+    const ref = db.collection("usuarios_ruta").doc(user);
     const snap = await ref.get();
 
     if (!snap.exists) {
@@ -190,4 +190,5 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
+
 
