@@ -1,25 +1,18 @@
 // ==========================================================
 // POS-MODALS — PROVSOFT
-// Manejo de modal de cobro y flujo final
+// Manejo del modal de cobro y bloqueo total del POS
 // ==========================================================
 
-// Tomamos funciones desde window
 const toast = window.toast;
 const beep = window.beep;
 const calcularTotales = window.calcularTotales;
 const guardarEImprimir = window.guardarEImprimir;
-
-// Atajos
 const $ = s => document.querySelector(s);
 
 // ==========================================================
-// 🛑 BANDERA GLOBAL PARA BLOQUEAR BUSCADOR Y ESCÁNER
+// 🔥 CONTROL GLOBAL PARA BLOQUEAR TODA LA PANTALLA
 // ==========================================================
-window.MODO_COBRO = false;   // 🔥 Se activa al abrir cobro y se desactiva al cerrar
-
-// =====================================================================
-// 🧾 MODAL DE COBRO (USAMOS EL QUE YA ESTÁ EN TU HTML — NO SE CREA OTRO)
-// =====================================================================
+window.MODO_COBRO = false;
 
 const modalCobro = $("#modalCobro");
 const lblTotal = $("#cobroTotal");
@@ -28,13 +21,12 @@ const btnConfirmar = $("#btnConfirmarCobro");
 const inputMonto = $("#montoRecibido");
 const lblCambio = $("#montoCambio");
 
-// --------------------------------------
+// ==========================================================
 // 🔵 ABRIR MODAL DE COBRO
-// --------------------------------------
+// ==========================================================
 function abrirModalCobro() {
 
-  // 🔥 Bloquear buscador y escáner
-  window.MODO_COBRO = true;
+  window.MODO_COBRO = true; // Bloqueo global
 
   const tot = calcularTotales();
   lblTotal.textContent = "$" + Number(tot.total).toFixed(2);
@@ -45,98 +37,94 @@ function abrirModalCobro() {
 
   beep(900);
 
-  // 🔥 Forzar enfoque al input del cobro
   setTimeout(() => {
     inputMonto.focus();
     inputMonto.select();
-  }, 120);
+  }, 100);
 }
 
-// --------------------------------------
-// 🔴 CERRAR MODAL
-// --------------------------------------
+// ==========================================================
+// 🔴 CERRAR MODAL DE COBRO
+// ==========================================================
 function cerrarModalCobro() {
-
-  // 🔥 Reactivar buscador y escáner
-  window.MODO_COBRO = false;
+  window.MODO_COBRO = false; // Reactivar POS
 
   modalCobro.style.display = "none";
 }
 
-// --------------------------------------
-// 🧮 CALCULAR CAMBIO EN TIEMPO REAL
-// --------------------------------------
+// ==========================================================
+// 🧮 CALCULAR CAMBIO
+// ==========================================================
 inputMonto?.addEventListener("input", () => {
   const recibido = Number(inputMonto.value) || 0;
   const tot = Number(calcularTotales().total);
-
   const cambio = recibido - tot;
+
   lblCambio.textContent = "$" + cambio.toFixed(2);
 });
 
-// --------------------------------------
-// ❌ BOTÓN CANCELAR
-// --------------------------------------
+// ==========================================================
+// ❌ CANCELAR COBRO
+// ==========================================================
 btnCancelarCobro?.addEventListener("click", () => {
   cerrarModalCobro();
 });
 
-// --------------------------------------
-// ✅ CONFIRMAR COBRO → GUARDAR → IMPRIMIR
-// --------------------------------------
+// ==========================================================
+// ✅ CONFIRMAR COBRO → GUARDAR E IMPRIMIR
+// ==========================================================
 btnConfirmar?.addEventListener("click", async () => {
   cerrarModalCobro();
   await guardarEImprimir("EFECTIVO");
 });
 
-// --------------------------------------
-// 📦 EXPONER GLOBALMENTE
-// --------------------------------------
+// ==========================================================
+// 📦 EXPONER
+// ==========================================================
 window.abrirModalCobro = abrirModalCobro;
 window.cerrarModalCobro = cerrarModalCobro;
 
-// --------------------------------------
-// 🟦 BOTÓN PRINCIPAL "COBRAR"
-// --------------------------------------
-$("#btnCobrar")?.addEventListener("click", () => {
-  if (window.carrito.length === 0) {
-    toast("Carrito vacío", "#c0392b");
-    return;
+// ==========================================================
+// ⚠️ BLOQUEO TOTAL DEL POS DURANTE COBRO
+// ==========================================================
+
+// 🛑 Bloquear clics fuera del modal
+document.addEventListener("click", e => {
+  if (!window.MODO_COBRO) return;
+
+  if (!modalCobro.contains(e.target)) {
+    e.stopPropagation();
+    e.preventDefault();
   }
-  abrirModalCobro();
-});
+}, true);
 
-// ==========================================================
-// 🛑 BLOQUEO TOTAL DEL TECLADO CUANDO EL MODAL DE COBRO ESTÁ ABIERTO
-// ==========================================================
+// 🛑 Bloquear scroll
+document.addEventListener("wheel", e => {
+  if (window.MODO_COBRO) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+}, { passive: false });
 
-document.addEventListener("keydown", function(e) {
+// 🛑 Bloqueo del teclado
+document.addEventListener("keydown", e => {
 
-  // Si el modal NO está visible → no bloquear nada
-  if (modalCobro.style.display === "none") return;
+  if (!window.MODO_COBRO) return;
 
-  // Si el focus está en el input del monto recibido → PERMITIR SOLO NÚMEROS
+  // Si está en el input de monto SOLO permitir números y control
   if (document.activeElement === inputMonto) {
 
-    // Permitir: números, borrar, flechas, tab, enter
     const permitido = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"];
 
-    if (/^[0-9]$/.test(e.key)) {
-      return; // permitir números
-    }
+    if (/^[0-9]$/.test(e.key)) return;
+    if (permitido.includes(e.key)) return;
 
-    if (permitido.includes(e.key)) {
-      return; // permitir teclas control
-    }
-
-    // ❌ cualquier otra tecla queda bloqueada
     e.preventDefault();
     e.stopPropagation();
     return;
   }
 
-  // 🔥 Si el focus NO está dentro del input del modal → bloquear TODO
+  // Si está fuera del input → bloquear TODO
   e.preventDefault();
   e.stopPropagation();
-});
-
+}, true);
