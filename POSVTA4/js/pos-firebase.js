@@ -54,26 +54,20 @@ async function loginUsuario() {
   }
 
   try {
-const q = await db.collection("usuarios_ruta")
-  .where("usuario", "==", user)
-  .limit(1)
-  .get();
+    // Buscar por CAMPO usuario
+    const q = await db.collection("usuarios_ruta")
+      .where("usuario", "==", user)
+      .limit(1)
+      .get();
 
-if (q.empty) {
-  toast("Usuario no encontrado", "#c0392b");
-  return;
-}
-
-const data = q.docs[0].data();
-
-    if (!snap.exists) {
+    if (q.empty) {
       toast("Usuario no encontrado", "#c0392b");
       return;
     }
 
-    const data = snap.data();
+    const usuarioData = q.docs[0].data();
 
-    if (data.password !== pass) {
+    if (usuarioData.password !== pass) {
       toast("Contraseña incorrecta", "#c0392b");
       return;
     }
@@ -86,7 +80,7 @@ const data = q.docs[0].data();
     $("#posApp").style.display = "block";
 
     beep(800);
-    toast("Bienvenido " + data.nombre);
+    toast("Bienvenido " + usuarioData.nombre);
 
     await cargarCatalogo();
     await cargarDepartamentos();
@@ -200,6 +194,7 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
+
 
 
 
