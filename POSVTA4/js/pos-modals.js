@@ -1,123 +1,92 @@
 // ==========================================================
 // POS-MODALS — PROVSOFT
-// Manejo de modal de cantidad, modal de cobro y flujo final
+// Manejo de modal de cobro y flujo final
 // ==========================================================
 
-// Todos los valores vienen desde window (sin imports)
+// Tomamos funciones desde window
+const toast = window.toast;
+const beep = window.beep;
+const calcularTotales = window.calcularTotales;
+const guardarEImprimir = window.guardarEImprimir;
+
+// Atajos
 const $ = s => document.querySelector(s);
 
-// ===============================
-// 🔢 MODAL CANTIDAD
-// ===============================
+// =====================================================================
+// 🧾 MODAL DE COBRO (USAMOS EL QUE YA ESTÁ EN TU HTML — NO SE CREA OTRO)
+// =====================================================================
 
-const modalCantidad = $("#modalCantidad");
-const inputCantidadModal = $("#inputCantidadModal");
-let productoActual = null;
+const modalCobro = $("#modalCobro");
+const lblTotal = $("#cobroTotal");
+const btnCancelarCobro = $("#btnCancelarCobro");
+const btnConfirmar = $("#btnConfirmarCobro");
+const inputMonto = $("#montoRecibido");
+const lblCambio = $("#montoCambio");
 
-window.abrirModalCantidad = function (prod) {
-  productoActual = prod;
-  inputCantidadModal.value = prod.cantidad || 1;
-  modalCantidad.style.display = "flex";
-  inputCantidadModal.focus();
-};
-
-function cerrarModalCantidad() {
-  modalCantidad.style.display = "none";
-  productoActual = null;
-}
-
-$("#btnCancelarCant")?.addEventListener("click", cerrarModalCantidad);
-
-$("#btnAceptarCant")?.addEventListener("click", () => {
-  const nueva = parseFloat(inputCantidadModal.value);
-
-  if (!nueva || nueva <= 0) {
-    window.toast("Cantidad inválida", "#c0392b");
-    return;
-  }
-
-  productoActual.cantidad = nueva;
-  productoActual.importe = nueva * productoActual.precioUnit;
-
-  cerrarModalCantidad();
-  window.render();
-});
-
-
-// ===============================
-// 💵 MODAL COBRAR
-// ===============================
-
-const modalCobro = document.createElement("div");
-modalCobro.id = "modalCobro";
-modalCobro.style.cssText = `
-   position:fixed;inset:0;background:rgba(0,0,0,.5);
-   display:none;z-index:4000;align-items:center;justify-content:center;
-`;
-modalCobro.innerHTML = `
-  <div style="background:white;padding:20px;border-radius:12px;
-              width:85%;max-width:350px;text-align:center;">
-    <h3 style="color:#00416A;margin-bottom:10px;">Confirmar Pago</h3>
-
-    <div style="font-size:18px;margin-bottom:10px;">
-      Total: <strong id="totalCobroLbl">$0.00</strong>
-    </div>
-
-    <button id="pagoEfectivo" class="btn"
-       style="margin-top:8px;background:#1e8e3e;width:100%;">
-       Efectivo
-    </button>
-
-    <button id="pagoTarjeta" class="btn"
-       style="margin-top:8px;background:#0c6cbd;width:100%;">
-       Tarjeta
-    </button>
-
-    <button id="btnCancelarCobro" class="btn"
-       style="margin-top:12px;background:#aaa;width:100%;">
-       Cancelar
-    </button>
-  </div>
-`;
-document.body.appendChild(modalCobro);
-
-
+// --------------------------------------
+// 🔵 ABRIR MODAL DE COBRO
+// --------------------------------------
 function abrirModalCobro() {
-  const tot = window.calcularTotales();
-  $("#totalCobroLbl").textContent = "$" + Number(tot.total).toFixed(2);
+  const tot = calcularTotales();
+
+  lblTotal.textContent = "$" + Number(tot.total).toFixed(2);
+
   modalCobro.style.display = "flex";
+  inputMonto.value = "";
+  lblCambio.textContent = "$0.00";
+
+  beep(900);
+
+  setTimeout(() => inputMonto.focus(), 150);
 }
 
+// --------------------------------------
+// 🔴 CERRAR MODAL
+// --------------------------------------
 function cerrarModalCobro() {
   modalCobro.style.display = "none";
 }
 
-$("#btnCancelarCobro")?.addEventListener("click", cerrarModalCobro);
+// --------------------------------------
+// 🧮 CALCULAR CAMBIO EN TIEMPO REAL
+// --------------------------------------
+inputMonto?.addEventListener("input", () => {
+  const recibido = Number(inputMonto.value) || 0;
+  const tot = Number(calcularTotales().total);
 
-
-// ===============================
-// 🧾 COBRAR → GUARDAR → IMPRIMIR
-// ===============================
-
-$("#pagoEfectivo")?.addEventListener("click", async () => {
-  cerrarModalCobro();
-  await window.guardarEImprimir("EFECTIVO");
+  const cambio = recibido - tot;
+  lblCambio.textContent = "$" + cambio.toFixed(2);
 });
 
-$("#pagoTarjeta")?.addEventListener("click", async () => {
+// --------------------------------------
+// ❌ BOTÓN CANCELAR
+// --------------------------------------
+btnCancelarCobro?.addEventListener("click", () => {
   cerrarModalCobro();
-  await window.guardarEImprimir("TARJETA");
 });
 
+// --------------------------------------
+// ✅ CONFIRMAR COBRO → GUARDAR → IMPRIMIR
+// --------------------------------------
+btnConfirmar?.addEventListener("click", async () => {
+  cerrarModalCobro();
+  await guardarEImprimir("EFECTIVO");
+});
 
-// ===============================
+// --------------------------------------
+// 📦 EXPONER GLOBALMENTE
+// --------------------------------------
+window.abrirModalCobro = abrirModalCobro;
+window.cerrarModalCobro = cerrarModalCobro;
+
+// --------------------------------------
 // 🟦 BOTÓN PRINCIPAL "COBRAR"
-// ===============================
+// --------------------------------------
 $("#btnCobrar")?.addEventListener("click", () => {
   if (window.carrito.length === 0) {
-    window.toast("Carrito vacío", "#c0392b");
+    toast("Carrito vacío", "#c0392b");
     return;
   }
-  window.beep(900);
+
   abrirModalCobro();
 });
