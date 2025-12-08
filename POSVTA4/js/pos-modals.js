@@ -12,6 +12,11 @@ const guardarEImprimir = window.guardarEImprimir;
 // Atajos
 const $ = s => document.querySelector(s);
 
+// ==========================================================
+// 🛑 BANDERA GLOBAL PARA BLOQUEAR BUSCADOR Y ESCÁNER
+// ==========================================================
+window.MODO_COBRO = false;   // 🔥 Se activa al abrir cobro y se desactiva al cerrar
+
 // =====================================================================
 // 🧾 MODAL DE COBRO (USAMOS EL QUE YA ESTÁ EN TU HTML — NO SE CREA OTRO)
 // =====================================================================
@@ -27,8 +32,11 @@ const lblCambio = $("#montoCambio");
 // 🔵 ABRIR MODAL DE COBRO
 // --------------------------------------
 function abrirModalCobro() {
-  const tot = calcularTotales();
 
+  // 🔥 Bloquear buscador y escáner
+  window.MODO_COBRO = true;
+
+  const tot = calcularTotales();
   lblTotal.textContent = "$" + Number(tot.total).toFixed(2);
 
   modalCobro.style.display = "flex";
@@ -37,13 +45,21 @@ function abrirModalCobro() {
 
   beep(900);
 
-  setTimeout(() => inputMonto.focus(), 150);
+  // 🔥 Forzar enfoque al input del cobro
+  setTimeout(() => {
+    inputMonto.focus();
+    inputMonto.select();
+  }, 120);
 }
 
 // --------------------------------------
 // 🔴 CERRAR MODAL
 // --------------------------------------
 function cerrarModalCobro() {
+
+  // 🔥 Reactivar buscador y escáner
+  window.MODO_COBRO = false;
+
   modalCobro.style.display = "none";
 }
 
@@ -87,6 +103,5 @@ $("#btnCobrar")?.addEventListener("click", () => {
     toast("Carrito vacío", "#c0392b");
     return;
   }
-
   abrirModalCobro();
 });
