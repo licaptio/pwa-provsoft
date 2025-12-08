@@ -453,19 +453,22 @@ window.addEventListener("DOMContentLoaded", async () => {
   const guardado = localStorage.getItem("usuario_ruta");
   if (!guardado) return;
 
-  try {
-    USUARIO_LOGUEADO = JSON.parse(guardado);
-    rutaId = USUARIO_LOGUEADO?.rutaId || null;
-    console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
+  USUARIO_LOGUEADO = JSON.parse(guardado);
+  rutaId = USUARIO_LOGUEADO?.rutaId || null;
 
-    $("#loginScreen").style.display = "none";
-    $("#posApp").style.display = "block";
+  // 🔥 LIMPIEZA COMPLETA DEL POS
+  limpiarEstadoPOS();
 
-    await Promise.all([
-      cargarCatalogo(),
-      cargarDepartamentos(),
-      fijarClientePublico()
-    ]);
+  $("#loginScreen").style.display = "none";
+  $("#posApp").style.display = "block";
+
+  await Promise.all([
+    cargarCatalogo(),
+    cargarDepartamentos(),
+    fijarClientePublico()
+  ]);
+});
+
   } catch (err) {
     console.warn("⚠️ No se pudo restaurar sesión previa:", err);
     localStorage.removeItem("usuario_ruta");
@@ -2564,6 +2567,33 @@ document.getElementById("btnTestGPS").addEventListener("click", async () => {
 document.getElementById("btnCorteRuta").addEventListener("click", () => {
   window.location.href = "corterutamovil.html";  // o el nombre que me digas
 });
+function limpiarEstadoPOS() {
+  carrito = [];
+  render(0);
+
+  // limpiamos buffers de escáner
+  scanBuffer = "";
+  modoScanner = false;
+
+  // vaciar buscador
+  const b = document.getElementById("buscador");
+  if (b) {
+    b.value = "";
+    b.blur();
+    setTimeout(() => b.focus(), 200);
+  }
+
+  // ocultar resultados de búsqueda
+  const r = document.getElementById("resultados");
+  if (r) r.style.display = "none";
+
+  // limpiar modal cobro si quedó abierto
+  const modal = document.getElementById("modalCobro");
+  if (modal) modal.style.display = "none";
+
+  // asegurar cliente público
+  clienteSeleccionado = { nombre: "PÚBLICO EN GENERAL" };
+}
 
 </script>
 
