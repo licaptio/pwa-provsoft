@@ -3,53 +3,26 @@
 // Búsqueda local + Firestore + balanza + FIXES FULL
 // ======================================================
 
-// ------------------------------------
-// Acceso rápido al DOM
-// ------------------------------------
 const $ = s => document.querySelector(s);
 const inputBuscador = $("#buscador");
 const resultadosDiv = $("#resultados");
 
 import { db } from "./pos-firebase.js";
 
-// ------------------------------------
-// 🟦 Cache Firestore
-// ------------------------------------
 let cacheProductos = new Map();
 
 // ======================================================
-// 🟦 NORMALIZACIÓN UNIVERSAL DE PRODUCTOS
+// NORMALIZACIÓN UNIVERSAL
 // ======================================================
 function normalizarProducto(prod, idForzado = null) {
   if (!prod) return null;
 
   return {
     id: idForzado || prod.id || prod.codigo || prod.codigoBarra || "",
-
-    nombre:
-      prod.nombre ||
-      prod.concepto ||
-      prod.descripcion ||
-      "SIN NOMBRE",
-
-    precioPublico:
-      prod.precioPublico ||
-      prod.precio ||
-      0,
-
-    codigo:
-      prod.codigo ||
-      prod.codigoBarra ||
-      prod.clave ||
-      "",
-
-    clave:
-      prod.clave ||
-      prod.codigo ||
-      prod.codigoBarra ||
-      idForzado ||
-      null,
-
+    nombre: prod.nombre || prod.concepto || prod.descripcion || "SIN NOMBRE",
+    precioPublico: prod.precioPublico || prod.precio || 0,
+    codigo: prod.codigo || prod.codigoBarra || prod.clave || "",
+    clave: prod.clave || prod.codigo || prod.codigoBarra || idForzado || null,
     mayoreo: prod.mayoreo ?? null,
     medioMayoreo: prod.medioMayoreo ?? null,
     departamento: prod.departamento || "",
@@ -59,22 +32,19 @@ function normalizarProducto(prod, idForzado = null) {
 }
 
 // ======================================================
-// 🔒 FIX GLOBAL — BLOQUEAR ESCÁNER Y BUSCADOR EN MODO COBRO
+// FIX — BLOQUEO TOTAL DURANTE COBRO
 // ======================================================
 function bloqueoCobro() {
-  return window.MODO_COBRO === true;  // 🔥 bandera global del archivo pos-modals.js
+  return window.MODO_COBRO === true;
 }
 
-// ======================================================
-// 🔒 SOLO BUSCADOR ACTIVO SI TIENE FOCUS Y NO ESTAMOS COBRANDO
-// ======================================================
 function buscadorActivo() {
   if (bloqueoCobro()) return false;
   return document.activeElement === inputBuscador;
 }
 
 // ======================================================
-// 🔍 BÚSQUEDA LOCAL
+// BÚSQUEDA LOCAL
 // ======================================================
 window.buscarLocal = function (texto) {
   if (!texto) return [];
@@ -90,7 +60,7 @@ window.buscarLocal = function (texto) {
 };
 
 // ======================================================
-// 🔥 BUSCAR PRODUCTO EN FIRESTORE POR CÓDIGO
+// FIRESTORE
 // ======================================================
 async function buscarProductoFirestore(codigo) {
   if (!codigo || codigo.length < 3) return null;
@@ -105,7 +75,7 @@ async function buscarProductoFirestore(codigo) {
 
     if (snap.empty) return null;
 
-    let doc = snap.docs[0];
+    const doc = snap.docs[0];
     const prod = normalizarProducto(doc.data(), doc.id);
 
     cacheProductos.set(codigo, prod);
@@ -118,7 +88,7 @@ async function buscarProductoFirestore(codigo) {
 }
 
 // ======================================================
-// ⚖️ CÓDIGOS DE BALANZA
+// BALANZA
 // ======================================================
 function esBalanza(code) {
   return code.length >= 13 && code.startsWith("20");
@@ -132,7 +102,7 @@ function parsearBalanza(code) {
 }
 
 // ======================================================
-// ✔ SELECCIONAR PRODUCTO
+// SELECCIONAR PRODUCTO
 // ======================================================
 function seleccionarProducto(prod, cantidad = 1) {
   if (!prod) return;
@@ -142,7 +112,7 @@ function seleccionarProducto(prod, cantidad = 1) {
 }
 
 // ======================================================
-// ✔ OCULTAR RESULTADOS
+// OCULTAR RESULTADOS
 // ======================================================
 function ocultarResultados() {
   resultadosDiv.innerHTML = "";
@@ -150,7 +120,7 @@ function ocultarResultados() {
 }
 
 // ======================================================
-// ✔ MOSTRAR LISTA
+// MOSTRAR LISTA
 // ======================================================
 function mostrarLista(list, texto) {
   resultadosDiv.innerHTML = "";
@@ -177,29 +147,23 @@ function mostrarLista(list, texto) {
 }
 
 // ======================================================
-// 🔎 EJECUTAR BÚSQUEDA PRINCIPAL
+// EJECUTAR BÚSQUEDA
 // ======================================================
 window.ejecutarBusqueda = async function () {
 
-  // 👉 BLOQUEO TOTAL EN MODO COBRO
   if (bloqueoCobro()) return;
-
   if (!buscadorActivo()) return;
 
   const texto = inputBuscador.value.trim();
-
   if (!texto) {
     ocultarResultados();
     return;
   }
 
-  // 1) BALANZA
+  // BALANZA
   if (esBalanza(texto)) {
     const { clave, pesoKg } = parsearBalanza(texto);
-
-    let prod = window.catalogo.find(
-      p => p.codigo === clave || p.clave === clave
-    );
+    let prod = window.catalogo.find(p => p.codigo === clave || p.clave === clave);
 
     if (!prod) {
       window.toast("Producto de balanza no existe", "#dc2626");
@@ -207,22 +171,21 @@ window.ejecutarBusqueda = async function () {
     }
 
     seleccionarProducto(prod, pesoKg);
-
     inputBuscador.value = "";
     window.beep(900);
     return;
   }
 
-  // 2) LOCAL
+  // LOCAL
   let resultados = window.buscarLocal(texto);
 
-  // 3) FIRESTORE
+  // FIRESTORE
   if (resultados.length === 0) {
     const prodFS = await buscarProductoFirestore(texto);
     if (prodFS) resultados = [prodFS];
   }
 
-  // 4) RESULTADOS
+  // RESULTADOS
   if (resultados.length === 1) {
     seleccionarProducto(resultados[0]);
     window.beep(900);
@@ -241,17 +204,14 @@ window.ejecutarBusqueda = async function () {
 };
 
 // ======================================================
-// 🔠 ESCÁNER POR TECLADO (Lector de barras)
+// ESCÁNER POR TECLADO
 // ======================================================
 let bufferScanner = "";
 let scannerTimer = null;
 
 document.addEventListener("keydown", e => {
 
-  // 👉 BLOQUE COMPLETO DE ESCANEO EN MODO COBRO
   if (bloqueoCobro()) return;
-
-  // 👉 SOLO ESCANEA SI EL BUSCADOR TIENE FOCUS
   if (document.activeElement !== inputBuscador) return;
 
   if (e.key === "Enter") {
@@ -274,13 +234,11 @@ function procesarScanner(code) {
 }
 
 // ======================================================
-// 🔍 INPUT + DEBOUNCE AVANZADO
+// INPUT DEBOUNCE
 // ======================================================
 let typingTimer = null;
 
 inputBuscador?.addEventListener("input", () => {
-
-  // 👉 BLOQUE TOTAL EN MODO COBRO
   if (bloqueoCobro()) return;
 
   clearTimeout(typingTimer);
@@ -290,7 +248,7 @@ inputBuscador?.addEventListener("input", () => {
 });
 
 // ======================================================
-// 🔍 BOTÓN MANUAL
+// BOTÓN MANUAL
 // ======================================================
 $("#btnBuscarManual")?.addEventListener("click", () => {
   if (bloqueoCobro()) return;
@@ -298,7 +256,7 @@ $("#btnBuscarManual")?.addEventListener("click", () => {
 });
 
 // ======================================================
-// 📷 QR
+// QR
 // ======================================================
 $("#btnCam")?.addEventListener("click", () => {
   if (bloqueoCobro()) return;
