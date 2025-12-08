@@ -3,13 +3,13 @@
 // Login, catálogo, departamentos y guardar ventas
 // ======================================================
 
-// Usamos funciones del core desde window (SIN IMPORTS)
+// Funciones globales
 const toast = window.toast;
 const beep = window.beep;
 const render = window.render;
 const calcularTotales = window.calcularTotales;
 
-// Variables compartidas del core
+// Variables globales del core
 const carrito = window.carrito;
 const catalogo = window.catalogo;
 const departamentos = window.departamentos;
@@ -17,8 +17,9 @@ const departamentos = window.departamentos;
 // Offline
 const reenviarVentasPendientes = window.reenviarVentasPendientes;
 
-// Atajo para DOM
+// DOM helper
 const $ = window.$;
+
 
 // -------------------------------
 // 🔥 CONFIGURACIÓN FIREBASE
@@ -32,16 +33,17 @@ const firebaseConfig = {
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
 
-// Inicializar Firebase (solo una vez)
+// Inicializar Firebase
 if (!firebase.apps?.length) {
-    firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
 }
 
+// Exportar DB (solo una vez)
 export const db = firebase.firestore();
 
 
 // ===============================
-// 🔐 LOGIN CORRECTO
+// 🔐 LOGIN
 // ===============================
 $("#btnLogin")?.addEventListener("click", loginUsuario);
 
@@ -55,7 +57,6 @@ async function loginUsuario() {
   }
 
   try {
-    // Buscar por CAMPO usuario
     const q = await db.collection("usuarios_ruta")
       .where("usuario", "==", user)
       .limit(1)
@@ -73,7 +74,6 @@ async function loginUsuario() {
       return;
     }
 
-    // Guardar sesión
     localStorage.setItem("usuario_ruta", user);
     window.USUARIO_LOGUEADO = user;
 
@@ -99,7 +99,7 @@ async function loginUsuario() {
 async function cargarCatalogo() {
   try {
     const cache = localStorage.getItem("catalogo_cache");
-    const cacheFecha = localStorage.getItem("catalogo_fecha");
+    const cacheFecha = +localStorage.getItem("catalogo_fecha");
 
     if (cache && cacheFecha && Date.now() - cacheFecha < 86400000) {
       const data = JSON.parse(cache);
@@ -126,21 +126,18 @@ async function cargarCatalogo() {
   }
 }
 
+
 // ===============================
-// 🗂️ CARGAR DEPARTAMENTOS (CON CACHE)
+// 🗂️ CARGAR DEPARTAMENTOS
 // ===============================
 async function cargarDepartamentos() {
   try {
-
-    // 1️⃣ Intentar leer cache local
     const cache = localStorage.getItem("departamentos_cache");
-    const cacheFecha = localStorage.getItem("departamentos_fecha");
+    const cacheFecha = +localStorage.getItem("departamentos_fecha");
 
-    // Cache válido por 24 horas
     if (cache && cacheFecha && Date.now() - cacheFecha < 86400000) {
       const data = JSON.parse(cache);
 
-      // Limpia el objeto y repuebla
       Object.keys(departamentos).forEach(k => delete departamentos[k]);
       Object.assign(departamentos, data);
 
@@ -148,19 +145,14 @@ async function cargarDepartamentos() {
       return;
     }
 
-    // 2️⃣ Si no hay cache o ya expiró → FIREBASE
     const snap = await db.collection("departamentos").get();
     const data = {};
 
-    snap.forEach(d => {
-      data[d.id] = d.data();
-    });
+    snap.forEach(d => data[d.id] = d.data());
 
-    // Llenar la variable global
     Object.keys(departamentos).forEach(k => delete departamentos[k]);
     Object.assign(departamentos, data);
 
-    // Guardar cache
     localStorage.setItem("departamentos_cache", JSON.stringify(data));
     localStorage.setItem("departamentos_fecha", Date.now());
 
@@ -184,7 +176,7 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
   const tot = calcularTotales();
 
   const venta = {
-    fecha: new Date(),
+    fecha: firebase.firestore.Timestamp.now(),
     usuario: window.USUARIO_LOGUEADO,
     cliente: $("#cliente").value || "PUBLICO GENERAL",
     tipoPago,
@@ -225,4 +217,3 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
-export const db = firebase.firestore();
