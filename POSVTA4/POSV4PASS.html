@@ -2388,9 +2388,10 @@ await html5QrCode.start(
     }
     
     // Ejecutar búsqueda usando la función global
-    if (typeof window.ejecutarBusqueda === 'function') {
-      window.ejecutarBusqueda(limpio);
-    } else {
+if (typeof window.ejecutarBusquedaOriginal === 'function') {
+    window.ejecutarBusquedaOriginal(limpio);
+}
+ else {
       // Fallback: mostrar mensaje
       console.warn("Función ejecutarBusqueda no disponible");
       toast("✅ Código escaneado: " + limpio, "#16a34a");
@@ -2400,47 +2401,7 @@ await html5QrCode.start(
 
 // ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
 // 🔧 Ejecutar búsqueda REAL del POS
-window.ejecutarBusqueda = async function(texto) {
-  try {
-    // 1️⃣ Usa ejecutarBusquedaOriginal si existe
-    if (typeof window.ejecutarBusquedaOriginal === "function") {
-      return window.ejecutarBusquedaOriginal(texto);
-    }
-
-    // 2️⃣ Si no existe, buscar localmente
-    let resultados = buscarLocal(texto);
-
-    if (resultados.length === 0) {
-      resultados = await buscarEquivalenteRemoto(texto);
-    }
-
-    if (resultados.length === 1) {
-      seleccionarProducto(resultados[0]);
-      beep(950);
-      return;
-    }
-
-    if (resultados.length > 1) {
-      // Abre lista de coincidencias
-      resultadosDiv.innerHTML = "";
-      resultados.forEach(p => {
-        const item = document.createElement("div");
-        item.className = "result-item";
-        item.innerHTML = `<span>${p.nombre}</span><small>${money(p.precioPublico)}</small>`;
-        item.onclick = () => seleccionarProducto(p);
-        resultadosDiv.appendChild(item);
-      });
-      resultadosDiv.style.display = "block";
-      beep(750);
-      return;
-    }
-
-    toast("❌ Producto no encontrado", "#c0392b");
-
-  } catch (err) {
-    console.error("❌ Error ejecutarBusqueda:", err);
-  }
-};
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;
 
 </script>
 
