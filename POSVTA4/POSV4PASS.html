@@ -1537,9 +1537,16 @@ return {
     carrito = [];
     renderDebounced();
     cerrarCobro();
-    pantallaCarrito.style.display = "none";
-    pantallaVenta.style.display = "flex";
-    document.getElementById("buscador").focus();
+// 🔥 Ya no existe pantallaCarrito → usar carrito-container
+const carritoContainer = document.getElementById("carrito-container");
+
+// Evitar errores si no existe
+if (carritoContainer) carritoContainer.style.display = "block";
+
+pantallaVenta.style.display = "flex";
+
+const busc = document.getElementById("buscador");
+if (busc) busc.focus();
 
   } catch (err) {
     console.error("❌ Error al confirmar venta:", err);
