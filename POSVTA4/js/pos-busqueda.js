@@ -1,34 +1,34 @@
-// ==========================================
-// POS-BÚSQUEDA — PROVSOFT
-// Maneja búsqueda, equivalentes y balanza
-// ==========================================
+// ======================================================
+// POS-BUSQUEDA — PROVSOFT
+// Búsqueda local, remota, balanza y scanner
+// ======================================================
 
-// Todo se toma de window, no imports
+// ------------------------------------
+// Acceso rápido al DOM
+// ------------------------------------
 const $ = s => document.querySelector(s);
 
 const inputBuscador = $("#buscador");
 const resultadosDiv = $("#resultados");
 
-
-// ------------------------------
-// 🔎 BÚSQUEDA LOCAL
-// ------------------------------
+// ======================================================
+// 🔍 BÚSQUEDA LOCAL (SUPER RÁPIDA)
+// ======================================================
 window.buscarLocal = function (texto) {
   if (!texto) return [];
 
   texto = texto.toLowerCase();
 
   return window.catalogo.filter(p =>
-    p.nombre?.toLowerCase().includes(texto) ||
-    p.codigo?.includes(texto) ||
-    p.clave?.includes(texto)
+    (p.nombre && p.nombre.toLowerCase().includes(texto)) ||
+    (p.codigo && p.codigo.includes(texto)) ||
+    (p.clave && p.clave.includes(texto))
   );
 };
 
-
-// -----------------------------------
+// ======================================================
 // 🌐 BÚSQUEDA REMOTA DE EQUIVALENTES
-// -----------------------------------
+// ======================================================
 window.buscarEquivalenteRemoto = async function (texto) {
   try {
     const url = `https://us-east-1.aws.data.mongodb-api.com/...buscar=${texto}`;
@@ -36,82 +36,72 @@ window.buscarEquivalenteRemoto = async function (texto) {
     const data = await res.json();
     return data || [];
   } catch (err) {
-    console.error("❌ Error buscando equivalente remoto:", err);
+    console.warn("Error remoto:", err);
     return [];
   }
 };
 
-
-// ---------------------------------------------
+// ======================================================
 // ⚖️ DETECCIÓN DE CÓDIGOS DE BALANZA
-// ---------------------------------------------
-function esBalanza(codigo) {
-  return codigo.length >= 13 && codigo.startsWith("20");
+// ======================================================
+function esBalanza(code) {
+  return code.length >= 13 && code.startsWith("20");
 }
 
-function parsearBalanza(codigo) {
-  const clave = codigo.substring(2, 7);
-  const pesoEnGr = Number(codigo.substring(7, 12));
-  return { clave, pesoKg: pesoEnGr / 1000 };
+function parsearBalanza(code) {
+  return {
+    clave: code.substring(2, 7),
+    pesoKg: Number(code.substring(7, 12)) / 1000
+  };
 }
 
-
-// ----------------------------------
-// 🎯 SELECCIONAR PRODUCTO
-// ----------------------------------
+// ======================================================
+// ✔ SELECCIONAR PRODUCTO
+// ======================================================
 function seleccionarProducto(prod, cantidad = 1) {
   if (!prod) return;
-
   window.addProduct(prod, cantidad);
   ocultarResultados();
 }
 
-
-// ------------------------------
-// 🟦 OCULTAR RESULTADOS
-// ------------------------------
+// ======================================================
+// ✔ OCULTAR RESULTADOS
+// ======================================================
 function ocultarResultados() {
   resultadosDiv.innerHTML = "";
   resultadosDiv.style.display = "none";
 }
 
-
-// ----------------------------------
-// 🟧 MOSTRAR LISTA DE RESULTADOS
-// ----------------------------------
-function mostrarLista(resultados, texto) {
+// ======================================================
+// ✔ MOSTRAR LISTA DE RESULTADOS
+// ======================================================
+function mostrarLista(list, texto) {
   resultadosDiv.innerHTML = "";
   resultadosDiv.style.display = "block";
 
-  resultados.forEach(p => {
-    const item = document.createElement("div");
-    item.className = "result-item";
+  const regex = new RegExp(texto, "ig");
 
-    const regex = new RegExp(texto, "ig");
+  list.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "result-item";
 
-    const nombreResaltado = p.nombre.replace(
-      regex,
-      m => `<strong style="color:#0c6cbd">${m}</strong>`
-    );
-
-    item.innerHTML = `
-      <span>${nombreResaltado}</span>
-      <small>$${p.precioPublico}</small>
+    div.innerHTML = `
+      <span>${p.nombre.replace(regex, m => `<b style='color:#0c6cbd'>${m}</b>`)}</span>
+      <small>${window.money(p.precioPublico)}</small>
     `;
 
-    item.addEventListener("click", () => {
-      window.beep(950);
+    div.addEventListener("click", () => {
+      window.beep(900);
       seleccionarProducto(p);
     });
 
-    resultadosDiv.appendChild(item);
+    resultadosDiv.appendChild(div);
   });
 }
 
-
-// --------------------------------------------
-// 🔍 BÚSQUEDA PRINCIPAL
-// --------------------------------------------
+// ======================================================
+// 🔎 BUSCAR (FUNCIÓN PRINCIPAL)
+// ======================================================
 window.ejecutarBusqueda = async function () {
   const texto = inputBuscador.value.trim();
 
@@ -120,16 +110,17 @@ window.ejecutarBusqueda = async function () {
     return;
   }
 
-  // -------- ⚖️ CÓDIGO DE BALANZA --------
+  // ============================
+  // ⚖️ 1) CÓDIGO DE BALANZA
+  // ============================
   if (esBalanza(texto)) {
     const { clave, pesoKg } = parsearBalanza(texto);
-
-    const prod = window.catalogo.find(p =>
-      p.codigo === clave || p.clave === clave
+    const prod = window.catalogo.find(
+      p => p.codigo === clave || p.clave === clave
     );
 
     if (!prod) {
-      window.toast("❌ Producto de balanza no encontrado", "#dc2626");
+      window.toast("Producto de balanza no existe", "#dc2626");
       return;
     }
 
@@ -139,32 +130,41 @@ window.ejecutarBusqueda = async function () {
     return;
   }
 
-  // -------- 🔍 LOCAL --------
+  // ============================
+  // 🔍 2) BÚSQUEDA LOCAL
+  // ============================
   let resultados = window.buscarLocal(texto);
 
-  // -------- 🌐 REMOTO --------
+  // ============================
+  // 🌐 3) EQUIVALENTES REMOTOS
+  // ============================
   if (resultados.length === 0) {
     resultados = await window.buscarEquivalenteRemoto(texto);
   }
 
-  // -------- ACCIÓN FINAL --------
+  // ============================
+  // 🎯 4) MANEJO RESULTADOS
+  // ============================
   if (resultados.length === 1) {
-    window.beep(950);
     seleccionarProducto(resultados[0]);
-  } else if (resultados.length > 1) {
-    window.beep(700);
-    mostrarLista(resultados, texto);
-  } else {
-    resultadosDiv.innerHTML = "<div style='padding:10px;color:#999;'>Sin coincidencias</div>";
-    resultadosDiv.style.display = "block";
-    window.beep(500);
+    window.beep(900);
+    return;
   }
+
+  if (resultados.length > 1) {
+    mostrarLista(resultados, texto);
+    window.beep(700);
+    return;
+  }
+
+  resultadosDiv.innerHTML = "<div style='padding:10px;color:#777;'>Sin coincidencias</div>";
+  resultadosDiv.style.display = "block";
+  window.beep(500);
 };
 
-
-// ========================================
-// 🧩 LECTOR DE BARRAS (TECLADO)
-// ========================================
+// ======================================================
+// 🔠 ESCÁNER POR TECLADO (LECTOR DE BARRAS)
+// ======================================================
 let bufferScanner = "";
 let scannerTimer = null;
 
@@ -172,42 +172,39 @@ document.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     const code = bufferScanner;
     bufferScanner = "";
-    if (code.length > 3) procesarCodigoScanner(code);
+    if (code.length > 3) procesarScanner(code);
     return;
   }
 
   if (/^[0-9]$/.test(e.key)) {
     bufferScanner += e.key;
     clearTimeout(scannerTimer);
-    scannerTimer = setTimeout(() => (bufferScanner = ""), 120);
+    scannerTimer = setTimeout(() => bufferScanner = "", 120);
   }
 });
 
-
-function procesarCodigoScanner(code) {
+function procesarScanner(code) {
   inputBuscador.value = code;
   window.ejecutarBusqueda();
 }
 
-
-// ========================================
-// 🎯 INPUT MANUAL
-// ========================================
-inputBuscador.addEventListener("input", () => {
+// ======================================================
+// 🔍 EVENTO DE INPUT DIRECTO
+// ======================================================
+inputBuscador?.addEventListener("input", () => {
   window.ejecutarBusqueda();
 });
 
+// ======================================================
+// 🔍 BOTÓN BUSCAR MANUAL
+// ======================================================
+$("#btnBuscarManual")?.addEventListener("click", () => {
+  window.ejecutarBusqueda();
+});
 
-// =====================================
-// 🧩 BOTÓN LUPA
-// =====================================
-$("#btnBuscarManual")?.addEventListener("click", window.ejecutarBusqueda);
-
-
-// =====================================
-// 📷 BOTÓN CÁMARA QR
-// =====================================
+// ======================================================
+// 📷 BOTÓN ABRIR QR
+// ======================================================
 $("#btnCam")?.addEventListener("click", () => {
-  // carga dinámica sin imports reales
-  window.activarQR && window.activarQR();
+  import("./pos-qr.js").then(m => m.activarQR());
 });
