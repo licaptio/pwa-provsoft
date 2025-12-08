@@ -2101,10 +2101,16 @@ document.addEventListener("DOMContentLoaded",()=> {
       // SOLO BORRAR LA SESIÓN
       localStorage.removeItem("usuario_ruta");
 
-      // NO BORRAR catalogo_cache NI catalogo_fecha
-      // Deja intacto el catálogo para que no se vuelva a descargar
-
+      // 🔥 OCULTAR POS COMPLETO
       document.getElementById("posApp").style.display = "none";
+
+      // 🔥 OCULTAR BARRA INFERIOR
+      document.getElementById("bottomBar").style.display = "none";
+
+      // 🔥 OCULTAR CARRITO FIJO
+      document.getElementById("carrito-container").style.display = "none";
+
+      // MOSTRAR LOGIN
       document.getElementById("loginScreen").style.display = "flex";
       document.getElementById("loginUsuario").value = "";
       document.getElementById("loginPassword").value = "";
