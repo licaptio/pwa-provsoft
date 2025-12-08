@@ -2053,6 +2053,15 @@ function toast(msg, color = "#0c6cbd") {
   <button id="cerrarCam" class="btn" style="margin-top:12px;background:#c0392b;">Cerrar cámara</button>
   
 </div>
+// ===============================
+// 🔧 MODO DEBUG (true = ver logs)
+// ===============================
+const DEBUG = false;
+if (!DEBUG) {
+  console.log = () => {};
+  console.warn = () => {};
+  console.info = () => {};
+}
 
 <!-- 🔹 BLOQUE 8: SERVICE WORKER Y LOGOUT -->
 <script>
