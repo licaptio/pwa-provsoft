@@ -3,40 +3,35 @@
 // Login, catálogo, departamentos y guardar ventas
 // ======================================================
 
-import {
-  carrito,
-  catalogo,
-  departamentos,
-  USUARIO_LOGUEADO,
-  toast,
-  beep,
-  render,
-  calcularTotales
-} from "./pos-core.js";
-
-import { reenviarVentasPendientes } from "./pos-offline.js";
-
+// No usar imports — todo viene del global (window)
 const $ = s => document.querySelector(s);
 
-// -------------------------------
-// 🔥 CONFIGURACIÓN FIREBASE
-// -------------------------------
+// -----------------------------------------
+// 🔥 CONFIGURACIÓN FIREBASE (TU PROYECTO)
+// -----------------------------------------
 const firebaseConfig = {
-  apiKey: "AIzaSyD9yXXX",
-  authDomain: "provsoft.firebaseapp.com",
-  projectId: "provsoft",
-  storageBucket: "provsoft.appspot.com",
-  messagingSenderId: "0000000",
-  appId: "1:000000:web:aaaaaa"
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
 
+// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+
+// Exponer Firestore y Auth globalmente
+window.db = firebase.firestore();
+window.auth = firebase.auth();
+window.firebase = firebase;
+
 
 // ===============================
 // 🔐 LOGIN
 // ===============================
-$("#btnLogin")?.addEventListener("click", loginUsuario);
+
+document.getElementById("btnLogin")?.addEventListener("click", loginUsuario);
 
 async function loginUsuario() {
   const user = $("#loginUsuario").value.trim();
@@ -63,12 +58,11 @@ async function loginUsuario() {
       return;
     }
 
-    // Guardamos la sesión
+    // Guardar sesión
     localStorage.setItem("usuario_ruta", user);
-
-    // Exponemos global
     window.USUARIO_LOGUEADO = user;
 
+    // Mostrar POS
     $("#loginScreen").style.display = "none";
     $("#posApp").style.display = "block";
 
@@ -84,40 +78,42 @@ async function loginUsuario() {
   }
 }
 
+
 // ===============================
-// 📦 CARGAR CATÁLOGO (OPTIMIZADO)
+// 📦 CARGAR CATÁLOGO
 // ===============================
-export async function cargarCatalogo() {
+window.cargarCatalogo = async function () {
   try {
     const cache = localStorage.getItem("catalogo_cache");
     const cacheFecha = localStorage.getItem("catalogo_fecha");
 
-    // Si el cache tiene menos de 24 horas, usarlo
+    // Cache válido 24h
     if (cache && cacheFecha && Date.now() - cacheFecha < 86400000) {
       const data = JSON.parse(cache);
-      catalogo.length = 0;
-      catalogo.push(...data);
-      console.log("📦 Catálogo cargado desde localStorage");
+      window.catalogo.length = 0;
+      window.catalogo.push(...data);
+      console.log("📦 Catálogo desde localStorage");
       return;
     }
 
-    // --- Carga Firebase ---
+    // Desde Firestore
     const snap = await db.collection("catalogo").get();
     const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    catalogo.length = 0;
-    catalogo.push(...arr);
+    window.catalogo.length = 0;
+    window.catalogo.push(...arr);
 
     localStorage.setItem("catalogo_cache", JSON.stringify(arr));
     localStorage.setItem("catalogo_fecha", Date.now());
 
-    console.log("🔥 Catálogo cargado desde Firestore");
+    console.log("🔥 Catálogo desde Firestore");
 
   } catch (err) {
     console.error("❌ Error cargando catálogo:", err);
     toast("No se pudo cargar catálogo", "#e74c3c");
   }
-}
+};
+
 
 // ===============================
 // 🗂️ CARGAR DEPARTAMENTOS
@@ -126,20 +122,22 @@ async function cargarDepartamentos() {
   try {
     const snap = await db.collection("departamentos").get();
     snap.forEach(d => {
-      departamentos[d.id] = d.data();
+      window.departamentos[d.id] = d.data();
     });
 
     console.log("🗂️ Departamentos cargados");
+
   } catch (e) {
     console.error("❌ Error cargando departamentos:", e);
   }
 }
 
+
 // ===============================
 // 🧾 GUARDAR VENTA
 // ===============================
-export async function guardarVenta(tipoPago = "EFECTIVO") {
-  if (carrito.length === 0) {
+window.guardarVenta = async function (tipoPago = "EFECTIVO") {
+  if (window.carrito.length === 0) {
     toast("Carrito vacío", "#c0392b");
     return;
   }
@@ -153,7 +151,7 @@ export async function guardarVenta(tipoPago = "EFECTIVO") {
     tipoPago,
     subtotal: tot.subtotal,
     total: tot.total,
-    items: carrito.map(p => ({
+    items: window.carrito.map(p => ({
       id: p.id,
       nombre: p.nombre,
       cantidad: p.cantidad,
@@ -169,18 +167,20 @@ export async function guardarVenta(tipoPago = "EFECTIVO") {
     toast("Venta registrada", "#16a34a");
 
     // limpiar carrito
-    carrito.length = 0;
+    window.carrito.length = 0;
     render();
 
-    // reenviar ventas pendientes
-    reenviarVentasPendientes();
+    // reenviar ventas offline
+    if (window.reenviarVentasPendientes) {
+      window.reenviarVentasPendientes();
+    }
 
     return venta;
 
   } catch (err) {
     console.error("❌ Error guardando venta:", err);
 
-    // Guardar localmente para enviar después
+    // Guardar OFFLINE
     let pendientes = JSON.parse(localStorage.getItem("ventas_pendientes") || "[]");
     pendientes.push(venta);
     localStorage.setItem("ventas_pendientes", JSON.stringify(pendientes));
@@ -188,25 +188,4 @@ export async function guardarVenta(tipoPago = "EFECTIVO") {
     toast("Venta guardada offline", "#f39c12");
     return venta;
   }
-}
-
-// Exponer para otros módulos
-window.guardarVenta = guardarVenta;
-
-// 🔥 Inicialización Firebase
-const firebaseConfig = {
-const firebaseConfig = {
-  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-  authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.firebasestorage.app",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
-
-firebase.initializeApp(firebaseConfig);
-
-// 🟦 Exponer Firestore y Auth como GLOBAL
-window.db = firebase.firestore();
-window.auth = firebase.auth();
-window.firebase = firebase;
