@@ -40,13 +40,36 @@ if (!firebase.apps?.length) {
 const db = firebase.firestore();
 
 // ===============================
-// 🔐 LOGIN
+// 🔐 LOGIN CORRECTO
 // ===============================
 $("#btnLogin")?.addEventListener("click", loginUsuario);
 
 async function loginUsuario() {
+  const user = $("#loginUsuario").value.trim();
+  const pass = $("#loginPassword").value.trim();
 
-    // Guardamos la sesión
+  if (!user || !pass) {
+    toast("Ingresa usuario y contraseña", "#c0392b");
+    return;
+  }
+
+  try {
+    const ref = db.collection("usuarios_ruta").doc(user);
+    const snap = await ref.get();
+
+    if (!snap.exists) {
+      toast("Usuario no encontrado", "#c0392b");
+      return;
+    }
+
+    const data = snap.data();
+
+    if (data.password !== pass) {
+      toast("Contraseña incorrecta", "#c0392b");
+      return;
+    }
+
+    // Guardar sesión
     localStorage.setItem("usuario_ruta", user);
     window.USUARIO_LOGUEADO = user;
 
@@ -54,7 +77,7 @@ async function loginUsuario() {
     $("#posApp").style.display = "block";
 
     beep(800);
-    toast("Bienvenido " + user);
+    toast("Bienvenido " + data.nombre);
 
     await cargarCatalogo();
     await cargarDepartamentos();
@@ -64,6 +87,7 @@ async function loginUsuario() {
     toast("Error iniciando sesión", "#c0392b");
   }
 }
+
 
 // ===============================
 // 📦 CARGAR CATÁLOGO
@@ -167,6 +191,7 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
+
 
 
 
