@@ -74,6 +74,14 @@ thead th:nth-child(2){width:15%}
 thead th:nth-child(3){width:20%}
 thead th:nth-child(4){width:10%}
 td{text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+/* Limitar ancho del nombre en el carrito para evitar que empuje columnas */
+#tbody td:first-child {
+  max-width: 90px;   /* Ajusta según el celular */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 td.del-col{text-align:center}
 td.del-col .del{
 background:#e74c3c;color:#fff;border:none;border-radius:50%;
