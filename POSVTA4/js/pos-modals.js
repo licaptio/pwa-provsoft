@@ -105,3 +105,38 @@ $("#btnCobrar")?.addEventListener("click", () => {
   }
   abrirModalCobro();
 });
+
+// ==========================================================
+// 🛑 BLOQUEO TOTAL DEL TECLADO CUANDO EL MODAL DE COBRO ESTÁ ABIERTO
+// ==========================================================
+
+document.addEventListener("keydown", function(e) {
+
+  // Si el modal NO está visible → no bloquear nada
+  if (modalCobro.style.display === "none") return;
+
+  // Si el focus está en el input del monto recibido → PERMITIR SOLO NÚMEROS
+  if (document.activeElement === inputMonto) {
+
+    // Permitir: números, borrar, flechas, tab, enter
+    const permitido = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "Tab", "Enter"];
+
+    if (/^[0-9]$/.test(e.key)) {
+      return; // permitir números
+    }
+
+    if (permitido.includes(e.key)) {
+      return; // permitir teclas control
+    }
+
+    // ❌ cualquier otra tecla queda bloqueada
+    e.preventDefault();
+    e.stopPropagation();
+    return;
+  }
+
+  // 🔥 Si el focus NO está dentro del input del modal → bloquear TODO
+  e.preventDefault();
+  e.stopPropagation();
+});
+
