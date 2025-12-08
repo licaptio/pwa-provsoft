@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>FACTURACIÓN – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap">
+
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #eef2f6;
+  margin: 0;
+}
+
+header {
+  background: #00416A;
+  color: white;
+  padding: 15px;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+  margin-bottom: 20px;
+}
+
+label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+select, input[type="date"], button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #bbb;
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+button {
+  background: #0c6cbd;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+button:hover {
+  background: #00416A;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th, td {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+  font-size: 14px;
+}
+
+th {
+  background: #00416A;
+  color: white;
+}
+
+td {
+  background: white;
+}
+
+.facturada {
+  color: green;
+  font-weight: 600;
+}
+
+.pendiente {
+  color: red;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<header>📄 FACTURACIÓN – PROVSOFT</header>
+
+<div class="container">
+
+  <!-- 🔍 FILTROS -->
+  <div class="card">
+    <label>Ruta:</label>
+    <select id="rutaSelect">
+      <option value="">Seleccione…</option>
+      <option value="AdministradorGeneral">Administrador General</option>
+      <option value="RUTA1">RUTA 1</option>
+      <option value="RUTA2">RUTA 2</option>
+      <option value="RUTA3">RUTA 3</option>
+      <!-- AGREGA AQUÍ TUS RUTAS REALES -->
+    </select>
+
+    <label>Fecha:</label>
+    <input type="date" id="fechaInput">
+
+    <button id="btnCargar">Cargar ventas</button>
+  </div>
+
+  <!-- 📋 TABLA DE VENTAS -->
+  <div class="card">
+    <h3>Ventas encontradas</h3>
+    <table id="tablaVentas">
+      <thead>
+        <tr>
+          <th>Sel</th>
+          <th>Folio</th>
+          <th>Cliente</th>
+          <th>Total</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- ⚡ ACCIONES -->
+  <div class="actions">
+    <button id="btnGlobal">Generar CFDI Global</button>
+    <button id="btnCliente">Facturar Cliente</button>
+  </div>
+
+</div>
+
+<script>
+/* ===========================================================
+   🔥 CONFIGURACIÓN FIREBASE
+   =========================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1"
+};
+
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const tabla = document.querySelector("#tablaVentas tbody");
+
+/* ===========================================================
+   📌 FUNCIÓN PARA CARGAR VENTAS POR RUTA + FECHA
+   =========================================================== */
+async function cargarVentas() {
+  tabla.innerHTML = "<tr><td colspan='5'>Cargando…</td></tr>";
+
+  const ruta = document.getElementById("rutaSelect").value;
+  const fecha = document.getElementById("fechaInput").value;
+
+  if (!ruta || !fecha) {
+    alert("Seleccione ruta y fecha");
+    return;
+  }
+
+  const inicio = new Date(fecha + "T00:00:00");
+  const fin = new Date(fecha + "T23:59:59");
+
+  const snap = await db.collection("ventas_rutav2")
+    .where("rutaId", "==", ruta)
+    .where("fecha", ">=", inicio)
+    .where("fecha", "<=", fin)
+    .get();
+
+  tabla.innerHTML = "";
+  window.VENTAS = []; // buffer global
+
+  snap.forEach(doc => {
+    const v = doc.data();
+    v.id = doc.id;
+
+    window.VENTAS.push(v);
+
+    const estado = v.facturada
+      ? `<span class='facturada'>FACTURADA</span>`
+      : `<span class='pendiente'>PENDIENTE</span>`;
+
+    const chk = !v.facturada ? `<input type='checkbox' data-id='${v.id}'>` : "";
+
+    tabla.innerHTML += `
+      <tr>
+        <td>${chk}</td>
+        <td>${v.folio}</td>
+        <td>${v.cliente}</td>
+        <td>$${v.resumen_financiero.total.toFixed(2)}</td>
+        <td>${estado}</td>
+      </tr>`;
+  });
+
+  if (window.VENTAS.length === 0) {
+    tabla.innerHTML = "<tr><td colspan='5'>No hay ventas en esa fecha</td></tr>";
+  }
+}
+
+document.getElementById("btnCargar").addEventListener("click", cargarVentas);
+
+/* ===========================================================
+   🔵 BOTÓN FACTURA GLOBAL
+   =========================================================== */
+document.getElementById("btnGlobal").addEventListener("click", () => {
+  const seleccionadas = [...document.querySelectorAll("input[type=checkbox]:checked")]
+        .map(chk => chk.dataset.id);
+
+  if (seleccionadas.length === 0) {
+    alert("Seleccione ventas para el CFDI global");
+    return;
+  }
+
+  // Aquí armaremos el XML más adelante
+  alert("CFDI GLOBAL listo para generar XML.\nVentas incluidas:\n" + seleccionadas.join("\n"));
+});
+
+/* ===========================================================
+   🟢 BOTÓN FACTURAR CLIENTE
+   =========================================================== */
+document.getElementById("btnCliente").addEventListener("click", () => {
+  const seleccionadas = [...document.querySelectorAll("input[type=checkbox]:checked")]
+        .map(chk => chk.dataset.id);
+
+  if (seleccionadas.length !== 1) {
+    alert("Seleccione SOLO UNA venta para facturar al cliente.");
+    return;
+  }
+
+  const venta = window.VENTAS.find(v => v.id === seleccionadas[0]);
+
+  if (venta.cliente === "PUBLICO EN GENERAL") {
+    alert("Esta venta no tiene RFC. No se puede facturar al cliente.");
+    return;
+  }
+
+  alert(`Listo para facturar al cliente:\n${venta.cliente}\nFolio: ${venta.folio}`);
+});
+</script>
+
+</body>
+</html>
