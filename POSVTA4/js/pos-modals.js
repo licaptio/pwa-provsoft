@@ -3,9 +3,7 @@
 // Manejo de modal de cantidad, modal de cobro y flujo final
 // ==========================================================
 
-import { carrito, calcularTotales, toast, beep, render } from "./pos-core.js";
-import { guardarEImprimir } from "./pos-ticket.js";
-
+// Todos los valores vienen desde window (sin imports)
 const $ = s => document.querySelector(s);
 
 // ===============================
@@ -16,12 +14,12 @@ const modalCantidad = $("#modalCantidad");
 const inputCantidadModal = $("#inputCantidadModal");
 let productoActual = null;
 
-export function abrirModalCantidad(prod) {
+window.abrirModalCantidad = function (prod) {
   productoActual = prod;
   inputCantidadModal.value = prod.cantidad || 1;
   modalCantidad.style.display = "flex";
   inputCantidadModal.focus();
-}
+};
 
 function cerrarModalCantidad() {
   modalCantidad.style.display = "none";
@@ -34,7 +32,7 @@ $("#btnAceptarCant")?.addEventListener("click", () => {
   const nueva = parseFloat(inputCantidadModal.value);
 
   if (!nueva || nueva <= 0) {
-    toast("Cantidad inválida", "#c0392b");
+    window.toast("Cantidad inválida", "#c0392b");
     return;
   }
 
@@ -42,8 +40,9 @@ $("#btnAceptarCant")?.addEventListener("click", () => {
   productoActual.importe = nueva * productoActual.precioUnit;
 
   cerrarModalCantidad();
-  render();
+  window.render();
 });
+
 
 // ===============================
 // 💵 MODAL COBRAR
@@ -82,8 +81,9 @@ modalCobro.innerHTML = `
 `;
 document.body.appendChild(modalCobro);
 
+
 function abrirModalCobro() {
-  const tot = calcularTotales();
+  const tot = window.calcularTotales();
   $("#totalCobroLbl").textContent = "$" + Number(tot.total).toFixed(2);
   modalCobro.style.display = "flex";
 }
@@ -94,31 +94,30 @@ function cerrarModalCobro() {
 
 $("#btnCancelarCobro")?.addEventListener("click", cerrarModalCobro);
 
+
 // ===============================
 // 🧾 COBRAR → GUARDAR → IMPRIMIR
 // ===============================
 
 $("#pagoEfectivo")?.addEventListener("click", async () => {
   cerrarModalCobro();
-  await guardarEImprimir("EFECTIVO");
+  await window.guardarEImprimir("EFECTIVO");
 });
 
 $("#pagoTarjeta")?.addEventListener("click", async () => {
   cerrarModalCobro();
-  await guardarEImprimir("TARJETA");
+  await window.guardarEImprimir("TARJETA");
 });
+
 
 // ===============================
 // 🟦 BOTÓN PRINCIPAL "COBRAR"
 // ===============================
 $("#btnCobrar")?.addEventListener("click", () => {
-  if (carrito.length === 0) {
-    toast("Carrito vacío", "#c0392b");
+  if (window.carrito.length === 0) {
+    window.toast("Carrito vacío", "#c0392b");
     return;
   }
-  beep(900);
+  window.beep(900);
   abrirModalCobro();
 });
-
-// Exponer si se requiere
-window.abrirModalCantidad = abrirModalCantidad;
