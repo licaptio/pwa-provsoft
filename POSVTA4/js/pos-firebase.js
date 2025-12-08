@@ -54,8 +54,17 @@ async function loginUsuario() {
   }
 
   try {
-    const ref = db.collection("usuarios_ruta").doc(user);
-    const snap = await ref.get();
+const q = await db.collection("usuarios_ruta")
+  .where("usuario", "==", user)
+  .limit(1)
+  .get();
+
+if (q.empty) {
+  toast("Usuario no encontrado", "#c0392b");
+  return;
+}
+
+const data = q.docs[0].data();
 
     if (!snap.exists) {
       toast("Usuario no encontrado", "#c0392b");
@@ -191,6 +200,7 @@ async function guardarVenta(tipoPago = "EFECTIVO") {
 }
 
 window.guardarVenta = guardarVenta;
+
 
 
 
