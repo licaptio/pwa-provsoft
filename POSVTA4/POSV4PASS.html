@@ -2093,20 +2093,27 @@ if("serviceWorker" in navigator){
   .catch(e=>console.error("❌ Error registrando SW:",e));
 }
 
-document.addEventListener("DOMContentLoaded",()=>{
-  const b=document.getElementById("btnLogout");
-  if(b){
-    b.addEventListener("click",()=>{
+document.addEventListener("DOMContentLoaded",()=> {
+  const b = document.getElementById("btnLogout");
+  if (b) {
+    b.addEventListener("click", () => {
+
+      // SOLO BORRAR LA SESIÓN
       localStorage.removeItem("usuario_ruta");
-      document.getElementById("posApp").style.display="none";
-      document.getElementById("loginScreen").style.display="flex";
-      document.getElementById("loginUsuario").value="";
-      document.getElementById("loginPassword").value="";
-      document.getElementById("loginMsg").textContent="";
+
+      // NO BORRAR catalogo_cache NI catalogo_fecha
+      // Deja intacto el catálogo para que no se vuelva a descargar
+
+      document.getElementById("posApp").style.display = "none";
+      document.getElementById("loginScreen").style.display = "flex";
+      document.getElementById("loginUsuario").value = "";
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginMsg").textContent = "";
       alert("Sesión cerrada correctamente.");
     });
   }
 });
+
   // 📊 Acceso rápido al Resumen Diario
 const btnResumen = document.getElementById("btnResumen");
 if (btnResumen) {
