@@ -3,7 +3,7 @@
 // Generador e impresión profesional de tickets
 // ======================================================
 
-// Tomamos funciones globales del POS
+// Tomamos funciones y variables globales desde window
 const money = window.money;
 const carrito = window.carrito;
 
@@ -12,7 +12,9 @@ const carrito = window.carrito;
 // ------------------------------
 function pad(text, length) {
   text = String(text);
-  return text.length >= length ? text.substring(0, length) : text + " ".repeat(length - text.length);
+  return text.length >= length 
+    ? text.substring(0, length) 
+    : text + " ".repeat(length - text.length);
 }
 
 function center(text, width = 40) {
@@ -21,7 +23,7 @@ function center(text, width = 40) {
 }
 
 // ======================================================
-// 🧾 GENERAR TICKET
+// 🧾 GENERAR TICKET DE VENTA
 // ======================================================
 function generarTicket(venta) {
   let out = "";
@@ -54,20 +56,20 @@ function generarTicket(venta) {
 }
 
 // ======================================================
-// 🖨️ IMPRIMIR TICKET (RawBT, InnerPrinter o navegador)
+// 🖨️ IMPRIMIR TICKET
 // ======================================================
 function imprimirTicket(venta) {
   const texto = generarTicket(venta);
 
   try {
-    // 1️⃣ InnerPrinter (Android)
-    if (window.InnerPrinter?.printText) {
+    // 1️⃣ InnerPrinter (Android especiales)
+    if (window.InnerPrinter && typeof window.InnerPrinter.printText === "function") {
       window.InnerPrinter.printText(texto);
       console.log("🖨️ Impreso vía InnerPrinter");
       return;
     }
 
-    // 2️⃣ RawBT (Android)
+    // 2️⃣ RawBT (Android general)
     if (/Android/i.test(navigator.userAgent)) {
       const encoded = encodeURIComponent(texto);
       window.location.href = `rawbt:print?data=${encoded}`;
@@ -75,11 +77,12 @@ function imprimirTicket(venta) {
       return;
     }
 
-    // 3️⃣ Impresión por navegador (Fallback PC)
+    // 3️⃣ Impresora navegador (Windows, iOS, PC)
     const w = window.open("", "_blank");
     w.document.write(`<pre>${texto}</pre>`);
     w.print();
     w.close();
+
     console.log("🖨️ Ticket impreso en navegador");
 
   } catch (err) {
@@ -89,20 +92,15 @@ function imprimirTicket(venta) {
 }
 
 // ======================================================
-// 🚀 FUNCIÓN DE ALTO NIVEL: GUARDAR + IMPRIMIR
+// 🚀 GUARDAR + IMPRIMIR
 // ======================================================
-
-// Tomamos la función global generada por pos-firebase.js
-const guardarVenta = window.guardarVenta;
-
-async function guardarEImprimir(tipoPago = "EFECTIVO") {
-  const venta = await guardarVenta(tipoPago);
-
-  if (venta) {
-    imprimirTicket(venta);
-  }
+function guardarEImprimir(tipoPago = "EFECTIVO") {
+  window.guardarVenta(tipoPago).then(venta => {
+    if (venta) imprimirTicket(venta);
+  });
 }
 
 // Exponer global
-window.guardarEImprimir = guardarEImprimir;
+window.generarTicket = generarTicket;
 window.imprimirTicket = imprimirTicket;
+window.guardarEImprimir = guardarEImprimir;
