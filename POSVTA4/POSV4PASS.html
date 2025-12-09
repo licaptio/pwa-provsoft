@@ -1039,11 +1039,6 @@ function seleccionarProducto(prod) {
   buscador.focus();
 }
 
-  // ⭐ Limpieza final del escáner
-  scanBuffer = "";
-  modoScanner = false;
-  clearTimeout(scanTimer);
-}
 // 📱 Modal con teclado numérico en móviles + beep al abrir
 function solicitarCantidadYAgregar(prod) {
   const modal = document.getElementById("modalCantidad");
@@ -1100,11 +1095,7 @@ function solicitarCantidadYAgregar(prod) {
    🔎 BÚSQUEDA POR CÓDIGO, PALABRA Y ESCÁNER (MEJORADA)
    =========================================================== */
 const buscador = document.getElementById("buscador");
-buscador.addEventListener("input", () => {
-  resultadosDiv.style.display = "none";
-});
-
-  const resultadosDiv = document.getElementById("resultados");
+const resultadosDiv = document.getElementById("resultados");
 
 // 🎵 Beep reutilizable
 function beep(freq = 800, duration = 0.1) {
@@ -1193,37 +1184,26 @@ if (producto.length > 0) {
     resultadosDiv.style.display = "block";
     beep(700);
   } else {
+resultadosDiv.innerHTML = `
+  <div style="
+    padding:10px;
+    color:#999;
+    position:relative;
+    z-index:99999;
+    background:#fff;
+    border-radius:8px;
+  ">
+    Sin coincidencias
+  </div>`;
+resultadosDiv.style.zIndex = "99999";
+resultadosDiv.style.display = "block";
 
-  // 🧹 FIX: limpiar antes de mostrar el mensaje
-  resultadosDiv.innerHTML = "";
-  resultadosDiv.style.display = "none";
+beep(500);
 
-  resultadosDiv.innerHTML = `
-    <div style="
-      padding:10px;
-      color:#999;
-      background:#fff;
-      border-radius:8px;
-      text-align:center;
-    ">
-      Sin coincidencias
-    </div>`;
+// 🔥 Reset seguro del escáner para evitar bloqueo
+resetScanner();
 
-  resultadosDiv.style.display = "block";
-  resultadosDiv.style.zIndex = "99999";
-
-  beep(500);
-
-  // 🧹 FIX: cerrar mensaje automáticamente
-  setTimeout(() => {
-    resultadosDiv.style.display = "none";
-    resultadosDiv.innerHTML = "";
-  }, 1500);
-
-  // 🧹 FIX adicional – evitar bloqueo del escáner
-  resetScanner();
-}
-
+  }
 }
 
 /* ===========================================================
@@ -1237,13 +1217,8 @@ let modoScanner = false;
   scanBuffer = "";
   modoScanner = false;
   clearTimeout(scanTimer);
-
-  // Solo limpiar buscador si no viene de cámara
-  if (!usandoCamara) buscador.value = "";
+  buscador.value = "";
 }
-usandoCamara = true;
-usandoCamara = false;
-
 
 function procesarCodigoEscaneado(codigo) {
   const limpio = codigo.trim();
