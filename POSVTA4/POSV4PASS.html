@@ -1039,6 +1039,11 @@ function seleccionarProducto(prod) {
   buscador.focus();
 }
 
+  // ⭐ Limpieza final del escáner
+  scanBuffer = "";
+  modoScanner = false;
+  clearTimeout(scanTimer);
+}
 // 📱 Modal con teclado numérico en móviles + beep al abrir
 function solicitarCantidadYAgregar(prod) {
   const modal = document.getElementById("modalCantidad");
@@ -1095,7 +1100,11 @@ function solicitarCantidadYAgregar(prod) {
    🔎 BÚSQUEDA POR CÓDIGO, PALABRA Y ESCÁNER (MEJORADA)
    =========================================================== */
 const buscador = document.getElementById("buscador");
-const resultadosDiv = document.getElementById("resultados");
+buscador.addEventListener("input", () => {
+  resultadosDiv.style.display = "none";
+});
+
+  const resultadosDiv = document.getElementById("resultados");
 
 // 🎵 Beep reutilizable
 function beep(freq = 800, duration = 0.1) {
@@ -1228,8 +1237,13 @@ let modoScanner = false;
   scanBuffer = "";
   modoScanner = false;
   clearTimeout(scanTimer);
-  buscador.value = "";
+
+  // Solo limpiar buscador si no viene de cámara
+  if (!usandoCamara) buscador.value = "";
 }
+usandoCamara = true;
+usandoCamara = false;
+
 
 function procesarCodigoEscaneado(codigo) {
   const limpio = codigo.trim();
