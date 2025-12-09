@@ -1184,26 +1184,37 @@ if (producto.length > 0) {
     resultadosDiv.style.display = "block";
     beep(700);
   } else {
-resultadosDiv.innerHTML = `
-  <div style="
-    padding:10px;
-    color:#999;
-    position:relative;
-    z-index:99999;
-    background:#fff;
-    border-radius:8px;
-  ">
-    Sin coincidencias
-  </div>`;
-resultadosDiv.style.zIndex = "99999";
-resultadosDiv.style.display = "block";
 
-beep(500);
+  // 🧹 FIX: limpiar antes de mostrar el mensaje
+  resultadosDiv.innerHTML = "";
+  resultadosDiv.style.display = "none";
 
-// 🔥 Reset seguro del escáner para evitar bloqueo
-resetScanner();
+  resultadosDiv.innerHTML = `
+    <div style="
+      padding:10px;
+      color:#999;
+      background:#fff;
+      border-radius:8px;
+      text-align:center;
+    ">
+      Sin coincidencias
+    </div>`;
 
-  }
+  resultadosDiv.style.display = "block";
+  resultadosDiv.style.zIndex = "99999";
+
+  beep(500);
+
+  // 🧹 FIX: cerrar mensaje automáticamente
+  setTimeout(() => {
+    resultadosDiv.style.display = "none";
+    resultadosDiv.innerHTML = "";
+  }, 1500);
+
+  // 🧹 FIX adicional – evitar bloqueo del escáner
+  resetScanner();
+}
+
 }
 
 /* ===========================================================
