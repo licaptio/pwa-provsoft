@@ -1998,31 +1998,27 @@ Cliente : ${cliente}
 `;
 
     // 📋 Detalle de productos
-    const filas = document.querySelectorAll("#tLineas tr");
-    filas.forEach(f => {
-      const cols = f.querySelectorAll("td");
-if (cols.length >= 4) {
-  const nombre = (cols[0].textContent || "").substring(0, 32);
-  const cant = parseFloat(cols[1].textContent || "0");
-  let precioUnit = parseFloat(cols[2].textContent || "0");
-  let importe = parseFloat(cols[3].textContent || "0");
+carrito.forEach(p => {
+  const nombre = p.nombre.substring(0, 32);
+  const cant = p.cantidad;
+  const precioUnit = p.precioUnit;
+  const importe = cant * precioUnit;
 
-  // 🟦 Aplicar descuento del ticket (si existe)
-  if (descPorc && descPorc !== "0%") {
-    const porcNum = parseFloat(descPorc.replace("%", "")) || 0;
-    const factor = (100 - porcNum) / 100;
-
-    precioUnit = precioUnit * factor;
-    importe = importe * factor;
+  // aplicar descuento igual que antes:
+  let precioConDescuento = precioUnit;
+  if (descPorc !== "0%") {
+    const porc = parseFloat(descPorc.replace("%","")) || 0;
+    precioConDescuento = precioUnit * ((100 - porc) / 100);
   }
 
-  const cantTxt = cant.toString().padStart(5, " ");
-  const precTxt = precioUnit.toFixed(2).padStart(8, " ");
-  const impTxt = importe.toFixed(2).padStart(9, " ");
+  const impFinal = cant * precioConDescuento;
 
   ticket += `${nombre}\n`;
-  ticket += `Cant:${cantTxt}  ${precTxt}  ${impTxt}\n`;
-}
+  ticket += `Cant:${String(cant).padStart(5)}  `
+         + `${precioConDescuento.toFixed(2).padStart(8)}  `
+         + `${impFinal.toFixed(2).padStart(9)}\n`;
+});
+
 
 
     // 💵 Totales
