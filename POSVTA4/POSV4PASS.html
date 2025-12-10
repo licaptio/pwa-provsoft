@@ -741,26 +741,28 @@ async function buscarEquivalenteRemoto(codigo) {
   try {
     const ref = collection(db, "equivalentes");
 
-    // 1️⃣ Busca si el código es origen
-    const qOrigen = query(ref, where("codigo_origen", "==", codigo));
-    // 2️⃣ O si es un equivalente
-    const qEquiv = query(ref, where("codigo_equivalente", "==", codigo));
+// ===========================================
+// 🔧 Buscar equivalentes (soporta múltiples)
+// ===========================================
+const qEquiv = query(equivalentesCol, where("codigo_equivalente", "==", texto));
+const snapEquiv = await getDocs(qEquiv);
 
-    const [snapOrigen, snapEquiv] = await Promise.all([
-      getDocs(qOrigen),
-      getDocs(qEquiv)
-    ]);
+let codigosBusqueda = [texto]; // siempre buscar también el original
 
-    let codigoReal = null;
-
-    // Si escaneó el código original, buscamos su equivalente (por si acaso)
-    if (!snapOrigen.empty) {
-      codigoReal = snapOrigen.docs[0].data().codigo_origen;
+if (!snapEquiv.empty) {
+  // Recoger TODOS los códigos origen válidos
+  snapEquiv.forEach(doc => {
+    const origen = doc.data().codigo_origen;
+    if (origen && !codigosBusqueda.includes(origen)) {
+      codigosBusqueda.push(origen);
     }
-    // Si escaneó un equivalente, regresamos el código original vinculado
-    else if (!snapEquiv.empty) {
-      codigoReal = snapEquiv.docs[0].data().codigo_origen;
-    }
+  });
+}
+
+// Ahora buscar productos con CUALQUIERA de esos códigos
+const resultados = todosLosProductos.filter(p =>
+  codigosBusqueda.includes(p.codigo)
+);
 
     if (codigoReal) {
       console.log("🔁 Código equivalente encontrado:", codigoReal);
@@ -1436,8 +1438,6 @@ montoRecibido.addEventListener("input", () => {
   const cambio = valRec - tot.total;
   montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
-
-// 🔐 Aplicar descuento con contraseña “”
 // 🔐 Aplicar descuento con contraseña “MADERO690*”
 $("#btnSolicitarDescuento").addEventListener("click", async () => {
   const porcStr = prompt("Introduce el descuento (%)");
@@ -1463,6 +1463,15 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
 
+// 🔥 FIX: Recalcular cambio AUTOMÁTICAMENTE después del descuento
+const pagoActual = parseFloat(montoRecibido.value) || 0;
+if (pagoActual > 0) {
+  const cambioCalc = pagoActual - tot.total;
+  montoCambio.textContent = money(cambioCalc > 0 ? cambioCalc : 0);
+} else {
+  montoCambio.textContent = "$0.00";
+}  
+  
   // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
   const pago = parseFloat(montoRecibido.value) || 0;
   if (pago > 0) {
@@ -1604,6 +1613,8 @@ return {
     // 🧾 Generar e imprimir ticket
     console.log("🧾 Generando ticket...");
     rellenarTicket(venta);
+window.__ULTIMOS_TOTALES = calcularTotales(descuentoAutorizado);
+
     imprimirTicketEstilado();
 
 
@@ -1921,9 +1932,18 @@ function rellenarTicket(v){
   tbody.innerHTML="";
 v.detalle.forEach(p => {
   const tr = document.createElement("tr");
-  const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
-  const cantidad = p.cantidad ?? 0;
-  const importe = cantidad * precioUnit;
+const cantidad = p.cantidad ?? 0;
+const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
+
+// 💸 Calcular precio unitario con descuento prorrateado
+let precioConDesc = precioUnit;
+if (v.descuento_porcentaje > 0) {
+  const descFactor = (100 - v.descuento_porcentaje) / 100;
+  precioConDesc = (precioUnit * descFactor);
+}
+
+// 💲 Importe correcto
+const importe = cantidad * precioConDesc;
 
   tr.innerHTML = `
     <td>${p.nombre}</td>
@@ -1943,19 +1963,23 @@ function imprimirTicketEstilado() {
       maximumFractionDigits: 2
     });
 
-    // 📦 Obtener datos de la venta actual
-    const folio = $("#tFolio").textContent.trim();
-    const fecha = $("#tFecha").textContent.trim();
-    const cliente = $("#tCliente").textContent.trim();
-    const subtotal = $("#tSubtotal").textContent.trim();
-    const descPorc = $("#tDescPorc").textContent.trim();
-    const descMonto = $("#tDescMonto").textContent.trim();
-    const total = $("#tTotal").textContent.trim();
-    const pago = $("#tPago").textContent.trim();
-    const cambio = $("#tCambio").textContent.trim();
-    const impuestos = $("#tImpuestos").textContent.trim();
-    const articulos = $("#tArticulos").textContent.trim();
-    const cajero = $("#tCajero").textContent.trim();
+// 📦 Obtener datos de la venta actual
+const folio = $("#tFolio").textContent.trim();
+const fecha = $("#tFecha").textContent.trim();
+const cliente = $("#tCliente").textContent.trim();
+
+// 🧮 Totales reales provenientes del cálculo interno
+const t = window.__ULTIMOS_TOTALES || {};
+const subtotal = formatoNum(t.subtotal || 0);
+const descPorc = $("#tDescPorc").textContent.trim();
+const descMonto = formatoNum(t.descuento || 0);
+const total = formatoNum(t.total || 0);
+const impuestos = formatoNum(t.impuestos || 0);
+
+const pago = $("#tPago").textContent.trim();
+const cambio = $("#tCambio").textContent.trim();
+const articulos = $("#tArticulos").textContent.trim();
+const cajero = $("#tCajero").textContent.trim();
 
     // 🧾 Construir texto del ticket en formato térmico
     let ticket = `
@@ -1977,15 +2001,29 @@ Cliente : ${cliente}
     const filas = document.querySelectorAll("#tLineas tr");
     filas.forEach(f => {
       const cols = f.querySelectorAll("td");
-      if (cols.length >= 4) {
-        const nombre = (cols[0].textContent || "").substring(0, 32);
-        const cant = (cols[1].textContent || "").padStart(5, " ");
-        const prec = (cols[2].textContent || "").padStart(8, " ");
-        const imp = (cols[3].textContent || "").padStart(9, " ");
-        ticket += `${nombre}\n`;
-        ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
-      }
-    });
+if (cols.length >= 4) {
+  const nombre = (cols[0].textContent || "").substring(0, 32);
+  const cant = parseFloat(cols[1].textContent || "0");
+  let precioUnit = parseFloat(cols[2].textContent || "0");
+  let importe = parseFloat(cols[3].textContent || "0");
+
+  // 🟦 Aplicar descuento del ticket (si existe)
+  if (descPorc && descPorc !== "0%") {
+    const porcNum = parseFloat(descPorc.replace("%", "")) || 0;
+    const factor = (100 - porcNum) / 100;
+
+    precioUnit = precioUnit * factor;
+    importe = importe * factor;
+  }
+
+  const cantTxt = cant.toString().padStart(5, " ");
+  const precTxt = precioUnit.toFixed(2).padStart(8, " ");
+  const impTxt = importe.toFixed(2).padStart(9, " ");
+
+  ticket += `${nombre}\n`;
+  ticket += `Cant:${cantTxt}  ${precTxt}  ${impTxt}\n`;
+}
+
 
     // 💵 Totales
     ticket += `--------------------------------
@@ -2193,36 +2231,44 @@ if("serviceWorker" in navigator){
 document.addEventListener("DOMContentLoaded",()=> {
   const b = document.getElementById("btnLogout");
   if (b) {
-    b.addEventListener("click", () => {
+b.addEventListener("click", () => {
 
-      // SOLO BORRAR LA SESIÓN
-      localStorage.removeItem("usuario_ruta");
+  // 🛑 PROTECCIÓN: no permitir cerrar sesión durante cobro
+  if (bloquearSiCobroActivo()) return;
 
-      // 🔥 OCULTAR POS COMPLETO
-      document.getElementById("posApp").style.display = "none";
+  // SOLO BORRAR LA SESIÓN
+  localStorage.removeItem("usuario_ruta");
 
-      // 🔥 OCULTAR BARRA INFERIOR
-      document.getElementById("bottomBar").style.display = "none";
+  // 🔥 OCULTAR POS COMPLETO
+  document.getElementById("posApp").style.display = "none";
 
-      // 🔥 OCULTAR CARRITO FIJO
-      document.getElementById("carrito-container").style.display = "none";
+  // 🔥 OCULTAR BARRA INFERIOR
+  document.getElementById("bottomBar").style.display = "none";
 
-      // MOSTRAR LOGIN
-      document.getElementById("loginScreen").style.display = "flex";
-      document.getElementById("loginUsuario").value = "";
-      document.getElementById("loginPassword").value = "";
-      document.getElementById("loginMsg").textContent = "";
-      alert("Sesión cerrada correctamente.");
-    });
+  // 🔥 OCULTAR CARRITO FIJO
+  document.getElementById("carrito-container").style.display = "none";
+
+  // MOSTRAR LOGIN
+  document.getElementById("loginScreen").style.display = "flex";
+  document.getElementById("loginUsuario").value = "";
+  document.getElementById("loginPassword").value = "";
+  document.getElementById("loginMsg").textContent = "";
+  alert("Sesión cerrada correctamente.");
+});
+
   }
 });
 
   // 📊 Acceso rápido al Resumen Diario
 const btnResumen = document.getElementById("btnResumen");
 if (btnResumen) {
-  btnResumen.addEventListener("click", () => {
-    window.location.href = "ticketsresumen.html";
-  });
+btnResumen.addEventListener("click", () => {
+
+  if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
+
+  window.location.href = "ticketsresumen.html";
+});
+
 }
 </script>
 <script>
@@ -2320,6 +2366,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // 🚀 Abrir cámara
   btnCam.addEventListener("click", async () => {
+  if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
     try {
       escaneoExitoso = false;
       camDiv.style.display = "flex";
@@ -2551,6 +2598,17 @@ window.addEventListener("beforeunload",e=>{
 document.getElementById("btnLogout").addEventListener("click",()=>{
   bloqueoSalida=false;
 });
+
+// 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
+function bloquearSiCobroActivo() {
+  const modal = document.getElementById("modalCobro");
+  if (modal && modal.style.display === "flex") {
+    toast("🚫 Finaliza la venta primero");
+    return true;
+  }
+  return false;
+}
+  
 /* ===========================================================
    🧪 BOTÓN "TEST FUNCIÓN" PARA ABRIR PANTALLA DE PRUEBAS
    =========================================================== */
@@ -2561,6 +2619,9 @@ const carritoContainer = document.getElementById("carrito-container");
 
 // 🧩 Mostrar pantalla de pruebas
 btnTestFuncion.addEventListener("click", () => {
+
+  if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
+
   pantallaVenta.style.display = "none";
   if (carritoContainer) carritoContainer.style.display = "none";
   pantallaTest.style.display = "block";
