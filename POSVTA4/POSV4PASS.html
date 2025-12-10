@@ -786,14 +786,19 @@ async function buscarEquivalenteRemoto(codigo) {
    ⚖️ SECCIÓN 6.2: DECODIFICAR CÓDIGOS DE BALANZA
    =========================================================== */
 function decodificarBalanza(codigo) {
-  // Códigos tipo 2000097001308 → 2000097 + 0.130 kg
-  if (codigo.startsWith("2") && codigo.length === 13) {
-    const codigoProducto = codigo.substring(0, 7);  // 2000097
-    const pesoBruto = codigo.substring(7, 12);      // 00130
-    const pesoKg = parseFloat(pesoBruto) / 1000;    // 0.130
-    return { esBalanza: true, codigoProducto, pesoKg };
+
+  if (!codigo.startsWith("2")) return { esBalanza: false };
+
+  // aceptar códigos 2xxxxxxxxxxxxx de 13 a 15 dígitos
+  if (codigo.length < 13 || codigo.length > 15) {
+    return { esBalanza: false };
   }
-  return { esBalanza: false };
+
+  const codigoProducto = codigo.substring(0, 7);  
+  const pesoBruto = codigo.substring(7, 12);      
+  const pesoKg = parseFloat(pesoBruto) / 1000;    
+
+  return { esBalanza: true, codigoProducto, pesoKg };
 }
 
 /* ===========================================================
@@ -1146,7 +1151,16 @@ async function ejecutarBusqueda(texto) {
     }
 
     // 2️⃣ Buscar el producto real
-    const producto = buscarLocal(codigoBase);
+    let producto = buscarLocal(codigoBase);
+
+// si no lo encuentra, intentar por equivalentes del catálogo
+if (producto.length === 0) {
+  const eqDirecto = catalogo.find(
+    p => Array.isArray(p.equivalentes) && p.equivalentes.includes(codigoBase)
+  );
+  if (eqDirecto) producto = [eqDirecto];
+}
+
 if (producto.length > 0) {
   const p = producto[0];
   const peso = parseFloat(balanza.pesoKg.toFixed(3));
