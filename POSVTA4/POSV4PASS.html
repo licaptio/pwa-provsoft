@@ -655,52 +655,44 @@ async function cargarDepartamentos() {
 
   // 🟢 Intentar cargar desde cache del Service Worker
   const depSW = await leerCache("/departamentos");
-  if (depSW && Object.keys(depSW).length > 0) {
+  if (depSW && typeof depSW === "object" && Object.keys(depSW).length > 0) {
     departamentos = depSW;
     console.log("⚡ Departamentos cargados desde cache SW");
     statusBox.textContent = "⚡ Departamentos offline cargados";
     setTimeout(() => statusBox.remove(), 1000);
-    return; // ← IMPORTANTE PARA NO IR A FIRESTORE
+    return;
   }
 
-  // ===========================================================
-  // 🔵 Si no hay cache → cargar de Firestore
-  // ===========================================================
   try {
     const depSnap = await getDocs(collection(db, "departamentos"));
-    let depTemp = []; 
+    departamentos = {};  // ← IMPORTANTE
 
     depSnap.forEach(doc => {
-      depTemp.push({
+      const d = doc.data();
+      departamentos[doc.id] = {
         id: doc.id,
-        nombre: doc.data().nombre,
-        icono: doc.data().icono
-      });
+        nombre: d.nombre || "SIN NOMBRE",
+        
+        // 🔥 Si no existen en Firestore, se agregan con 0
+        iva: Number(d.iva || 0),
+        ieps: Number(d.ieps || 0),
+
+        // (opcional) icono para pantalla de categorías
+        icono: d.icono || ""
+      };
     });
 
-    departamentos = {};
-depTemp.forEach(d => {
-  departamentos[d.id] = {
-    id: d.id,
-    nombre: d.nombre,
-    iva: d.iva || 0,
-    ieps: d.ieps || 0
-  };
-});
-
-
-    // 💾 Guardar en cache SW para uso offline
+    // Cachearlo
     cachearDatos("/departamentos", departamentos);
 
-    statusBox.textContent = `Departamentos cargados (${departamentos.length})`;
+    statusBox.textContent = `Departamentos cargados (${Object.keys(departamentos).length})`;
     setTimeout(() => statusBox.remove(), 1500);
 
   } catch (err) {
-    console.error("❌ Error al cargar departamentos:", err);
+    console.error("❌ Error cargando departamentos:", err);
     statusBox.textContent = "Error cargando departamentos";
   }
 }
-
 
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
