@@ -1188,20 +1188,27 @@ resultadosDiv.innerHTML = `
   <div style="
     padding:10px;
     color:#999;
-    position:relative;
-    z-index:99999;
     background:#fff;
     border-radius:8px;
   ">
     Sin coincidencias
   </div>`;
-resultadosDiv.style.zIndex = "99999";
-resultadosDiv.style.display = "block";
 
+resultadosDiv.style.display = "block";
 beep(500);
 
-// 🔥 Reset seguro del escáner para evitar bloqueo
+// 🔥 Corrección: cerrar el div después de 1 segundo
+setTimeout(() => {
+  resultadosDiv.style.display = "none";
+  resultadosDiv.innerHTML = "";
+}, 1000);
+
+// 🔥 CORRECCIÓN REAL: limpiar input SIEMPRE
+buscador.value = "";
+
+// 🔥 Reiniciar escáner correctamente
 resetScanner();
+
 
   }
 }
@@ -1213,11 +1220,17 @@ let scanBuffer = "";
 let scanTimer = null;
 let modoScanner = false;
 
-  function resetScanner() {
+function resetScanner() {
   scanBuffer = "";
   modoScanner = false;
   clearTimeout(scanTimer);
-  buscador.value = "";
+
+  // 🔥 Corrección clave
+  if (buscador) {
+    buscador.value = "";
+    buscador.blur();       // resetea móviles
+    setTimeout(() => buscador.focus(), 150); // reactiva HID
+  }
 }
 
 function procesarCodigoEscaneado(codigo) {
