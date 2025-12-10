@@ -2744,6 +2744,101 @@ TOTAL: $1.00
     toast("❌ Error de impresión", "#c0392b");
   }
 });
+// 🧪 VENTA FANTASMA / VENTA CERO – Inicialización diaria
+document.getElementById("btnTestVentaCero")?.remove(); // evita duplicados
+
+const btnVentaCero = document.createElement("button");
+btnVentaCero.id = "btnTestVentaCero";
+btnVentaCero.className = "btn";
+btnVentaCero.style.background = "#00416A";
+btnVentaCero.style.margin = "6px 0";
+btnVentaCero.textContent = "🧾 Registrar Venta CERO (Inicializar POS)";
+document.getElementById("pantallaTest").prepend(btnVentaCero);
+
+btnVentaCero.addEventListener("click", async () => {
+
+  if (!USUARIO_LOGUEADO) {
+    alert("Inicia sesión primero.");
+    return;
+  }
+
+  testResult.innerHTML = "🧾 Generando venta CERO...";
+
+  try {
+    // 🧮 Genera folio igual que una venta REAL
+    let folio = "";
+    const hoy = new Date();
+    const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, "");
+    const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR").toUpperCase().slice(0, 8);
+    const folioId = `${usuarioTag}_${fechaTag}`;
+    const folioRef = doc(db, "contadores", folioId);
+
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(folioRef);
+      let consecutivo = snap.exists() ? (snap.data().ultimo || 0) + 1 : 1;
+      tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
+      folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
+    });
+
+    // 🧾 Venta fantasma SIN productos
+    const ventaCero = {
+      folio,
+      rutaId,
+      cliente: "VENTA CERO (TEST)",
+      cortado: false,
+      descuento_porcentaje: 0,
+      descuento_monto: 0,
+      resumen_financiero: {
+        subtotal: 0,
+        descuento: 0,
+        impuestos: 0,
+        total: 0,
+        costo_total: 0,
+        utilidad_total: 0,
+        margen_porcentaje: 0
+      },
+      fecha: serverTimestamp(),
+      fecha_txt: hoy.toLocaleString("es-MX",{hour12:true}),
+      usuarioId: USUARIO_LOGUEADO?.id || "",
+      usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
+      notas: "VENTA FANTASMA / VENTA CERO",
+      autorizado_por: null,
+      ubicacion: null,
+      detalle: [
+        {
+          id: "VENTA-CERO",
+          nombre: "Venta de Inicialización",
+          codigo: "00000000",
+          cantidad: 0,
+          precio_unit: 0,
+          importe: 0,
+          costo_unit: 0,
+          costo_total: 0,
+          ivaTasa: 0,
+          iepsTasa: 0,
+          departamento_id: "0",
+          departamento_info: { id: 0, nombre: "NINGUNO", iva: 0, ieps: 0 }
+        }
+      ]
+    };
+
+    await addDoc(collection(db, "ventas_rutav2"), ventaCero);
+
+    testResult.innerHTML = `
+      ✅ Venta CERO generada<br>
+      Folio: <strong>${folio}</strong><br>
+      El POS ya está inicializado para este día.
+    `;
+
+    beep(950, 0.15);
+    toast("🧾 Venta CERO generada correctamente", "#16a34a");
+
+  } catch (err) {
+    console.error("❌ Error generando venta CERO:", err);
+    testResult.innerHTML = "❌ Falló la venta CERO";
+    toast("❌ Error al generar venta CERO", "#c0392b");
+  }
+});
 
 // 📍 Prueba de geolocalización
 document.getElementById("btnTestGPS").addEventListener("click", async () => {
