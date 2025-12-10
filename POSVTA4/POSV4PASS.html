@@ -736,48 +736,52 @@ function buscarLocal(qraw) {
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
 /* ===========================================================
-   🔗 SECCIÓN 6.1: CONSULTA DE EQUIVALENCIAS EN FIRESTORE
+   🔗 SECCIÓN 6.1: CONSULTA DE EQUIVALENCIAS EN FIRESTORE (FIX)
    =========================================================== */
 async function buscarEquivalenteRemoto(codigo) {
   try {
-    const ref = collection(db, "equivalentes");
+    const equivalentesCol = collection(db, "equivalentes");
 
-// ===========================================
-// 🔧 Buscar equivalentes (soporta múltiples)
-// ===========================================
-const qEquiv = query(equivalentesCol, where("codigo_equivalente", "==", texto));
-const snapEquiv = await getDocs(qEquiv);
+    // Buscar equivalentes donde *este código* sea el equivalente
+    const q1 = query(
+      equivalentesCol,
+      where("codigo_equivalente", "==", codigo)
+    );
+    const snap1 = await getDocs(q1);
 
-let codigosBusqueda = [texto]; // siempre buscar también el original
+    // Buscar equivalentes donde *este código* sea el origen
+    const q2 = query(
+      equivalentesCol,
+      where("codigo_origen", "==", codigo)
+    );
+    const snap2 = await getDocs(q2);
 
-if (!snapEquiv.empty) {
-  // Recoger TODOS los códigos origen válidos
-  snapEquiv.forEach(doc => {
-    const origen = doc.data().codigo_origen;
-    if (origen && !codigosBusqueda.includes(origen)) {
-      codigosBusqueda.push(origen);
-    }
-  });
-}
+    // Construimos todos los códigos válidos para buscar
+    let codigosBusqueda = [codigo];
 
-// Ahora buscar productos con CUALQUIERA de esos códigos
-const resultados = todosLosProductos.filter(p =>
-  codigosBusqueda.includes(p.codigo)
-);
+    snap1.forEach(doc => {
+      const o = doc.data().codigo_origen;
+      if (o && !codigosBusqueda.includes(o)) codigosBusqueda.push(o);
+    });
 
-    if (codigoReal) {
-      console.log("🔁 Código equivalente encontrado:", codigoReal);
-      toast(`🔄 Código equivalente detectado (${codigoReal})`, "#f59e0b");
-      const producto = buscarLocal(codigoReal);
-      if (producto.length > 0) return producto;
-    }
+    snap2.forEach(doc => {
+      const eq = doc.data().codigo_equivalente;
+      if (eq && !codigosBusqueda.includes(eq)) codigosBusqueda.push(eq);
+    });
 
-    return [];
+    // Buscar producto en catálogo usando los códigos obtenidos
+    const resultados = catalogo.filter(p =>
+      codigosBusqueda.includes(String(p.codigo))
+    );
+
+    return resultados;
+
   } catch (err) {
-    console.error("❌ Error buscando equivalencia:", err);
+    console.error("❌ Error buscando equivalencia remota:", err);
     return [];
   }
 }
+
 /* ===========================================================
    ⚖️ SECCIÓN 6.2: DECODIFICAR CÓDIGOS DE BALANZA
    =========================================================== */
