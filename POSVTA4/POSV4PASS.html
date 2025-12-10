@@ -899,10 +899,17 @@ function calcularTotales(descPorc = 0) {
   // 🔢 Recorre todos los productos del carrito
   carrito.forEach(it => {
     const imp = it.cantidad * it.precioUnit;
-    const dep = departamentos[it.departamento_id] || { iva: 0, ieps: 0 };
+// 🔧 Obtener impuestos con fallback seguro
+const dep = departamentos[it.departamento_id] || null;
 
-    const ivaT = dep.iva / 100;
-    const iepsT = dep.ieps / 100;
+const ivaT = dep
+  ? (Number(dep.iva) || 0) / 100
+  : (Number(it.ivaTasa) || 0) / 100;
+
+const iepsT = dep
+  ? (Number(dep.ieps) || 0) / 100
+  : (Number(it.iepsTasa) || 0) / 100;
+
     let base = imp;
 
     // Descompone el precio si ya incluye IVA o IEPS
@@ -1162,6 +1169,12 @@ if (producto.length > 0) {
   }
 
   resultadosDiv.innerHTML = "";
+// 🔧 Restaurar estilo original para resultados normales
+resultadosDiv.style.position = "absolute";
+resultadosDiv.style.top = "";
+resultadosDiv.style.left = "";
+resultadosDiv.style.transform = "";
+resultadosDiv.style.width = "";
 
   if (resultados.length === 1) {
     beep(950);
@@ -1246,7 +1259,7 @@ function resetScanner() {
   if (buscador) {
     buscador.value = "";
     buscador.blur();       // resetea móviles
-    setTimeout(() => buscador.focus(), 150); // reactiva HID
+    setTimeout(() => buscador.focus(), 30); // reactiva HID
   }
 }
 
