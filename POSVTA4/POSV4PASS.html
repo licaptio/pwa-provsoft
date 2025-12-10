@@ -581,9 +581,9 @@ catalogo = catalogoSW.map(x => ({
 
       catalogo.forEach(p => {
         if (p.codigo) codeIndex.set(p.codigo, p.id);
-        if (Array.isArray(p.equivalentes)) {
-          p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
-        }
+// ❗ Ya NO metemos equivalentes al codeIndex
+// Solo metemos códigos reales
+
       });
 
       console.log("⚡ Catálogo cargado desde cache:", catalogo.length);
