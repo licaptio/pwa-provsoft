@@ -678,7 +678,16 @@ async function cargarDepartamentos() {
       });
     });
 
-    departamentos = depTemp;
+    departamentos = {};
+depTemp.forEach(d => {
+  departamentos[d.id] = {
+    id: d.id,
+    nombre: d.nombre,
+    iva: d.iva || 0,
+    ieps: d.ieps || 0
+  };
+});
+
 
     // 💾 Guardar en cache SW para uso offline
     cachearDatos("/departamentos", departamentos);
