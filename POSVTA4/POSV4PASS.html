@@ -725,13 +725,15 @@ function buscarLocal(qraw) {
     if (p) return [p];
   }
 
-  // 3️⃣ Coincidencia parcial por equivalentes
-  const matchEq = catalogo.find(p => {
-    if (!Array.isArray(p.equivalentes)) return false;
-    return p.equivalentes.some(eq => eq && q.startsWith(eq.toLowerCase()));
-  });
-  if (matchEq) return [matchEq];
-
+// 3️⃣ Coincidencia EXACTA por equivalentes
+for (const p of catalogo) {
+  if (Array.isArray(p.equivalentes)) {
+    if (p.equivalentes.includes(q)) { 
+      return [p]; 
+    }
+  }
+}
+           
   // 4️⃣ Coincidencia por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
 }
