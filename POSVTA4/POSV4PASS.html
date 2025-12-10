@@ -1184,31 +1184,48 @@ if (producto.length > 0) {
     resultadosDiv.style.display = "block";
     beep(700);
   } else {
+// ===============================
+// 🚀 MENSAJE DE SIN COINCIDENCIAS (VERSIÓN FINAL)
+// ===============================
+
 resultadosDiv.innerHTML = `
   <div style="
-    padding:10px;
-    color:#999;
+    padding:12px;
     background:#fff;
-    border-radius:8px;
+    color:#444;
+    border-radius:10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+    font-size:15px;
+    font-weight:600;
+    text-align:center;
   ">
-    Sin coincidencias
-  </div>`;
+    🔍 Sin coincidencias
+  </div>
+`;
 
+// 🔥 Mostrar tarjeta flotante ARRIBA del carrito
+resultadosDiv.style.position = "fixed";
+resultadosDiv.style.top = "65px";              // se ve debajo del header
+resultadosDiv.style.left = "50%";
+resultadosDiv.style.transform = "translateX(-50%)";
+resultadosDiv.style.width = "max-content";
+resultadosDiv.style.maxWidth = "90vw";
+resultadosDiv.style.zIndex = "999999";          // nada lo puede tapar
 resultadosDiv.style.display = "block";
+
 beep(500);
 
-// 🔥 Corrección: cerrar el div después de 1 segundo
+// ⏳ Ocultar después de 1 segundo
 setTimeout(() => {
   resultadosDiv.style.display = "none";
   resultadosDiv.innerHTML = "";
 }, 1000);
 
-// 🔥 CORRECCIÓN REAL: limpiar input SIEMPRE
+// 🧹 Limpiar input SIEMPRE (evita que se “muera” el scanner)
 buscador.value = "";
 
-// 🔥 Reiniciar escáner correctamente
+// 🔄 Reset completo del scanner (buffer + estado + focus)
 resetScanner();
-
 
   }
 }
