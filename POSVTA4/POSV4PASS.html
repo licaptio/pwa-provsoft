@@ -666,7 +666,7 @@ async function cargarDepartamentos() {
   const statusBox = crearStatusBox("Cargando departamentos...");
 
   // 🟢 Intentar cargar desde cache del Service Worker
-  const depSW = await leerCache("/departamentos");
+  const depSW = await leerCache("/departamentos_venta");
   if (depSW && typeof depSW === "object" && Object.keys(depSW).length > 0) {
     departamentos = depSW;
     console.log("⚡ Departamentos cargados desde cache SW");
@@ -676,7 +676,7 @@ async function cargarDepartamentos() {
   }
 
   try {
-    const depSnap = await getDocs(collection(db, "departamentos"));
+    const depSnap = await getDocs(collection(db, "departamentos_venta"));
     departamentos = {};  // ← IMPORTANTE
 
     depSnap.forEach(doc => {
