@@ -1190,8 +1190,6 @@ async function ejecutarBusqueda(texto) {
       codigoBase = snap.docs[0].data().codigo_origen;
       console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
     }
-window.ejecutarBusqueda = ejecutarBusqueda;
-window.ejecutarBusquedaOriginal = ejecutarBusqueda;
 
 
     // 2️⃣ Buscar el producto real
@@ -1306,7 +1304,11 @@ buscador.value = "";
 resetScanner();
 
   }
-}
+
+  // Hacer la búsqueda y su versión original globales
+window.ejecutarBusqueda = ejecutarBusqueda;
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;
+
 
 /* ===========================================================
    🔎 DETECTOR UNIVERSAL DE ESCÁNER (v4.1 híbrido Android/PC)
