@@ -116,7 +116,7 @@ async function generarCorteMovil(){
   const listaDeptos=Object.entries(porDepto).sort((a,b)=>b[1].venta-a[1].venta);
   const topArt=Object.entries(porArticulo).sort((a,b)=>b[1].importe-a[1].importe).slice(0,10);
 
-  let texto=`CORTE ANALÍTICO - ${fecha}
+  let texto=`CORTE RUTA VENTA - ${fecha}
 --------------------------------
 RUTA: ${ruta}
 VENDEDOR: ${USUARIO.nombre}
@@ -129,7 +129,7 @@ VENTA POR DEPARTAMENTO
 `;
 
   listaDeptos.forEach(([d,v])=>texto+=`${d.substring(0,16).padEnd(16)} $${mxn(v.venta)}\n`);
-  texto+=`\n--------------------------------\nTOP ARTÍCULOS\n--------------------------------\n`;
+  texto+=`\n--------------------------------\nTOP ARTICULOS\n--------------------------------\n`;
   topArt.forEach(([n,v])=>{
   const nombre = n.substring(0,20).padEnd(22," ");
   texto += `${nombre}$${mxn(v.importe)}\n`;
