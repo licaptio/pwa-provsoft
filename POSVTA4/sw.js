@@ -1,9 +1,9 @@
 /* ===========================================================
-   🛰️ SERVICE WORKER – PROVSOFT POS OFFLINE TOTAL (v10)
+   🛰️ SERVICE WORKER – PROVSOFT POS OFFLINE TOTAL (v13)
    Autor: Gerardo Ríos Quesada
    =========================================================== */
 
-const VERSION = "provsoft-pos-v10";
+const VERSION = "provsoft-pos-v13";
 const CACHE = VERSION;
 
 // Cache estático fundamental
@@ -69,6 +69,7 @@ const DYNAMIC_KEYS = [
   "/precios",
   "/equivalencias",
   "/departamentos"
+  "/departamentos_venta"   // ← AGREGA ESTA
 ];
 
 /* ===========================================================
