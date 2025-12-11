@@ -517,6 +517,70 @@ function closeImageModal() {
   modal.style.display = "none";
   document.removeEventListener("keydown", escCloseModal);
 }
+/* ==========================
+   🔍 ZOOM CON DOBLE CLIC
+========================== */
+
+let zoomed = false;
+
+document.getElementById("modalImg").ondblclick = function() {
+  
+  if (!zoomed) {
+    // 🔍 Aplicar zoom 2x
+    this.style.transform = "scale(2)";
+    this.style.cursor = "grab";
+    zoomed = true;
+  } else {
+    // 🔙 Volver al tamaño normal
+    this.style.transform = "scale(1)";
+    this.style.cursor = "default";
+    zoomed = false;
+  }
+};
+
+/* Permitir mover la imagen cuando está en zoom (drag to move) */
+let isDragging = false;
+let startX, startY;
+let moveX = 0, moveY = 0;
+
+const img = document.getElementById("modalImg");
+
+img.addEventListener("mousedown", e => {
+  if (!zoomed) return;
+  isDragging = true;
+  img.style.cursor = "grabbing";
+  startX = e.clientX - moveX;
+  startY = e.clientY - moveY;
+});
+
+document.addEventListener("mousemove", e => {
+  if (!isDragging) return;
+
+  moveX = e.clientX - startX;
+  moveY = e.clientY - startY;
+
+  img.style.transform = `scale(2) translate(${moveX}px, ${moveY}px)`;
+});
+
+document.addEventListener("mouseup", () => {
+  isDragging = false;
+  img.style.cursor = zoomed ? "grab" : "default";
+});
+
+/* Al cerrar modal, reset */
+function closeImageModal() {
+  const modal = document.getElementById("imgModal");
+  const modalImg = document.getElementById("modalImg");
+
+  modal.style.display = "none";
+  document.removeEventListener("keydown", escCloseModal);
+
+  // reset zoom y posición
+  zoomed = false;
+  moveX = 0;
+  moveY = 0;
+  modalImg.style.transform = "scale(1)";
+}
 
 /* ==========================
    🔍 CERRAR CON ESC
