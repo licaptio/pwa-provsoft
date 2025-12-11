@@ -695,7 +695,7 @@ async function cargarDepartamentos() {
     });
 
     // Cachearlo
-    cachearDatos("/departamentos", departamentos);
+    cachearDatos("/departamentos_venta"", departamentos);
 
     statusBox.textContent = `Departamentos cargados (${Object.keys(departamentos).length})`;
     setTimeout(() => statusBox.remove(), 1500);
