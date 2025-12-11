@@ -131,15 +131,17 @@ td {
   <div class="card">
     <h3>Ventas encontradas</h3>
     <table id="tablaVentas">
-      <thead>
-        <tr>
-          <th>Sel</th>
-          <th>Folio</th>
-          <th>Cliente</th>
-          <th>Total</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
+<thead>
+  <tr>
+    <th>Sel</th>
+    <th>Folio</th>
+    <th>Cliente</th>
+    <th>Total</th>
+    <th>Usuario</th> <!-- 🔵 NUEVO -->
+    <th>Estado</th>
+  </tr>
+</thead>
+
       <tbody></tbody>
     </table>
   </div>
@@ -166,6 +168,15 @@ const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const tabla = document.querySelector("#tablaVentas tbody");
+async function cargarUsuarios() {
+  const usuariosSnap = await db.collection("usuarios").get();
+  window.USUARIOS = {};
+
+  usuariosSnap.forEach(doc => {
+    window.USUARIOS[doc.id] = doc.data();
+  });
+}
+cargarUsuarios();
 
 /* ===========================================================
    📌 FUNCIÓN PARA CARGAR VENTAS POR RUTA + FECHA
@@ -263,4 +274,5 @@ document.getElementById("btnCliente").addEventListener("click", () => {
 
 </body>
 </html>
+
 
