@@ -1642,20 +1642,18 @@ $("#btnConfirmarCobro").onclick = async () => {
       ubicacion: await obtenerUbicacionRobusta().catch(() => null),
       detalle: carrito.map(it => {
         // 🛠 FIX: validación segura del departamento
-let depId = it.departamento_id;
+// 🟢 FIX: Normalizar ID porque Firestore usa string como llave
+let depId = String(it.departamento_id || "").trim();
 
-// Si viene vacío, null, undefined o string raro → reparar
-if (!depId || depId === "null" || depId === "undefined" || depId.trim() === "") {
-  depId = catalogo.find(x => x.id === it.id)?.departamento_id || null;
+let dep = departamentos[depId];
+if (!dep) {
+  dep = {
+    id: "0",
+    nombre: "SIN DEP",
+    iva: 0,
+    ieps: 0
+  };
 }
-
-// Tomar departamento FINAL (si existe)
-const dep = departamentos[depId] || {
-  id: "0",
-  nombre: "SIN DEP",
-  iva: 0,
-  ieps: 0
-};
 
 return {
   id: it.id,
