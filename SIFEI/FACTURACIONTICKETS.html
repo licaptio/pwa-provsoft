@@ -165,7 +165,7 @@ const db = firebase.firestore();
 
 const tabla = document.querySelector("#tablaVentas tbody");
 async function cargarUsuarios() {
-  const usuariosSnap = await db.collection("usuarios").get();
+  const usuariosSnap = await db.collection("usuarios_ruta").get();
   window.USUARIOS = {};
 
   usuariosSnap.forEach(doc => {
@@ -180,24 +180,26 @@ async function cargarSelectorUsuarios() {
   const select = document.getElementById("rutaSelect");
   select.innerHTML = "<option value=''>Seleccione usuario…</option>";
 
-  const snap = await db.collection("usuarios").get();
+  // Colección correcta
+  const snap = await db.collection("usuarios_ruta").get();
 
   snap.forEach(doc => {
     const u = doc.data();
-    // Evitar usuarios sin ruta
-    if (!u.rutaId) return;
+
+    if (!u.activo) return;        // Solo usuarios activos
+    if (!u.rutaId) return;        // Evitar usuarios sin ruta
 
     const nombre = u.nombre ?? u.usuario ?? "SIN NOMBRE";
     const ruta = u.rutaId;
 
+    // Mostrar NOMBRE + RUTA pero enviar solo la rutaId
     select.innerHTML += `
       <option value="${ruta}">
-        ${nombre} – ${ruta}
+        ${nombre} — ${ruta}
       </option>
     `;
   });
 }
-
 cargarSelectorUsuarios();
 
 /* ===========================================================
@@ -300,6 +302,7 @@ document.getElementById("btnCliente").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
 
