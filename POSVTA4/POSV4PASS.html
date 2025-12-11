@@ -658,11 +658,24 @@ cachearDatos("/catalogo", catalogo);
     statusBox.style.background = "#c0392b";
   }
 }
+function crearStatusBox(texto) {
+  const box = document.createElement("div");
+  box.textContent = texto;
+  box.style.cssText = `
+    position:fixed;top:10px;left:50%;transform:translateX(-50%);
+    background:#00416A;color:white;padding:10px 14px;
+    border-radius:10px;z-index:5000;font-size:14px;
+    box-shadow:0 2px 6px rgba(0,0,0,.3);
+  `;
+  document.body.appendChild(box);
+  return box;
+}
 
 /* ===========================================================
    🏷️ CARGA DE DEPARTAMENTOS (CON CONTROL DE ERRORES)
    =========================================================== */
 async function cargarDepartamentos() {
+  
   const statusBox = crearStatusBox("Cargando departamentos...");
 
   // 🟢 Intentar cargar desde cache del Service Worker
@@ -674,6 +687,7 @@ async function cargarDepartamentos() {
     setTimeout(() => statusBox.remove(), 1000);
     return;
   }
+window.cargarDepartamentos = cargarDepartamentos;
 
   try {
     const depSnap = await getDocs(collection(db, "departamentos_venta"));
@@ -1176,6 +1190,7 @@ async function ejecutarBusqueda(texto) {
       codigoBase = snap.docs[0].data().codigo_origen;
       console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
     }
+async function ejecutarBusqueda(texto) {
 
     // 2️⃣ Buscar el producto real
     let producto = buscarLocal(codigoBase);
