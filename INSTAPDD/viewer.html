@@ -385,7 +385,7 @@ div.innerHTML = `
 
     <input type="checkbox" class="hide-check" onchange="toggleItem(this)">
     
-    <img src="${url}" onclick="downloadImage('${url}')">
+    <img src="${url}" onclick="openImageModal('${url}')">
 
     <div class="info-hover">
       <b>Nota:</b> ${item.caption || "-"}<br>
@@ -399,11 +399,8 @@ div.innerHTML = `
 
   </div>
 `;
-
-
   gallery.appendChild(div);
 }
-
 /* DESCARGAR */
 function downloadImage(url) {
   const a = document.createElement("a");
@@ -478,5 +475,67 @@ loadRelations();
 loadMore();
 
 </script>
+<!-- =========================
+     🔍 VISOR TIPO WHATSAPP WEB
+=========================== -->
+<div id="imgModal" style="
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+">
+  <img id="modalImg" src="" style="
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(255,255,255,0.2);
+  ">
+</div>
+<script>
+/* ==========================
+   🔍 ABRIR EL MODAL
+========================== */
+function openImageModal(url) {
+  const modal = document.getElementById("imgModal");
+  const modalImg = document.getElementById("modalImg");
+
+  modalImg.src = url;
+  modal.style.display = "flex";
+
+  // Permite cerrar con ESC
+  document.addEventListener("keydown", escCloseModal);
+}
+
+/* ==========================
+   🔍 CERRAR EL MODAL
+========================== */
+function closeImageModal() {
+  const modal = document.getElementById("imgModal");
+  modal.style.display = "none";
+  document.removeEventListener("keydown", escCloseModal);
+}
+
+/* ==========================
+   🔍 CERRAR CON ESC
+========================== */
+function escCloseModal(event) {
+  if (event.key === "Escape") {
+    closeImageModal();
+  }
+}
+
+/* ==========================
+   🔍 CERRAR SI DAS CLICK FUERA
+========================== */
+document.getElementById("imgModal").onclick = function(e) {
+  if (e.target.id === "imgModal") {
+    closeImageModal();
+  }
+};
+</script>
+
 </body>
 </html>
