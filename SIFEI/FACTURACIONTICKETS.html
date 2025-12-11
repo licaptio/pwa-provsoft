@@ -112,14 +112,10 @@ td {
   <!-- 🔍 FILTROS -->
   <div class="card">
     <label>Ruta:</label>
-    <select id="rutaSelect">
-      <option value="">Seleccione…</option>
-      <option value="AdministradorGeneral">Administrador General</option>
-      <option value="RUTA1">RUTA 1</option>
-      <option value="RUTA2">RUTA 2</option>
-      <option value="RUTA3">RUTA 3</option>
-      <!-- AGREGA AQUÍ TUS RUTAS REALES -->
-    </select>
+<select id="rutaSelect">
+  <option value="">Cargando usuarios…</option>
+</select>
+
 
     <label>Fecha:</label>
     <input type="date" id="fechaInput">
@@ -177,6 +173,32 @@ async function cargarUsuarios() {
   });
 }
 cargarUsuarios();
+/* ===========================================================
+   🟦 CARGAR USUARIOS Y RELLENAR SELECTOR
+   =========================================================== */
+async function cargarSelectorUsuarios() {
+  const select = document.getElementById("rutaSelect");
+  select.innerHTML = "<option value=''>Seleccione usuario…</option>";
+
+  const snap = await db.collection("usuarios").get();
+
+  snap.forEach(doc => {
+    const u = doc.data();
+    // Evitar usuarios sin ruta
+    if (!u.rutaId) return;
+
+    const nombre = u.nombre ?? u.usuario ?? "SIN NOMBRE";
+    const ruta = u.rutaId;
+
+    select.innerHTML += `
+      <option value="${ruta}">
+        ${nombre} – ${ruta}
+      </option>
+    `;
+  });
+}
+
+cargarSelectorUsuarios();
 
 /* ===========================================================
    📌 FUNCIÓN PARA CARGAR VENTAS POR RUTA + FECHA
@@ -204,27 +226,31 @@ async function cargarVentas() {
   tabla.innerHTML = "";
   window.VENTAS = []; // buffer global
 
-  snap.forEach(doc => {
-    const v = doc.data();
-    v.id = doc.id;
+snap.forEach(doc => {
+  const v = doc.data();
+  v.id = doc.id;
 
-    window.VENTAS.push(v);
+  window.VENTAS.push(v);
 
-    const estado = v.facturada
-      ? `<span class='facturada'>FACTURADA</span>`
-      : `<span class='pendiente'>PENDIENTE</span>`;
+  const estado = v.facturada
+    ? `<span class='facturada'>FACTURADA</span>`
+    : `<span class='pendiente'>PENDIENTE</span>`;
 
-    const chk = !v.facturada ? `<input type='checkbox' data-id='${v.id}'>` : "";
+  const chk = !v.facturada ? `<input type='checkbox' data-id='${v.id}'>` : "";
 
-    tabla.innerHTML += `
-      <tr>
-        <td>${chk}</td>
-        <td>${v.folio}</td>
-        <td>${v.cliente}</td>
-        <td>$${v.resumen_financiero.total.toFixed(2)}</td>
-        <td>${estado}</td>
-      </tr>`;
-  });
+  // 🔵 Traemos el nombre del usuario
+  const usuario = v.usuarioNombre ?? "SIN USUARIO";
+
+  tabla.innerHTML += `
+    <tr>
+      <td>${chk}</td>
+      <td>${v.folio}</td>
+      <td>${v.cliente}</td>
+      <td>$${v.resumen_financiero.total.toFixed(2)}</td>
+      <td>${usuario}</td>   <!-- 🔵 AQUI ESTABA EL ERROR -->
+      <td>${estado}</td>
+    </tr>`;
+});
 
   if (window.VENTAS.length === 0) {
     tabla.innerHTML = "<tr><td colspan='5'>No hay ventas en esa fecha</td></tr>";
@@ -274,5 +300,6 @@ document.getElementById("btnCliente").addEventListener("click", () => {
 
 </body>
 </html>
+
 
 
