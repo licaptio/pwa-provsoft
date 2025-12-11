@@ -494,7 +494,7 @@ async function cachearDatos(ruta, data) {
     const res = new Response(JSON.stringify(data), {
       headers: { "Content-Type": "application/json" }
     });
-    const cache = await caches.open("provsoft-pos-v10");
+    const cache = await caches.open("provsoft-pos-v11");
     await cache.put(url, res);
     console.log("💾 Guardado en caché SW:", ruta);
   } catch (err) {
@@ -1190,7 +1190,9 @@ async function ejecutarBusqueda(texto) {
       codigoBase = snap.docs[0].data().codigo_origen;
       console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
     }
-async function ejecutarBusqueda(texto) {
+window.ejecutarBusqueda = ejecutarBusqueda;
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;
+
 
     // 2️⃣ Buscar el producto real
     let producto = buscarLocal(codigoBase);
