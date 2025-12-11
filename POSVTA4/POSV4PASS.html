@@ -579,9 +579,15 @@ catalogo = catalogoSW.map(x => ({
       codeIndex.clear();
 
       catalogo.forEach(p => {
-        if (p.codigo) codeIndex.set(p.codigo, p.id);
-// ❗ Ya NO metemos equivalentes al codeIndex
-// Solo metemos códigos reales
+
+if (p.codigo) codeIndex.set(p.codigo, p.id);
+
+if (Array.isArray(p.equivalentes)) {
+  p.equivalentes.forEach(eq => { 
+    if (eq) codeIndex.set(eq, p.id); 
+  });
+}
+
 
       });
 
@@ -615,14 +621,21 @@ const p = {
   unidadMedidaSat: x.unidadMedidaSat || null,
 
   departamento_id: x.departamento_id || null,
-  equivalentes: Array.isArray(x.codigosEquivalentes) ? x.codigosEquivalentes : [],
+  equivalentes: Array.isArray(x.codigosEquivalentes)
+  ? x.codigosEquivalentes.map(e => String(e).trim())
+  : [],
+
 };
 
       catalogo.push(p);
-      if (p.codigo) codeIndex.set(p.codigo, p.id);
-      if (Array.isArray(p.equivalentes)) {
-        p.equivalentes.forEach(eq => { if (eq) codeIndex.set(eq, p.id); });
-      }
+if (p.codigo) codeIndex.set(p.codigo, p.id);
+
+if (Array.isArray(p.equivalentes)) {
+  p.equivalentes.forEach(eq => {
+    if (eq) codeIndex.set(eq, p.id);
+  });
+}
+
     });
 // =====================================================
 // 💾 Guardar catálogo en caché del Service Worker
@@ -770,10 +783,14 @@ async function buscarEquivalenteRemoto(codigo) {
       if (eq && !codigosBusqueda.includes(eq)) codigosBusqueda.push(eq);
     });
 
-    // Buscar producto en catálogo usando los códigos obtenidos
-    const resultados = catalogo.filter(p =>
-      codigosBusqueda.includes(String(p.codigo))
-    );
+const resultados = catalogo.filter(p => {
+  const codPrincipal = String(p.codigo || "").trim();
+  const eqs = Array.isArray(p.equivalentes) ? p.equivalentes : [];
+
+  return codigosBusqueda.includes(codPrincipal) ||
+         eqs.some(e => codigosBusqueda.includes(String(e).trim()));
+});
+
 
     return resultados;
 
