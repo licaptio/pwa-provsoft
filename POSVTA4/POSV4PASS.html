@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+x<!DOCTYPE html>
 <html lang="es">
 <head>
   <!-- 🧱 BLOQUE 1: CABECERA Y CONFIGURACIÓN GLOBAL -->
@@ -421,12 +421,6 @@ const msg = document.getElementById("loginMsg");
     const data = snap.docs[0].data();
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
-
-    // 🧹 Limpia cache de catálogo al cambiar usuario
-// NO BORRAR catalogo_cache NI su fecha
-// Solo borramos la sesión:
-localStorage.removeItem("usuario_ruta");
-
 
     // 💾 Guarda sesión para acceso rápido
     localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
@@ -2352,7 +2346,8 @@ if (btnResumen) {
     }
 
     // 🔥 PASAMOS EL UID EXPLÍCITO
-    window.location.href = `ticketsresumen.html?uid=${u.id}`;
+window.location.href = "ticketsresumen.html";
+
   });
 }
 
