@@ -443,9 +443,12 @@ document.getElementById("bottomBar").style.display = "flex";
 document.getElementById("carrito-container").style.display = "block";
 
     // Carga simultánea
-await cargarDepartamentos();   // 🔥 primero
-await cargarCatalogo();        // luego catálogo
-await fijarClientePublico();
+    await Promise.all([
+      cargarCatalogo(),
+      cargarDepartamentos(),
+      cargarDepartamentosVenta(),   // 👈 AQUÍ
+      fijarClientePublico()
+    ]);
 
     console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
     msg.textContent = "";
@@ -660,6 +663,25 @@ cachearDatos("/catalogo", catalogo);
     statusBox.style.background = "#c0392b";
   }
 }
+/* ===========================================================
+   🏷️ CARGA DE DEPARTAMENTOS VENTA PARA POS
+   =========================================================== */
+
+async function cargarDepartamentosVenta() {
+  try {
+    const res = await fetch("/departamentos_venta");
+    let data = await res.json();
+
+    departamentosVenta = Object.fromEntries(
+      data.map(dep => [String(dep.id), dep])
+    );
+
+    console.log("Departamentos venta cargados:", departamentosVenta);
+
+  } catch (err) {
+    console.error("Error cargando departamentos venta:", err);
+  }
+}
 
 /* ===========================================================
    🏷️ CARGA DE DEPARTAMENTOS (CON CONTROL DE ERRORES)
@@ -683,16 +705,17 @@ async function cargarDepartamentos() {
 
     depSnap.forEach(doc => {
       const d = doc.data();
-const id = String(doc.id).trim();
+      departamentos[doc.id] = {
+        id: doc.id,
+        nombre: d.nombre || "SIN NOMBRE",
+        
+        // 🔥 Si no existen en Firestore, se agregan con 0
+        iva: Number(d.iva || 0),
+        ieps: Number(d.ieps || 0),
 
-departamentos[id] = {
-  id,
-  nombre: d.nombre || "SIN NOMBRE",
-  iva: Number(d.iva || 0),
-  ieps: Number(d.ieps || 0),
-  icono: d.icono || ""
-};
-
+        // (opcional) icono para pantalla de categorías
+        icono: d.icono || ""
+      };
     });
 
     // Cachearlo
@@ -823,13 +846,7 @@ function decodificarBalanza(codigo) {
 /* ===========================================================
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
    =========================================================== */
-async function addProduct(prod, cant = 1) {
-// 🛑 Validar que los departamentos estén cargados ANTES de permitir ventas
-if (!departamentos || Object.keys(departamentos).length === 0) {
-    toast("⚠️ Departamentos no cargados, recargando...", "#c0392b");
-    await cargarDepartamentos();
-}
-
+function addProduct(prod, cant = 1) {
   if (!prod) return;
 
   cant = parseFloat(cant);
@@ -2658,6 +2675,17 @@ if (typeof window.ejecutarBusquedaOriginal === 'function') {
       toast("✅ Código escaneado: " + limpio, "#16a34a");
     }
   }
+});
+
+// ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
+// 🔧 Ejecutar búsqueda REAL del POS
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;
+
+</script>
+
+</body>
+</html>
+
 
 <style>
 /* 🎨 ESTILOS MEJORADOS PARA EL ESCÁNER */
