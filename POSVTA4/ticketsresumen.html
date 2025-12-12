@@ -122,10 +122,10 @@ console.log("VENTAS EN BD:", snap.size);
 snap.forEach(d => {
   const v = d.data();
 
-  // ❌ NO mostrar ventas cortadas
+  // ❌ No mostrar ventas cortadas
   if (v.cortado === true) return;
 
-  if (v.fecha_txt && v.resumen_financiero?.total) {
+  if (v.fecha_txt && typeof v.total === "number") {
     const fechaVenta = v.fecha_txt.split(",")[0].trim();
     const [dia, mes, año] = fechaVenta.split("/").map(Number);
 
@@ -150,7 +150,7 @@ snap.forEach(d => {
         let totalDia=0;
         ventas.forEach(v=>{
           const hora=v.fecha_txt.split(",")[1]?.trim()||"";
-          const tot=Number(v.resumen_financiero.total||0);
+          const tot = Number(v.total || 0);
           totalDia+=tot;
           const tr=document.createElement("tr");
           tr.innerHTML=`
