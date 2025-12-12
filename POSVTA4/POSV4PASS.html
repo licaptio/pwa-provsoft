@@ -1566,7 +1566,7 @@ $("#btnConfirmarCobro").onclick = async () => {
       cambio: cambio > 0 ? cambio : 0,
       notas: $("#notasCobro").value || "",
       ts_local: Date.now(),
-      estado: "pendiente"
+      estado: "pendiente",
       ubicacion: await obtenerUbicacionRobusta().catch(() => null)
     };
 
