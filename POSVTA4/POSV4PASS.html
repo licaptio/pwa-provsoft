@@ -443,12 +443,9 @@ document.getElementById("bottomBar").style.display = "flex";
 document.getElementById("carrito-container").style.display = "block";
 
     // Carga simultánea
-    await Promise.all([
-      cargarCatalogo(),
-      cargarDepartamentos(),
-      
-      fijarClientePublico()
-    ]);
+await cargarDepartamentos();   // 🔥 primero
+await cargarCatalogo();        // luego catálogo
+await fijarClientePublico();
 
     console.log("✅ Sesión iniciada:", USUARIO_LOGUEADO);
     msg.textContent = "";
@@ -827,6 +824,12 @@ function decodificarBalanza(codigo) {
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
    =========================================================== */
 function addProduct(prod, cant = 1) {
+// 🛑 Validar que los departamentos estén cargados ANTES de permitir ventas
+if (!departamentos || Object.keys(departamentos).length === 0) {
+    toast("⚠️ Departamentos no cargados, recargando...", "#c0392b");
+    await cargarDepartamentos();
+}
+
   if (!prod) return;
 
   cant = parseFloat(cant);
