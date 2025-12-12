@@ -3,7 +3,7 @@
    Autor: Gerardo Ríos Quesada
    =========================================================== */
 
-const VERSION = "provsoft-pos-v12";
+const VERSION = "provsoft-pos-v13";
 const CACHE = VERSION;
 
 // Cache estático fundamental
