@@ -94,7 +94,7 @@ const uid = user?.uid;
 
 if (!uid) {
   alert("Sesión no válida. Vuelve a iniciar sesión.");
-  return;
+  throw new Error("UID no encontrado");
 }
 
 const q = query(
