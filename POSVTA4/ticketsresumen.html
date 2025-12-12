@@ -119,8 +119,8 @@ const q = query(
 
       try {
 
+const snap = await getDocs(q);
 console.log("VENTAS EN BD:", snap.size);
-  const snap = await getDocs(q);   // 👈 ESTA LÍNEA FALTA
 
         let ventas = [];
 snap.forEach(d => {
