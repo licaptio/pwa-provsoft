@@ -38,12 +38,15 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE).then(async (cache) => {
       for (const asset of STATIC_ASSETS) {
         try {
-          const res = await fetch(asset, { cache: "no-store" });
-          if (res.ok) cache.put(asset, res.clone());
-        } catch (e) {
-          console.warn("⚠ No se pudo cachear:", asset);
-        }
-      }
+const res = await fetch(asset);
+if (res && res.ok) {
+  const copy = res.clone();
+  try {
+    await cache.put(asset, copy);
+  } catch (err) {
+    console.warn("⚠ No se pudo cachear:", asset, err);
+  }
+}
     })
   );
   self.skipWaiting();
