@@ -446,7 +446,7 @@ document.getElementById("carrito-container").style.display = "block";
     await Promise.all([
       cargarCatalogo(),
       cargarDepartamentos(),
-      cargarDepartamentosVenta(),   // 👈 AQUÍ
+      
       fijarClientePublico()
     ]);
 
@@ -661,25 +661,6 @@ cachearDatos("/catalogo", catalogo);
     console.error("❌ Error cargando catálogo:", err);
     statusBox.textContent = "⚠️ Error al cargar catálogo. Intenta recargar o verifica conexión.";
     statusBox.style.background = "#c0392b";
-  }
-}
-/* ===========================================================
-   🏷️ CARGA DE DEPARTAMENTOS VENTA PARA POS
-   =========================================================== */
-
-async function cargarDepartamentosVenta() {
-  try {
-    const res = await fetch("/departamentos_venta");
-    let data = await res.json();
-
-    departamentosVenta = Object.fromEntries(
-      data.map(dep => [String(dep.id), dep])
-    );
-
-    console.log("Departamentos venta cargados:", departamentosVenta);
-
-  } catch (err) {
-    console.error("Error cargando departamentos venta:", err);
   }
 }
 
