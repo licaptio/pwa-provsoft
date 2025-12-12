@@ -142,7 +142,8 @@ if (v.fecha_txt && typeof v.total === "number") {
     ventas.push({ id: d.id, ...v });
   }
 }
-// 🧑 Mostrar vendedor
+});
+  // 🧑 Mostrar vendedor
 if (ventas.length > 0) {
   document.getElementById("lblUsuario").textContent =
     ventas[0].usuarioNombre || ventas[0].usuario || "—";
@@ -150,7 +151,6 @@ if (ventas.length > 0) {
   document.getElementById("lblUsuario").textContent = "Sin ventas";
 }
 
-});
 
         // ordenar por hora descendente
         ventas.sort((a,b)=>{
