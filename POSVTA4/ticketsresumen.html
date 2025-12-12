@@ -105,7 +105,7 @@ document.getElementById("lblUsuario").textContent =
 // 🔎 Query SOLO por ventas de este usuario
 const q = query(
   collection(db, "ventas_rutav2"),
-  where("usuario_id", "==", uid)
+  where("usuarioId", "==", uid)
 );
 
     // Fecha actual
