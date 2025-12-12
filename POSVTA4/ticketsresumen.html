@@ -89,9 +89,18 @@
     const db = getFirestore(app);
 
     // Usuario actual
-    const user = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
-    const nombreUsuario = user?.nombre || "Desconocido";
-    document.getElementById("lblUsuario").textContent = nombreUsuario;
+const user = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
+const uid = user?.uid;
+
+if (!uid) {
+  alert("Sesión no válida. Vuelve a iniciar sesión.");
+  return;
+}
+
+const q = query(
+  collection(db, "ventas_rutav2"),
+  where("usuario_id", "==", uid)
+);
 
     // Fecha actual
     const hoy = new Date();
