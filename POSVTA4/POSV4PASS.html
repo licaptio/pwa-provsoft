@@ -2340,14 +2340,23 @@ b.addEventListener("click", () => {
   // 📊 Acceso rápido al Resumen Diario
 const btnResumen = document.getElementById("btnResumen");
 if (btnResumen) {
-btnResumen.addEventListener("click", () => {
+  btnResumen.addEventListener("click", () => {
 
-  if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
+    if (bloquearSiCobroActivo()) return;
 
-  window.location.href = "ticketsresumen.html";
-});
+    const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
 
+    if (!u || !u.id) {
+      alert("⚠️ No hay usuario activo");
+      return;
+    }
+
+    // 🔥 PASAMOS EL UID EXPLÍCITO
+    window.location.href = `ticketsresumen.html?uid=${u.id}`;
+  });
 }
+
+
 </script>
 <script>
 // =====================================================
