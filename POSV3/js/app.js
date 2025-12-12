@@ -26,7 +26,7 @@ window.onVentaConfirmada = async (pago) => {
     folio: generarFolio(),           // función simple
     fecha: new Date().toLocaleString("es-MX"),
     cliente: window.clienteActual || "PÚBLICO EN GENERAL",
-    detalle: window.carrito || [],
+    detalle: [...window.carrito],
 totales: calcularTotales(window.carrito, {
   tipo: "porcentaje",
   valor: window.descuentoActual || 0
