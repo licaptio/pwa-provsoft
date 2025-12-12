@@ -125,19 +125,20 @@ snap.forEach(d => {
   // ❌ No mostrar ventas cortadas
   if (v.cortado === true) return;
 
-  if (v.fecha_txt && typeof v.total === "number") {
-    const fechaVenta = v.fecha_txt.split(",")[0].trim();
-    const [dia, mes, año] = fechaVenta.split("/").map(Number);
+if (v.fecha_txt && typeof v.total === "number") {
+  const fechaVenta = v.fecha_txt.split(",")[0].trim();
+  const [dia, mes, año] = fechaVenta.split("/").map(Number);
 
-    const hoy = new Date();
-    if (
-      dia === hoy.getDate() &&
-      mes === hoy.getMonth() + 1 &&
-      año === hoy.getFullYear()
-    ) {
-      ventas.push({ id: d.id, ...v });
-    }
+  const hoy = new Date();
+  if (
+    dia === hoy.getDate() &&
+    mes === hoy.getMonth() + 1 &&
+    año === hoy.getFullYear()
+  ) {
+    ventas.push({ id: d.id, ...v });
   }
+}
+
 });
 
         // ordenar por hora descendente
