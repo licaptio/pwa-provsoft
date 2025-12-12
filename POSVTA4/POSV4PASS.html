@@ -419,7 +419,11 @@ const msg = document.getElementById("loginMsg");
     }
 
     const data = snap.docs[0].data();
-    USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
+    USUARIO_LOGUEADO = {
+  uid: snap.docs[0].id,   // 👈 ESTE ES EL CAMBIO CLAVE
+  id: snap.docs[0].id,    // (opcional, por compatibilidad)
+  ...data
+};
     rutaId = data.rutaId || null;
 
     // 💾 Guarda sesión para acceso rápido
