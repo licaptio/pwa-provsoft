@@ -2114,36 +2114,93 @@ Cajero: ${cajero}
     alert("Error al generar ticket térmico.");
   }
 }
+/* ===========================================================
+   🧾 SECCIÓN 15: IMPRESIÓN DE TICKET – ESTILO OXXO (RAWBT)
+   Diseño compacto, profesional y totalmente alineado
+   =========================================================== */
+
 function imprimirTicketInstantaneo(venta) {
   try {
-    let ticket = `
-PROVEEDORA MATRIZ
-MADERO 690 SUR, CENTRO
-LINARES, N.L.
-------------------------------
-Cliente: ${venta.cliente}
-Total: $${venta.total.toFixed(2)}
-Pago: $${venta.pago.toFixed(2)}
-Cambio: $${venta.cambio.toFixed(2)}
-------------------------------
-Artículos:
-`;
 
-    venta.carrito.forEach(p=>{
-      ticket += `${p.nombre.substring(0,22)}\n${p.cantidad} x ${p.precioUnit} = ${p.importe}\n`;
+    /* -------------------------------------------------------
+       🔧 UTILIDADES PARA FORMATO
+       ------------------------------------------------------- */
+
+    const padRight = (txt, len) =>
+      (txt.length > len ? txt.slice(0, len) : txt.padEnd(len));
+
+    const padLeft = (txt, len) => txt.padStart(len);
+
+    const fix2 = n => Number(n).toFixed(2);
+
+    let t = "";
+
+
+    /* -------------------------------------------------------
+       🏪 ENCABEZADO PROVEEDORA (ESTILO OXXO)
+       ------------------------------------------------------- */
+
+    t += "PROVEEDORA MATRIZ\n";
+    t += "MADERO 690 SUR, CENTRO\n";
+    t += "LINARES, N.L.\n\n";
+
+    t += `Cliente: ${venta.cliente}\n`;
+    t += "------------------------------\n";
+
+
+    /* -------------------------------------------------------
+       🛒 DETALLE DE ARTÍCULOS (FORMATO OXXO)
+       ------------------------------------------------------- */
+
+    venta.carrito.forEach(p => {
+      const nombre = p.nombre.toUpperCase();
+      const importe = fix2(p.importe);
+
+      // Línea 1 → Nombre + Importe alineado a la derecha
+      t += padRight(nombre, 22) + padLeft(importe, 10) + "\n";
+
+      // Línea 2 → Cantidad × Precio
+      const qty = fix2(p.cantidad);
+      const precio = fix2(p.precioUnit);
+
+      t += `${qty} × $${precio}\n`;
     });
 
-    ticket += "------------------------------\nGRACIAS POR SU COMPRA\n";
+    t += "------------------------------\n";
 
-    // Disparo INMEDIATO RawBT
+
+    /* -------------------------------------------------------
+       💰 BLOQUE DE TOTALES (ALINEADOS A LA DERECHA)
+       ------------------------------------------------------- */
+
+    t += `SUBTOTAL:`.padEnd(20) + padLeft(fix2(venta.subtotal), 12) + "\n";
+    t += `IVA:`.padEnd(20) + padLeft(fix2(venta.impuestos), 12) + "\n";
+    t += `TOTAL:`.padEnd(20) + padLeft(fix2(venta.total), 12) + "\n";
+    t += `PAGO:`.padEnd(20) + padLeft(fix2(venta.pago), 12) + "\n";
+    t += `CAMBIO:`.padEnd(20) + padLeft(fix2(venta.cambio), 12) + "\n";
+// Mensaje Navideño con adornos
+t += "------------------------------\n";
+t += "        ✨ GRACIAS ✨         \n";
+t += "      POR SU COMPRA 🎁       \n";
+t += "------------------------------\n";
+t += "      🎄 FELIZ NAVIDAD 🎄     \n";
+t += "  ⭐ PROSPERO AÑO NUEVO ⭐    \n";
+t += "------------------------------\n\n";
+
+
+    /* -------------------------------------------------------
+       📲 ENVÍO A RAWBT (IMPRESIÓN INMEDIATA)
+       ------------------------------------------------------- */
+
     if (/Android/i.test(navigator.userAgent)) {
-      const data = encodeURIComponent(ticket);
+      const data = encodeURIComponent(t);
       window.location.href = `rawbt:print?data=${data}`;
       return;
     }
 
-  } catch(err){
-    console.error("ERROR RAWBT:",err);
+
+  } catch (err) {
+    console.error("ERROR RAWBT:", err);
   }
 }
 
