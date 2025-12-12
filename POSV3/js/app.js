@@ -27,7 +27,10 @@ window.onVentaConfirmada = async (pago) => {
     fecha: new Date().toLocaleString("es-MX"),
     cliente: window.clienteActual || "PÚBLICO EN GENERAL",
     detalle: window.carrito || [],
-    totales: calcularTotalesUltra(),
+totales: calcularTotales(window.carrito, {
+  tipo: "porcentaje",
+  valor: window.descuentoActual || 0
+}),
     descuento: window.descuentoActual || 0,
     pago: pago.recibido,
     cambio: pago.cambio,
