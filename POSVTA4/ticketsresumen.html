@@ -118,14 +118,9 @@ const q = query(
       loading.style.display = "block"; loading.textContent = "Cargando ventas...";
 
       try {
-const ventasRef = collection(db, "ventas_rutav2");
-const q = query(
-  ventasRef,
-  where("usuarioNombre", "==", nombreUsuario)
-);
-const snap = await getDocs(q);
 
 console.log("VENTAS EN BD:", snap.size);
+  const snap = await getDocs(q);   // 👈 ESTA LÍNEA FALTA
 
         let ventas = [];
 snap.forEach(d => {
