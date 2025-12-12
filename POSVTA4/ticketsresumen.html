@@ -88,15 +88,18 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Usuario actual
-// if (!uid) {
-//   alert("Sesión no válida. Vuelve a iniciar sesión.");
-//   throw new Error("UID no encontrado");
-// }
+    // 🔑 UID recibido desde el POS
+const params = new URLSearchParams(window.location.search);
+const uid = params.get("uid");
+
+if (!uid) {
+  alert("❌ No se recibió el UID desde el POS");
+  throw new Error("UID faltante");
+}
 
 const q = query(
   collection(db, "ventas_rutav2"),
-  where("usuario_id", "==", uid)
+  where("usuarioId", "==", uid)
 );
 
     // Fecha actual
@@ -138,6 +141,13 @@ if (v.fecha_txt && typeof v.total === "number") {
   ) {
     ventas.push({ id: d.id, ...v });
   }
+}
+// 🧑 Mostrar vendedor
+if (ventas.length > 0) {
+  document.getElementById("lblUsuario").textContent =
+    ventas[0].usuarioNombre || ventas[0].usuario || "—";
+} else {
+  document.getElementById("lblUsuario").textContent = "Sin ventas";
 }
 
 });
