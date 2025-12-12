@@ -686,17 +686,16 @@ async function cargarDepartamentos() {
 
     depSnap.forEach(doc => {
       const d = doc.data();
-      departamentos[doc.id] = {
-        id: doc.id,
-        nombre: d.nombre || "SIN NOMBRE",
-        
-        // 🔥 Si no existen en Firestore, se agregan con 0
-        iva: Number(d.iva || 0),
-        ieps: Number(d.ieps || 0),
+const id = String(doc.id).trim();
 
-        // (opcional) icono para pantalla de categorías
-        icono: d.icono || ""
-      };
+departamentos[id] = {
+  id,
+  nombre: d.nombre || "SIN NOMBRE",
+  iva: Number(d.iva || 0),
+  ieps: Number(d.ieps || 0),
+  icono: d.icono || ""
+};
+
     });
 
     // Cachearlo
