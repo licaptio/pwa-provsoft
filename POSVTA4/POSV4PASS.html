@@ -1626,15 +1626,62 @@ function cerrarOverlayVenta() {
    =========================================================== */
 async function sincronizarVentaFirestore(venta) {
   try {
-    const ref = collection(db, "ventas_rutav2");
-    await addDoc(ref, {
-      ...venta,
-      ts: serverTimestamp(),
-      estado: "subida"
+    // Generar folio real
+    let folio = "";
+    const hoy = new Date();
+    const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, "");
+    const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR").toUpperCase().slice(0, 8);
+    const folioId = `${usuarioTag}_${fechaTag}`;
+    const folioRef = doc(db, "contadores", folioId);
+
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(folioRef);
+      let consecutivo = snap.exists() ? (snap.data().ultimo || 0) + 1 : 1;
+      tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
+      folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
     });
-    console.log("Venta sincronizada ✔");
+
+    // Reconstruir venta igual que versiones anteriores
+    let ventaCompleta = {
+      ...venta,
+      folio,
+      fecha: serverTimestamp(),
+      fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+      usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
+      descuento_porcentaje: venta.descuento || 0,
+      descuento_monto: venta.descuento || 0,
+      cortado: false,
+      detalle: venta.carrito.map(it => {
+        const dep = departamentos[it.departamento_id] || { iva: 0, ieps: 0 };
+        return {
+          id: it.id,
+          nombre: it.nombre,
+          codigo: it.codigo,
+          cantidad: it.cantidad,
+          precio_unit: it.precioUnit,
+          importe: it.importe,
+          costo_unit: it.costoUnit || 0,
+          costo_total: (it.costoUnit || 0) * it.cantidad,
+
+          claveSat: it.claveSat || null,
+          unidadSat: it.unidadSat || null,
+          ivaTasa: dep.iva,
+          iepsTasa: dep.ieps,
+          departamento_id: it.departamento_id,
+          departamento_info: dep
+        };
+      })
+    };
+
+    // Guardar en la colección correcta
+    await addDoc(collection(db, "ventas_rutav2"), ventaCompleta);
+
+    console.log("✔ Venta sincronizada correctamente:", ventaCompleta.folio);
+    return true;
+
   } catch (e) {
-    console.warn("No se pudo enviar, queda pendiente.");
+    console.error("❌ Error sincronizando venta:", e);
+    return false;
   }
 }
 
