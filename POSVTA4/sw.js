@@ -71,7 +71,8 @@ const DYNAMIC_KEYS = [
   "/catalogo",
   "/precios",
   "/equivalencias",
-  "/departamentos"
+  "/departamentos",
+  "/departamentos_venta"   // ← NUEVO
 ];
 
 /* ===========================================================
