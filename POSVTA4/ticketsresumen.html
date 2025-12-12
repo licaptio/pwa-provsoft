@@ -87,19 +87,25 @@
     };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+// 🔐 Leer sesión creada por el POS
+const sesion = JSON.parse(localStorage.getItem("usuario_ruta"));
 
-    // 🔑 UID recibido desde el POS
-const params = new URLSearchParams(window.location.search);
-const uid = params.get("uid");
-
-if (!uid) {
-  alert("❌ No se recibió el UID desde el POS");
-  throw new Error("UID faltante");
+if (!sesion || !sesion.uid) {
+  alert("Sesión no válida. Regresa al POS.");
+  window.location.href = "POSV4PASS.html";
+  throw new Error("Sesión inexistente");
 }
 
+const uid = sesion.uid;
+
+// Mostrar vendedor en pantalla
+document.getElementById("lblUsuario").textContent =
+  sesion.nombre || sesion.usuario || "Vendedor";
+
+// 🔎 Query SOLO por ventas de este usuario
 const q = query(
   collection(db, "ventas_rutav2"),
-  where("usuarioId", "==", uid)
+  where("usuario_id", "==", uid)
 );
 
     // Fecha actual
