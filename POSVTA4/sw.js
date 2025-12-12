@@ -124,3 +124,4 @@ self.addEventListener("sync", async (event) => {
     clients.forEach((c) => c.postMessage({ action: "sincronizar" }));
   }
 });
+
