@@ -495,7 +495,7 @@ async function cachearDatos(ruta, data) {
     const res = new Response(JSON.stringify(data), {
       headers: { "Content-Type": "application/json" }
     });
-    const cache = await caches.open("provsoft-pos-v12");
+    const cache = await caches.open("provsoft-pos-v13");
     await cache.put(url, res);
     console.log("💾 Guardado en caché SW:", ruta);
   } catch (err) {
