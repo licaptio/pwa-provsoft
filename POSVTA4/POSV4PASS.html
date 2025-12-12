@@ -823,7 +823,7 @@ function decodificarBalanza(codigo) {
 /* ===========================================================
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
    =========================================================== */
-function addProduct(prod, cant = 1) {
+async function addProduct(prod, cant = 1) {
 // 🛑 Validar que los departamentos estén cargados ANTES de permitir ventas
 if (!departamentos || Object.keys(departamentos).length === 0) {
     toast("⚠️ Departamentos no cargados, recargando...", "#c0392b");
@@ -2668,8 +2668,6 @@ window.ejecutarBusquedaOriginal = ejecutarBusqueda;
 
 </body>
 </html>
-
-
 <style>
 /* 🎨 ESTILOS MEJORADOS PARA EL ESCÁNER */
 #qrReaderContainer {
