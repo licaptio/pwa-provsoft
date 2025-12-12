@@ -1573,7 +1573,7 @@ $("#btnConfirmarCobro").onclick = async () => {
     localStorage.setItem("venta_actual", JSON.stringify(venta));
 
     // 🖨️ Imprimir ticket INMEDIATAMENTE
-    imprimirTicket(venta);
+    imprimirTicketInstantaneo(venta);
 
     // 🔥 Enviar venta a Firestore EN SEGUNDO PLANO
     sincronizarVentaFirestore(venta)
@@ -2064,6 +2064,38 @@ Cajero: ${cajero}
   } catch (err) {
     console.error("❌ Error generando ticket:", err);
     alert("Error al generar ticket térmico.");
+  }
+}
+function imprimirTicketInstantaneo(venta) {
+  try {
+    let ticket = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, N.L.
+------------------------------
+Cliente: ${venta.cliente}
+Total: $${venta.total.toFixed(2)}
+Pago: $${venta.pago.toFixed(2)}
+Cambio: $${venta.cambio.toFixed(2)}
+------------------------------
+Artículos:
+`;
+
+    venta.carrito.forEach(p=>{
+      ticket += `${p.nombre.substring(0,22)}\n${p.cantidad} x ${p.precioUnit} = ${p.importe}\n`;
+    });
+
+    ticket += "------------------------------\nGRACIAS POR SU COMPRA\n";
+
+    // Disparo INMEDIATO RawBT
+    if (/Android/i.test(navigator.userAgent)) {
+      const data = encodeURIComponent(ticket);
+      window.location.href = `rawbt:print?data=${data}`;
+      return;
+    }
+
+  } catch(err){
+    console.error("ERROR RAWBT:",err);
   }
 }
 
@@ -2862,5 +2894,6 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 });
 
 </script>
+
 </body>
 </html>
