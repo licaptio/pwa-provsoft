@@ -1567,6 +1567,7 @@ $("#btnConfirmarCobro").onclick = async () => {
       notas: $("#notasCobro").value || "",
       ts_local: Date.now(),
       estado: "pendiente"
+      ubicacion: await obtenerUbicacionRobusta().catch(() => null)
     };
 
     // Guardar venta local para impresión inmediata
