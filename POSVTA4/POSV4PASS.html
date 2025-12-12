@@ -351,7 +351,6 @@ const $ = s => document.querySelector(s);
 let carrito = [];
 let catalogo = [];
 let departamentos = {};
-let departamentosVenta = {};   // ← NUEVO
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
@@ -446,7 +445,6 @@ document.getElementById("carrito-container").style.display = "block";
     await Promise.all([
       cargarCatalogo(),
       cargarDepartamentos(),
-      cargarDepartamentosVenta(),   // 👈 AQUÍ
       fijarClientePublico()
     ]);
 
@@ -476,13 +474,11 @@ window.addEventListener("DOMContentLoaded", async () => {
     $("#loginScreen").style.display = "none";
     $("#posApp").style.display = "block";
 
-await Promise.all([
-  cargarCatalogo(),
-  cargarDepartamentos(),
-  cargarDepartamentosVenta(),  // 👈 TAMBIÉN AQUÍ
-  fijarClientePublico()
-]);
-
+    await Promise.all([
+      cargarCatalogo(),
+      cargarDepartamentos(),
+      fijarClientePublico()
+    ]);
   } catch (err) {
     console.warn("⚠️ No se pudo restaurar sesión previa:", err);
     localStorage.removeItem("usuario_ruta");
@@ -499,7 +495,7 @@ async function cachearDatos(ruta, data) {
     const res = new Response(JSON.stringify(data), {
       headers: { "Content-Type": "application/json" }
     });
-    const cache = await caches.open("provsoft-pos-v14");
+    const cache = await caches.open("provsoft-pos-v13");
     await cache.put(url, res);
     console.log("💾 Guardado en caché SW:", ruta);
   } catch (err) {
@@ -511,7 +507,7 @@ async function cachearDatos(ruta, data) {
 async function leerCache(ruta) {
   try {
     const url = location.origin + ruta;
-    const cache = await caches.open("provsoft-pos-v14");
+    const cache = await caches.open("provsoft-pos-v12");
     const res = await cache.match(url);
     if (!res) return null;
     const json = await res.json();
@@ -661,25 +657,6 @@ cachearDatos("/catalogo", catalogo);
     console.error("❌ Error cargando catálogo:", err);
     statusBox.textContent = "⚠️ Error al cargar catálogo. Intenta recargar o verifica conexión.";
     statusBox.style.background = "#c0392b";
-  }
-}
-/* ===========================================================
-   🏷️ CARGA DE DEPARTAMENTOS VENTA PARA POS
-   =========================================================== */
-
-async function cargarDepartamentosVenta() {
-  try {
-    const res = await fetch("/departamentos_venta");
-    let data = await res.json();
-
-    departamentosVenta = Object.fromEntries(
-      data.map(dep => [String(dep.id), dep])
-    );
-
-    console.log("Departamentos venta cargados:", departamentosVenta);
-
-  } catch (err) {
-    console.error("Error cargando departamentos venta:", err);
   }
 }
 
@@ -1676,36 +1653,25 @@ async function sincronizarVentaFirestore(venta) {
       descuento_monto: venta.descuento || 0,
       cortado: false,
       detalle: venta.carrito.map(it => {
-  const dep = departamentos[it.departamento_id] || { 
-    id: it.departamento_id || "0",
-    nombre: "SIN DEPTO",
-    iva: Number(it.ivaTasa) || 0,
-    ieps: Number(it.iepsTasa) || 0
-  };
+        const dep = departamentos[it.departamento_id] || { iva: 0, ieps: 0 };
+        return {
+          id: it.id,
+          nombre: it.nombre,
+          codigo: it.codigo,
+          cantidad: it.cantidad,
+          precio_unit: it.precioUnit,
+          importe: it.importe,
+          costo_unit: it.costoUnit || 0,
+          costo_total: (it.costoUnit || 0) * it.cantidad,
 
-  return {
-    id: it.id,
-    nombre: it.nombre,
-    codigo: it.codigo,
-    cantidad: it.cantidad,
-    precio_unit: it.precioUnit,
-    importe: it.importe,
-
-    costo_unit: it.costoUnit || 0,
-    costo_total: (it.costoUnit || 0) * it.cantidad,
-
-    claveSat: it.claveSat || null,
-    unidadSat: it.unidadSat || null,
-
-    ivaTasa: dep.iva,
-    iepsTasa: dep.ieps,
-
-    departamento_id: dep.id,
-    departamento_nombre: dep.nombre,        // ⬅️ ⭐ NUEVO ⭐
-    departamento_info: dep                 // ⬅️ por si lo quieres completo
-  };
-})
-
+          claveSat: it.claveSat || null,
+          unidadSat: it.unidadSat || null,
+          ivaTasa: dep.iva,
+          iepsTasa: dep.ieps,
+          departamento_id: it.departamento_id,
+          departamento_info: dep
+        };
+      })
     };
 
     // Guardar en la colección correcta
@@ -2148,93 +2114,36 @@ Cajero: ${cajero}
     alert("Error al generar ticket térmico.");
   }
 }
-/* ===========================================================
-   🧾 SECCIÓN 15: IMPRESIÓN DE TICKET – ESTILO OXXO (RAWBT)
-   Diseño compacto, profesional y totalmente alineado
-   =========================================================== */
-
 function imprimirTicketInstantaneo(venta) {
   try {
+    let ticket = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, N.L.
+------------------------------
+Cliente: ${venta.cliente}
+Total: $${venta.total.toFixed(2)}
+Pago: $${venta.pago.toFixed(2)}
+Cambio: $${venta.cambio.toFixed(2)}
+------------------------------
+Artículos:
+`;
 
-    /* -------------------------------------------------------
-       🔧 UTILIDADES PARA FORMATO
-       ------------------------------------------------------- */
-
-    const padRight = (txt, len) =>
-      (txt.length > len ? txt.slice(0, len) : txt.padEnd(len));
-
-    const padLeft = (txt, len) => txt.padStart(len);
-
-    const fix2 = n => Number(n).toFixed(2);
-
-    let t = "";
-
-
-    /* -------------------------------------------------------
-       🏪 ENCABEZADO PROVEEDORA (ESTILO OXXO)
-       ------------------------------------------------------- */
-
-    t += "PROVEEDORA MATRIZ\n";
-    t += "MADERO 690 SUR, CENTRO\n";
-    t += "LINARES, N.L.\n\n";
-
-    t += `Cliente: ${venta.cliente}\n`;
-    t += "------------------------------\n";
-
-
-    /* -------------------------------------------------------
-       🛒 DETALLE DE ARTÍCULOS (FORMATO OXXO)
-       ------------------------------------------------------- */
-
-    venta.carrito.forEach(p => {
-      const nombre = p.nombre.toUpperCase();
-      const importe = fix2(p.importe);
-
-      // Línea 1 → Nombre + Importe alineado a la derecha
-      t += padRight(nombre, 22) + padLeft(importe, 10) + "\n";
-
-      // Línea 2 → Cantidad × Precio
-      const qty = fix2(p.cantidad);
-      const precio = fix2(p.precioUnit);
-
-      t += `${qty} × $${precio}\n`;
+    venta.carrito.forEach(p=>{
+      ticket += `${p.nombre.substring(0,22)}\n${p.cantidad} x ${p.precioUnit} = ${p.importe}\n`;
     });
 
-    t += "------------------------------\n";
+    ticket += "------------------------------\nGRACIAS POR SU COMPRA\n";
 
-
-    /* -------------------------------------------------------
-       💰 BLOQUE DE TOTALES (ALINEADOS A LA DERECHA)
-       ------------------------------------------------------- */
-
-    t += `SUBTOTAL:`.padEnd(20) + padLeft(fix2(venta.subtotal), 12) + "\n";
-    t += `IVA:`.padEnd(20) + padLeft(fix2(venta.impuestos), 12) + "\n";
-    t += `TOTAL:`.padEnd(20) + padLeft(fix2(venta.total), 12) + "\n";
-    t += `PAGO:`.padEnd(20) + padLeft(fix2(venta.pago), 12) + "\n";
-    t += `CAMBIO:`.padEnd(20) + padLeft(fix2(venta.cambio), 12) + "\n";
-// Mensaje Navideño con adornos
-t += "------------------------------\n";
-t += "        ✨ GRACIAS ✨         \n";
-t += "         POR SU COMPRA         \n";
-t += "------------------------------\n";
-t += "      🎄 FELIZ NAVIDAD 🎄     \n";
-t += "  ⭐ PROSPERO AÑO NUEVO ⭐    \n";
-t += "------------------------------\n\n";
-
-
-    /* -------------------------------------------------------
-       📲 ENVÍO A RAWBT (IMPRESIÓN INMEDIATA)
-       ------------------------------------------------------- */
-
+    // Disparo INMEDIATO RawBT
     if (/Android/i.test(navigator.userAgent)) {
-      const data = encodeURIComponent(t);
+      const data = encodeURIComponent(ticket);
       window.location.href = `rawbt:print?data=${data}`;
       return;
     }
 
-
-  } catch (err) {
-    console.error("ERROR RAWBT:", err);
+  } catch(err){
+    console.error("ERROR RAWBT:",err);
   }
 }
 
