@@ -23,14 +23,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 window.onVentaConfirmada = async (pago) => {
   const venta = {
-    folio: generarFolio(),           // función simple
+    folio: generarFolio(),
     fecha: new Date().toLocaleString("es-MX"),
     cliente: window.clienteActual || "PÚBLICO EN GENERAL",
     detalle: [...window.carrito],
-totales: calcularTotales(window.carrito, {
-  tipo: "porcentaje",
-  valor: window.descuentoActual || 0
-}),
+    totales: calcularTotales(window.carrito, {
+      tipo: "porcentaje",
+      valor: window.descuentoActual || 0
+    }),
     descuento: window.descuentoActual || 0,
     pago: pago.recibido,
     cambio: pago.cambio,
@@ -39,18 +39,17 @@ totales: calcularTotales(window.carrito, {
     ubicacion: window.ubicacionActual || null
   };
 
-  await guardarVenta(venta);     // persistencia
-  imprimirTicket(venta);         // ticket
-  enviarTelegram(venta);         // telegram
+  await guardarVenta(venta);
+  imprimirTicket(venta);
+  enviarTelegram(venta);
 
-  // Limpieza final
   window.carrito.length = 0;
   limpiarDescuento();
+  cerrarCobro();
   requestRender();
 
   toast("✅ Venta completada", "#16a34a");
 };
-
 
 /* ===========================================================
    🧮 FOLIO SIMPLE (MEJORABLE)
