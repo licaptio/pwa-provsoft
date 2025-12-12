@@ -1626,7 +1626,7 @@ function cerrarOverlayVenta() {
    =========================================================== */
 async function sincronizarVentaFirestore(venta) {
   try {
-    const ref = collection(db, "ventas_ruta");
+    const ref = collection(db, "ventas_rutav2");
     await addDoc(ref, {
       ...venta,
       ts: serverTimestamp(),
