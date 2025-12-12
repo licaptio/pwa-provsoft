@@ -110,7 +110,11 @@
 
       try {
 const ventasRef = collection(db, "ventas_rutav2");
-const snap = await getDocs(ventasRef);
+const q = query(
+  ventasRef,
+  where("usuarioNombre", "==", nombreUsuario)
+);
+const snap = await getDocs(q);
 
 console.log("VENTAS EN BD:", snap.size);
 
