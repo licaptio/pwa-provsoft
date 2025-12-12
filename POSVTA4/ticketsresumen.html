@@ -109,18 +109,28 @@
       loading.style.display = "block"; loading.textContent = "Cargando ventas...";
 
       try {
-        const ventasRef = collection(db, "ventas_rutav2");
-        const q = query(ventasRef, where("usuarioNombre", "==", nombreUsuario), where("cortado","==",false));
-        const snap = await getDocs(q);
+const ventasRef = collection(db, "ventas_rutav2");
+const snap = await getDocs(ventasRef);
+
+console.log("VENTAS EN BD:", snap.size);
 
         let ventas = [];
 snap.forEach(d => {
   const v = d.data();
+
+  // ❌ NO mostrar ventas cortadas
+  if (v.cortado === true) return;
+
   if (v.fecha_txt && v.resumen_financiero?.total) {
-    const fechaVenta = v.fecha_txt.split(",")[0].trim(); // "1/11/2025"
-    const [dia, mes, año] = fechaVenta.split("/").map(n => parseInt(n));
+    const fechaVenta = v.fecha_txt.split(",")[0].trim();
+    const [dia, mes, año] = fechaVenta.split("/").map(Number);
+
     const hoy = new Date();
-    if (dia === hoy.getDate() && mes === hoy.getMonth() + 1 && año === hoy.getFullYear()) {
+    if (
+      dia === hoy.getDate() &&
+      mes === hoy.getMonth() + 1 &&
+      año === hoy.getFullYear()
+    ) {
       ventas.push({ id: d.id, ...v });
     }
   }
