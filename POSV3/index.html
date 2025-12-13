@@ -111,60 +111,167 @@
      ===================================================== -->
 <div id="posApp">
 
-  <!-- =========================
-       🧾 HEADER POS
-       ========================= -->
-  <header style="
-    background:#00416A;
+  <!-- =========================================
+       🧱 HEADER
+       ========================================= -->
+  <header id="posHeader" style="
+    background:#0b3a57;
     color:#fff;
-    padding:10px;
-    text-align:center;
-    font-weight:600;">
-    PROVSOFT POS
+    padding:12px 16px;
+    font-weight:600;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:18px;">
+    POS – Ruta de Venta / Descuento
   </header>
 
-  <!-- =========================
-       🔎 BUSCADOR / SCANNER
-       ========================= -->
-  <section style="padding:10px;">
-    <input
-      id="inputScanner"
+  <!-- =========================================
+       👤 CLIENTE
+       ========================================= -->
+  <section style="padding:12px;">
+    <label style="color:#fff;font-size:13px;">Cliente</label>
+    <input id="clienteInput"
       type="text"
-      placeholder="Escanea o escribe código"
+      value="PUBLICO EN GENERAL"
       style="
         width:100%;
-        padding:14px;
-        font-size:18px;
+        padding:12px;
         border-radius:10px;
         border:none;
-        outline:none;">
+        font-size:16px;">
   </section>
 
-  <!-- =========================
-       🛒 CARRITO
-       ========================= -->
-  <section style="padding:10px;">
-    <ul id="listaCarrito"></ul>
+  <!-- =========================================
+       🔎 BUSCADOR / SCANNER
+       ========================================= -->
+  <section style="padding:12px; display:flex; gap:8px;">
+    <input id="inputScanner"
+      type="text"
+      placeholder="Escribe o escanea código…"
+      style="
+        flex:1;
+        padding:14px;
+        font-size:17px;
+        border-radius:12px;
+        border:none;">
+
+    <button id="btnBuscar"
+      style="
+        width:52px;
+        border:none;
+        border-radius:12px;
+        background:#0c6cbd;
+        color:#fff;
+        font-size:18px;">🔍</button>
   </section>
 
-  <!-- =========================
-       💰 TOTALES
-       ========================= -->
-  <section style="padding:10px;">
-    <div>Total: $<span id="totalVenta">0.00</span></div>
+  <!-- =========================================
+       📦 TABLA PRODUCTOS
+       ========================================= -->
+  <section style="padding:12px;">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead style="background:#083b5c; color:#fff;">
+        <tr>
+          <th style="padding:8px;text-align:left;">Producto</th>
+          <th style="padding:8px;text-align:center;">Cant.</th>
+          <th style="padding:8px;text-align:right;">Importe</th>
+        </tr>
+      </thead>
+      <tbody id="listaCarrito">
+        <!-- render.js pinta aquí -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- =========================================
+       🧮 TOTALES
+       ========================================= -->
+  <section style="
+    padding:12px;
+    background:#ffffff;
+    border-radius:16px;
+    margin:12px;
+    box-shadow:0 6px 18px rgba(0,0,0,.15);">
+
+    <div style="display:flex; justify-content:space-between;">
+      <span>Subtotal</span>
+      <span id="subtotalVenta">$0.00</span>
+    </div>
+
+    <div style="display:flex; justify-content:space-between;">
+      <span>Impuestos</span>
+      <span id="impuestosVenta">$0.00</span>
+    </div>
+
+    <hr>
+
+    <div style="display:flex; justify-content:space-between; font-size:20px; font-weight:700;">
+      <span>Total</span>
+      <span id="totalVenta">$0.00</span>
+    </div>
+  </section>
+
+  <!-- =========================================
+       💳 COBRAR
+       ========================================= -->
+  <section style="padding:12px;">
     <button id="btnCobrar"
       style="
-        margin-top:10px;
         width:100%;
-        padding:16px;
-        font-size:18px;
-        background:#16a34a;
-        color:#fff;
+        padding:18px;
+        font-size:20px;
+        font-weight:700;
         border:none;
-        border-radius:12px;">
-      COBRAR
+        border-radius:16px;
+        background:linear-gradient(180deg,#0d7ed8,#0a5fb0);
+        color:#fff;">
+      Cobrar
     </button>
   </section>
+
+  <!-- =========================================
+       🔻 FOOTER ACCIONES
+       ========================================= -->
+  <footer style="
+    display:flex;
+    gap:10px;
+    padding:12px;">
+
+    <button id="btnTest"
+      style="
+        flex:1;
+        padding:14px;
+        border-radius:14px;
+        border:none;
+        background:#0c6cbd;
+        color:#fff;">
+      Test Function
+    </button>
+
+    <button id="btnResumen"
+      style="
+        flex:1;
+        padding:14px;
+        border-radius:14px;
+        border:none;
+        background:#0b6e3f;
+        color:#fff;">
+      Resumen
+    </button>
+
+    <button id="btnSalir"
+      style="
+        flex:1;
+        padding:14px;
+        border-radius:14px;
+        border:none;
+        background:#c62828;
+        color:#fff;">
+      Salir
+    </button>
+
+  </footer>
 
 </div>
 
