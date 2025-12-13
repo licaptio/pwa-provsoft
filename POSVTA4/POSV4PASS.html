@@ -390,10 +390,12 @@ const p = document.getElementById("loginPassword").value.trim();
 const msg = document.getElementById("loginMsg");
 
   // 🔸 Validación básica
-  if (!u || !p) {
-    msg.textContent = "Por favor, introduce usuario y contraseña.";
-    return;
-  }
+if (!u || !(u.id || u.uid)) {
+  alert("⚠️ No hay usuario activo");
+  localStorage.removeItem("usuario_ruta");
+  location.reload();
+  return;
+}
 
   // 🎬 Animación visual de progreso
   msg.textContent = "🔄 Verificando usuario...";
@@ -2344,10 +2346,13 @@ if (btnResumen) {
 
     const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
 
-    if (!u || !u.id) {
-      alert("⚠️ No hay usuario activo");
-      return;
-    }
+if (!u || !(u.id || u.uid)) {
+  alert("⚠️ No hay usuario activo");
+  localStorage.removeItem("usuario_ruta");
+  location.reload();
+  return;
+}
+
 
     // 🔥 PASAMOS EL UID EXPLÍCITO
 window.location.href = "ticketsresumen.html";
@@ -2688,12 +2693,18 @@ document.getElementById("btnLogout").addEventListener("click",()=>{
 // 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
 function bloquearSiCobroActivo() {
   const modal = document.getElementById("modalCobro");
-  if (modal && modal.style.display === "flex") {
+  if (!modal) return false;
+
+  // ✅ Forma segura y correcta
+  const visible = window.getComputedStyle(modal).display !== "none";
+
+  if (visible) {
     toast("🚫 Finaliza la venta primero");
     return true;
   }
   return false;
 }
+
   
 /* ===========================================================
    🧪 BOTÓN "TEST FUNCIÓN" PARA ABRIR PANTALLA DE PRUEBAS
