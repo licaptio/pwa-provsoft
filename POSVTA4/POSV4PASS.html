@@ -390,12 +390,10 @@ const p = document.getElementById("loginPassword").value.trim();
 const msg = document.getElementById("loginMsg");
 
   // 🔸 Validación básica
-if (!u || !(u.id || u.uid)) {
-  alert("⚠️ No hay usuario activo");
-  localStorage.removeItem("usuario_ruta");
-  location.reload();
-  return;
-}
+  if (!u || !p) {
+    msg.textContent = "Por favor, introduce usuario y contraseña.";
+    return;
+  }
 
   // 🎬 Animación visual de progreso
   msg.textContent = "🔄 Verificando usuario...";
@@ -421,11 +419,7 @@ if (!u || !(u.id || u.uid)) {
     }
 
     const data = snap.docs[0].data();
-    USUARIO_LOGUEADO = {
-  uid: snap.docs[0].id,   // 👈 ESTE ES EL CAMBIO CLAVE
-  id: snap.docs[0].id,    // (opcional, por compatibilidad)
-  ...data
-};
+    USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
 
     // 💾 Guarda sesión para acceso rápido
@@ -2346,13 +2340,10 @@ if (btnResumen) {
 
     const u = JSON.parse(localStorage.getItem("usuario_ruta") || "{}");
 
-if (!u || !(u.id || u.uid)) {
-  alert("⚠️ No hay usuario activo");
-  localStorage.removeItem("usuario_ruta");
-  location.reload();
-  return;
-}
-
+    if (!u || !u.id) {
+      alert("⚠️ No hay usuario activo");
+      return;
+    }
 
     // 🔥 PASAMOS EL UID EXPLÍCITO
 window.location.href = "ticketsresumen.html";
@@ -2693,18 +2684,12 @@ document.getElementById("btnLogout").addEventListener("click",()=>{
 // 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
 function bloquearSiCobroActivo() {
   const modal = document.getElementById("modalCobro");
-  if (!modal) return false;
-
-  // ✅ Forma segura y correcta
-  const visible = window.getComputedStyle(modal).display !== "none";
-
-  if (visible) {
+  if (modal && modal.style.display === "flex") {
     toast("🚫 Finaliza la venta primero");
     return true;
   }
   return false;
 }
-
   
 /* ===========================================================
    🧪 BOTÓN "TEST FUNCIÓN" PARA ABRIR PANTALLA DE PRUEBAS
@@ -2973,4 +2958,3 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 </script>
 </body>
 </html>
-
