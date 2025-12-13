@@ -69,6 +69,24 @@
       height:100vh;
       overflow:hidden;
     }
+ /* 🧾 FOOTER */
+#footerProvsoft{
+  position:fixed;
+  bottom:8px;
+  width:100%;
+  text-align:center;
+  font-size:12px;
+  color:rgba(255,255,255,.75);
+  letter-spacing:.5px;
+  z-index:20;
+  pointer-events:none;
+}
+
+/* Ocultar footer cuando el POS está activo */
+#posApp:not([style*="display: none"]) ~ #footerProvsoft{
+  display:none;
+}
+
   </style>
 </head>
 
@@ -179,6 +197,12 @@ if ("serviceWorker" in navigator) {
     .catch(e => console.error("❌ SW error", e));
 }
 </script>
+<!-- =====================================================
+     🧾 FOOTER PROVSOFT
+     ===================================================== -->
+<div id="footerProvsoft">
+  POWER BY <strong>PROVSOFT</strong> 2025 · V3.1
+</div>
 
 </body>
 </html>
