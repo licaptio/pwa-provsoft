@@ -1,0 +1,14 @@
+[
+  {
+    "id": "BEBIDAS",
+    "nombre": "Bebidas",
+    "icono": "🥤",
+    "orden": 1
+  },
+  {
+    "id": "BOTANA",
+    "nombre": "Botana",
+    "icono": "🍿",
+    "orden": 2
+  }
+]
