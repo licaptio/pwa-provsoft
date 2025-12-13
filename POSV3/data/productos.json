@@ -1,0 +1,25 @@
+[
+  {
+    "id": "P001",
+    "codigo": "7501234567890",
+    "nombre": "COCA COLA 600 ML",
+    "precioPublico": 18,
+    "mayoreo": 16,
+    "equivalentes": ["7501234560000"],
+    "costoUnit": 12,
+    "ivaTasa": 0.16,
+    "iepsTasa": 0,
+    "departamento_id": "BEBIDAS"
+  },
+  {
+    "id": "P002",
+    "codigo": "2000123",
+    "nombre": "JAMÓN A GRANEL",
+    "precioPublico": 120,
+    "equivalentes": [],
+    "costoUnit": 90,
+    "ivaTasa": 0.16,
+    "iepsTasa": 0,
+    "departamento_id": "CARNES"
+  }
+]
