@@ -1,16 +1,37 @@
 /* ===========================================================
+   📦 CARGA DE CATÁLOGO OFFLINE (PRODUCTOS + DEPTOS)
+   =========================================================== */
+
+async function cargarCatalogoOffline() {
+  const [prodRes, depRes] = await Promise.all([
+    fetch("/data/productos.json"),
+    fetch("/data/departamentos.json")
+  ]);
+
+  const productos = await prodRes.json();
+  const departamentos = await depRes.json();
+
+  window.catalogoProductos = productos;
+  window.catalogoDepartamentos = departamentos;
+
+  // 🔥 INDEXAR SCANNER (CRÍTICO)
+  indexarCatalogoUltra(productos);
+
+  console.log("📦 Catálogo offline cargado:", productos.length);
+}
+
+/* ===========================================================
    🚀 PROVSOFT POS V3 – APP ORQUESTADOR
    =========================================================== */
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   console.log("🚀 POS V3 iniciado");
 
-  // Render inicial
-  if (typeof window.requestRender === "function") {
-    requestRender();
-  }
+  // 🔥 Cargar catálogo offline primero
+  await cargarCatalogoOffline();
 
-  // Botones principales
+  requestRender();
+
   document.getElementById("btnCobrar")?.addEventListener("click", abrirCobro);
   document.getElementById("btnConfirmarCobro")?.addEventListener("click", confirmarCobro);
   document.getElementById("btnCancelarCobro")?.addEventListener("click", cerrarCobro);
