@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- =====================================================
+       🧱 PROVSOFT POS – INDEX BASE (LOGIN FIRST)
+       ===================================================== -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0c6cbd">
+
+  <title>PROVSOFT POS</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- FUENTE -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- ESTILOS BASE -->
+  <style>
+    :root{
+      --azul:#00416A;
+      --res:#0c6cbd;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      height:100vh;
+      font-family:'Poppins',sans-serif;
+      background:linear-gradient(to bottom right,#00416A,#E4E5E6);
+    }
+
+    /* 🔑 LOGIN */
+    #loginScreen{
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      gap:12px;
+    }
+    #loginScreen input{
+      width:220px;
+      padding:10px;
+      border:none;
+      border-radius:8px;
+      font-size:15px;
+    }
+    #loginScreen button{
+      width:220px;
+      padding:12px;
+      border:none;
+      border-radius:10px;
+      font-size:16px;
+      font-weight:600;
+      background:linear-gradient(180deg,var(--res),#094d85);
+      color:#fff;
+      cursor:pointer;
+    }
+    #loginMsg{
+      min-height:18px;
+      font-size:14px;
+      margin-top:6px;
+    }
+
+    /* 🚫 POS OCULTO HASTA LOGIN */
+    #posApp{
+      display:none;
+      height:100vh;
+      overflow:hidden;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- =====================================================
+     🔑 LOGIN (PRIMERA Y ÚNICA PANTALLA INICIAL)
+     ===================================================== -->
+<div id="loginScreen">
+  <img src="logo_proveedora.webp" alt="Logo" style="width:110px">
+  <h2>Acceso PROVSOFT POS</h2>
+
+  <input id="loginUsuario" type="text" placeholder="Usuario">
+  <input id="loginPassword" type="password" placeholder="Contraseña">
+
+  <button id="btnLogin">Entrar</button>
+  <div id="loginMsg"></div>
+</div>
+
+<!-- =====================================================
+     🧾 POS COMPLETO (SE MUESTRA DESPUÉS DEL LOGIN)
+     ===================================================== -->
+<div id="posApp">
+  <!-- AQUÍ VA TODO TU POS:
+       header
+       buscador
+       carrito
+       cobro
+       ticket
+       etc
+  -->
+</div>
+
+<!-- =====================================================
+     🧠 BOOTSTRAP DE LOGIN (NO POS TODAVÍA)
+     ===================================================== -->
+<script>
+"use strict";
+
+/* =====================================================
+   🔑 LOGIN BÁSICO (GANCHO)
+   ===================================================== */
+document.getElementById("btnLogin").addEventListener("click", async () => {
+  const u = loginUsuario.value.trim();
+  const p = loginPassword.value.trim();
+  const msg = loginMsg;
+
+  if (!u || !p) {
+    msg.textContent = "Introduce usuario y contraseña";
+    return;
+  }
+
+  msg.textContent = "Verificando...";
+
+  try {
+    // 👇 AQUÍ ENTRA TU LOGIN REAL (Firestore / API / etc)
+    // si es correcto:
+    const usuario = { usuario: u, nombre: u };
+
+    localStorage.setItem("usuario_ruta", JSON.stringify(usuario));
+
+    iniciarPOS(usuario);
+
+  } catch (e) {
+    msg.textContent = "❌ Error de acceso";
+  }
+});
+
+/* =====================================================
+   🚀 INICIO REAL DEL POS (DESPUÉS DEL LOGIN)
+   ===================================================== */
+function iniciarPOS(usuario){
+  console.log("✅ Usuario autenticado:", usuario);
+
+  loginScreen.style.display = "none";
+  posApp.style.display = "block";
+
+  // 👉 aquí cargas todo:
+  // cargarCatalogo()
+  // cargarDepartamentos()
+  // requestRender()
+}
+
+/* =====================================================
+   🔁 RESTAURAR SESIÓN
+   ===================================================== */
+window.addEventListener("DOMContentLoaded", () => {
+  const guardado = localStorage.getItem("usuario_ruta");
+  if (!guardado) return;
+
+  try{
+    const usuario = JSON.parse(guardado);
+    iniciarPOS(usuario);
+  }catch{
+    localStorage.removeItem("usuario_ruta");
+  }
+});
+</script>
+
+<!-- =====================================================
+     🌐 SERVICE WORKER
+     ===================================================== -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker
+    .register("./sw.js")
+    .then(r => console.log("✅ SW registrado"))
+    .catch(e => console.error("❌ SW error", e));
+}
+</script>
+
+</body>
+</html>
