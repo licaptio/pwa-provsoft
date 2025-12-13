@@ -110,14 +110,62 @@
      🧾 POS COMPLETO (SE MUESTRA DESPUÉS DEL LOGIN)
      ===================================================== -->
 <div id="posApp">
-  <!-- AQUÍ VA TODO TU POS:
-       header
-       buscador
-       carrito
-       cobro
-       ticket
-       etc
-  -->
+
+  <!-- =========================
+       🧾 HEADER POS
+       ========================= -->
+  <header style="
+    background:#00416A;
+    color:#fff;
+    padding:10px;
+    text-align:center;
+    font-weight:600;">
+    PROVSOFT POS
+  </header>
+
+  <!-- =========================
+       🔎 BUSCADOR / SCANNER
+       ========================= -->
+  <section style="padding:10px;">
+    <input
+      id="inputScanner"
+      type="text"
+      placeholder="Escanea o escribe código"
+      style="
+        width:100%;
+        padding:14px;
+        font-size:18px;
+        border-radius:10px;
+        border:none;
+        outline:none;">
+  </section>
+
+  <!-- =========================
+       🛒 CARRITO
+       ========================= -->
+  <section style="padding:10px;">
+    <ul id="listaCarrito"></ul>
+  </section>
+
+  <!-- =========================
+       💰 TOTALES
+       ========================= -->
+  <section style="padding:10px;">
+    <div>Total: $<span id="totalVenta">0.00</span></div>
+    <button id="btnCobrar"
+      style="
+        margin-top:10px;
+        width:100%;
+        padding:16px;
+        font-size:18px;
+        background:#16a34a;
+        color:#fff;
+        border:none;
+        border-radius:12px;">
+      COBRAR
+    </button>
+  </section>
+
 </div>
 
 <!-- =====================================================
@@ -159,16 +207,18 @@ document.getElementById("btnLogin").addEventListener("click", async () => {
    🚀 INICIO REAL DEL POS (DESPUÉS DEL LOGIN)
    ===================================================== */
 function iniciarPOS(usuario){
-  console.log("✅ Usuario autenticado:", usuario);
+  window.USUARIO_LOGUEADO = usuario;
 
   loginScreen.style.display = "none";
   posApp.style.display = "block";
 
-  // 👉 aquí cargas todo:
-  // cargarCatalogo()
-  // cargarDepartamentos()
-  // requestRender()
+  if (typeof requestRender === "function") {
+    requestRender();
+  }
+
+  document.getElementById("inputScanner")?.focus();
 }
+
 
 /* =====================================================
    🔁 RESTAURAR SESIÓN
