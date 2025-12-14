@@ -12,27 +12,31 @@ async function cargarCatalogoOffline() {
   const departamentos = await depRes.json();
 
   // ✅ NORMALIZAR PRODUCTOS (ÚNICA FUENTE DE VERDAD)
-  const productosNormalizados = productos
-    .filter(p => p.activo)
-    .map(p => ({
-      id: p.codigoBarra,
-      codigo: String(p.codigoBarra).trim(),
-      nombre: p.concepto,
-      precio: Number(p.precioPublico || 0),
-      ivaTasa: Number(p.ivaTasa || 0),
-      iepsTasa: Number(p.iepsTasa || 0),
-      equivalentes: Array.isArray(p.codigosEquivalentes)
-        ? p.codigosEquivalentes.map(e => String(e).trim())
-        : [],
-      raw: p
-    }));
+const productosNormalizados = productos
+  .filter(p => p.activo === true)
+  .map(x => ({
+    id: x.codigoBarra,
+    nombre: x.concepto || "SIN NOMBRE",
+    codigo: String(x.codigoBarra || "").trim(),
+    precioPublico: Number(x.precioPublico || 0),
+    mayoreo: Number(x.mayoreo || 0),
+    medioMayoreo: Number(x.medioMayoreo || 0),
+    costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
+    ivaTasa: Number(x.ivaTasa || 0),
+    iepsTasa: Number(x.iepsTasa || 0),
+    equivalentes: Array.isArray(x.codigosEquivalentes)
+      ? x.codigosEquivalentes.map(e => String(e).trim())
+      : [],
+    claveSat: x.claveSat || null,
+    unidadMedidaSat: x.unidadMedidaSat || null,
+    departamento_id: x.departamento_id || null,
+    raw: x
+  }));
 
-  // 🔑 SOLO ESTO
-  window.catalogo = productosNormalizados;
-  window.catalogoDepartamentos = departamentos;
+window.catalogo = productosNormalizados;
+window.catalogoDepartamentos = departamentos;
 
-  // 🔥 INDEXAR SOLO UNA VEZ Y CON DATOS CORRECTOS
-  indexarCatalogoUltra(productosNormalizados);
+indexarCatalogoUltra(window.catalogo);
 
   console.log("✅ Catálogo offline normalizado:", productosNormalizados.length);
 }
