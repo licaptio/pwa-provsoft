@@ -22,13 +22,11 @@
    =========================================================== */
 
 const DOM = {
-  lista: document.getElementById("carritoLista"),
-  subtotal: document.getElementById("subtotal"),
-  iva: document.getElementById("iva"),
-  ieps: document.getElementById("ieps"),
-  descuento: document.getElementById("descuento"),
-  total: document.getElementById("total")
+  lista: document.getElementById("listaCarrito"),
+  subtotal: document.getElementById("subtotalVenta"),
+  total: document.getElementById("totalVenta")
 };
+
 
 
 /* ===========================================================
@@ -89,11 +87,9 @@ function renderTotales() {
   const tot = calcularTotales(window.carrito, window.descuentoActual || null);
 
   if (DOM.subtotal) DOM.subtotal.textContent = money(tot.subtotal);
-  if (DOM.iva) DOM.iva.textContent = money(tot.iva);
-  if (DOM.ieps) DOM.ieps.textContent = money(tot.ieps);
-  if (DOM.descuento) DOM.descuento.textContent = money(tot.descuento);
   if (DOM.total) DOM.total.textContent = money(tot.total);
 }
+
 
 
 /* ===========================================================
@@ -113,3 +109,4 @@ function render() {
    =========================================================== */
 
 window.render = render;
+
