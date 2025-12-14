@@ -143,12 +143,18 @@ prodSnap.forEach(doc => {
     return;
   }
 
-  batch.update(doc.ref, {
-    departamento: dep.nombre,
-    ivaTasa: dep.iva,
-    iepsTasa: dep.ieps,
-    updatedAt: new Date().toISOString()
-  });
+batch.update(doc.ref, {
+  departamento: dep.nombre,
+
+  // 👇 CONVERSIÓN CORRECTA
+  ivaTasa: dep.iva >= 1 ? dep.iva / 100 : dep.iva,
+
+  // IEPS se respeta tal cual (suele ser tasa ya)
+  iepsTasa: dep.ieps ?? 0,
+
+  updatedAt: new Date().toISOString()
+});
+
 
   actualizados++;
 });
