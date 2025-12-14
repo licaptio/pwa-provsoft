@@ -4,261 +4,241 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Resumen de Ventas – Ruta de Venta</title>
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
   <style>
-    body {
+    body{
       font-family:'Poppins',sans-serif;
       background:linear-gradient(to right,#00416A,#E4E5E6);
       margin:0;padding:20px;color:#111;
     }
-    h2{color:white;text-align:center;margin-bottom:8px;}
+    h2{color:white;text-align:center;margin-bottom:6px;}
     #fechaDia{color:#fff;text-align:center;margin:0 0 14px;font-weight:600;}
+
+    .dashboard{
+      max-width:720px;margin:0 auto 10px;
+      background:rgba(255,255,255,.9);
+      border-radius:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.15);
+      display:flex;justify-content:space-around;
+      padding:12px;font-weight:600;font-size:16px;
+    }
+
     .card{
-      background:rgba(255,255,255,0.9);
+      background:rgba(255,255,255,.9);
       border-radius:14px;
       box-shadow:0 6px 18px rgba(0,0,0,.2);
-      padding:16px;max-width:720px;margin:0 auto;
+      padding:16px;
+      max-width:720px;
+      margin:0 auto;
     }
+
     table{width:100%;border-collapse:collapse;margin-top:10px;}
     th,td{padding:8px;border-bottom:1px solid #ddd;font-size:14px;}
     th{background:#00416A;color:#fff;}
     tr:hover{background:#f1f5f9;}
+
     .btnReimp{
       background:#0c6cbd;color:#fff;border:none;
-      padding:6px 10px;border-radius:8px;font-weight:600;
-      cursor:pointer;transition:.15s;
+      padding:6px 10px;border-radius:8px;
+      font-weight:600;cursor:pointer;
     }
     .btnReimp:hover{background:#0078d4;transform:scale(1.05);}
+
+    .total{
+      font-weight:700;text-align:right;
+      margin-top:12px;font-size:18px;
+    }
+
     .volver{
-      display:block;text-align:center;margin:20px auto 0;
-      background:#0c6cbd;color:#fff;padding:10px 16px;
-      border-radius:10px;text-decoration:none;font-weight:600;max-width:720px;
+      display:block;text-align:center;
+      margin:20px auto 0;
+      background:#0c6cbd;color:#fff;
+      padding:10px 16px;
+      border-radius:10px;
+      text-decoration:none;
+      font-weight:600;
+      max-width:720px;
     }
-    .dashboard{
-      max-width:720px;margin:0 auto 10px;
-      background:rgba(255,255,255,0.9);
-      border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.15);
-      display:flex;justify-content:space-around;align-items:center;
-      padding:12px;font-weight:600;font-size:16px;
-    }
+
     #loading{text-align:center;padding:10px;color:#00416A;font-weight:600;}
-    .total{font-weight:bold;text-align:right;margin-top:12px;font-size:18px;}
   </style>
 </head>
+
 <body>
-  <h2>📋 Resumen de Ventas</h2>
-  <p id="fechaDia"></p>
 
-  <div class="dashboard">
-    <div>🧾 Ventas del día: <span id="lblConteo">0</span></div>
-    <div>💰 Total acumulado: <span id="lblTotalDash">$0.00</span></div>
-  </div>
+<h2>📋 Resumen de Ventas</h2>
+<p id="fechaDia"></p>
 
-  <div class="card">
-    <p><b>Vendedor:</b> <span id="lblUsuario">Cargando...</span></p>
-    <table id="tabla">
-      <thead>
-        <tr><th>Folio</th><th>Hora</th><th>Total</th><th>Reimpresión</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <div id="loading">Cargando ventas...</div>
-    <div class="total">Total del Día: <span id="lblTotal">$0.00</span></div>
-  </div>
+<div class="dashboard">
+  <div>🧾 Ventas del día: <span id="lblConteo">0</span></div>
+  <div>💰 Total acumulado: <span id="lblTotalDash">$0.00</span></div>
+</div>
 
-  <a class="volver" href="POSV4PASS.html">⬅️ Volver al POS</a>
+<div class="card">
+  <p><b>Vendedor:</b> <span id="lblUsuario">—</span></p>
 
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <table>
+    <thead>
+      <tr>
+        <th>Folio</th>
+        <th>Hora</th>
+        <th>Total</th>
+        <th>Reimp.</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    const { jsPDF } = window.jspdf;
+  <div id="loading">Cargando ventas...</div>
+  <div class="total">Total del Día: <span id="lblTotal">$0.00</span></div>
+</div>
 
-    // 🔧 Configuración Firebase (misma del POS)
-    const firebaseConfig = {
-      apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.appspot.com",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-// 🔐 Leer sesión creada por el POS
+<a class="volver" href="POSV4PASS.html">⬅️ Volver al POS</a>
+
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, query, where, getDocs, doc, getDoc } 
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const { jsPDF } = window.jspdf;
+
+/* 🔥 Firebase */
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.appspot.com",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+/* 🔐 Sesión del POS */
 const sesion = JSON.parse(localStorage.getItem("usuario_ruta"));
 
-if (!sesion || !sesion.uid) {
+if (!sesion || !sesion.id) {
   alert("Sesión no válida. Regresa al POS.");
   window.location.href = "POSV4PASS.html";
   throw new Error("Sesión inexistente");
 }
 
-const uid = sesion.uid;
+const usuarioId = sesion.id;
 
-// Mostrar vendedor en pantalla
+/* Mostrar vendedor */
 document.getElementById("lblUsuario").textContent =
   sesion.nombre || sesion.usuario || "Vendedor";
 
-// 🔎 Query SOLO por ventas de este usuario
+/* Fecha */
+const hoy = new Date();
+const fechaMX = hoy.toLocaleDateString("es-MX",
+  {day:'2-digit',month:'2-digit',year:'numeric'});
+document.getElementById("fechaDia").textContent =
+  `🗓️ Ventas del día ${fechaMX}`;
+
+/* 🔎 Query de ventas */
 const q = query(
-  collection(db, "ventas_rutav2"),
-  where("usuarioId", "==", uid)
+  collection(db,"ventas_rutav2"),
+  where("usuarioId","==",usuarioId)
 );
 
-    // Fecha actual
-    const hoy = new Date();
-    const fechaMX = hoy.toLocaleDateString("es-MX",{day:'2-digit',month:'2-digit',year:'numeric'});
-    document.getElementById("fechaDia").textContent = `🗓️ Ventas del día ${fechaMX}`;
+/* 📥 Cargar ventas */
+async function cargarVentas(){
+  const tbody = document.getElementById("tbody");
+  const loading = document.getElementById("loading");
+  const lblTotal = document.getElementById("lblTotal");
+  const lblDash  = document.getElementById("lblTotalDash");
+  const lblCnt   = document.getElementById("lblConteo");
 
-    // === Cargar ventas del día ===
-    async function cargarVentas() {
-      const tabla = document.querySelector("#tabla tbody");
-      const totalEl = document.getElementById("lblTotal");
-      const totalDash = document.getElementById("lblTotalDash");
-      const conteoEl = document.getElementById("lblConteo");
-      const loading = document.getElementById("loading");
-      tabla.innerHTML = ""; totalEl.textContent = "$0.00"; totalDash.textContent = "$0.00"; conteoEl.textContent="0";
-      loading.style.display = "block"; loading.textContent = "Cargando ventas...";
+  tbody.innerHTML="";
+  loading.style.display="block";
 
-      try {
+  let totalDia=0, conteo=0;
+  const snap = await getDocs(q);
 
-const snap = await getDocs(q);
-console.log("VENTAS EN BD:", snap.size);
+  snap.forEach(d=>{
+    const v=d.data();
+    if(v.cortado===true) return;
 
-        let ventas = [];
-snap.forEach(d => {
-  const v = d.data();
+    if(!v.fecha_txt) return;
+    const [f,h]=v.fecha_txt.split(",");
+    const [dia,mes,anio]=f.trim().split("/").map(Number);
 
-  // ❌ No mostrar ventas cortadas
-  if (v.cortado === true) return;
+    if(
+      dia===hoy.getDate() &&
+      mes===hoy.getMonth()+1 &&
+      anio===hoy.getFullYear()
+    ){
+      conteo++;
+      const tot=Number(v.total||0);
+      totalDia+=tot;
 
-if (v.fecha_txt && typeof v.total === "number") {
-  const fechaVenta = v.fecha_txt.split(",")[0].trim();
-  const [dia, mes, año] = fechaVenta.split("/").map(Number);
+      const tr=document.createElement("tr");
+      tr.innerHTML=`
+        <td>${v.folio||"—"}</td>
+        <td>${(h||"").trim()}</td>
+        <td style="text-align:right">$${tot.toFixed(2)}</td>
+        <td style="text-align:center">
+          <button class="btnReimp">🖨️</button>
+        </td>`;
+      tr.querySelector("button").onclick=()=>reimprimir(d.id);
+      tbody.appendChild(tr);
+    }
+  });
 
-  const hoy = new Date();
-  if (
-    dia === hoy.getDate() &&
-    mes === hoy.getMonth() + 1 &&
-    año === hoy.getFullYear()
-  ) {
-    ventas.push({ id: d.id, ...v });
-  }
+  lblTotal.textContent="$"+totalDia.toFixed(2);
+  lblDash.textContent="$"+totalDia.toFixed(2);
+  lblCnt.textContent=conteo;
+
+  loading.textContent = conteo ? "" : "Sin ventas registradas hoy.";
 }
-});
-  // 🧑 Mostrar vendedor
-if (ventas.length > 0) {
-  document.getElementById("lblUsuario").textContent =
-    ventas[0].usuarioNombre || ventas[0].usuario || "—";
-} else {
-  document.getElementById("lblUsuario").textContent = "Sin ventas";
-}
 
+cargarVentas();
 
-        // ordenar por hora descendente
-        ventas.sort((a,b)=>{
-          const hA=a.fecha_txt.split(",")[1]?.trim()||"";
-          const hB=b.fecha_txt.split(",")[1]?.trim()||"";
-          return hB.localeCompare(hA);
-        });
+/* 🖨️ Reimpresión */
+async function reimprimir(id){
+  const ref=doc(db,"ventas_rutav2",id);
+  const snap=await getDoc(ref);
+  if(!snap.exists()) return alert("Venta no encontrada");
 
-        let totalDia=0;
-        ventas.forEach(v=>{
-          const hora=v.fecha_txt.split(",")[1]?.trim()||"";
-          const tot = Number(v.total || 0);
-          totalDia+=tot;
-          const tr=document.createElement("tr");
-          tr.innerHTML=`
-            <td>${v.folio}</td>
-            <td>${hora}</td>
-            <td style="text-align:right">$${tot.toFixed(2)}</td>
-            <td style="text-align:center"><button class="btnReimp">🖨️ Reimprimir</button></td>`;
-          tabla.appendChild(tr);
-          tr.querySelector(".btnReimp").addEventListener("click",()=>reimprimirTicket(v.id));
-        });
+  const v=snap.data();
+  let t="";
+  t+="      PROVEEDORA MATRIZ\n";
+  t+=" MADERO 690 SUR, LINARES\n";
+  t+="------------------------------\n";
+  t+=`Venta: ${v.folio}\n`;
+  t+=`Fecha: ${v.fecha_txt}\n`;
+  t+=`Cliente: ${v.cliente||"PÚBLICO"}\n`;
+  t+="------------------------------\n";
 
-        totalEl.textContent="$"+totalDia.toFixed(2);
-        totalDash.textContent="$"+totalDia.toFixed(2);
-        conteoEl.textContent=ventas.length;
-        loading.textContent = ventas.length ? "" : "Sin ventas registradas.";
-      }catch(e){
-        console.error(e);
-        loading.textContent="⚠️ Error al cargar ventas.";
-      }
-    }
+  (v.detalle||[]).forEach(it=>{
+    const n=(it.nombre||"").substring(0,16).padEnd(16);
+    const c=(it.cantidad||0).toFixed(2).padStart(5);
+    const i=(it.importe||0).toFixed(2).padStart(9);
+    t+=`${n}${c}${i}\n`;
+  });
 
-    cargarVentas();
+  t+="------------------------------\n";
+  t+=`TOTAL: ${(v.total||0).toFixed(2)}\n`;
+  t+="*** REIMPRESIÓN ***\n";
 
-// === Reimpresión ===
-async function reimprimirTicket(id) {
-  try {
-    const docRef = doc(db, "ventas_rutav2", id);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      alert("Venta no encontrada.");
-      return;
-    }
-    const v = snap.data();
-    const total = v.resumen_financiero.total || 0;
-    const sub = v.resumen_financiero.subtotal || 0;
-    const desc = v.descuento_monto || 0;
-    const imp = v.resumen_financiero.impuestos || 0;
-    const folio = v.folio;
-    const cliente = v.cliente || "PÚBLICO EN GENERAL";
-    const cajero = v.usuarioNombre || "—";
-    const fecha = v.fecha_txt;
-
-    let ticket = "";
-    ticket += "        PROVEEDORA MATRIZ\n";
-    ticket += "   MADERO 690 SUR, CENTRO\n";
-    ticket += "   LINARES, N.L. 67700\n";
-    ticket += "      RFC: PDD031204KL5\n";
-    ticket += "     TEL: (821) 212-1805\n";
-    ticket += "--------------------------------\n";
-    ticket += `# Venta: ${folio}\n`;
-    ticket += `Fecha: ${fecha}\n`;
-    ticket += `Cliente: ${cliente}\n`;
-    ticket += "--------------------------------\n";
-
-    (v.detalle || []).forEach(it => {
-      const nombre = (it.nombre || "").substring(0, 16).padEnd(16);
-      const cant = (it.cantidad || 0).toFixed(2).padStart(5);
-      const imp = (it.importe || 0).toFixed(2).padStart(9);
-      ticket += `${nombre}${cant}${imp}\n`;
-    });
-
-    ticket += "--------------------------------\n";
-    ticket += `Subtotal:     ${sub.toFixed(2)}\n`;
-    ticket += `Descuento:    ${desc.toFixed(2)}\n`;
-    ticket += `Impuestos:    ${imp.toFixed(2)}\n`;
-    ticket += `TOTAL:        ${total.toFixed(2)}\n`;
-    ticket += "--------------------------------\n";
-    ticket += `Cajero: ${cajero}\n`;
-    ticket += "   ¡Gracias por su compra!\n";
-    ticket += "        *** REIMPRESIÓN ***\n";
-
-    if (/Android/i.test(navigator.userAgent)) {
-      const encoded = encodeURIComponent(ticket);
-      window.location.href = `rawbt:text,${encoded}`;
-    } else {
-      const pdf = new jsPDF({ unit: "mm", format: [80, 200] });
-      pdf.setFont("courier", "normal");
-      pdf.setFontSize(10);
-      let y = 10;
-      ticket.split("\n").forEach(line => {
-        pdf.text(line, 5, y);
-        y += 4;
-      });
-      pdf.output("dataurlnewwindow");
-    }
-  } catch (e) {
-    console.error(e);
-    alert("Error al reimprimir.");
+  if(/Android/i.test(navigator.userAgent)){
+    window.location.href=`rawbt:text,${encodeURIComponent(t)}`;
+  }else{
+    const pdf=new jsPDF({unit:"mm",format:[80,200]});
+    pdf.setFont("courier");
+    pdf.setFontSize(10);
+    let y=10;
+    t.split("\n").forEach(l=>{pdf.text(l,5,y);y+=4;});
+    pdf.output("dataurlnewwindow");
   }
 }
 </script>
+
 </body>
 </html>
