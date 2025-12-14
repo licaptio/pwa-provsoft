@@ -1,10 +1,11 @@
-const CACHE = "provsoft-pos-v3.2";
+const CACHE = "provsoft-pos-v3.3";
 
 /* STATIC */
 const STATIC_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./offline.html",
   "./logo_proveedora.webp",
   "./js/app.js",
   "./js/core/scanner.js",
@@ -17,9 +18,9 @@ const STATIC_ASSETS = [
   "./js/core/ticket.js"
 ];
 
-self.addEventListener("install", e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC_ASSETS))
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
