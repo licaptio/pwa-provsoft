@@ -64,7 +64,9 @@ function addProduct(prod, cantidad = 1) {
   if (!prod || cantidad <= 0) return;
 
   // 🔹 Buscar si ya existe en carrito
-  const existente = carrito.find(p => p.id === prod.id);
+  const id = String(prod.codigoBarra || prod.codigo || "").trim();
+const existente = carrito.find(p => p.id === id);
+
 
   // =======================================================
   // ⚖️ PRODUCTOS DE BALANZA (cantidad < 1)
@@ -97,27 +99,24 @@ function addProduct(prod, cantidad = 1) {
 
 function crearItem(prod, cantidad) {
   const precioUnit = obtenerPrecioUnitario(prod, cantidad);
+  const id = String(prod.codigoBarra || prod.codigo);
 
   return {
-    id: prod.id,
-    nombre: prod.nombre,
-    codigo: prod.codigo,
+    id,
+    nombre: prod.concepto || prod.nombre,
+    codigo: id,
     cantidad,
     precioUnit,
     importe: cantidad * precioUnit,
 
-    // 🔹 Costos
-    costoUnit: Number(prod.costoUnit || 0),
+    costoUnit: Number(prod.costoSinImpuesto || 0),
 
-    // 🔹 SAT
     claveSat: prod.claveSat || null,
     unidadSat: prod.unidadMedidaSat || null,
 
-    // 🔹 Impuestos
     ivaTasa: Number(prod.ivaTasa || 0),
     iepsTasa: Number(prod.iepsTasa || 0),
 
-    // 🔹 Departamento
     departamento_id: prod.departamento_id || null
   };
 }
@@ -174,3 +173,4 @@ window.addProduct = addProduct;
 window.actualizarCantidad = actualizarCantidad;
 window.eliminarItem = eliminarItem;
 window.limpiarCarrito = limpiarCarrito;
+
