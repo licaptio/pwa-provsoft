@@ -33,7 +33,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   requestRender();
 
   document.getElementById("btnCobrar")?.addEventListener("click", abrirCobro);
-  document.getElementById("btnConfirmarCobro")?.addEventListener("click", confirmarCobro);
+  document.getElementById("btnConfirmarCobro")
+  ?.addEventListener("click", () => {
+    const pago = obtenerPagoActual(); // o como lo tengas
+    window.onVentaConfirmada(pago);
+  });
+
   document.getElementById("btnCancelarCobro")?.addEventListener("click", cerrarCobro);
 });
 
@@ -69,7 +74,7 @@ window.onVentaConfirmada = async (pago) => {
   cerrarCobro();
   requestRender();
 
-  toast("✅ Venta completada", "#16a34a");
+  mostrarToast("✅ Venta completada", "#16a34a");
 };
 
 /* ===========================================================
