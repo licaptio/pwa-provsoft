@@ -1,4 +1,20 @@
 /* ===========================================================
+   🧠 SECCIÓN 0: MEMORIA GLOBAL POS (CATÁLOGO + ÍNDICES)
+   =========================================================== */
+
+/**
+ * Catálogo completo en memoria
+ * Se llena UNA VEZ desde Firestore
+ */
+window.catalogo = window.catalogo || [];
+
+/**
+ * Índice rápido de códigos → idProducto
+ * (código principal + equivalentes)
+ */
+window.codeIndex = window.codeIndex || new Map();
+
+/* ===========================================================
    💾 PROVSOFT POS – PERSISTENCIA (V3 ULTRA)
    ===========================================================
    RESPONSABILIDAD ÚNICA:
@@ -126,3 +142,4 @@ window.addEventListener("online", () => {
 
 window.guardarVenta = guardarVenta;
 window.reenviarCola = reenviarCola;
+
