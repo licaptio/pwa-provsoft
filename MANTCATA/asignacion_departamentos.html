@@ -131,6 +131,10 @@ async function asignar() {
 
 prodSnap.forEach(doc => {
   const p = doc.data();
+
+  // 🔒 SOLO PRODUCTOS ACTIVOS
+  if (p.activo !== true) return;
+
   const dep = deps[String(p.departamento_id)];
 
   if (!dep) {
@@ -148,7 +152,6 @@ prodSnap.forEach(doc => {
 
   actualizados++;
 });
-
 
   if (actualizados > 0) {
     await batch.commit();
