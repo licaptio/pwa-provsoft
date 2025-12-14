@@ -181,7 +181,7 @@ function procesarCodigoUltra(codigo) {
 
   // 3️⃣ No encontrado
   beep(400, 0.12);
-  toast("❌ Producto no encontrado", "#c0392b");
+  console.warn("❌ Producto no encontrado");
 }
 
 
@@ -275,6 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
 
 
 
