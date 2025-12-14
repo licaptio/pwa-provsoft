@@ -175,7 +175,12 @@ async function cargarVentas(){
       anio===hoy.getFullYear()
     ){
       conteo++;
-      const tot=Number(v.total||0);
+      const tot = Number(
+  v.resumen_financiero?.total ??
+  v.detalle?.reduce((s,it)=>s+(Number(it.importe)||0),0) ??
+  0
+);
+
       totalDia+=tot;
 
       const tr=document.createElement("tr");
