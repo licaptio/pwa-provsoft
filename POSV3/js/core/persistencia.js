@@ -13,6 +13,58 @@ window.catalogo = window.catalogo || [];
  * (código principal + equivalentes)
  */
 window.codeIndex = window.codeIndex || new Map();
+/* ===========================================================
+   📦 SECCIÓN 1.5: INDEXADO DE CATÁLOGO (LOCAL – O(1))
+   =========================================================== */
+
+/**
+ * Indexa el catálogo completo en memoria
+ * Replica EXACTAMENTE el POS que sí funciona
+ */
+function indexarCatalogo() {
+  if (!Array.isArray(window.catalogo)) {
+    console.warn("⚠️ Catálogo no disponible para indexar");
+    return;
+  }
+
+  codeIndex.clear();
+
+  for (const p of window.catalogo) {
+    const id = p.id || p._id || p.docId;
+    if (!id) continue;
+
+    // Código principal
+    const codigo =
+      p.codigo ||
+      p.codigoBarra ||
+      p.code ||
+      "";
+
+    if (codigo) {
+      codeIndex.set(String(codigo), id);
+    }
+
+    // Códigos equivalentes
+    const equivalentes =
+      p.equivalentes ||
+      p.codigosEquivalentes ||
+      [];
+
+    if (Array.isArray(equivalentes)) {
+      for (const eq of equivalentes) {
+        if (eq) {
+          codeIndex.set(String(eq), id);
+        }
+      }
+    }
+  }
+
+  console.log(
+    "📦 Scanner indexado:",
+    codeIndex.size,
+    "códigos / equivalentes"
+  );
+}
 
 /* ===========================================================
    💾 PROVSOFT POS – PERSISTENCIA (V3 ULTRA)
@@ -142,4 +194,5 @@ window.addEventListener("online", () => {
 
 window.guardarVenta = guardarVenta;
 window.reenviarCola = reenviarCola;
+
 
