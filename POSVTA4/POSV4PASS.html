@@ -1,4 +1,4 @@
-x<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <!-- 🧱 BLOQUE 1: CABECERA Y CONFIGURACIÓN GLOBAL -->
@@ -545,8 +545,8 @@ catalogo = catalogoSW.map(x => ({
     medioMayoreo: Number(x.medioMayoreo || 0),
 
     // impuestos
-    ivaTasa: Number(x.ivaTasa || 0) / 100,
-    iepsTasa: Number(x.iepsTasa || 0) / 100,
+ivaTasa: Number(x.ivaTasa || 0),
+iepsTasa: Number(x.iepsTasa || 0),
 
     // equivalentes
     equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
@@ -611,7 +611,7 @@ const p = {
   // 🚀 CAMPOS SAT DEL CATÁLOGO
   claveSat: x.claveSat || null,
   unidadMedidaSat: x.unidadMedidaSat || null,
-  departamento: x.departamento || x.departamento_nombre || null
+  departamento: x.departamento || x.departamento_nombre || null,
   departamento_id: x.departamento_id || null,
   equivalentes: Array.isArray(x.codigosEquivalentes)
   ? x.codigosEquivalentes.map(e => String(e).trim())
@@ -885,8 +885,8 @@ function calcularTotales(descPorc = 0) {
 carrito.forEach(it => {
   const imp = it.cantidad * it.precioUnit;
 
-  const ivaT  = normalizarTasa(it.ivaTasa);
-  const iepsT = normalizarTasa(it.iepsTasa);
+const ivaT  = Number(it.ivaTasa || 0);   // ya viene 0.16
+const iepsT = Number(it.iepsTasa || 0);  // ya viene 0
 
   let base = imp;
   if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
@@ -1581,13 +1581,8 @@ $("#btnConfirmarCobro").onclick = async () => {
       ubicacion: await obtenerUbicacionRobusta().catch(() => null),
       detalle: carrito.map(it => {
       // 🔧 Normalizar SIEMPRE las tasas antes de guardar
-function normalizarTasa(t) {
-  const n = Number(t || 0);
-  return n > 1 ? n / 100 : n;
-}
-
-const ivaT  = normalizarTasa(it.ivaTasa);
-const iepsT = normalizarTasa(it.iepsTasa);
+const ivaT  = Number(it.ivaTasa || 0);   // ya es 0.16
+const iepsT = Number(it.iepsTasa || 0);  // ya es 0
 
         // 🛠 FIX: validación segura del departamento
 // 🟢 FIX: Normalizar ID porque Firestore usa string como llave
@@ -1609,8 +1604,8 @@ return {
   unidadSat: it.unidadSat,
 
   // ✅ IMPUESTOS YA NORMALIZADOS
-  ivaTasa: normalizarTasa(it.ivaTasa),     // 0.16
-  iepsTasa: normalizarTasa(it.iepsTasa),   // 0
+ivaTasa: it.ivaTasa,     // 0.16
+iepsTasa: it.iepsTasa,   // 0
   iva_calculado: it.iva_calculado,
   ieps_calculado: it.ieps_calculado,
 
@@ -1619,8 +1614,8 @@ return {
 departamento_info: {
   id: it.departamento_id,
   nombre: it.departamento || "DESCONOCIDO",
-  iva: Math.round(normalizarTasa(it.ivaTasa) * 100),
-  ieps: Math.round(normalizarTasa(it.iepsTasa) * 100)
+  iva: Math.round(it.ivaTasa * 100),
+  ieps: Math.round(it.iepsTasa * 100)
 }
 
 };
