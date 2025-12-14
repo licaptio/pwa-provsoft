@@ -84,3 +84,4 @@ window.onVentaConfirmada = async (pago) => {
 function generarFolio() {
   return "V3-" + Date.now().toString().slice(-6);
 }
+
