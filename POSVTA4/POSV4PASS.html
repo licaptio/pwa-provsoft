@@ -931,40 +931,31 @@ function calcularTotales(descPorc = 0) {
   const descuento = Math.min(100, Math.max(0, descPorc || 0)) / 100;
 
   // 🔢 Recorre todos los productos del carrito
-  carrito.forEach(it => {
-    const imp = it.cantidad * it.precioUnit;
-// 🔧 Obtener impuestos con fallback seguro
-const dep = departamentos[it.departamento_id] || null;
+carrito.forEach(it => {
+  const imp = it.cantidad * it.precioUnit;
 
-function normalizarTasa(t) {
-  const n = Number(t || 0);
-  return n > 1 ? n / 100 : n;
-}
+  const dep = departamentos[String(it.departamento_id || "").trim()] || null;
 
-const ivaT = dep
-  ? normalizarTasa(dep.iva)
-  : normalizarTasa(it.ivaTasa);
+  const ivaT = dep ? normalizarTasa(dep.iva) : normalizarTasa(it.ivaTasa);
+  const iepsT = dep ? normalizarTasa(dep.ieps) : normalizarTasa(it.iepsTasa);
 
-const iepsT = dep
-  ? normalizarTasa(dep.ieps)
-  : normalizarTasa(it.iepsTasa);
+  let base = imp;
+  if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
+  else if (iepsT > 0) base = imp / (1 + iepsT);
+  else if (ivaT > 0) base = imp / (1 + ivaT);
 
-    let base = imp;
+  const ivaCalc  = +(base * ivaT).toFixed(2);
+  const iepsCalc = +(base * iepsT).toFixed(2);
 
-    // Descompone el precio si ya incluye IVA o IEPS
-    if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
-    else if (iepsT > 0) base = imp / (1 + iepsT);
-    else if (ivaT > 0) base = imp / (1 + ivaT);
+  // 🔥 ESTO ES CLAVE
+  it.iva_calculado = ivaCalc;
+  it.ieps_calculado = iepsCalc;
 
-    subtotal += base;
-    iva += base * ivaT;
-    ieps += base * iepsT;
-    total += imp;
-
-    // Clasifica productos elegibles o no para descuento
-    if (productosMayoreo.includes(String(it.codigo))) subtotalNoElegible += base;
-    else subtotalElegible += base;
-  });
+  subtotal += base;
+  iva += ivaCalc;
+  ieps += iepsCalc;
+  total += imp;
+});
 
   // 🧮 Cálculo seguro de descuentos (sin dividir por cero)
   const montoDesc = subtotalElegible * descuento;
@@ -1641,6 +1632,15 @@ $("#btnConfirmarCobro").onclick = async () => {
       autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
       ubicacion: await obtenerUbicacionRobusta().catch(() => null),
       detalle: carrito.map(it => {
+      // 🔧 Normalizar SIEMPRE las tasas antes de guardar
+function normalizarTasa(t) {
+  const n = Number(t || 0);
+  return n > 1 ? n / 100 : n;
+}
+
+const ivaT  = normalizarTasa(it.ivaTasa);
+const iepsT = normalizarTasa(it.iepsTasa);
+
         // 🛠 FIX: validación segura del departamento
 // 🟢 FIX: Normalizar ID porque Firestore usa string como llave
 let depId = String(it.departamento_id || "").trim();
@@ -1668,8 +1668,10 @@ return {
   // 🚀 CAMPOS SAT
   claveSat: it.claveSat,
   unidadSat: it.unidadSat,
-  ivaTasa: it.ivaTasa,
-  iepsTasa: it.iepsTasa,
+ivaTasa: ivaT,                 // ✅ SIEMPRE 0.16
+iepsTasa: iepsT,               // ✅ SIEMPRE decimal
+iva_calculado: it.iva_calculado,
+ieps_calculado: it.ieps_calculado,
 
   departamento_id: it.departamento_id,
   departamento_info: {
