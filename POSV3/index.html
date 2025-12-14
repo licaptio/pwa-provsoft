@@ -370,7 +370,7 @@ window.addEventListener("DOMContentLoaded", () => {
 <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
-    .register("./sw.js")
+    .register("./sw.js?v=10")
     .then(r => console.log("✅ SW registrado"))
     .catch(e => console.error("❌ SW error", e));
 }
