@@ -1662,26 +1662,29 @@ return {
   cantidad: it.cantidad,
   precio_unit: it.precioUnit,
   importe: it.importe,
+
   costo_unit: +(it.costoUnit || 0).toFixed(2),
   costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
 
-  // 🚀 CAMPOS SAT
+  // 🧾 SAT
   claveSat: it.claveSat,
   unidadSat: it.unidadSat,
-ivaTasa: ivaT,                 // ✅ SIEMPRE 0.16
-iepsTasa: iepsT,               // ✅ SIEMPRE decimal
-iva_calculado: it.iva_calculado,
-ieps_calculado: it.ieps_calculado,
 
+  // ✅ IMPUESTOS YA NORMALIZADOS
+  ivaTasa: normalizarTasa(it.ivaTasa),     // 0.16
+  iepsTasa: normalizarTasa(it.iepsTasa),   // 0
+  iva_calculado: it.iva_calculado,
+  ieps_calculado: it.ieps_calculado,
+
+  // ✅ DEPARTAMENTO DESDE PRODUCTO (SNAPSHOT)
   departamento_id: it.departamento_id,
   departamento_info: {
-    id: dep.id,
-    nombre: dep.nombre,
-    iva: dep.iva,
-    ieps: dep.ieps
+    id: it.departamento_id,
+    nombre: it.departamento || "DESCONOCIDO",
+    iva: Math.round(normalizarTasa(it.ivaTasa) * 100),
+    ieps: Math.round(normalizarTasa(it.iepsTasa) * 100)
   }
 };
-
       })
     };
 
