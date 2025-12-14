@@ -72,9 +72,10 @@ function indexarCatalogoUltra(catalogo) {
   for (const prod of catalogo) {
 
     // 🔹 Código principal
-    const codigo = String(
+const codigo = normalizarCodigo(
   prod.codigoBarra || prod.codigo || ""
-).trim();
+);
+
     if (codigo) {
       IDX.porCodigo.set(codigo, prod);
     }
@@ -84,10 +85,10 @@ const equivalentes = prod.codigosEquivalentes || prod.equivalentes;
 
 if (Array.isArray(equivalentes)) {
   for (const eq of equivalentes) {
-        const limpio = String(eq).trim();
-        if (limpio) {
-          IDX.porEquivalente.set(limpio, prod);
-        }
+const limpio = normalizarCodigo(eq);
+if (limpio) {
+  IDX.porEquivalente.set(limpio, prod);
+}
       }
     }
   }
@@ -108,12 +109,14 @@ if (Array.isArray(equivalentes)) {
    =========================================================== */
 
 function buscarProductoUltra(codigo) {
-  if (IDX.porCodigo.has(codigo)) {
-    return IDX.porCodigo.get(codigo);
+  const limpio = normalizarCodigo(codigo);
+
+  if (IDX.porCodigo.has(limpio)) {
+    return IDX.porCodigo.get(limpio);
   }
 
-  if (IDX.porEquivalente.has(codigo)) {
-    return IDX.porEquivalente.get(codigo);
+  if (IDX.porEquivalente.has(limpio)) {
+    return IDX.porEquivalente.get(limpio);
   }
 
   return null;
@@ -234,6 +237,11 @@ function requestRender() {
     render(); // ← función existente del POS
   });
 }
+function normalizarCodigo(codigo) {
+  return String(codigo)
+    .replace(/\D/g, "")
+    .trim();
+}
 
 
 /* ===========================================================
@@ -244,5 +252,6 @@ function requestRender() {
 
 window.indexarCatalogoUltra = indexarCatalogoUltra;
 window.procesarCodigoUltra = procesarCodigoUltra;
+
 
 
