@@ -4,20 +4,37 @@
 
 async function cargarCatalogoOffline() {
   const [prodRes, depRes] = await Promise.all([
-fetch("./data/productos.json"),
-fetch("./data/departamentos.json")   
+    fetch("./data/productos.json"),
+    fetch("./data/departamentos.json")
   ]);
 
   const productos = await prodRes.json();
   const departamentos = await depRes.json();
 
-  window.catalogoProductos = productos;
+  // ✅ NORMALIZAR PRODUCTOS (ÚNICA FUENTE DE VERDAD)
+  const productosNormalizados = productos
+    .filter(p => p.activo)
+    .map(p => ({
+      id: p.codigoBarra,
+      codigo: String(p.codigoBarra).trim(),
+      nombre: p.concepto,
+      precio: Number(p.precioPublico || 0),
+      ivaTasa: Number(p.ivaTasa || 0),
+      iepsTasa: Number(p.iepsTasa || 0),
+      equivalentes: Array.isArray(p.codigosEquivalentes)
+        ? p.codigosEquivalentes.map(e => String(e).trim())
+        : [],
+      raw: p
+    }));
+
+  // 🔑 SOLO ESTO
+  window.catalogoProductos = productosNormalizados;
   window.catalogoDepartamentos = departamentos;
 
-  // 🔥 INDEXAR SCANNER (CRÍTICO)
-  indexarCatalogoUltra(productos);
+  // 🔥 INDEXAR SOLO UNA VEZ Y CON DATOS CORRECTOS
+  indexarCatalogoUltra(productosNormalizados);
 
-  console.log("📦 Catálogo offline cargado:", productos.length);
+  console.log("✅ Catálogo offline normalizado:", productosNormalizados.length);
 }
 
 /* ===========================================================
