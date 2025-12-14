@@ -4,8 +4,8 @@
 
 async function cargarCatalogoOffline() {
   const [prodRes, depRes] = await Promise.all([
-    fetch("/data/productos.json"),
-    fetch("/data/departamentos.json")
+fetch("./data/productos.json"),
+fetch("./data/departamentos.json")   
   ]);
 
   const productos = await prodRes.json();
