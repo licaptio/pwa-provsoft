@@ -1,4 +1,31 @@
 /* ===========================================================
+   🔊 BEEP ULTRA (feedback sonoro)
+   =========================================================== */
+function beep(freq = 900, dur = 0.06){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+
+    o.type = "sine";
+    o.frequency.value = freq;
+
+    o.connect(g);
+    g.connect(ctx.destination);
+
+    o.start();
+    g.gain.setValueAtTime(0.15, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(
+      0.00001,
+      ctx.currentTime + dur
+    );
+
+    o.stop(ctx.currentTime + dur);
+  }catch(e){}
+}
+
+
+/* ===========================================================
    ⚡ PROVSOFT POS – SCANNER CORE (V3 ULTRA)
    ===========================================================
    RESPONSABILIDAD ÚNICA:
@@ -213,3 +240,4 @@ function requestRender() {
 
 window.indexarCatalogoUltra = indexarCatalogoUltra;
 window.procesarCodigoUltra = procesarCodigoUltra;
+
