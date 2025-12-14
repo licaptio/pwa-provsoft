@@ -70,9 +70,8 @@ function indexarCatalogoUltra(catalogo) {
   IDX.porEquivalente.clear();
 
   for (const prod of catalogo) {
-    const codigo = normalizarCodigo(prod.codigoBarra);
-
-    if (!codigo) {
+    const codigo = normalizarCodigo(prod.codigo);
+     if (!codigo) {
       console.warn("⛔ Producto sin codigoBarra:", prod);
       continue;
     }
@@ -256,5 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
 
 
