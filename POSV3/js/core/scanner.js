@@ -72,14 +72,18 @@ function indexarCatalogoUltra(catalogo) {
   for (const prod of catalogo) {
 
     // 🔹 Código principal
-    const codigo = String(prod.codigo || "").trim();
+    const codigo = String(
+  prod.codigoBarra || prod.codigo || ""
+).trim();
     if (codigo) {
       IDX.porCodigo.set(codigo, prod);
     }
 
     // 🔹 Códigos equivalentes
-    if (Array.isArray(prod.equivalentes)) {
-      for (const eq of prod.equivalentes) {
+const equivalentes = prod.codigosEquivalentes || prod.equivalentes;
+
+if (Array.isArray(equivalentes)) {
+  for (const eq of equivalentes) {
         const limpio = String(eq).trim();
         if (limpio) {
           IDX.porEquivalente.set(limpio, prod);
@@ -240,4 +244,5 @@ function requestRender() {
 
 window.indexarCatalogoUltra = indexarCatalogoUltra;
 window.procesarCodigoUltra = procesarCodigoUltra;
+
 
