@@ -468,7 +468,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     await Promise.all([
       cargarCatalogo(),
-      cargarDepartamentos(),
       fijarClientePublico()
     ]);
   } catch (err) {
@@ -612,7 +611,7 @@ const p = {
   // 🚀 CAMPOS SAT DEL CATÁLOGO
   claveSat: x.claveSat || null,
   unidadMedidaSat: x.unidadMedidaSat || null,
-
+  departamento: x.departamento || x.departamento_nombre || null
   departamento_id: x.departamento_id || null,
   equivalentes: Array.isArray(x.codigosEquivalentes)
   ? x.codigosEquivalentes.map(e => String(e).trim())
