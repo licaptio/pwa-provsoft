@@ -350,7 +350,6 @@ enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off
 const $ = s => document.querySelector(s);
 let carrito = [];
 let catalogo = [];
-let departamentos = {};
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
@@ -438,7 +437,6 @@ document.getElementById("carrito-container").style.display = "block";
     // Carga simultánea
     await Promise.all([
       cargarCatalogo(),
-      cargarDepartamentos(),
       fijarClientePublico()
     ]);
 
@@ -654,52 +652,6 @@ cachearDatos("/catalogo", catalogo);
   }
 }
 
-/* ===========================================================
-   🏷️ CARGA DE DEPARTAMENTOS (CON CONTROL DE ERRORES)
-   =========================================================== */
-async function cargarDepartamentos() {
-  const statusBox = crearStatusBox("Cargando departamentos...");
-
-  // 🟢 Intentar cargar desde cache del Service Worker
-  const depSW = await leerCache("/departamentos_venta");
-  if (depSW && typeof depSW === "object" && Object.keys(depSW).length > 0) {
-    departamentos = depSW;
-    console.log("⚡ Departamentos cargados desde cache SW");
-    statusBox.textContent = "⚡ Departamentos offline cargados";
-    setTimeout(() => statusBox.remove(), 1000);
-    return;
-  }
-
-  try {
-    const depSnap = await getDocs(collection(db, "departamentos_venta"));
-    departamentos = {};  // ← IMPORTANTE
-
-    depSnap.forEach(doc => {
-      const d = doc.data();
-      departamentos[doc.id] = {
-        id: doc.id,
-        nombre: d.nombre || "SIN NOMBRE",
-        
-        // 🔥 Si no existen en Firestore, se agregan con 0
-        iva: Number(d.iva || 0),
-        ieps: Number(d.ieps || 0),
-
-        // (opcional) icono para pantalla de categorías
-        icono: d.icono || ""
-      };
-    });
-
-    // Cachearlo
-    cachearDatos("/departamentos_venta", departamentos);
-
-    statusBox.textContent = `Departamentos cargados (${Object.keys(departamentos).length})`;
-    setTimeout(() => statusBox.remove(), 1500);
-
-  } catch (err) {
-    console.error("❌ Error cargando departamentos:", err);
-    statusBox.textContent = "Error cargando departamentos";
-  }
-}
 
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
@@ -934,10 +886,8 @@ function calcularTotales(descPorc = 0) {
 carrito.forEach(it => {
   const imp = it.cantidad * it.precioUnit;
 
-  const dep = departamentos[String(it.departamento_id || "").trim()] || null;
-
-  const ivaT = dep ? normalizarTasa(dep.iva) : normalizarTasa(it.ivaTasa);
-  const iepsT = dep ? normalizarTasa(dep.ieps) : normalizarTasa(it.iepsTasa);
+  const ivaT  = normalizarTasa(it.ivaTasa);
+  const iepsT = normalizarTasa(it.iepsTasa);
 
   let base = imp;
   if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
@@ -947,7 +897,6 @@ carrito.forEach(it => {
   const ivaCalc  = +(base * ivaT).toFixed(2);
   const iepsCalc = +(base * iepsT).toFixed(2);
 
-  // 🔥 ESTO ES CLAVE
   it.iva_calculado = ivaCalc;
   it.ieps_calculado = iepsCalc;
 
@@ -1645,16 +1594,6 @@ const iepsT = normalizarTasa(it.iepsTasa);
 // 🟢 FIX: Normalizar ID porque Firestore usa string como llave
 let depId = String(it.departamento_id || "").trim();
 
-let dep = departamentos[depId];
-if (!dep) {
-  dep = {
-    id: "0",
-    nombre: "SIN DEP",
-    iva: 0,
-    ieps: 0
-  };
-}
-
 return {
   id: it.id,
   nombre: it.nombre,
@@ -1678,12 +1617,13 @@ return {
 
   // ✅ DEPARTAMENTO DESDE PRODUCTO (SNAPSHOT)
   departamento_id: it.departamento_id,
-  departamento_info: {
-    id: it.departamento_id,
-    nombre: it.departamento || "DESCONOCIDO",
-    iva: Math.round(normalizarTasa(it.ivaTasa) * 100),
-    ieps: Math.round(normalizarTasa(it.iepsTasa) * 100)
-  }
+departamento_info: {
+  id: it.departamento_id,
+  nombre: it.departamento || "DESCONOCIDO",
+  iva: Math.round(normalizarTasa(it.ivaTasa) * 100),
+  ieps: Math.round(normalizarTasa(it.iepsTasa) * 100)
+}
+
 };
       })
     };
