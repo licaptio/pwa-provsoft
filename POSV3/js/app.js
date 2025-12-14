@@ -28,7 +28,7 @@ async function cargarCatalogoOffline() {
     }));
 
   // 🔑 SOLO ESTO
-  window.catalogoProductos = productosNormalizados;
+  window.catalogo = productosNormalizados;
   window.catalogoDepartamentos = departamentos;
 
   // 🔥 INDEXAR SOLO UNA VEZ Y CON DATOS CORRECTOS
