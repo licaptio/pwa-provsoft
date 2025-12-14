@@ -150,7 +150,9 @@ function procesarCodigoUltra(codigo) {
   const balanza = decodificarBalanzaUltra(codigo);
   if (balanza) {
     addProduct(balanza.producto, balanza.cantidad);
-    requestRender();
+    if (typeof requestRender === "function") {
+  requestRender();
+}
     beep(950, 0.08);
     return;
   }
@@ -159,7 +161,9 @@ function procesarCodigoUltra(codigo) {
   const producto = buscarProductoUltra(codigo);
   if (producto) {
     addProduct(producto, 1);
-    requestRender();
+    if (typeof requestRender === "function") {
+  requestRender();
+}
     beep(900, 0.06);
     return;
   }
@@ -256,3 +260,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
