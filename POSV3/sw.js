@@ -1,13 +1,11 @@
-/* ===========================================================
-   🔒 PROVSOFT POS – SERVICE WORKER V3 (STABLE)
-   =========================================================== */
+const CACHE = "provsoft-pos-v3.2";
 
-const CACHE_NAME = "provsoft-pos-v3.1.1";
-
-// ⚠️ RUTAS RELATIVAS A POSV3
-const APP_SHELL = [
+/* STATIC */
+const STATIC_ASSETS = [
   "./",
   "./index.html",
+  "./manifest.json",
+  "./logo_proveedora.webp",
   "./js/app.js",
   "./js/core/scanner.js",
   "./js/core/carrito.js",
@@ -19,41 +17,40 @@ const APP_SHELL = [
   "./js/core/ticket.js"
 ];
 
-// Datos offline reales (YA EXISTEN)
-const DATA_CACHE = [
-  "./data/productos.json",
-  "./data/departamentos.json"
-];
-
-/* ================= INSTALL ================= */
-self.addEventListener("install", event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      cache.addAll([...APP_SHELL, ...DATA_CACHE])
-    )
+self.addEventListener("install", e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
 
-/* ================= ACTIVATE ================= */
-self.addEventListener("activate", event => {
-  event.waitUntil(
+self.addEventListener("activate", e => {
+  e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys
-          .filter(k => k !== CACHE_NAME)
-          .map(k => caches.delete(k))
-      )
+      Promise.all(keys.map(k => k !== CACHE && caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-/* ================= FETCH ================= */
-self.addEventListener("fetch", event => {
-  if (event.request.method !== "GET") return;
+self.addEventListener("fetch", e => {
+  const url = new URL(e.request.url);
 
-  event.respondWith(
-    caches.match(event.request).then(res => res || fetch(event.request))
+  // 🔥 DATOS DE NEGOCIO → NETWORK FIRST
+  if (url.pathname.includes("/data/")) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          caches.open(CACHE).then(c => c.put(e.request, res.clone()));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // 🧱 APP SHELL → CACHE FIRST
+  e.respondWith(
+    caches.match(e.request).then(res => res || fetch(e.request))
   );
 });
