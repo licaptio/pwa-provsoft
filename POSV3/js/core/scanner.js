@@ -108,10 +108,6 @@ function buscarProductoUltra(codigo) {
   return IDX.porCodigo.get(limpio) || IDX.porEquivalente.get(limpio) || null;
 }
 
-  return null;
-}
-
-
 /* ===========================================================
    ⚖️ SECCIÓN 4: DECODIFICADOR DE BALANZA
    -----------------------------------------------------------
@@ -247,10 +243,7 @@ window.procesarCodigoUltra = procesarCodigoUltra;
 
 document.addEventListener("DOMContentLoaded", () => {
   const input = document.getElementById("inputScanner");
-  if (!input) {
-    console.warn("❌ inputScanner no encontrado");
-    return;
-  }
+  if (!input) return;
 
   console.log("🎯 inputScanner enganchado");
 
@@ -263,8 +256,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-
-
-
-
-
