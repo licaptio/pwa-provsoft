@@ -253,5 +253,28 @@ function normalizarCodigo(codigo) {
 window.indexarCatalogoUltra = indexarCatalogoUltra;
 window.procesarCodigoUltra = procesarCodigoUltra;
 
+/* ===========================================================
+   🎯 ENGANCHE DIRECTO DEL INPUT SCANNER
+   =========================================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("inputScanner");
+  if (!input) {
+    console.warn("❌ inputScanner no encontrado");
+    return;
+  }
+
+  console.log("🎯 inputScanner enganchado");
+
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      const codigo = input.value;
+      input.value = "";
+      procesarCodigoUltra(codigo);
+      e.preventDefault();
+    }
+  });
+});
+
 
 
