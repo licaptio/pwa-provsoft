@@ -548,8 +548,8 @@ catalogo = catalogoSW.map(x => ({
     medioMayoreo: Number(x.medioMayoreo || 0),
 
     // impuestos
-    ivaTasa: Number(x.ivaTasa || 0),
-    iepsTasa: Number(x.iepsTasa || 0),
+    ivaTasa: Number(x.ivaTasa || 0) / 100,
+    iepsTasa: Number(x.iepsTasa || 0) / 100,
 
     // equivalentes
     equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
@@ -936,13 +936,18 @@ function calcularTotales(descPorc = 0) {
 // 🔧 Obtener impuestos con fallback seguro
 const dep = departamentos[it.departamento_id] || null;
 
+function normalizarTasa(t) {
+  const n = Number(t || 0);
+  return n > 1 ? n / 100 : n;
+}
+
 const ivaT = dep
-  ? (Number(dep.iva) || 0) / 100
-  : (Number(it.ivaTasa) || 0) / 100;
+  ? normalizarTasa(dep.iva)
+  : normalizarTasa(it.ivaTasa);
 
 const iepsT = dep
-  ? (Number(dep.ieps) || 0) / 100
-  : (Number(it.iepsTasa) || 0) / 100;
+  ? normalizarTasa(dep.ieps)
+  : normalizarTasa(it.iepsTasa);
 
     let base = imp;
 
@@ -1730,20 +1735,6 @@ async function guardarVentaEnFirestore(v) {
   try {
     const ref = collection(db, "ventas_rutav2");
         // 🧮 Cálculo de impuestos por artículo antes de guardar
-    v.detalle = v.detalle.map(it => {
-      const ivaPct = Number(it.departamento_info?.iva || 0);
-      const iepsPct = Number(it.departamento_info?.ieps || 0);
-      const base = Number(it.importe || 0);
-
-      const ivaCalc = +(base * ivaPct / 100).toFixed(2);
-      const iepsCalc = +(base * iepsPct / 100).toFixed(2);
-
-      return {
-        ...it,
-        iva_calculado: ivaCalc,
-        ieps_calculado: iepsCalc
-      };
-    });
 
     // 🧾 Sumar total de impuestos al resumen financiero
     const totalIVA = v.detalle.reduce((acc, x) => acc + (x.iva_calculado || 0), 0);
