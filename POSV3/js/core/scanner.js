@@ -70,33 +70,28 @@ function indexarCatalogoUltra(catalogo) {
   IDX.porEquivalente.clear();
 
   for (const prod of catalogo) {
-
-    // 🔹 Código principal
-const codigo = normalizarCodigo(
-  prod.codigoBarra || prod.codigo || ""
-);
-
+    const codigo = normalizarCodigo(prod.codigoBarra);
     if (codigo) {
       IDX.porCodigo.set(codigo, prod);
     }
 
-    // 🔹 Códigos equivalentes
-const equivalentes = prod.codigosEquivalentes || prod.equivalentes;
-
-if (Array.isArray(equivalentes)) {
-  for (const eq of equivalentes) {
-const limpio = normalizarCodigo(eq);
-if (limpio) {
-  IDX.porEquivalente.set(limpio, prod);
-}
+    const equivalentes = prod.codigosEquivalentes;
+    if (Array.isArray(equivalentes)) {
+      for (const eq of equivalentes) {
+        const limpio = normalizarCodigo(eq);
+        if (limpio) {
+          IDX.porEquivalente.set(limpio, prod);
+        }
       }
     }
   }
 
   console.log(
     "⚡ Scanner indexado:",
-    IDX.porCodigo.size, "códigos |",
-    IDX.porEquivalente.size, "equivalentes"
+    IDX.porCodigo.size,
+    "códigos |",
+    IDX.porEquivalente.size,
+    "equivalentes"
   );
 }
 
@@ -110,14 +105,8 @@ if (limpio) {
 
 function buscarProductoUltra(codigo) {
   const limpio = normalizarCodigo(codigo);
-
-  if (IDX.porCodigo.has(limpio)) {
-    return IDX.porCodigo.get(limpio);
-  }
-
-  if (IDX.porEquivalente.has(limpio)) {
-    return IDX.porEquivalente.get(limpio);
-  }
+  return IDX.porCodigo.get(limpio) || IDX.porEquivalente.get(limpio) || null;
+}
 
   return null;
 }
@@ -181,7 +170,8 @@ function procesarCodigoUltra(codigo) {
 
   // 3️⃣ No encontrado
   beep(400, 0.12);
-  console.warn("❌ Producto no encontrado");
+  // ❌ toast(...)
+console.warn("❌ Producto no encontrado:", codigo);
 }
 
 
@@ -238,9 +228,7 @@ function requestRender() {
   });
 }
 function normalizarCodigo(codigo) {
-  return String(codigo)
-    .replace(/\D/g, "")
-    .trim();
+  return String(codigo).replace(/\D/g, "");
 }
 
 
@@ -275,6 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
 
 
 
