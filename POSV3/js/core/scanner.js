@@ -71,19 +71,13 @@ function indexarCatalogoUltra(catalogo) {
 
   for (const prod of catalogo) {
     const codigo = normalizarCodigo(prod.codigoBarra);
-    if (codigo) {
-      IDX.porCodigo.set(codigo, prod);
+
+    if (!codigo) {
+      console.warn("⛔ Producto sin codigoBarra:", prod);
+      continue;
     }
 
-    const equivalentes = prod.codigosEquivalentes;
-    if (Array.isArray(equivalentes)) {
-      for (const eq of equivalentes) {
-        const limpio = normalizarCodigo(eq);
-        if (limpio) {
-          IDX.porEquivalente.set(limpio, prod);
-        }
-      }
-    }
+    IDX.porCodigo.set(codigo, prod);
   }
 
   console.log(
@@ -93,6 +87,8 @@ function indexarCatalogoUltra(catalogo) {
     IDX.porEquivalente.size,
     "equivalentes"
   );
+
+  console.log("📌 Códigos cargados:", [...IDX.porCodigo.keys()]);
 }
 
 
@@ -260,4 +256,5 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
 
