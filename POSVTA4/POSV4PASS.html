@@ -330,17 +330,6 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off:", err));
 
-// 🔥 AHORA SÍ
-  async function obtenerFechaServidorISO() {
-    const ref = doc(db, "_server", "clock");
-    await setDoc(ref, { ts: serverTimestamp() }, { merge: true });
-    const snap = await getDocFromServer(ref);
-    const d = snap.data().ts.toDate();
-return d.getFullYear() + "-" +
-       String(d.getMonth() + 1).padStart(2, "0") + "-" +
-       String(d.getDate()).padStart(2, "0");
-
-  }
 
 /* ===========================================================
    🔧 SECCIÓN 2: VARIABLES GLOBALES
@@ -353,46 +342,6 @@ let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
-/* ===========================================================
-   🚗 REGISTRO DE KILOMETRAJE INICIAL (UNA VEZ POR DÍA)
-   =========================================================== */
-async function registrarKmInicial() {
-  try {
-    if (!USUARIO_LOGUEADO || !rutaId) return;
-
-    const hoy = new Date();
-    const fechaTag = await obtenerFechaServidorISO();
-    const docId = `${rutaId}_${fechaTag}`;
-
-    const refKm = doc(db, "kilometrajes_ruta", docId);
-    const snap = await getDoc(refKm);
-
-    if (snap.exists() && snap.data().km_inicial != null) return;
-
-    let kmInicial = prompt("🚗 Ingresa el KILOMETRAJE INICIAL del vehículo:");
-    if (kmInicial === null) throw new Error("Cancelado");
-
-    kmInicial = parseFloat(kmInicial);
-    if (isNaN(kmInicial) || kmInicial <= 0) return registrarKmInicial();
-
-    await setDoc(refKm, {
-      rutaId,
-      fecha: fechaTag,
-      km_inicial: kmInicial,
-      km_final: null,
-      km_total: null,
-      usuarioId: USUARIO_LOGUEADO.id,
-      usuarioNombre: USUARIO_LOGUEADO.nombre,
-      creadoEn: serverTimestamp(),
-      actualizadoEn: serverTimestamp()
-    }, { merge: true });
-
-    toast(`🚗 KM inicial registrado: ${kmInicial}`, "#1e8e3e");
-
-  } catch (err) {
-    console.warn("KM inicial no registrado:", err.message);
-  }
-}
 
 /* ===========================================================
    🔔 UTILIDAD GLOBAL: BEEP
@@ -487,7 +436,7 @@ const msg = document.getElementById("loginMsg");
 document.getElementById("loginScreen").style.display = "none";
 document.getElementById("posApp").style.display = "block";
 document.body.classList.add("sesion-activa");
-await registrarKmInicial();
+
 
 
     // Carga simultánea
@@ -524,7 +473,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("posApp").style.display = "block";
 document.body.classList.add("sesion-activa");
 
-    await registrarKmInicial();
+    
 
     await Promise.all([
       cargarCatalogo(),
