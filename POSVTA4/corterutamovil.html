@@ -212,26 +212,33 @@ await new Promise(r => setTimeout(r, 1200));
 
 overlayText.textContent="Enviando a Telegram...";
 await enviarTelegramTexto(texto);
-
-  overlayText.textContent="Guardando corte...";
-await addDoc(collection(db,"cortes_globalesV4"),{
+const snapshotCorte = {
   rutaId: ruta,
-  fecha: new Date().toISOString(),
   fecha_corte: fecha,
   creado_por: USUARIO.nombre,
   creado_en: new Date().toISOString(),
 
-  kilometraje: kmData, // 👈 AQUÍ
+  kilometraje: kmData,
 
-  resumen: {
+  totales: {
     totalDia,
     totalDescuento,
     utilidadTotal,
-    porDepto,
-    porArticulo,
-    porNota
+    utilidadPorcentaje,
+    ventas: ventasDia.length
+  },
+
+  vista: {
+    deptosOrdenados: listaDeptos,   // 👈 YA ORDENADO
+    topArticulos: topArt           // 👈 YA CORTADO
   }
-});
+};
+
+  overlayText.textContent="Guardando corte...";
+await addDoc(
+  collection(db,"cortes_globalesV4"),
+  snapshotCorte
+);
 
   for(const v of ventasDia)await updateDoc(doc(db,"ventas_rutav2",v.id),{cortado:true});
 
