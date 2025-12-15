@@ -1126,24 +1126,15 @@ if (!p) {
   return;
 }
 
-if (producto.length > 0) {
-  const p = producto[0];
-  const peso = parseFloat(balanza.pesoKg.toFixed(3));
-  p.codigo = p.codigo || p.codigoBarra || "";
-  const total = p.precioPublico * peso;
+const peso = parseFloat(balanza.pesoKg.toFixed(3));
+p.codigo = p.codigo || p.codigoBarra || "";
 
-  // 🔹 Agrega directo al carrito con el peso correcto
-  addProduct(p, peso);
+addProduct(p, peso);
 
-  beep(950);
-  toast(`⚖️ ${p.nombre} (${peso.toFixed(3)} kg) – $${total.toFixed(2)}`, "#16a34a");
-  return;
-} 
-    else {
-      console.warn("❌ Producto de balanza no encontrado:", codigoBase);
-      toast("❌ Producto no encontrado en catálogo", "#dc2626");
-      return;
-    }
+beep(950);
+toast(`⚖️ ${p.nombre} (${peso.toFixed(3)} kg) – $${(p.precioPublico * peso).toFixed(2)}`, "#16a34a");
+return;
+
   }
 
   // 🧾 Caso 2: Código normal
