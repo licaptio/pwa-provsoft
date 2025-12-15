@@ -335,7 +335,11 @@ enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off
     const ref = doc(db, "_server", "clock");
     await setDoc(ref, { ts: serverTimestamp() }, { merge: true });
     const snap = await getDocFromServer(ref);
-    return snap.data().ts.toDate().toISOString().slice(0, 10);
+    const d = snap.data().ts.toDate();
+return d.getFullYear() + "-" +
+       String(d.getMonth() + 1).padStart(2, "0") + "-" +
+       String(d.getDate()).padStart(2, "0");
+
   }
 
 /* ===========================================================
