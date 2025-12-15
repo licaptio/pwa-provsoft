@@ -218,9 +218,10 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
     <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
   </div>
 <div class="actions">
-  <button class="btn azul" onclick="generarCorteRuta()">
-    📊 Generar Corte de Ruta
-  </button>
+<button class="btn azul" id="btnCorteRuta">
+  📊 Generar Corte de Ruta
+</button>
+
 </div>
 
   
@@ -1020,18 +1021,8 @@ function solicitarCantidadYAgregar(prod) {
   const btnAceptar = document.getElementById("btnAceptarCant");
   const btnCancelar = document.getElementById("btnCancelarCant");
 
-  // 🎵 Beep al solicitar cantidad
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = "sine"; osc.frequency.value = 950;
-    osc.start(); gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.15);
-  } catch (err) { console.warn("No se pudo reproducir beep:", err); }
+beep(950, 0.15);
 
-  modal.style.display = "flex";
   input.value = "1";
   input.focus();
 
@@ -1070,8 +1061,6 @@ function solicitarCantidadYAgregar(prod) {
    =========================================================== */
 const buscador = document.getElementById("buscador");
 const resultadosDiv = document.getElementById("resultados");
-
-beep(950, 0.15);
 
 // Permitir que el escáner la use
 window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
@@ -2322,25 +2311,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 beep(950, 0.1);
 
-  // Función para mostrar toast
-  function toast(msg, color = "#0c6cbd") {
-    const aviso = document.createElement("div");
-    aviso.textContent = msg;
-    aviso.style.cssText = `
-      position:fixed;bottom:80px;left:50%;transform:translateX(-50%);
-      background:${color};color:#fff;padding:8px 14px;border-radius:10px;
-      font-size:14px;z-index:9999;opacity:0;transition:opacity .3s ease;
-      box-shadow:0 2px 8px rgba(0,0,0,.3);
-    `;
-    document.body.appendChild(aviso);
-    setTimeout(() => aviso.style.opacity = 1, 50);
-    setTimeout(() => {
-      aviso.style.opacity = 0;
-      setTimeout(() => aviso.remove(), 400);
-    }, 2500);
-  }
-
-  // 🚀 Abrir cámara
+// 🚀 Abrir cámara
   btnCam.addEventListener("click", async () => {
   if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
     try {
@@ -2474,18 +2445,7 @@ await html5QrCode.start(
     }
   });
 
-  // 🔍 Función para procesar códigos escaneados
-  function procesarCodigoEscaneado(codigo) {
-    const limpio = codigo.trim();
-    if (!limpio) return;
-
-    console.log("📦 Código detectado por cámara:", limpio);
-    
-    // Simular la búsqueda como si se hubiera escrito en el buscador
-    if (buscador) {
-      buscador.value = limpio;
-    }
-    
+   
     // Ejecutar búsqueda usando la función global
 if (typeof window.ejecutarBusquedaOriginal === 'function') {
     window.ejecutarBusquedaOriginal(limpio);
@@ -2647,9 +2607,8 @@ function bloquearSiCobroActivo() {
 
 </style>
 <script>
-  // 📊 Ir al módulo de Corte de Ruta
 document.getElementById("btnCorteRuta").addEventListener("click", () => {
-  window.location.href = "corterutamovil.html";  // o el nombre que me digas
+  window.location.href = "corterutamovil.html";
 });
 
 </script>
