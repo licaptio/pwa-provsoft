@@ -211,29 +211,19 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   </div>
 </div>
 
-<!-- 🧪 SECCIÓN DE PRUEBAS DEL SISTEMA (OCULTA POR DEFECTO) -->
-<section id="pantallaTest" style="display:none; padding:15px; background:#fff;
-  border-radius:14px; box-shadow:0 2px 10px rgba(0,0,0,.1); margin:15px;">
-  <h2 style="text-align:center;color:#00416A;">🔧 Pruebas del Sistema POS</h2>
-
-  <button id="btnTestPrinter" class="btn" style="background:#16a34a;margin:6px 0;">🖨️ Probar Impresora</button><br>
-  <button id="btnTestGPS" class="btn" style="background:#f59e0b;margin:6px 0;">📍 Probar GPS</button><br>
-
-  <div id="testResult" style="margin-top:10px;color:#333;font-size:14px;text-align:center;"></div>
-<!-- 🔵 BOTÓN NUEVO: CORTE DE RUTA -->
-<button id="btnCorteRuta" class="btn" style="background:#0c6cbd;margin:6px 0;">
-  📊 Generar Corte de Ruta
-</button>
-
-  <button id="btnVolverVenta" class="btn" style="margin-top:15px;background:#00416A;">⬅️ Volver a Ventas</button>
-</section>
 
   <div class="totals">
     <div class="row muted"><span>Subtotal</span><span id="lblSubtotal">$0.00</span></div>
     <div class="row muted"><span>Impuestos</span><span id="lblImpuestos">$0.00</span></div>
     <div class="row big"><span>Total</span><span id="lblTotal">$0.00</span></div>
   </div>
+<div class="actions">
+  <button class="btn azul" onclick="generarCorteRuta()">
+    📊 Generar Corte de Ruta
+  </button>
+</div>
 
+  
   <div class="actions">
     <button class="btn" id="btnCobrar">Cobrar</button>
   </div>
@@ -241,7 +231,6 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 
 <!-- 📱 BARRA INFERIOR FIJA PARA BOTONES -->
 <div id="bottomBar">
-  <button id="btnVerCarrito" class="bar-btn"> Test Funcion </button>
   <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
   <button id="btnLogout" class="bar-btn rojo">🚪 Salir</button>
 </div>
@@ -2711,175 +2700,6 @@ document.getElementById("btnVolverVenta").addEventListener("click", () => {
 
 </style>
 <script>
-/* ===========================================================
-   🧪 BLOQUE DE PRUEBAS FUNCIONALES DEL SISTEMA POS
-   =========================================================== */
-const testResult = document.getElementById("testResult");
-
-// 🖨️ Prueba de impresora térmica
-document.getElementById("btnTestPrinter").addEventListener("click", () => {
-  testResult.innerHTML = "🖨️ Enviando ticket de prueba...";
-  const ticketPrueba = `
-*** PRUEBA DE IMPRESORA POS ***
-Fecha: ${new Date().toLocaleString()}
-Sucursal: PROVEEDORA MATRIZ
------------------------------
-Artículo         Cant  Precio
-PRUEBA IMPRESIÓN  1.00   $1.00
------------------------------
-TOTAL: $1.00
------------------------------
-✅ Impresora funcionando correctamente.
-`;
-  try {
-    if (window.InnerPrinter && typeof window.InnerPrinter.printText === "function") {
-      window.InnerPrinter.printText(ticketPrueba);
-      testResult.innerHTML = "✅ Impresora (InnerPrinter) respondió correctamente.";
-      beep(600, 0.15);
-    } else if (/Android/i.test(navigator.userAgent)) {
-      const encoded = encodeURIComponent(ticketPrueba);
-      window.location.href = `rawbt:print?data=${encoded}`;
-      testResult.innerHTML = "✅ Ticket enviado a RawBT. Revisa la app de impresión.";
-      beep(600, 0.15);
-    } else {
-      const w = window.open("", "_blank");
-      w.document.write(`<pre>${ticketPrueba}</pre>`);
-      w.print();
-      w.close();
-      testResult.innerHTML = "✅ Impresión del navegador ejecutada.";
-      beep(600, 0.15);
-    }
-  } catch (err) {
-    console.error("❌ Error impresora:", err);
-    testResult.innerHTML = "❌ Fallo al imprimir.<br>Verifica conexión Bluetooth o RawBT.";
-    toast("❌ Error de impresión", "#c0392b");
-  }
-});
-// 🧪 VENTA FANTASMA / VENTA CERO – Inicialización diaria
-document.getElementById("btnTestVentaCero")?.remove(); // evita duplicados
-
-const btnVentaCero = document.createElement("button");
-btnVentaCero.id = "btnTestVentaCero";
-btnVentaCero.className = "btn";
-btnVentaCero.style.background = "#00416A";
-btnVentaCero.style.margin = "6px 0";
-btnVentaCero.textContent = "🧾 Registrar Venta CERO (Inicializar POS)";
-document.getElementById("pantallaTest").prepend(btnVentaCero);
-
-btnVentaCero.addEventListener("click", async () => {
-
-  if (!USUARIO_LOGUEADO) {
-    alert("Inicia sesión primero.");
-    return;
-  }
-
-  testResult.innerHTML = "🧾 Generando venta CERO...";
-
-  try {
-    // 🧮 Genera folio igual que una venta REAL
-    let folio = "";
-    const hoy = new Date();
-    const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, "");
-    const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR").toUpperCase().slice(0, 8);
-    const folioId = `${usuarioTag}_${fechaTag}`;
-    const folioRef = doc(db, "contadores", folioId);
-
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(folioRef);
-      let consecutivo = snap.exists() ? (snap.data().ultimo || 0) + 1 : 1;
-      tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
-      folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
-    });
-
-    // 🧾 Venta fantasma SIN productos
-    const ventaCero = {
-      folio,
-      rutaId,
-      cliente: "VENTA CERO (TEST)",
-      cortado: false,
-      descuento_porcentaje: 0,
-      descuento_monto: 0,
-      resumen_financiero: {
-        subtotal: 0,
-        descuento: 0,
-        impuestos: 0,
-        total: 0,
-        costo_total: 0,
-        utilidad_total: 0,
-        margen_porcentaje: 0
-      },
-      fecha: serverTimestamp(),
-      fecha_txt: hoy.toLocaleString("es-MX",{hour12:true}),
-      usuarioId: USUARIO_LOGUEADO?.id || "",
-      usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
-      notas: "VENTA FANTASMA / VENTA CERO",
-      autorizado_por: null,
-      ubicacion: null,
-      detalle: [
-        {
-          id: "VENTA-CERO",
-          nombre: "Venta de Inicialización",
-          codigo: "00000000",
-          cantidad: 0,
-          precio_unit: 0,
-          importe: 0,
-          costo_unit: 0,
-          costo_total: 0,
-          ivaTasa: 0,
-          iepsTasa: 0,
-          departamento_id: "0",
-          departamento_info: { id: 0, nombre: "NINGUNO", iva: 0, ieps: 0 }
-        }
-      ]
-    };
-
-    await addDoc(collection(db, "ventas_rutav2"), ventaCero);
-
-    testResult.innerHTML = `
-      ✅ Venta CERO generada<br>
-      Folio: <strong>${folio}</strong><br>
-      El POS ya está inicializado para este día.
-    `;
-
-    beep(950, 0.15);
-    toast("🧾 Venta CERO generada correctamente", "#16a34a");
-
-  } catch (err) {
-    console.error("❌ Error generando venta CERO:", err);
-    testResult.innerHTML = "❌ Falló la venta CERO";
-    toast("❌ Error al generar venta CERO", "#c0392b");
-  }
-});
-
-// 📍 Prueba de geolocalización
-document.getElementById("btnTestGPS").addEventListener("click", async () => {
-  testResult.innerHTML = "📡 Obteniendo ubicación...";
-  if (!navigator.geolocation) {
-    testResult.innerHTML = "❌ Geolocalización no soportada por este dispositivo.";
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const { latitude, longitude } = pos.coords;
-      testResult.innerHTML = `
-        ✅ Ubicación obtenida:<br>
-        Lat: ${latitude.toFixed(6)}<br>
-        Lng: ${longitude.toFixed(6)}<br>
-        <a href="https://maps.google.com/?q=${latitude},${longitude}" target="_blank">
-          🌍 Ver en Google Maps
-        </a>
-      `;
-      beep(950, 0.15);
-    },
-    err => {
-      console.error("❌ Error GPS:", err);
-      testResult.innerHTML = "❌ No se pudo obtener ubicación.<br>Verifica permisos de GPS.";
-      toast("⚠️ Sin acceso a ubicación", "#f59e0b");
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-  );
-});
   // 📊 Ir al módulo de Corte de Ruta
 document.getElementById("btnCorteRuta").addEventListener("click", () => {
   window.location.href = "corterutamovil.html";  // o el nombre que me digas
