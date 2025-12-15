@@ -144,10 +144,7 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   bottom: -65px !important;     /* 🔥 baja más el carrito */
   margin-top: 25px !important;  /* espacio visual extra */
 }
-/* 🚫 Barra inferior oculta por defecto */
-#bottomBar {
-  display: none;
-}
+
 
 </style>
 </head>
@@ -478,6 +475,7 @@ document.getElementById("loginScreen").style.display = "none";
 document.getElementById("posApp").style.display = "block";
 document.getElementById("bottomBar").style.display = "flex";
 document.getElementById("carrito-container").style.display = "block";
+document.body.classList.add("sesion-activa");
 await registrarKmInicial();
 
 
@@ -2275,7 +2273,7 @@ b.addEventListener("click", () => {
 
   // SOLO BORRAR LA SESIÓN
   localStorage.removeItem("usuario_ruta");
-
+  document.body.classList.remove("sesion-activa");
   // 🔥 OCULTAR POS COMPLETO
   document.getElementById("posApp").style.display = "none";
 
@@ -2620,19 +2618,25 @@ function bloquearSiCobroActivo() {
 
 <style>
   /* 🎯 Barra inferior fija profesional */
-  #bottomBar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(90deg, #003366, #0c6cbd);
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    padding: 10px 0;
-    box-shadow: 0 -3px 10px rgba(0,0,0,0.25);
-    z-index: 9999;
-  }
+/* 🚫 Barra inferior OCULTA por defecto */
+#bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #003366, #0c6cbd);
+  display: none; /* 🔥 CLAVE */
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  box-shadow: 0 -3px 10px rgba(0,0,0,0.25);
+  z-index: 9999;
+}
+
+/* ✅ Visible SOLO cuando el body tiene sesión */
+body.sesion-activa #bottomBar {
+  display: flex;
+}
   .bar-btn {
     flex: 1;
     margin: 0 6px;
