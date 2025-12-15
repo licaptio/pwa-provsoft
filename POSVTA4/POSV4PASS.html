@@ -224,8 +224,6 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   </div>
 </div>
 
-  
-</section>
 <div id="bottomBar">
   <button id="btnCorteRuta" class="bar-btn azul">📊 Corte</button>
   <button id="btnResumen" class="bar-btn azul">📊 Resumen</button>
@@ -461,7 +459,7 @@ $("#btnLogin").onclick = loginUsuario;
 /* ===========================================================
    🔁 SECCIÓN 4.1: RECUPERAR SESIÓN AUTOMÁTICA
    =========================================================== */
-window.addEventListener("DOMContentLoaded", async () => {
+(async () => {
   const guardado = localStorage.getItem("usuario_ruta");
   if (!guardado) return;
 
@@ -568,7 +566,7 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
   catalogoById.clear();
 
   catalogo.forEach(p => {
-    catalogoById.set(p.id, p);
+   catalogoById.set(p.id, p);
     if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
     if (Array.isArray(p.equivalentes)) {
       p.equivalentes.forEach(eq => {
@@ -1574,8 +1572,9 @@ const carritoContainer = document.getElementById("carrito-container");
 // Evitar errores si no existe
 if (carritoContainer) carritoContainer.style.display = "";
 
-
-pantallaVenta.style.display = "";
+const buscador = document.getElementById("buscador");
+const resultadosDiv = document.getElementById("resultados");
+const pantallaVenta = document.getElementById("pantallaVenta");
 
 
 const busc = document.getElementById("buscador");
@@ -2392,13 +2391,7 @@ await html5QrCode.start(
       cerrarCamara();
     }
   });
-
- 
-
-// ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
-// 🔧 Ejecutar búsqueda REAL del POS
-
-
+}); 
 </script>
 
 <style>
@@ -2469,7 +2462,7 @@ window.addEventListener("beforeunload",e=>{
 
 // ✅ Al cerrar sesión, desbloquear salida
 document.getElementById("btnLogout").addEventListener("click",()=>{
-  bloqueoSalida=false;
+  bloqueoSalida = false;
 });
 
 // 🚧 GUARDIÁN GLOBAL ANTI-BUG — Bloquea navegación durante cobro
@@ -2481,6 +2474,7 @@ function bloquearSiCobroActivo() {
   }
   return false;
 }
+
   
 
 </script>
