@@ -311,7 +311,7 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
 const { 
   getFirestore, collection, addDoc, setDoc, serverTimestamp,
-  runTransaction, doc, getDoc, getDocs, query, where, limit 
+  runTransaction, doc, getDoc, getDocs, getDocFromServer, query, where, limit 
 } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { obtenerUbicacionRobusta } = await import("./geoHelper.js");
@@ -329,6 +329,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 enableIndexedDbPersistence(db).catch(err => console.warn("⚠️ Persistence off:", err));
+
+// 🔥 AHORA SÍ
+  async function obtenerFechaServidorISO() {
+    const ref = doc(db, "_server", "clock");
+    await setDoc(ref, { ts: serverTimestamp() }, { merge: true });
+    const snap = await getDocFromServer(ref);
+    return snap.data().ts.toDate().toISOString().slice(0, 10);
+  }
 
 /* ===========================================================
    🔧 SECCIÓN 2: VARIABLES GLOBALES
@@ -349,7 +357,7 @@ async function registrarKmInicial() {
     if (!USUARIO_LOGUEADO || !rutaId) return;
 
     const hoy = new Date();
-    const fechaTag = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
+    const fechaTag = await obtenerFechaServidorISO();
     const docId = `${rutaId}_${fechaTag}`;
 
     const refKm = doc(db, "kilometrajes_ruta", docId);
