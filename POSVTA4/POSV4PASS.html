@@ -307,10 +307,10 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 // ⚠️ Cargar módulos Firebase con import dinámico (compatible móviles)
 (async () => {
   const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
-  const { 
-    getFirestore, collection, addDoc, setDoc, serverTimestamp,
-    runTransaction, doc, getDocs, query, where, limit 
-  } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+const { 
+  getFirestore, collection, addDoc, setDoc, serverTimestamp,
+  runTransaction, doc, getDoc, getDocs, query, where, limit 
+} = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { obtenerUbicacionRobusta } = await import("./geoHelper.js");
 
