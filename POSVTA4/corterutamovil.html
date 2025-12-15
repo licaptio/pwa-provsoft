@@ -77,79 +77,17 @@ function imprimirRAWBT(texto) {
 
   window.location.href = intent;
 }
-function normalizarFechaISO(fechaTxt) {
-  // Espera formato DD/MM/YYYY
-  const [d, m, y] = fechaTxt.split("/");
-  return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
-}
-
-async function cerrarKilometraje(ruta, fechaTxt) {
-  const fechaISO = normalizarFechaISO(fechaTxt);
-  const docId = `${ruta}_${fechaISO}`;
-  const refKm = doc(db, "kilometrajes_ruta", docId);
-  const snap = await getDoc(refKm);
-
-  if (!snap.exists()) {
-    alert(`❌ No existe KM inicial para ${fechaISO}`);
-    throw new Error("KM inicial inexistente");
-  }
-
-  const data = snap.data();
-
-  if (data.km_final != null) return data;
-
-  // 🔥 asegurar que NO haya overlay
-  overlay.style.display = "none";
-  await new Promise(r => setTimeout(r, 100));
-
-  let kmFinal = prompt(`🚗 KM FINAL\n\nKM inicial: ${data.km_inicial}`);
-  if (kmFinal === null) throw new Error("Cancelado");
-
-  kmFinal = parseFloat(kmFinal);
-  if (isNaN(kmFinal) || kmFinal < data.km_inicial) {
-    alert("❌ KM final inválido");
-    return cerrarKilometraje(ruta, fechaTxt);
-  }
-
-  const kmTotal = +(kmFinal - data.km_inicial).toFixed(2);
-
-  await updateDoc(refKm, {
-    km_final: kmFinal,
-    km_total: kmTotal,
-    actualizadoEn: new Date().toISOString()
-  });
-
-  return {
-    km_inicial: data.km_inicial,
-    km_final: kmFinal,
-    km_total: kmTotal
-  };
-}
 
 async function generarCorteMovil(){
   const ruta=selectRuta.value,fecha=selectFecha.value;
   if(!ruta)return alert("Ruta inválida.");
   if(!fecha)return alert("Selecciona una fecha.");
 
-overlay.style.display = "flex";
-overlayText.textContent = "Cerrando kilometraje...";
-
-// 🔥 OCULTAR OVERLAY ANTES DEL PROMPT
-overlay.style.display = "none";
-await new Promise(r => setTimeout(r, 150));
-
-let kmData;
-try {
-  kmData = await cerrarKilometraje(ruta, fecha);
-} catch (e) {
-  overlay.style.display = "none";
-  return;
-}
-
-// 🔄 REACTIVAR OVERLAY DESPUÉS
-overlay.style.display = "flex";
-overlayText.textContent = "Procesando ventas...";
-
+    // 🔥 MOSTRAR OVERLAY DESDE EL INICIO
+  btnGenerar.disabled = true;          // opcional pero recomendado
+  overlay.style.display = "flex";
+  overlayText.textContent = "Procesando corte...";
+  
   const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
   const snap=await getDocs(q),ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
   const ventasDia=ventas.filter(v=>v.fecha_txt&&v.fecha_txt.startsWith(fecha));
@@ -203,22 +141,13 @@ VENTA POR DEPARTAMENTO
   const nombre = n.substring(0,20).padEnd(22," ");
   texto += `${nombre}$${mxn(v.importe)}\n`;
 });
-  texto += `
---------------------------------
-KILOMETRAJE
---------------------------------
-KM INICIAL : ${kmData.km_inicial}
-KM FINAL   : ${kmData.km_final}
-KM RECORR. : ${kmData.km_total}
---------------------------------
-`;
 
-  texto+="\n--------------------------------\n¡BONITO DIA!\n";
+  texto+="\n--------------------------------\n¡PROVEEDORA LE DESEA FELIZ NAVIDA Y AÑO NUEVO!\n";
   overlayText.textContent = "Imprimiendo corte...";
 imprimirRAWBT(texto);
 
 // Esperar un poco para que RAWBT abra
-await new Promise(r => setTimeout(r, 1200));
+await new Promise(r => setTimeout(r, 1500));
 
 overlayText.textContent="Enviando a Telegram...";
 await enviarTelegramTexto(texto);
@@ -227,8 +156,6 @@ const snapshotCorte = {
   fecha_corte: fecha,
   creado_por: USUARIO.nombre,
   creado_en: new Date().toISOString(),
-
-  kilometraje: kmData,
 
   totales: {
     totalDia,
@@ -257,7 +184,9 @@ await addDoc(
   localStorage.removeItem("catalogo_cache");
   localStorage.removeItem("catalogo_fecha");
   await new Promise(r=>setTimeout(r,600));
-  location.href="POSV4PASS.html";
+  overlayText.textContent = "Finalizando...";
+  btnGenerar.disabled = false;
+  location.href = "POSV4PASS.html";
 }
 </script>
 
