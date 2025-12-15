@@ -568,7 +568,7 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
   catalogoById.clear();
 
   catalogo.forEach(p => {
-    catalogoById.set(p.id, p.id);
+    catalogoById.set(p.id, p);
     if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
     if (Array.isArray(p.equivalentes)) {
       p.equivalentes.forEach(eq => {
@@ -2319,14 +2319,13 @@ document.addEventListener("DOMContentLoaded", function() {
 
       // 🎬 Iniciar escáner
 await html5QrCode.start(
-  cameraId, 
-  config, 
+  cameraId,
+  config,
   async (decodedText) => {
     // ⚙️ Bloqueo contra escaneos múltiples
     if (escaneoExitoso) return;
     escaneoExitoso = true;
 
-    // 📦 Evita doble ejecución: desactiva lector antes de procesar
     try {
       await html5QrCode.stop();
       html5QrCode.clear();
@@ -2337,22 +2336,18 @@ await html5QrCode.start(
     console.log("✅ Código escaneado:", decodedText);
     beep(950, 0.1);
 
-    // 🧠 Espera mínima para evitar doble inserción
     setTimeout(() => {
       procesarCodigoEscaneado(decodedText);
     }, 200);
 
-    // 🚪 Cierra la interfaz visual con un ligero delay
     setTimeout(cerrarCamara, 500);
   },
-
-        (errorMessage) => {
-          // Mensajes normales de escaneo, no mostrar errores
-          if (!errorMessage.includes("No QR code found")) {
-            console.log("🔍 Escaneando...", errorMessage);
-          }
-        }
-      );
+  (errorMessage) => {
+    if (!errorMessage.includes("No QR code found")) {
+      console.log("🔍 Escaneando...", errorMessage);
+    }
+  }
+);
 
       console.log("📷 Cámara iniciada correctamente");
 
