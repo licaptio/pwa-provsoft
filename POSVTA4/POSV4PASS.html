@@ -592,7 +592,7 @@ if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.dat
   catalogoById.clear();
 
   catalogo.forEach(p => {
-    catalogoById.set(p.id, p.id);
+    catalogoById.set(p.id, p);
     if (p.codigo) codeIndex.set(p.codigo, p.id);
     if (Array.isArray(p.equivalentes)) {
       p.equivalentes.forEach(eq => {
@@ -737,7 +737,7 @@ if (!prod.departamento_id || prod.departamento_id === "null" || prod.departament
   // -------------------------------
   // 🚨 PRODUCTO DE BALANZA
   // -------------------------------
-  if (cant < 1 || String(prod.codigo || "").startsWith("2")) {
+  if (String(prod.codigo || "").startsWith("2")) {
     
     carrito.push({
       ...prod,
@@ -1572,8 +1572,6 @@ const carritoContainer = document.getElementById("carrito-container");
 // Evitar errores si no existe
 if (carritoContainer) carritoContainer.style.display = "";
 
-const buscador = document.getElementById("buscador");
-const resultadosDiv = document.getElementById("resultados");
 const pantallaVenta = document.getElementById("pantallaVenta");
 
 
@@ -2258,7 +2256,6 @@ document.addEventListener("DOMContentLoaded", function() {
   const btnCam = document.getElementById("btnCam");
   const camDiv = document.getElementById("qrReaderContainer");
   const cerrarCam = document.getElementById("cerrarCam");
-  const buscador = document.getElementById("buscador");
   
   let html5QrCode = null;
   let escaneoExitoso = false;
@@ -2391,9 +2388,9 @@ await html5QrCode.start(
       cerrarCamara();
     }
   });
-}); 
-</script>
 
+});   // ✅ ESTE CIERRE ES OBLIGATORIO
+</script>
 <style>
 /* 🎨 ESTILOS MEJORADOS PARA EL ESCÁNER */
 #qrReaderContainer {
