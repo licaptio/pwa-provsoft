@@ -606,8 +606,59 @@ if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.dat
   setTimeout(() => statusBox.remove(), 2000);
   return;
 }
+  // =====================================================
+// 🔴 3) CARGAR DESDE FIRESTORE (FUENTE REAL)
+// =====================================================
+console.log("🌐 Cargando catálogo desde Firestore...");
 
-}
+const snap = await getDocs(collection(db, "productos"));
+
+catalogo = snap.docs.map(doc => {
+  const x = doc.data();
+  return {
+    id: doc.id,
+    nombre: x.nombre || x.concepto || "SIN NOMBRE",
+    codigo: String(x.codigo || x.codigoBarra || ""),
+    precioPublico: Number(x.precioPublico || 0),
+    mayoreo: Number(x.mayoreo || 0),
+    medioMayoreo: Number(x.medioMayoreo || 0),
+    ivaTasa: Number(x.ivaTasa || 0),
+    iepsTasa: Number(x.iepsTasa || 0),
+    equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
+    claveSat: x.claveSat || null,
+    unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
+    departamento_id: x.departamento_id || null,
+    costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
+  };
+});
+
+// 🔁 RECONSTRUIR ÍNDICES
+codeIndex.clear();
+catalogoById.clear();
+
+catalogo.forEach(p => {
+  catalogoById.set(p.id, p);
+  if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
+  if (Array.isArray(p.equivalentes)) {
+    p.equivalentes.forEach(eq => {
+      if (eq) codeIndex.set(String(eq).trim(), p.id);
+    });
+  }
+});
+
+// 💾 Guardar cache
+localStorage.setItem("catalogo_cache", JSON.stringify({
+  fecha: Date.now(),
+  data: catalogo
+}));
+
+await cachearDatos("/catalogo", catalogo);
+
+statusBox.textContent = `✅ Catálogo cargado (${catalogo.length} productos)`;
+setTimeout(() => statusBox.remove(), 2000);
+
+console.log("✅ Catálogo cargado desde Firestore:", catalogo.length);
+
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
    =========================================================== */
