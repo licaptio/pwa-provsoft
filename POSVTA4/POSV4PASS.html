@@ -1530,7 +1530,7 @@ $("#btnConfirmarCobro").onclick = async () => {
       tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
       folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
     });
-    };
+
 // 🧾 ARMAR VENTA COMPLETA (ESTE BLOQUE NO EXISTÍA BIEN)
 const venta = {
   folio,
