@@ -1472,6 +1472,7 @@ $("#btnConfirmarCobro").onclick = async () => {
 <div style="
   margin-top:18px;
   font-size:18px;
+  
   font-weight:700;
   color:#ffd700;
   text-align:center;
@@ -1529,76 +1530,79 @@ $("#btnConfirmarCobro").onclick = async () => {
       tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
       folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
     });
-
-    // 🧾 Armar venta completa
-    const venta = {
-      folio,
-      rutaId,
-      cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
-      cortado: false,
-      descuento_porcentaje: descuentoAutorizado,
-      descuento_monto: tot.descuento,
-      resumen_financiero: {
-        subtotal: tot.subtotal,
-        descuento: tot.descuento,
-        impuestos: tot.impuestos,
-        total: tot.total,
-        costo_total: carrito.reduce((s, x) => s + (x.costoUnit || 0) * x.cantidad, 0).toFixed(2),
-        utilidad_total: carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0).toFixed(2),
-        margen_porcentaje: (() => {
-          const utilidad = carrito.reduce((s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0);
-          return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
-        })()
-      },
-      fecha: serverTimestamp(),
-      fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
-      usuarioId: USUARIO_LOGUEADO?.id || "",
-      usuarioNombre: USUARIO_LOGUEADO?.nombre || "",
-      notas: $("#notasCobro").value || "",
-      autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
-      ubicacion: await obtenerUbicacionRobusta().catch(() => null),
-      detalle: carrito.map(it => {
-      // 🔧 Normalizar SIEMPRE las tasas antes de guardar
-const ivaT  = Number(it.ivaTasa || 0);   // ya es 0.16
-const iepsT = Number(it.iepsTasa || 0);  // ya es 0
-
-        // 🛠 FIX: validación segura del departamento
-// 🟢 FIX: Normalizar ID porque Firestore usa string como llave
-let depId = String(it.departamento_id || "").trim();
-
-return {
-  id: it.id,
-  nombre: it.nombre,
-  codigo: it.codigo,
-  cantidad: it.cantidad,
-  precio_unit: it.precioUnit,
-  importe: it.importe,
-
-  costo_unit: +(it.costoUnit || 0).toFixed(2),
-  costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
-
-  // 🧾 SAT
-  claveSat: it.claveSat,
-  unidadSat: it.unidadSat,
-
-  // ✅ IMPUESTOS YA NORMALIZADOS
-ivaTasa: it.ivaTasa,     // 0.16
-iepsTasa: it.iepsTasa,   // 0
-  iva_calculado: it.iva_calculado,
-  ieps_calculado: it.ieps_calculado,
-
-  // ✅ DEPARTAMENTO DESDE PRODUCTO (SNAPSHOT)
-  departamento_id: it.departamento_id,
-departamento_info: {
-  id: it.departamento_id,
-  nombre: it.departamento || "DESCONOCIDO",
-  iva: Math.round(it.ivaTasa * 100),
-  ieps: Math.round(it.iepsTasa * 100)
-}
-
-};
-      })
     };
+// 🧾 ARMAR VENTA COMPLETA (ESTE BLOQUE NO EXISTÍA BIEN)
+const venta = {
+  folio,
+  rutaId,
+  cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
+
+  // 🔹 CFDI READY
+  moneda: "MXN",
+  tipoCambio: 1,
+
+  cortado: false,
+  descuento_porcentaje: descuentoAutorizado,
+  descuento_monto: tot.descuento,
+
+  resumen_financiero: {
+    subtotal: tot.subtotal,
+    descuento: tot.descuento,
+    impuestos: tot.impuestos,
+    total: tot.total,
+    costo_total: carrito.reduce(
+      (s, x) => s + (x.costoUnit || 0) * x.cantidad, 0
+    ).toFixed(2),
+    utilidad_total: carrito.reduce(
+      (s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0
+    ).toFixed(2),
+    margen_porcentaje: (() => {
+      const utilidad = carrito.reduce(
+        (s, x) => s + ((x.importe || 0) - (x.costoUnit || 0) * x.cantidad), 0
+      );
+      return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
+    })()
+  },
+
+  fecha: serverTimestamp(),
+  fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
+
+  usuarioId: USUARIO_LOGUEADO.id,
+  usuarioNombre: USUARIO_LOGUEADO.nombre,
+
+  notas: $("#notasCobro").value || "",
+  autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
+  ubicacion: await obtenerUbicacionRobusta().catch(() => null),
+
+  // ✅ AQUÍ VA EL DETALLE (NO SUELTO)
+  detalle: carrito.map(it => ({
+    id: it.id,
+    nombre: it.nombre,
+    codigo: it.codigo,
+    cantidad: it.cantidad,
+    precio_unit: it.precioUnit,
+    importe: it.importe,
+
+    costo_unit: +(it.costoUnit || 0).toFixed(2),
+    costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+
+    claveSat: it.claveSat,
+    unidadSat: it.unidadSat,
+
+    ivaTasa: it.ivaTasa,       // 0.16
+    iepsTasa: it.iepsTasa,     // 0
+    iva_calculado: it.iva_calculado,
+    ieps_calculado: it.ieps_calculado,
+
+    departamento_id: it.departamento_id,
+    departamento_info: {
+      id: it.departamento_id,
+      nombre: it.departamento || "DESCONOCIDO",
+      iva: Math.round(it.ivaTasa * 100),
+      ieps: Math.round(it.iepsTasa * 100)
+    }
+  }))
+};
 
     // 💾 GUARDAR VENTA UNA SOLA VEZ
     console.log("💾 Guardando venta en Firestore...");
