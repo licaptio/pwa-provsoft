@@ -339,6 +339,46 @@ let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
+/* ===========================================================
+   🚗 REGISTRO DE KILOMETRAJE INICIAL (UNA VEZ POR DÍA)
+   =========================================================== */
+async function registrarKmInicial() {
+  try {
+    if (!USUARIO_LOGUEADO || !rutaId) return;
+
+    const hoy = new Date();
+    const fechaTag = hoy.toISOString().slice(0, 10); // YYYY-MM-DD
+    const docId = `${rutaId}_${fechaTag}`;
+
+    const refKm = doc(db, "kilometrajes_ruta", docId);
+    const snap = await getDoc(refKm);
+
+    if (snap.exists() && snap.data().km_inicial != null) return;
+
+    let kmInicial = prompt("🚗 Ingresa el KILOMETRAJE INICIAL del vehículo:");
+    if (kmInicial === null) throw new Error("Cancelado");
+
+    kmInicial = parseFloat(kmInicial);
+    if (isNaN(kmInicial) || kmInicial <= 0) return registrarKmInicial();
+
+    await setDoc(refKm, {
+      rutaId,
+      fecha: fechaTag,
+      km_inicial: kmInicial,
+      km_final: null,
+      km_total: null,
+      usuarioId: USUARIO_LOGUEADO.id,
+      usuarioNombre: USUARIO_LOGUEADO.nombre,
+      creadoEn: serverTimestamp(),
+      actualizadoEn: serverTimestamp()
+    }, { merge: true });
+
+    toast(`🚗 KM inicial registrado: ${kmInicial}`, "#1e8e3e");
+
+  } catch (err) {
+    console.warn("KM inicial no registrado:", err.message);
+  }
+}
 
 /* ===========================================================
    🔔 UTILIDAD GLOBAL: BEEP
@@ -434,6 +474,8 @@ document.getElementById("loginScreen").style.display = "none";
 document.getElementById("posApp").style.display = "block";
 document.getElementById("bottomBar").style.display = "flex";
 document.getElementById("carrito-container").style.display = "block";
+await registrarKmInicial();
+
 
     // Carga simultánea
     await Promise.all([
@@ -466,6 +508,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     $("#loginScreen").style.display = "none";
     $("#posApp").style.display = "block";
+await registrarKmInicial();
 
     await Promise.all([
       cargarCatalogo(),
