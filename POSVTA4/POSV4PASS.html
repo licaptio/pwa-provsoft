@@ -1071,18 +1071,7 @@ function solicitarCantidadYAgregar(prod) {
 const buscador = document.getElementById("buscador");
 const resultadosDiv = document.getElementById("resultados");
 
-// 🎵 Beep reutilizable
-function beep(freq = 800, duration = 0.1) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = "sine"; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    osc.start(); osc.stop(ctx.currentTime + duration);
-  } catch (err) {}
-}
+beep(950, 0.15);
 
 // Permitir que el escáner la use
 window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
@@ -2331,21 +2320,7 @@ document.addEventListener("DOMContentLoaded", function() {
   let html5QrCode = null;
   let escaneoExitoso = false;
 
-  // Función para hacer beep
-  function beep(freq = 800, duration = 0.1) {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); 
-      gain.connect(ctx.destination);
-      osc.type = "sine"; 
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      osc.start(); 
-      osc.stop(ctx.currentTime + duration);
-    } catch (err) {}
-  }
+beep(950, 0.1);
 
   // Función para mostrar toast
   function toast(msg, color = "#0c6cbd") {
@@ -2525,7 +2500,7 @@ if (typeof window.ejecutarBusquedaOriginal === 'function') {
 
 // ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
 // 🔧 Ejecutar búsqueda REAL del POS
-window.ejecutarBusquedaOriginal = ejecutarBusqueda;
+
 
 </script>
 
@@ -2610,34 +2585,6 @@ function bloquearSiCobroActivo() {
   return false;
 }
   
-/* ===========================================================
-   🧪 BOTÓN "TEST FUNCIÓN" PARA ABRIR PANTALLA DE PRUEBAS
-   =========================================================== */
-const btnTestFuncion = document.getElementById("btnVerCarrito");
-const pantallaVenta = document.getElementById("pantallaVenta");
-const pantallaTest = document.getElementById("pantallaTest");
-const carritoContainer = document.getElementById("carrito-container");
-
-// 🧩 Mostrar pantalla de pruebas
-btnTestFuncion.addEventListener("click", () => {
-
-  if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
-
-  pantallaVenta.style.display = "none";
-  if (carritoContainer) carritoContainer.style.display = "none";
-  pantallaTest.style.display = "block";
-  beep(850, 0.1);
-  toast("🧪 Modo de Pruebas Activo", "#f59e0b");
-});
-
-// 🧩 Volver al POS principal
-document.getElementById("btnVolverVenta").addEventListener("click", () => {
-  pantallaTest.style.display = "none";
-  pantallaVenta.style.display = "flex";
-  if (carritoContainer) carritoContainer.style.display = "";
-  beep(950, 0.1);
-  toast("✅ Regresando al POS", "#16a34a");
-});
 
 </script>
 <!-- 🔢 MODAL CANTIDAD PERSONALIZADO -->
@@ -2686,7 +2633,7 @@ document.getElementById("btnVolverVenta").addEventListener("click", () => {
   .bar-btn:active { transform: scale(0.95); opacity: 0.85; }
   .bar-btn.azul { background: linear-gradient(180deg, #0c6cbd, #00416A); }
   .bar-btn.rojo { background: linear-gradient(180deg, #c0392b, #8e2620); }
-  #btnVerCarrito { background: linear-gradient(180deg, #00416A, #0c6cbd); }
+  
   
   /* 📱 Adaptación a móvil */
   @media (max-width: 600px) {
