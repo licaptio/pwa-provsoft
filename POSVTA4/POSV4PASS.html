@@ -347,6 +347,23 @@ const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
 
 /* ===========================================================
+   🔔 UTILIDAD GLOBAL: BEEP
+   =========================================================== */
+function beep(freq = 800, duration = 0.1) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {}
+}
+/* ===========================================================
    💸 SECCIÓN 3: PRODUCTOS DE MAYOREO (CIGARROS)
    =========================================================== */
 const productosMayoreo = [
