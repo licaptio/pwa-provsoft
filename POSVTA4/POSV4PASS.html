@@ -580,27 +580,28 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
   setTimeout(() => statusBox.remove(), 1500);
   return;
 }
-  // =====================================================
-// 🔴 3) CARGAR DESDE FIRESTORE (FUENTE REAL)
-// =====================================================
-console.log("🌐 Cargando catálogo desde Firestore...");
+// 🔴 3) CARGAR DESDE FIRESTORE (SOLO ACTIVOS)
+console.log("🌐 Cargando catálogo desde Firestore (solo activos)...");
 
-const snap = await getDocs(collection(db, "productos"));
+const q = query(
+  collection(db, "productos"),
+  where("activo", "==", true)
+);
+
+const snap = await getDocs(q);
 
 catalogo = snap.docs.map(doc => {
   const x = doc.data();
   return {
     id: doc.id,
     nombre: x.nombre || x.concepto || "SIN NOMBRE",
-    codigo: String(x.codigo || x.codigoBarra || ""),
+    codigo: String(x.codigo || x.codigoBarra || "").trim(),
     precioPublico: Number(x.precioPublico || 0),
     mayoreo: Number(x.mayoreo || 0),
     medioMayoreo: Number(x.medioMayoreo || 0),
     ivaTasa: Number(x.ivaTasa || 0),
     iepsTasa: Number(x.iepsTasa || 0),
     equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
-    claveSat: x.claveSat || null,
-    unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
     departamento_id: x.departamento_id || null,
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
   };
