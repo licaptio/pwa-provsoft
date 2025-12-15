@@ -1029,7 +1029,7 @@ const buscador = document.getElementById("buscador");
 const resultadosDiv = document.getElementById("resultados");
 
 // Permitir que el escáner la use
-window.ejecutarBusquedaOriginal = ejecutarBusqueda;  
+  
 // 🔍 Función central que ejecuta la búsqueda y muestra resultados
 async function ejecutarBusqueda(texto) {
   const balanza = decodificarBalanza(texto);
@@ -1048,7 +1048,7 @@ async function ejecutarBusqueda(texto) {
       codigoBase = snap.docs[0].data().codigo_origen;
       console.log("🔁 Equivalente de balanza encontrado:", codigoBase);
     }
-
+window.ejecutarBusquedaOriginal = ejecutarBusqueda;
     // 2️⃣ Buscar el producto real
 const p = resolverProductoPorCodigo(codigoBase);
 if (!p) {
