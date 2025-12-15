@@ -2326,8 +2326,6 @@ document.addEventListener("DOMContentLoaded", function() {
   let html5QrCode = null;
   let escaneoExitoso = false;
 
-beep(950, 0.1);
-
 // 🚀 Abrir cámara
   btnCam.addEventListener("click", async () => {
   if (bloquearSiCobroActivo()) return; // 🛑 Nuevo candado
@@ -2462,18 +2460,7 @@ await html5QrCode.start(
     }
   });
 
-   
-    // Ejecutar búsqueda usando la función global
-if (typeof window.ejecutarBusquedaOriginal === 'function') {
-    window.ejecutarBusquedaOriginal(limpio);
-}
- else {
-      // Fallback: mostrar mensaje
-      console.warn("Función ejecutarBusqueda no disponible");
-      toast("✅ Código escaneado: " + limpio, "#16a34a");
-    }
-  }
-});
+ 
 
 // ✅ CONECTAR ESCÁNER CON BÚSQUEDA REAL DEL POS
 // 🔧 Ejecutar búsqueda REAL del POS
