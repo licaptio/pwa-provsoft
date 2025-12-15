@@ -144,6 +144,10 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   bottom: -65px !important;     /* 🔥 baja más el carrito */
   margin-top: 25px !important;  /* espacio visual extra */
 }
+/* 🚫 Barra inferior oculta por defecto */
+#bottomBar {
+  display: none;
+}
 
 </style>
 </head>
@@ -504,11 +508,17 @@ window.addEventListener("DOMContentLoaded", async () => {
   try {
     USUARIO_LOGUEADO = JSON.parse(guardado);
     rutaId = USUARIO_LOGUEADO?.rutaId || null;
+
     console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
 
-    $("#loginScreen").style.display = "none";
-    $("#posApp").style.display = "block";
-await registrarKmInicial();
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("posApp").style.display = "block";
+
+    // 👇🔥 ESTO ES LO QUE FALTABA
+    document.getElementById("bottomBar").style.display = "flex";
+    document.getElementById("carrito-container").style.display = "block";
+
+    await registrarKmInicial();
 
     await Promise.all([
       cargarCatalogo(),
