@@ -89,23 +89,18 @@ async function cerrarKilometraje(ruta, fechaTxt) {
   const refKm = doc(db, "kilometrajes_ruta", docId);
   const snap = await getDoc(refKm);
 
-if (!snap.exists()) {
-  overlay.style.display = "none";
-  alert(`❌ No existe KM inicial para la fecha ${fechaISO}.
-Regresa al POS y registra el KM inicial.`);
-  throw new Error("KM inicial inexistente");
-}
+  if (!snap.exists()) {
+    alert(`❌ No existe KM inicial para ${fechaISO}`);
+    throw new Error("KM inicial inexistente");
+  }
 
   const data = snap.data();
-  if (data.km_inicial == null) {
-    alert("❌ Falta KM inicial. Regresa al POS.");
-    throw new Error("KM inicial vacío");
-  }
 
-  if (data.km_final != null) {
-    // Ya fue cerrado antes
-    return data;
-  }
+  if (data.km_final != null) return data;
+
+  // 🔥 asegurar que NO haya overlay
+  overlay.style.display = "none";
+  await new Promise(r => setTimeout(r, 100));
 
   let kmFinal = prompt(`🚗 KM FINAL\n\nKM inicial: ${data.km_inicial}`);
   if (kmFinal === null) throw new Error("Cancelado");
@@ -113,7 +108,7 @@ Regresa al POS y registra el KM inicial.`);
   kmFinal = parseFloat(kmFinal);
   if (isNaN(kmFinal) || kmFinal < data.km_inicial) {
     alert("❌ KM final inválido");
-    return cerrarKilometraje(ruta, fecha);
+    return cerrarKilometraje(ruta, fechaTxt);
   }
 
   const kmTotal = +(kmFinal - data.km_inicial).toFixed(2);
@@ -136,17 +131,24 @@ async function generarCorteMovil(){
   if(!ruta)return alert("Ruta inválida.");
   if(!fecha)return alert("Selecciona una fecha.");
 
-  overlay.style.display="flex";overlayText.textContent="Buscando ventas...";
-  // 🚗 CERRAR KILOMETRAJE ANTES DEL CORTE
-  overlayText.textContent = "Cerrando kilometraje...";
+overlay.style.display = "flex";
+overlayText.textContent = "Cerrando kilometraje...";
 
-  let kmData;
-  try {
-    kmData = await cerrarKilometraje(ruta, fecha);
-  } catch (e) {
-    overlay.style.display = "none";
-    return;
-  }
+// 🔥 OCULTAR OVERLAY ANTES DEL PROMPT
+overlay.style.display = "none";
+await new Promise(r => setTimeout(r, 150));
+
+let kmData;
+try {
+  kmData = await cerrarKilometraje(ruta, fecha);
+} catch (e) {
+  overlay.style.display = "none";
+  return;
+}
+
+// 🔄 REACTIVAR OVERLAY DESPUÉS
+overlay.style.display = "flex";
+overlayText.textContent = "Procesando ventas...";
 
   const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
   const snap=await getDocs(q),ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
