@@ -91,7 +91,12 @@ async function generarCorteMovil(){
   const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
   const snap=await getDocs(q),ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
   const ventasDia=ventas.filter(v=>v.fecha_txt&&v.fecha_txt.startsWith(fecha));
-  if(!ventasDia.length){overlay.style.display="none";return alert("No hay ventas sin cortar.");}
+  if(!ventasDia.length){
+  overlay.style.display="none";
+  btnGenerar.disabled = false; // 👈 AGREGA ESTA LÍNEA
+  return alert("No hay ventas sin cortar.");
+}
+
 
   let totalDia=0,totalDescuento=0,utilidadTotal=0,porDepto={},porArticulo={},porNota=[];
   for(const v of ventasDia){
