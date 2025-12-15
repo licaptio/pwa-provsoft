@@ -544,139 +544,69 @@ async function cargarCatalogo() {
 // 🟢 1) Intentar cargar desde cache del Service Worker
 // =====================================================
 const catalogoSW = await leerCache("/catalogo");
+
 if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
 
-  // reconstruir codeIndex
-catalogo = catalogoSW.map(x => ({
+  catalogo = catalogoSW.map(x => ({
     id: x.id,
     nombre: x.nombre || x.concepto || "SIN NOMBRE",
     codigo: String(x.codigo || x.codigoBarra || ""),
     precioPublico: Number(x.precioPublico || 0),
     mayoreo: Number(x.mayoreo || 0),
     medioMayoreo: Number(x.medioMayoreo || 0),
-
-    // impuestos
-ivaTasa: Number(x.ivaTasa || 0),
-iepsTasa: Number(x.iepsTasa || 0),
-
-    // equivalentes
+    ivaTasa: Number(x.ivaTasa || 0),
+    iepsTasa: Number(x.iepsTasa || 0),
     equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
     claveSat: x.claveSat || null,
     unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
-
     departamento_id: x.departamento_id || null,
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-}));
+  }));
 
+  // 🔁 RECONSTRUIR ÍNDICES
+  codeIndex.clear();
+  catalogoById.clear();
 
-// 🔁 RECONSTRUIR ÍNDICES SIEMPRE
-codeIndex.clear();
-catalogoById.clear();
-
-catalogo.forEach(p => {
-  catalogoById.set(p.id, p);
-
-  if (p.codigo) {
-    codeIndex.set(String(p.codigo).trim(), p.id);
-  }
-
-  if (Array.isArray(p.equivalentes)) {
-    p.equivalentes.forEach(eq => {
-      if (eq) codeIndex.set(String(eq).trim(), p.id);
-    });
-  }
-});
-
-console.log("⚡ Catálogo cargado OFFLINE desde SW");
-statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
-setTimeout(() => statusBox.remove(), 1500);
-return;
-
-  try {
-    // ⚡ Si hay cache válido de menos de 24 h
-    if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.data)) {
-      catalogo = cache.data;
-      codeIndex.clear();
-
-      catalogo.forEach(p => {
-
-if (p.codigo) codeIndex.set(p.codigo, p.id);
-
-if (Array.isArray(p.equivalentes)) {
-  p.equivalentes.forEach(eq => { 
-    if (eq) codeIndex.set(eq, p.id); 
-  });
-}
-
-
+  catalogo.forEach(p => {
+    catalogoById.set(p.id, p.id);
+    if (p.codigo) codeIndex.set(p.codigo.trim(), p.id);
+    if (Array.isArray(p.equivalentes)) {
+      p.equivalentes.forEach(eq => {
+        if (eq) codeIndex.set(eq.trim(), p.id);
       });
-
-      console.log("⚡ Catálogo cargado desde cache:", catalogo.length);
-      statusBox.textContent = `⚡ Catálogo cargado (${catalogo.length} productos, desde cache)`;
-      setTimeout(() => statusBox.remove(), 2000);
-      return;
     }
-
-    // 🔄 Cargar desde Firestore si no hay cache o está vencido
-    const ref = collection(db, "productos");
-    const q = query(ref, where("activo", "==", true));
-    const snap = await getDocs(q);
-    catalogo = [];
-    codeIndex.clear();
-
-    snap.forEach(d => {
-      const x = d.data();
-const p = {
-  id: d.id,
-  nombre: x.concepto || "SIN NOMBRE",
-  codigo: String(x.codigoBarra || ""),
-  precioPublico: Number(x.precioPublico || 0),
-  mayoreo: Number(x.mayoreo || 0),
-  costoUnit: Number(x.costoSinImpuesto || x.costo || 0),
-  ivaTasa: Number(x.ivaTasa || 0),
-  iepsTasa: Number(x.iepsTasa || 0),
-
-  // 🚀 CAMPOS SAT DEL CATÁLOGO
-  claveSat: x.claveSat || null,
-  unidadMedidaSat: x.unidadMedidaSat || null,
-  departamento: x.departamento || x.departamento_nombre || null,
-  departamento_id: x.departamento_id || null,
-  equivalentes: Array.isArray(x.codigosEquivalentes)
-  ? x.codigosEquivalentes.map(e => String(e).trim())
-  : [],
-
-};
-
-      catalogo.push(p);
-if (p.codigo) codeIndex.set(p.codigo, p.id);
-
-if (Array.isArray(p.equivalentes)) {
-  p.equivalentes.forEach(eq => {
-    if (eq) codeIndex.set(eq, p.id);
   });
+
+  console.log("⚡ Catálogo cargado OFFLINE desde SW");
+  statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
+  setTimeout(() => statusBox.remove(), 1500);
+  return;
 }
 
-    });
 // =====================================================
-// 💾 Guardar catálogo en caché del Service Worker
+// 🟡 2) Intentar cargar desde cache local (localStorage)
 // =====================================================
-cachearDatos("/catalogo", catalogo);
+if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.data)) {
 
-    // 💾 Guardar cache local por 24 h
-    localStorage.setItem(cacheKey, JSON.stringify({
-      fecha: Date.now(),
-      data: catalogo
-    }));
+  catalogo = cache.data;
 
-    console.log("📦 Catálogo cargado desde Firestore:", catalogo.length);
-    statusBox.textContent = `📦 Catálogo cargado (${catalogo.length} productos, guardado en cache)`;
-    setTimeout(() => statusBox.remove(), 2500);
+  codeIndex.clear();
+  catalogoById.clear();
 
-  } catch (err) {
-    console.error("❌ Error cargando catálogo:", err);
-    statusBox.textContent = "⚠️ Error al cargar catálogo. Intenta recargar o verifica conexión.";
-    statusBox.style.background = "#c0392b";
-  }
+  catalogo.forEach(p => {
+    catalogoById.set(p.id, p.id);
+    if (p.codigo) codeIndex.set(p.codigo, p.id);
+    if (Array.isArray(p.equivalentes)) {
+      p.equivalentes.forEach(eq => {
+        if (eq) codeIndex.set(eq, p.id);
+      });
+    }
+  });
+
+  console.log("⚡ Catálogo cargado desde cache local:", catalogo.length);
+  statusBox.textContent = `⚡ Catálogo cargado (${catalogo.length} productos, desde cache)`;
+  setTimeout(() => statusBox.remove(), 2000);
+  return;
 }
 
 
