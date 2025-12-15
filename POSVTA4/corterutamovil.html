@@ -77,16 +77,24 @@ function imprimirRAWBT(texto) {
 
   window.location.href = intent;
 }
+function normalizarFechaISO(fechaTxt) {
+  // Espera formato DD/MM/YYYY
+  const [d, m, y] = fechaTxt.split("/");
+  return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+}
 
-async function cerrarKilometraje(ruta, fecha) {
-  const docId = `${ruta}_${fecha}`;
+async function cerrarKilometraje(ruta, fechaTxt) {
+  const fechaISO = normalizarFechaISO(fechaTxt);
+  const docId = `${ruta}_${fechaISO}`;
   const refKm = doc(db, "kilometrajes_ruta", docId);
   const snap = await getDoc(refKm);
 
-  if (!snap.exists()) {
-    alert("❌ No existe KM inicial para esta ruta y fecha.");
-    throw new Error("KM inicial inexistente");
-  }
+if (!snap.exists()) {
+  overlay.style.display = "none";
+  alert(`❌ No existe KM inicial para la fecha ${fechaISO}.
+Regresa al POS y registra el KM inicial.`);
+  throw new Error("KM inicial inexistente");
+}
 
   const data = snap.data();
   if (data.km_inicial == null) {
