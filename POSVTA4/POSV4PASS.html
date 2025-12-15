@@ -342,6 +342,8 @@ let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
+const catalogoById = new Map();
+
 
 /* ===========================================================
    🔔 UTILIDAD GLOBAL: BEEP
@@ -567,11 +569,28 @@ iepsTasa: Number(x.iepsTasa || 0),
 }));
 
 
-  console.log("⚡ Catálogo cargado OFFLINE desde SW");
-  statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
-  setTimeout(() => statusBox.remove(), 1500);
-  return; // ← MUY IMPORTANTE
-}
+// 🔁 RECONSTRUIR ÍNDICES SIEMPRE
+codeIndex.clear();
+catalogoById.clear();
+
+catalogo.forEach(p => {
+  catalogoById.set(p.id, p);
+
+  if (p.codigo) {
+    codeIndex.set(String(p.codigo).trim(), p.id);
+  }
+
+  if (Array.isArray(p.equivalentes)) {
+    p.equivalentes.forEach(eq => {
+      if (eq) codeIndex.set(String(eq).trim(), p.id);
+    });
+  }
+});
+
+console.log("⚡ Catálogo cargado OFFLINE desde SW");
+statusBox.textContent = `⚡ Catálogo cargado offline (${catalogo.length})`;
+setTimeout(() => statusBox.remove(), 1500);
+return;
 
   try {
     // ⚡ Si hay cache válido de menos de 24 h
@@ -664,7 +683,14 @@ cachearDatos("/catalogo", catalogo);
 /* ===========================================================
    🔍 SECCIÓN 6: BÚSQUEDA LOCAL DE PRODUCTOS
    =========================================================== */
-function buscarLocal(qraw) {
+function resolverProductoPorCodigo(codigo) {
+  const key = String(codigo || "").trim();
+  const id = codeIndex.get(key);
+  if (!id) return null;
+  return catalogoById.get(id) || null;
+}
+
+  function buscarLocal(qraw) {
   const q = (qraw || "").trim().toLowerCase();
   if (!q) return [];
 
@@ -686,20 +712,9 @@ function buscarLocal(qraw) {
   }
 
   // 2️⃣ Coincidencia exacta
-  const idByCode = codeIndex.get(q);
-  if (idByCode) {
-    const p = catalogo.find(x => x.id === idByCode);
-    if (p) return [p];
-  }
+const p = resolverProductoPorCodigo(q);
+if (p) return [p];
 
-// 3️⃣ Coincidencia EXACTA por equivalentes
-for (const p of catalogo) {
-  if (Array.isArray(p.equivalentes)) {
-    if (p.equivalentes.includes(q)) { 
-      return [p]; 
-    }
-  }
-}
            
   // 4️⃣ Coincidencia por nombre
   return catalogo.filter(p => (p.nombre || "").toLowerCase().includes(q));
@@ -1105,14 +1120,10 @@ async function ejecutarBusqueda(texto) {
     }
 
     // 2️⃣ Buscar el producto real
-    let producto = buscarLocal(codigoBase);
-
-// si no lo encuentra, intentar por equivalentes del catálogo
-if (producto.length === 0) {
-  const eqDirecto = catalogo.find(
-    p => Array.isArray(p.equivalentes) && p.equivalentes.includes(codigoBase)
-  );
-  if (eqDirecto) producto = [eqDirecto];
+const p = resolverProductoPorCodigo(codigoBase);
+if (!p) {
+  toast("❌ Producto de balanza no registrado", "#dc2626");
+  return;
 }
 
 if (producto.length > 0) {
@@ -1138,10 +1149,11 @@ if (producto.length > 0) {
   // 🧾 Caso 2: Código normal
   let resultados = buscarLocal(texto);
 
-  if (resultados.length === 0) {
-    console.log("🔍 Buscando equivalencias remotas...");
-    resultados = await buscarEquivalenteRemoto(texto);
-  }
+if (resultados.length === 0) {
+  toast("❌ Código no registrado", "#dc2626");
+  resetScanner();
+  return;
+}
 
   resultadosDiv.innerHTML = "";
 // 🔧 Restaurar estilo original para resultados normales
