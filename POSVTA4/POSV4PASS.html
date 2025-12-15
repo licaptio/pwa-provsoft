@@ -580,32 +580,6 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
   setTimeout(() => statusBox.remove(), 1500);
   return;
 }
-
-// =====================================================
-// 🟡 2) Intentar cargar desde cache local (localStorage)
-// =====================================================
-if (cache.fecha && (Date.now() - cache.fecha < unDia) && Array.isArray(cache.data)) {
-
-  catalogo = cache.data;
-
-  codeIndex.clear();
-  catalogoById.clear();
-
-  catalogo.forEach(p => {
-    catalogoById.set(p.id, p);
-    if (p.codigo) codeIndex.set(p.codigo, p.id);
-    if (Array.isArray(p.equivalentes)) {
-      p.equivalentes.forEach(eq => {
-        if (eq) codeIndex.set(eq, p.id);
-      });
-    }
-  });
-
-  console.log("⚡ Catálogo cargado desde cache local:", catalogo.length);
-  statusBox.textContent = `⚡ Catálogo cargado (${catalogo.length} productos, desde cache)`;
-  setTimeout(() => statusBox.remove(), 2000);
-  return;
-}
   // =====================================================
 // 🔴 3) CARGAR DESDE FIRESTORE (FUENTE REAL)
 // =====================================================
@@ -646,12 +620,13 @@ catalogo.forEach(p => {
   }
 });
 
-// 💾 Guardar cache
-localStorage.setItem("catalogo_cache", JSON.stringify({
+// 💾 Guardar SOLO metadata en localStorage (ligero)
+localStorage.setItem("catalogo_cache_meta", JSON.stringify({
   fecha: Date.now(),
-  data: catalogo
+  total: catalogo.length
 }));
 
+// 💾 Catálogo completo → SOLO en cache SW
 await cachearDatos("/catalogo", catalogo);
 
 statusBox.textContent = `✅ Catálogo cargado (${catalogo.length} productos)`;
