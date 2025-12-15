@@ -473,8 +473,6 @@ const msg = document.getElementById("loginMsg");
     // 🌀 Cargar datos principales
 document.getElementById("loginScreen").style.display = "none";
 document.getElementById("posApp").style.display = "block";
-document.getElementById("bottomBar").style.display = "flex";
-document.getElementById("carrito-container").style.display = "block";
 document.body.classList.add("sesion-activa");
 await registrarKmInicial();
 
@@ -511,10 +509,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     document.getElementById("loginScreen").style.display = "none";
     document.getElementById("posApp").style.display = "block";
-
-    // 👇🔥 ESTO ES LO QUE FALTABA
-    document.getElementById("bottomBar").style.display = "flex";
-    document.getElementById("carrito-container").style.display = "block";
+document.body.classList.add("sesion-activa");
 
     await registrarKmInicial();
 
@@ -2658,10 +2653,6 @@ body.sesion-activa #bottomBar {
   @media (max-width: 600px) {
     #bottomBar { padding: 8px 0; }
     .bar-btn { font-size: 14px; padding: 8px 4px; }
-  }
- /* 🚫 Ocultar barra inferior cuando el POS esté oculto */
-  #posApp[style*="display: none"] #bottomBar {
-    display: none !important;
   }
 
 </style>
