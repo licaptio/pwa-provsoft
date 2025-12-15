@@ -26,7 +26,11 @@ button{background:#0c6cbd;color:#fff;font-weight:bold;border:none}
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import{getFirestore,collection,query,where,getDocs,addDoc,updateDoc,doc}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getFirestore, collection, query, where, getDocs,
+  addDoc, updateDoc, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 
 const firebaseConfig={apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",authDomain:"inventariopv-643f1.firebaseapp.com",projectId:"inventariopv-643f1",storageBucket:"inventariopv-643f1.appspot.com",messagingSenderId:"96242533231",appId:"1:96242533231:web:aae75a18fbaf9840529e9a"};
 const app=initializeApp(firebaseConfig),db=getFirestore(app);
@@ -72,6 +76,60 @@ function imprimirRAWBT(texto) {
   }#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
 
   window.location.href = intent;
+}
+overlayText.textContent = "Cerrando kilometraje...";
+
+let kmData;
+try {
+  kmData = await cerrarKilometraje(ruta, fecha);
+} catch (e) {
+  overlay.style.display = "none";
+  return;
+}
+
+async function cerrarKilometraje(ruta, fecha) {
+  const docId = `${ruta}_${fecha}`;
+  const refKm = doc(db, "kilometrajes_ruta", docId);
+  const snap = await getDoc(refKm);
+
+  if (!snap.exists()) {
+    alert("❌ No existe KM inicial para esta ruta y fecha.");
+    throw new Error("KM inicial inexistente");
+  }
+
+  const data = snap.data();
+  if (data.km_inicial == null) {
+    alert("❌ Falta KM inicial. Regresa al POS.");
+    throw new Error("KM inicial vacío");
+  }
+
+  if (data.km_final != null) {
+    // Ya fue cerrado antes
+    return data;
+  }
+
+  let kmFinal = prompt(`🚗 KM FINAL\n\nKM inicial: ${data.km_inicial}`);
+  if (kmFinal === null) throw new Error("Cancelado");
+
+  kmFinal = parseFloat(kmFinal);
+  if (isNaN(kmFinal) || kmFinal < data.km_inicial) {
+    alert("❌ KM final inválido");
+    return cerrarKilometraje(ruta, fecha);
+  }
+
+  const kmTotal = +(kmFinal - data.km_inicial).toFixed(2);
+
+  await updateDoc(refKm, {
+    km_final: kmFinal,
+    km_total: kmTotal,
+    actualizadoEn: new Date().toISOString()
+  });
+
+  return {
+    km_inicial: data.km_inicial,
+    km_final: kmFinal,
+    km_total: kmTotal
+  };
 }
 
 async function generarCorteMovil(){
@@ -134,6 +192,16 @@ VENTA POR DEPARTAMENTO
   const nombre = n.substring(0,20).padEnd(22," ");
   texto += `${nombre}$${mxn(v.importe)}\n`;
 });
+  texto += `
+--------------------------------
+KILOMETRAJE
+--------------------------------
+KM INICIAL : ${kmData.km_inicial}
+KM FINAL   : ${kmData.km_final}
+KM RECORR. : ${kmData.km_total}
+--------------------------------
+`;
+
   texto+="\n--------------------------------\n¡BONITO DIA!\n";
   overlayText.textContent = "Imprimiendo corte...";
 imprimirRAWBT(texto);
@@ -145,11 +213,24 @@ overlayText.textContent="Enviando a Telegram...";
 await enviarTelegramTexto(texto);
 
   overlayText.textContent="Guardando corte...";
-  await addDoc(collection(db,"cortes_globalesV4"),{
-    rutaId:ruta,fecha:new Date().toISOString(),fecha_corte:fecha,
-    creado_por:USUARIO.nombre,creado_en:new Date().toISOString(),
-    resumen:{totalDia,totalDescuento,utilidadTotal,porDepto,porArticulo,porNota}
-  });
+await addDoc(collection(db,"cortes_globalesV4"),{
+  rutaId: ruta,
+  fecha: new Date().toISOString(),
+  fecha_corte: fecha,
+  creado_por: USUARIO.nombre,
+  creado_en: new Date().toISOString(),
+
+  kilometraje: kmData, // 👈 AQUÍ
+
+  resumen: {
+    totalDia,
+    totalDescuento,
+    utilidadTotal,
+    porDepto,
+    porArticulo,
+    porNota
+  }
+});
 
   for(const v of ventasDia)await updateDoc(doc(db,"ventas_rutav2",v.id),{cortado:true});
 
