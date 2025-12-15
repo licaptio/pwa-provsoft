@@ -77,15 +77,6 @@ function imprimirRAWBT(texto) {
 
   window.location.href = intent;
 }
-overlayText.textContent = "Cerrando kilometraje...";
-
-let kmData;
-try {
-  kmData = await cerrarKilometraje(ruta, fecha);
-} catch (e) {
-  overlay.style.display = "none";
-  return;
-}
 
 async function cerrarKilometraje(ruta, fecha) {
   const docId = `${ruta}_${fecha}`;
@@ -138,6 +129,16 @@ async function generarCorteMovil(){
   if(!fecha)return alert("Selecciona una fecha.");
 
   overlay.style.display="flex";overlayText.textContent="Buscando ventas...";
+  // 🚗 CERRAR KILOMETRAJE ANTES DEL CORTE
+  overlayText.textContent = "Cerrando kilometraje...";
+
+  let kmData;
+  try {
+    kmData = await cerrarKilometraje(ruta, fecha);
+  } catch (e) {
+    overlay.style.display = "none";
+    return;
+  }
 
   const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
   const snap=await getDocs(q),ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
