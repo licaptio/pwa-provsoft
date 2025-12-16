@@ -2474,6 +2474,7 @@ let bloqueoSalida=true;
 
 // 🚫 Bloquear F5 y Ctrl+R
 window.addEventListener("keydown",e=>{
+  if (!haySesionActiva()) return; // 🔓 login libre
   if(e.key==="F5" || (e.ctrlKey && e.key.toLowerCase()==="r")){
     e.preventDefault();
     alert("Usa el botón 🚪 Salir para cerrar sesión correctamente.");
@@ -2482,6 +2483,7 @@ window.addEventListener("keydown",e=>{
 
 // ⚠️ Confirmar antes de salir o recargar
 window.addEventListener("beforeunload",e=>{
+  if (!haySesionActiva()) return; // 🔓 login libre
   if(bloqueoSalida){
     e.preventDefault();
     e.returnValue="¿Deseas salir del sistema?";
