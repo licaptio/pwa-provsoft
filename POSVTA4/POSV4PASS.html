@@ -1012,7 +1012,10 @@ function solicitarCantidadYAgregar(prod) {
   const btnAceptar = document.getElementById("btnAceptarCant");
   const btnCancelar = document.getElementById("btnCancelarCant");
 
-beep(950, 0.15);
+   // 🔥 FIX CLAVE
+  modal.style.display = "flex";
+
+  beep(950, 0.15);
 
   input.value = "1";
   input.focus();
