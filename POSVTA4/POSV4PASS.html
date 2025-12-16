@@ -338,6 +338,7 @@ let catalogo = [];
 let rutaId = null;
 let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
+let origenEscaneo = null; // "camara" | "hid" 👈 AQUÍ
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
 const catalogoById = new Map();
@@ -1218,6 +1219,7 @@ function procesarCodigoEscaneado(codigo) {
 buscador.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && scanBuffer.length > 0) {
     e.preventDefault();
+    origenEscaneo = "hid";
     procesarCodigoEscaneado(scanBuffer);
     return;
   }
@@ -2353,7 +2355,7 @@ await html5QrCode.start(
     // ⚙️ Bloqueo contra escaneos múltiples
     if (escaneoExitoso) return;
     escaneoExitoso = true;
-
+    origenEscaneo = "camara"; // 🔥 CLAVE
     try {
       await html5QrCode.stop();
       html5QrCode.clear();
@@ -2362,14 +2364,24 @@ await html5QrCode.start(
     }
 
     console.log("✅ Código escaneado:", decodedText);
-    beep(950, 0.1);
+   if (escaneoExitoso) return;
+escaneoExitoso = true;
 
-    setTimeout(() => {
-      procesarCodigoEscaneado(decodedText);
-    }, 200);
+origenEscaneo = "camara"; // 🔥 CLAVE
 
-    setTimeout(cerrarCamara, 500);
-  },
+try {
+  await html5QrCode.stop();
+  html5QrCode.clear();
+} catch (e) {}
+
+beep(950, 0.1);
+
+// ⛔ procesar UNA sola vez
+procesarCodigoEscaneado(decodedText);
+
+setTimeout(cerrarCamara, 500);
+
+},
   (errorMessage) => {
     if (!errorMessage.includes("No QR code found")) {
       console.log("🔍 Escaneando...", errorMessage);
