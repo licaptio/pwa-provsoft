@@ -992,14 +992,17 @@ window.render = render;
 let productoTemporal = null;
 
 // 🔁 Escaneo continuo: cada código se agrega directo al carrito
-function seleccionarProducto(prod) {
-   prod.codigo = prod.codigo || prod.codigoBarra || "";
-  addProduct(prod, 1); // agrega 1 unidad automáticamente
+function seleccionarProducto(prod, pedirCantidad = false) {
+  prod.codigo = prod.codigo || prod.codigoBarra || "";
 
-  // 🔊 Confirmación de escaneo
+  if (pedirCantidad) {
+    solicitarCantidadYAgregar(prod);
+    return;
+  }
+
+  // flujo rápido (scanner / enter)
+  addProduct(prod, 1);
   beep(950, 0.12);
-
-  // 🧹 Limpieza visual
   resultadosDiv.style.display = "none";
   buscador.value = "";
   buscador.focus();
@@ -1125,7 +1128,7 @@ resultadosDiv.style.width = "";
       item.innerHTML = `<span>${nombreResaltado}</span><small>${money(p.precioPublico)}</small>`;
       item.addEventListener("click", () => {
         beep(950);
-        seleccionarProducto(p);
+        seleccionarProducto(p, true); // ✅ PEDIR CANTIDAD
         resultadosDiv.style.display = "none";
       });
       resultadosDiv.appendChild(item);
