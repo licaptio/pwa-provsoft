@@ -2586,6 +2586,42 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <!--
 📌 NOTAS PROVSOFT – 2025-12-15
 --------------------------------
-// ✅ Dic-2025:
-// Buscador, equivalentes y balanza funcionando correctamente.
-// Índices y refactor pendientes NO afectan operación actual.
+/*
+🧠 NOTA DESARROLLO – BLOQUEO TEMPORAL DEL POS
+--------------------------------------------
+Se ajustó el bloqueo de F5 / Ctrl+R / beforeunload
+para permitir HARD REFRESH en la pantalla de LOGIN
+mientras se realizan cambios y pruebas.
+
+ESTE AJUSTE ES TEMPORAL.
+
+CUANDO TERMINES EL DESARROLLO Y QUIERAS
+BLINDAR TODO EL POS DE NUEVO:
+
+👉 BORRAR COMPLETAMENTE esta función:
+   function haySesionActiva() {
+     return !!localStorage.getItem("usuario_ruta");
+   }
+
+👉 BORRAR ÚNICAMENTE estas dos líneas (y solo estas):
+
+   En el listener de keydown:
+   if (!haySesionActiva()) return;
+
+   En el listener de beforeunload:
+   if (!haySesionActiva()) return;
+
+👉 Dejar el bloqueo GLOBAL como estaba originalmente
+(sin distinguir login / sesión activa).
+
+Estado actual del sistema:
+- Login: refresh permitido (F5 / Ctrl+R / hard refresh)
+- POS activo: refresh bloqueado
+- Cobro activo: refresh bloqueado
+
+⚠️ IMPORTANTE:
+No olvidar eliminar este ajuste antes de producción final
+para mantener el POS totalmente blindado.
+*/
+
+
