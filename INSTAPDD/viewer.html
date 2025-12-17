@@ -255,7 +255,7 @@ select {
 
 <script>
 /* SUPABASE */
-const supabase = window.supabase.createClient(
+const supa = window.supabase.createClient(
   "https://cvpbtjlupswbyxenugpz.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
 );
@@ -266,7 +266,7 @@ let loading = false;
 
 /* CARGAR RELACIONES */
 async function loadRelations() {
-  const { data, error } = await supabase
+  const { data, error } = await supa
     .from("bookit_entries")
     .select("relation");
 
@@ -299,7 +299,7 @@ async function loadMore(reset = false) {
   const start = page * limit;
   const end = start + limit - 1;
 
-  let q = supabase.from("bookit_entries")
+  let q = supa.from("bookit_entries")
     .select("*")
     .eq("hidden", false)
 .order("updated_at", { ascending: false })
@@ -342,7 +342,7 @@ document.getElementById("toggleHideMode").onclick = () => {
 /* 🔥 DESOCULTAR TODO */
 document.getElementById("showAllBtn").onclick = async () => {
 
-  await supabase.from("bookit_entries")
+  await supa.from("bookit_entries")
     .update({ hidden: false })
     .eq("hidden", true);
 
@@ -360,7 +360,7 @@ document.getElementById("showAllBtn").onclick = async () => {
 function addImage(item) {
   const gallery = document.getElementById("gallery");
 
-  const { data: publicUrlData } = supabase.storage
+  const { data: publicUrlData } = supa.storage
     .from("bookit")
     .getPublicUrl(item.image_url);
 
@@ -417,7 +417,7 @@ async function editImage(id, currentCaption, currentRelation, ev) {
   const newRelation = prompt("🏷 Nueva relación:", currentRelation);
   if (newRelation === null) return;
 
-  await supabase.from("bookit_entries")
+  await supa.from("bookit_entries")
     .update({
       caption: newCaption,
       relation: newRelation,
@@ -436,8 +436,8 @@ async function deleteImage(id, path, ev) {
   const pass = prompt("Contraseña para borrar:");
   if (pass !== "1982") return alert("❌ Contraseña incorrecta");
 
-  await supabase.from("bookit_entries").delete().eq("id", id);
-  await supabase.storage.from("bookit").remove([path]);
+  await supa.from("bookit_entries").delete().eq("id", id);
+  await supa.storage.from("bookit").remove([path]);
 
   alert("✔ Imagen eliminada");
   loadMore(true);
@@ -449,12 +449,12 @@ async function toggleItem(check) {
 
   if (check.checked) {
     card.classList.add("hidden-item");
-    await supabase.from("bookit_entries")
+    await supa.from("bookit_entries")
       .update({ hidden: true })
       .eq("id", id);
   } else {
     card.classList.remove("hidden-item");
-    await supabase.from("bookit_entries")
+    await supa.from("bookit_entries")
       .update({ hidden: false })
       .eq("id", id);
   }
