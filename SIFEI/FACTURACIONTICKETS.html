@@ -100,6 +100,19 @@ td {
   display: flex;
   gap: 10px;
 }
+.footer {
+  margin-top: 30px;
+  padding: 18px;
+  text-align: center;
+  color: #ffffff;
+  background: linear-gradient(90deg, #00416A, #0c6cbd);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  letter-spacing: .5px;
+}
+
 </style>
 </head>
 
@@ -299,10 +312,8 @@ document.getElementById("btnCliente").addEventListener("click", () => {
   alert(`Listo para facturar al cliente:\n${venta.cliente}\nFolio: ${venta.folio}`);
 });
 </script>
-
+<footer class="footer">
+  <p>© 2025 PROVSOFT · Sistema de Facturación - V1.0 - 6cfb086 </p>
+</footer>
 </body>
 </html>
-
-
-
-
