@@ -54,7 +54,10 @@ function cargarUsuarioLogueado(){
 }
 
 async function cargarFechasPendientes(){
-  const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",RUTA_USUARIO),where("cortado","==",false));
+  const q = query(
+  collection(db,"ventas_rutav2"),
+  where("rutaId","==",RUTA_USUARIO)
+);
   const snap=await getDocs(q),ventas=snap.docs.map(d=>d.data()),fechas={};
   ventas.forEach(v=>{if(v.fecha_txt){const f=v.fecha_txt.split(" ")[0];fechas[f]=(fechas[f]||0)+1;}});
   selectFecha.innerHTML="<option value=''>Selecciona una fecha pendiente...</option>";
@@ -88,9 +91,9 @@ async function generarCorteMovil(){
   overlay.style.display = "flex";
   overlayText.textContent = "Procesando corte...";
   
-  const q=query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta),where("cortado","==",false));
+  const q = query(collection(db,"ventas_rutav2"),where("rutaId","==",ruta));
   const snap=await getDocs(q),ventas=snap.docs.map(d=>({id:d.id,...d.data()}));
-  const ventasDia=ventas.filter(v=>v.fecha_txt&&v.fecha_txt.startsWith(fecha));
+  const ventasDia = ventas.filter(v => v.fecha_txt && v.fecha_txt.startsWith(fecha) && v.cortado !== true);
   if(!ventasDia.length){
   overlay.style.display="none";
   btnGenerar.disabled = false; // 👈 AGREGA ESTA LÍNEA
@@ -148,14 +151,10 @@ VENTA POR DEPARTAMENTO
 });
 
   texto+="\n--------------------------------\n¡PROVEEDORA LE DESEA FELIZ NAVIDAD Y AÑO NUEVO!\n";
-  overlayText.textContent = "Imprimiendo corte...";
-imprimirRAWBT(texto);
 
-// Esperar un poco para que RAWBT abra
-await new Promise(r => setTimeout(r, 1500));
-
-overlayText.textContent="Enviando a Telegram...";
+  overlayText.textContent="Enviando a Telegram...";
 await enviarTelegramTexto(texto);
+
 const snapshotCorte = {
   rutaId: ruta,
   fecha_corte: fecha,
@@ -182,17 +181,24 @@ await addDoc(
   snapshotCorte
 );
 
-  for(const v of ventasDia)await updateDoc(doc(db,"ventas_rutav2",v.id),{cortado:true});
-
-  overlayText.textContent="Cerrando sesión...";
-  localStorage.removeItem("usuario_ruta");
-  localStorage.removeItem("catalogo_cache");
-  localStorage.removeItem("catalogo_fecha");
-  await new Promise(r=>setTimeout(r,600));
-  overlayText.textContent = "Finalizando...";
-  btnGenerar.disabled = false;
-  location.href = "POSV4PASS.html";
+  for(const v of ventasDia){
+  try{
+    await updateDoc(
+      doc(db,"ventas_rutav2",v.id),
+      { cortado:true }
+    );
+  }catch(e){
+    console.error("Error cortando venta:", v.id, e);
+  }
 }
+// 🔐 CERRAR SESIÓN
+localStorage.removeItem("usuario_ruta");
+localStorage.removeItem("catalogo_cache");
+localStorage.removeItem("catalogo_fecha");
+
+// 🖨️ IMPRIMIR (ÚNICA VEZ Y ÚLTIMO PASO)
+imprimirRAWBT(texto);
+
 </script>
 
 <script>
