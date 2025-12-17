@@ -39,10 +39,7 @@ header {
   margin-bottom: 20px;
 }
 
-label {
-  font-size: 15px;
-  font-weight: 600;
-}
+label { font-size: 15px; font-weight: 600; }
 
 select, input[type="date"], button {
   width: 100%;
@@ -61,15 +58,9 @@ button {
   border: none;
 }
 
-button:hover {
-  background: #00416A;
-}
+button:hover { background: #00416A; }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
 
 th, td {
   border-bottom: 1px solid #ddd;
@@ -77,29 +68,14 @@ th, td {
   font-size: 14px;
 }
 
-th {
-  background: #00416A;
-  color: white;
-}
+th { background: #00416A; color: white; }
+td { background: white; }
 
-td {
-  background: white;
-}
+.facturada { color: green; font-weight: 600; }
+.pendiente { color: red; font-weight: 600; }
 
-.facturada {
-  color: green;
-  font-weight: 600;
-}
+.actions { display: flex; gap: 10px; }
 
-.pendiente {
-  color: red;
-  font-weight: 600;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-}
 .footer {
   margin-top: 30px;
   padding: 18px;
@@ -113,6 +89,9 @@ td {
   letter-spacing: .5px;
 }
 
+/* Pantallas del wizard */
+.wizard { display:none; }
+.wizard.active { display:block; }
 </style>
 </head>
 
@@ -122,13 +101,16 @@ td {
 
 <div class="container">
 
-  <!-- 🔍 FILTROS -->
+<!-- ===================================================== -->
+<!-- PANTALLA 1: FILTRO Y VENTAS                           -->
+<!-- ===================================================== -->
+<div id="p1" class="wizard active">
+
   <div class="card">
     <label>Ruta:</label>
-<select id="rutaSelect">
-  <option value="">Cargando usuarios…</option>
-</select>
-
+    <select id="rutaSelect">
+      <option value="">Cargando usuarios…</option>
+    </select>
 
     <label>Fecha:</label>
     <input type="date" id="fechaInput">
@@ -136,98 +118,172 @@ td {
     <button id="btnCargar">Cargar ventas</button>
   </div>
 
-  <!-- 📋 TABLA DE VENTAS -->
   <div class="card">
     <h3>Ventas encontradas</h3>
     <table id="tablaVentas">
-<thead>
-  <tr>
-    <th>Sel</th>
-    <th>Folio</th>
-    <th>Cliente</th>
-    <th>Total</th>
-    <th>Usuario</th> <!-- 🔵 NUEVO -->
-    <th>Estado</th>
-  </tr>
-</thead>
-
+      <thead>
+        <tr>
+          <th>Sel</th>
+          <th>Folio</th>
+          <th>Cliente</th>
+          <th>Total</th>
+          <th>Usuario</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
       <tbody></tbody>
     </table>
   </div>
 
-  <!-- ⚡ ACCIONES -->
   <div class="actions">
-    <button id="btnGlobal">Generar CFDI Global</button>
-    <button id="btnCliente">Facturar Cliente</button>
+    <button id="btnContinuar">Continuar →</button>
   </div>
 
 </div>
 
+
+<!-- ===================================================== -->
+<!-- PANTALLA 2: SELECCIÓN CLIENTE O GLOBAL               -->
+<!-- ===================================================== -->
+<div id="p2" class="wizard">
+
+  <div class="card">
+    <h3>Selecciona el tipo de factura</h3>
+
+    <label><input type="radio" name="tipoFactura" value="GLOBAL"> Factura GLOBAL</label><br>
+    <label><input type="radio" name="tipoFactura" value="CLIENTE"> Factura a CLIENTE</label>
+
+    <div id="clienteForm" style="display:none; margin-top:20px;">
+      <label>Cliente:</label>
+      <select id="selectCliente"></select>
+
+      <div id="datosCliente" style="background:#f3f3f3; padding:12px; border-radius:10px; margin-top:10px;">
+        <p><strong>RFC:</strong> <span id="cliRFC"></span></p>
+        <p><strong>Nombre:</strong> <span id="cliNombre"></span></p>
+        <p><strong>CP:</strong> <span id="cliCP"></span></p>
+
+        <label>Uso CFDI:</label>
+        <select id="cliUso">
+          <option value="G01">G01 Adquisición</option>
+          <option value="G03">G03 Gastos</option>
+          <option value="S01">S01 Sin Efectos Fiscales</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="btnAtras1">← Regresar</button>
+    <button id="btnContinuar2">Continuar →</button>
+  </div>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- PANTALLA 3: CONFIRMACIÓN FINAL                       -->
+<!-- ===================================================== -->
+<div id="p3" class="wizard">
+
+  <div class="card">
+    <h3>Confirmación de factura</h3>
+
+    <p><strong>Ventas seleccionadas:</strong></p>
+    <ul id="listaConfirmacion"></ul>
+
+    <p id="tipoResumen"></p>
+  </div>
+
+  <div class="actions">
+    <button id="btnAtras2">← Regresar</button>
+    <button id="btnGenerar">Generar CFDI</button>
+  </div>
+
+</div>
+
+</div> <!-- container -->
+
+<footer class="footer">
+  © 2025 PROVSOFT · Sistema de Facturación - V1.0 - 6cfb086
+</footer>
+
+
+<!-- ========================================================= -->
+<!-- ======================= SCRIPT =========================== -->
+<!-- ========================================================= -->
 <script>
-/* ===========================================================
-   🔥 CONFIGURACIÓN FIREBASE
-   =========================================================== */
+/* ============================================================
+   FIREBASE
+============================================================ */
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
   projectId: "inventariopv-643f1"
 };
-
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const tabla = document.querySelector("#tablaVentas tbody");
-async function cargarUsuarios() {
-  const usuariosSnap = await db.collection("usuarios_ruta").get();
-  window.USUARIOS = {};
-
-  usuariosSnap.forEach(doc => {
-    window.USUARIOS[doc.id] = doc.data();
-  });
+/* ============================================================
+   UTILIDADES
+============================================================ */
+function show(p) {
+  document.querySelectorAll(".wizard").forEach(x => x.classList.remove("active"));
+  document.getElementById(p).classList.add("active");
 }
-cargarUsuarios();
-/* ===========================================================
-   🟦 CARGAR USUARIOS Y RELLENAR SELECTOR
-   =========================================================== */
+
+/* ============================================================
+   CARGAR USUARIOS RUTA
+============================================================ */
 async function cargarSelectorUsuarios() {
   const select = document.getElementById("rutaSelect");
   select.innerHTML = "<option value=''>Seleccione usuario…</option>";
 
-  // Colección correcta
   const snap = await db.collection("usuarios_ruta").get();
 
   snap.forEach(doc => {
     const u = doc.data();
-
-    if (!u.activo) return;        // Solo usuarios activos
-    if (!u.rutaId) return;        // Evitar usuarios sin ruta
+    if (!u.activo) return;
+    if (!u.rutaId) return;
 
     const nombre = u.nombre ?? u.usuario ?? "SIN NOMBRE";
-    const ruta = u.rutaId;
-
-    // Mostrar NOMBRE + RUTA pero enviar solo la rutaId
-    select.innerHTML += `
-      <option value="${ruta}">
-        ${nombre} — ${ruta}
-      </option>
-    `;
+    select.innerHTML += `<option value="${u.rutaId}">${nombre} — ${u.rutaId}</option>`;
   });
 }
 cargarSelectorUsuarios();
 
-/* ===========================================================
-   📌 FUNCIÓN PARA CARGAR VENTAS POR RUTA + FECHA
-   =========================================================== */
-async function cargarVentas() {
-  tabla.innerHTML = "<tr><td colspan='5'>Cargando…</td></tr>";
+/* ============================================================
+   CARGAR CLIENTES
+============================================================ */
+let CLIENTES = {};
 
-  const ruta = document.getElementById("rutaSelect").value;
-  const fecha = document.getElementById("fechaInput").value;
+async function cargarClientes() {
+  const snap = await db.collection("clientes").get();
+  const select = document.getElementById("selectCliente");
+  select.innerHTML = "<option value=''>Seleccione cliente…</option>";
+
+  snap.forEach(doc => {
+    CLIENTES[doc.id] = doc.data();
+    select.innerHTML += `<option value="${doc.id}">${CLIENTES[doc.id].nombre}</option>`;
+  });
+}
+cargarClientes();
+
+/* ============================================================
+   CARGAR VENTAS
+============================================================ */
+let VENTAS = [];
+
+async function cargarVentas() {
+  const ruta = rutaSelect.value;
+  const fecha = fechaInput.value;
 
   if (!ruta || !fecha) {
     alert("Seleccione ruta y fecha");
     return;
   }
+
+  tablaVentas.querySelector("tbody").innerHTML =
+    "<tr><td colspan='6'>Cargando…</td></tr>";
 
   const inicio = new Date(fecha + "T00:00:00");
   const fin = new Date(fecha + "T23:59:59");
@@ -238,82 +294,122 @@ async function cargarVentas() {
     .where("fecha", "<=", fin)
     .get();
 
-  tabla.innerHTML = "";
-  window.VENTAS = []; // buffer global
+  VENTAS = [];
+  let html = "";
 
-snap.forEach(doc => {
-  const v = doc.data();
-  v.id = doc.id;
+  snap.forEach(doc => {
+    const v = doc.data();
+    v.id = doc.id;
+    VENTAS.push(v);
 
-  window.VENTAS.push(v);
+    const estado = v.facturada
+      ? `<span class='facturada'>FACTURADA</span>`
+      : `<span class='pendiente'>PENDIENTE</span>`;
 
-  const estado = v.facturada
-    ? `<span class='facturada'>FACTURADA</span>`
-    : `<span class='pendiente'>PENDIENTE</span>`;
+    const chk = !v.facturada ? `<input type='checkbox' data-id='${v.id}'>` : "";
 
-  const chk = !v.facturada ? `<input type='checkbox' data-id='${v.id}'>` : "";
+    html += `
+      <tr>
+        <td>${chk}</td>
+        <td>${v.folio}</td>
+        <td>${v.cliente}</td>
+        <td>$${v.resumen_financiero.total.toFixed(2)}</td>
+        <td>${v.usuarioNombre}</td>
+        <td>${estado}</td>
+      </tr>`;
+  });
 
-  // 🔵 Traemos el nombre del usuario
-  const usuario = v.usuarioNombre ?? "SIN USUARIO";
-
-  tabla.innerHTML += `
-    <tr>
-      <td>${chk}</td>
-      <td>${v.folio}</td>
-      <td>${v.cliente}</td>
-      <td>$${v.resumen_financiero.total.toFixed(2)}</td>
-      <td>${usuario}</td>   <!-- 🔵 AQUI ESTABA EL ERROR -->
-      <td>${estado}</td>
-    </tr>`;
-});
-
-  if (window.VENTAS.length === 0) {
-    tabla.innerHTML = "<tr><td colspan='5'>No hay ventas en esa fecha</td></tr>";
-  }
+  tablaVentas.querySelector("tbody").innerHTML = html;
 }
 
-document.getElementById("btnCargar").addEventListener("click", cargarVentas);
+btnCargar.onclick = cargarVentas;
 
-/* ===========================================================
-   🔵 BOTÓN FACTURA GLOBAL
-   =========================================================== */
-document.getElementById("btnGlobal").addEventListener("click", () => {
+/* ============================================================
+   PASO 1 → PASO 2
+============================================================ */
+btnContinuar.onclick = () => {
   const seleccionadas = [...document.querySelectorAll("input[type=checkbox]:checked")]
-        .map(chk => chk.dataset.id);
+    .map(chk => chk.dataset.id);
 
   if (seleccionadas.length === 0) {
-    alert("Seleccione ventas para el CFDI global");
+    alert("Seleccione al menos una venta.");
     return;
   }
 
-  // Aquí armaremos el XML más adelante
-  alert("CFDI GLOBAL listo para generar XML.\nVentas incluidas:\n" + seleccionadas.join("\n"));
+  window.VENTAS_SELECCIONADAS = seleccionadas;
+  show("p2");
+};
+
+/* ============================================================
+   PANTALLA 2: SELECCIÓN TIPO DE FACTURA
+============================================================ */
+document.getElementsByName("tipoFactura").forEach(r => {
+  r.addEventListener("change", e => {
+    if (e.target.value === "CLIENTE") {
+      clienteForm.style.display = "block";
+    } else {
+      clienteForm.style.display = "none";
+    }
+  });
 });
 
-/* ===========================================================
-   🟢 BOTÓN FACTURAR CLIENTE
-   =========================================================== */
-document.getElementById("btnCliente").addEventListener("click", () => {
-  const seleccionadas = [...document.querySelectorAll("input[type=checkbox]:checked")]
-        .map(chk => chk.dataset.id);
+selectCliente.onchange = () => {
+  const cli = CLIENTES[selectCliente.value];
+  if (!cli) return;
 
-  if (seleccionadas.length !== 1) {
-    alert("Seleccione SOLO UNA venta para facturar al cliente.");
+  cliRFC.textContent = cli.rfc;
+  cliNombre.textContent = cli.nombre;
+  cliCP.textContent = cli.cp;
+};
+
+/* ============================================================
+   PASO 2 → PASO 3
+============================================================ */
+btnContinuar2.onclick = () => {
+  const tipo = [...document.getElementsByName("tipoFactura")]
+    .find(x => x.checked);
+
+  if (!tipo) {
+    alert("Seleccione GLOBAL o CLIENTE");
     return;
   }
 
-  const venta = window.VENTAS.find(v => v.id === seleccionadas[0]);
+  window.TIPO_FACTURA = tipo.value;
 
-  if (venta.cliente === "PUBLICO EN GENERAL") {
-    alert("Esta venta no tiene RFC. No se puede facturar al cliente.");
+  if (tipo.value === "CLIENTE" && !selectCliente.value) {
+    alert("Seleccione un cliente.");
     return;
   }
 
-  alert(`Listo para facturar al cliente:\n${venta.cliente}\nFolio: ${venta.folio}`);
-});
+  // Mostrar ventas seleccionadas
+  listaConfirmacion.innerHTML = "";
+  window.VENTAS_SELECCIONADAS.forEach(id => {
+    const v = VENTAS.find(x => x.id === id);
+    listaConfirmacion.innerHTML += `<li>${v.folio} - $${v.resumen_financiero.total}</li>`;
+  });
+
+  tipoResumen.textContent =
+    tipo.value === "GLOBAL"
+      ? "Factura global de público en general"
+      : `Factura para cliente: ${CLIENTES[selectCliente.value].nombre}`;
+
+  show("p3");
+};
+
+/* ============================================================
+   PASO 3 → GENERAR CFDI
+============================================================ */
+btnGenerar.onclick = () => {
+  alert("Aquí generaremos el XML, TXT y timbrado final.");
+};
+
+/* ============================================================
+   BOTONES DE RETROCESO
+============================================================ */
+btnAtras1.onclick = () => show("p1");
+btnAtras2.onclick = () => show("p2");
+
 </script>
-<footer class="footer">
-  <p>© 2025 PROVSOFT · Sistema de Facturación - V1.0 - 6cfb086 </p>
-</footer>
+
 </body>
 </html>
