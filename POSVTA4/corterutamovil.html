@@ -159,6 +159,19 @@ VENTA POR DEPARTAMENTO
 
   overlayText.textContent="Enviando a Telegram...";
 await enviarTelegramTexto(texto);
+const deptosParaGuardar = listaDeptos.map(([nombre, v]) => ({
+  departamento: nombre,
+  venta: v.venta,
+  costo: v.costo,
+  utilidad: v.utilidad
+}));
+
+const articulosParaGuardar = topArt.map(([nombre, v]) => ({
+  articulo: nombre,
+  cantidad: v.cantidad,
+  importe: v.importe,
+  costo: v.costo
+}));
 
 const snapshotCorte = {
   rutaId: ruta,
@@ -174,10 +187,10 @@ const snapshotCorte = {
     ventas: ventasDia.length
   },
 
-  vista: {
-    deptosOrdenados: listaDeptos,   // 👈 YA ORDENADO
-    topArticulos: topArt           // 👈 YA CORTADO
-  }
+vista: {
+  deptosOrdenados: deptosParaGuardar,
+  topArticulos: articulosParaGuardar
+}
 };
 
   overlayText.textContent="Guardando corte...";
