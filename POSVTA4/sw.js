@@ -85,11 +85,20 @@ self.addEventListener("fetch", (event) => {
   if (DYNAMIC_KEYS.some((key) => url.includes(key))) {
     event.respondWith(
       caches.match(req).then((cachedRes) => {
-        const fetchAndUpdate = fetch(req)
-          .then((netRes) => {
-            caches.open(CACHE).then((cache) => cache.put(req, netRes.clone()));
-            return netRes;
-          })
+const fetchAndUpdate = fetch(req)
+  .then((netRes) => {
+    if (
+      netRes &&
+      netRes.status === 200 &&
+      netRes.type === "basic" &&
+      req.method === "GET"
+    ) {
+      caches.open(CACHE).then((cache) =>
+        cache.put(req, netRes.clone())
+      );
+    }
+    return netRes;
+  })
           .catch(() => cachedRes || new Response("[]"));
         return cachedRes || fetchAndUpdate;
       })
@@ -102,11 +111,22 @@ self.addEventListener("fetch", (event) => {
     caches.match(req).then((cached) => {
       if (cached) return cached;
 
-      return fetch(req)
-        .then((res) => {
-          caches.open(CACHE).then((c) => c.put(req, res.clone()));
-          return res;
-        })
+return fetch(req)
+  .then((res) => {
+    if (
+      !res ||
+      res.status !== 200 ||
+      res.type !== "basic" ||
+      req.method !== "GET"
+    ) {
+      return res;
+    }
+
+    const resClone = res.clone();
+    caches.open(CACHE).then((c) => c.put(req, resClone));
+    return res;
+  })
+
         .catch(() => req.mode === "navigate"
           ? caches.match("./offline.html")
           : new Response("Offline", { status: 503 })
