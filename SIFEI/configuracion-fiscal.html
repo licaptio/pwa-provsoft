@@ -5,86 +5,22 @@
 <title>PROVSOFT – Configuración Fiscal</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"/>
 
 <style>
-    body {
-        margin: 0;
-        background: #f4f6f8;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    header {
-        background: #00416A;
-        color: white;
-        padding: 15px;
-        text-align: center;
-        font-size: 20px;
-        font-weight: 600;
-    }
-
-    .container {
-        max-width: 850px;
-        margin: auto;
-        padding: 20px;
-    }
-
-    .card {
-        background: white;
-        padding: 20px;
-        border-radius: 14px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-        margin-bottom: 25px;
-    }
-
-    h3 {
-        margin-top: 0;
-        color: #00416A;
-        font-weight: 600;
-        font-size: 18px;
-    }
-
-    label {
-        display: block;
-        margin-top: 12px;
-        font-weight: 600;
-    }
-
-    input, select {
-        width: 100%;
-        padding: 12px;
-        margin-top: 6px;
-        border: 1px solid #ccc;
-        border-radius: 10px;
-        font-size: 15px;
-    }
-
-    .button-save {
-        width: 100%;
-        padding: 14px;
-        background: #0c6cbd;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        margin-top: 25px;
-    }
-
-    .button-save:hover {
-        background: #00416A;
-    }
-
-    .footer {
-        text-align: center;
-        padding: 15px;
-        margin-top: 25px;
-        color: white;
-        background: #0c6cbd;
-        font-size: 13px;
-        border-radius: 10px;
-    }
+    body { margin: 0; background: #f4f6f8; font-family: 'Poppins', sans-serif; }
+    header { background: #00416A; color: white; padding: 15px; text-align: center; font-size: 20px; font-weight: 600; }
+    .container { max-width: 850px; margin: auto; padding: 20px; }
+    .card { background: white; padding: 20px; border-radius: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.12); margin-bottom: 25px; }
+    h3 { margin-top: 0; color:#00416A; font-weight:600; font-size:18px; }
+    label { display:block; margin-top:12px; font-weight:600; }
+    input, select { width:100%; padding:12px; margin-top:6px; border:1px solid #ccc; border-radius:10px; font-size:15px; }
+    .button-save { width:100%; padding:14px; background:#0c6cbd; color:white; border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; margin-top:25px; }
+    .button-save:hover { background:#00416A; }
+    .footer { text-align:center; padding:15px; margin-top:25px; color:white; background:#0c6cbd; font-size:13px; border-radius:10px; }
 </style>
 </head>
 
@@ -94,9 +30,7 @@
 
 <div class="container">
 
-    <!-- ===============================
-         1. DATOS DEL EMISOR
-    ==================================-->
+    <!-- DATOS DEL EMISOR -->
     <div class="card">
         <h3>📌 Datos del Emisor</h3>
 
@@ -110,20 +44,16 @@
         <select id="regimen">
             <option value="">Seleccione...</option>
             <option value="601">601 – General de Ley Personas Morales</option>
-            <option value="603">603 – Personas Morales con Fines no Lucrativos</option>
-            <option value="607">607 – Régimen de Incorporación Fiscal</option>
             <option value="612">612 – Personas Físicas con Actividades Empresariales</option>
-            <option value="614">614 – Ingresos por Dividendos</option>
-            <option value="616">616 – Sin Obligación al ISR</option>
+            <option value="603">603 – Personas Morales con Fines no Lucrativos</option>
+            <option value="616">616 – Sin obligación al ISR</option>
         </select>
 
         <label>Código Postal</label>
         <input type="number" id="cp">
     </div>
 
-    <!-- ===============================
-         2. CSD (CER + KEY)
-    ==================================-->
+    <!-- CSD -->
     <div class="card">
         <h3>🔐 Certificado de Sello Digital (CSD)</h3>
 
@@ -137,9 +67,7 @@
         <input type="password" id="csdPass">
     </div>
 
-    <!-- ===============================
-         3. CREDENCIALES SIFEI
-    ==================================-->
+    <!-- SIFEI -->
     <div class="card">
         <h3>🌐 Credenciales WebService SIFEI</h3>
 
@@ -156,20 +84,92 @@
         </select>
     </div>
 
-    <!-- BOTÓN GUARDAR -->
-    <button class="button-save" onclick="guardarConfig()">
-        💾 Guardar Configuración
-    </button>
-
+    <button class="button-save" onclick="guardarConfig()">💾 Guardar Configuración</button>
 </div>
 
-<div class="footer">
-    © 2025 PROVSOFT · Configuración Fiscal – v1.0
-</div>
+<div class="footer">© 2025 PROVSOFT · Configuración Fiscal – v1.0</div>
+
 
 <script>
-function guardarConfig() {
-    alert("Datos guardados localmente (prueba). Falta implementar Supabase/Firebase.");
+// ========== CONFIGURAR SUPABASE ==========
+const SUPA_URL = "TU_URL_AQUI";
+const SUPA_KEY = "TU_PUBLIC_KEY_AQUI";
+
+const supabase = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// =======================
+// CARGAR CONFIGURACIÓN
+// =======================
+async function cargarConfig() {
+    const { data } = await supabase
+        .from("configuracion_fiscal")
+        .select("*")
+        .limit(1)
+        .single();
+
+    if (!data) return;
+
+    document.getElementById("rfc").value = data.rfc ?? "";
+    document.getElementById("razon").value = data.razon_social ?? "";
+    document.getElementById("regimen").value = data.regimen_fiscal ?? "";
+    document.getElementById("cp").value = data.codigo_postal ?? "";
+    document.getElementById("wsUser").value = data.ws_user ?? "";
+    document.getElementById("wsPass").value = data.ws_pass ?? "";
+    document.getElementById("wsModo").value = data.ws_modo ?? "";
+}
+
+cargarConfig();
+
+// =======================
+// SUBIR ARCHIVOS AL BUCKET
+// =======================
+async function uploadFile(file, filename) {
+    if (!file) return null;
+
+    const { data, error } = await supabase
+        .storage.from("csd_files")
+        .upload(filename, file, { upsert: true });
+
+    if (error) {
+        alert("Error subiendo archivo: " + error.message);
+        return null;
+    }
+
+    return data.path;
+}
+
+// =======================
+// GUARDAR CONFIGURACIÓN
+// =======================
+async function guardarConfig() {
+
+    const cerFile = document.getElementById("cerFile").files[0];
+    const keyFile = document.getElementById("keyFile").files[0];
+
+    const cerPath = await uploadFile(cerFile, "certificado.cer");
+    const keyPath = await uploadFile(keyFile, "llave.key");
+
+    const passEncrypted = CryptoJS.AES.encrypt(
+        document.getElementById("csdPass").value,
+        "provsoft-key"
+    ).toString();
+
+    await supabase.from("configuracion_fiscal")
+        .upsert({
+            id: "0001",
+            rfc: document.getElementById("rfc").value,
+            razon_social: document.getElementById("razon").value,
+            regimen_fiscal: document.getElementById("regimen").value,
+            codigo_postal: document.getElementById("cp").value,
+            csd_pass_encrypted: passEncrypted,
+            cer_url: cerPath,
+            key_url: keyPath,
+            ws_user: document.getElementById("wsUser").value,
+            ws_pass: document.getElementById("wsPass").value,
+            ws_modo: document.getElementById("wsModo").value
+        });
+
+    alert("Configuración guardada correctamente ✔");
 }
 </script>
 
