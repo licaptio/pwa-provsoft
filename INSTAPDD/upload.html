@@ -62,6 +62,19 @@
       font-size: 16px;
       background:white;
     }
+  label.btn {
+  display: block;
+  text-align: center;
+  position: relative;
+}
+
+label.btn input[type=file] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
   </style>
 </head>
 <body>
@@ -73,14 +86,23 @@
 
 <!-- 📌 Zona de pegado -->
 <div id="pasteArea">📌 Pega aquí una imagen (Ctrl+V o Windows+Shift+S)</div>
+<!-- 📸 Selección de imagen (Android + Desktop OK) -->
+<label class="btn camera">
+  📷 Tomar foto
+  <input
+    type="file"
+    accept="image/*"
+    capture="environment"
+    onchange="loadPreviewFile(this.files[0])">
+</label>
 
-<!-- 📸 Botones tipo WhatsApp -->
-<button class="btn camera" onclick="openCamera()">📷 Tomar foto</button>
-<button class="btn gallery" onclick="openGallery()">🖼️ Galería</button>
-
-<!-- Inputs ocultos -->
-<input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
-<input type="file" id="galleryInput" accept="image/*" style="display:none">
+<label class="btn gallery">
+  🖼️ Galería
+  <input
+    type="file"
+    accept="image/*"
+    onchange="loadPreviewFile(this.files[0])">
+</label>
 
 <textarea id="caption" rows="3" placeholder="Escribe una nota..."></textarea>
 <input type="text" id="relation" placeholder="Relación (ej: Sergio Aguayo)" />
@@ -93,28 +115,6 @@ const supabase = window.supabase.createClient(
 );
 
 let selectedFile = null;
-
-/* ============================
-   📸 ABRIR CÁMARA
-============================ */
-function openCamera() {
-  document.getElementById("cameraInput").click();
-}
-
-/* ============================
-   🖼️ ABRIR GALERÍA
-============================ */
-function openGallery() {
-  document.getElementById("galleryInput").click();
-}
-
-document.getElementById("cameraInput").addEventListener("change", (e) => {
-  if (e.target.files.length > 0) loadPreviewFile(e.target.files[0]);
-});
-
-document.getElementById("galleryInput").addEventListener("change", (e) => {
-  if (e.target.files.length > 0) loadPreviewFile(e.target.files[0]);
-});
 
 /* ============================
    🧩 PEGADO CTRL+V
