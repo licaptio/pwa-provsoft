@@ -210,13 +210,21 @@ await addDoc(
   }
 }
 // 🔐 CERRAR SESIÓN
+// 🔐 CERRAR SESIÓN
 localStorage.removeItem("usuario_ruta");
 localStorage.removeItem("catalogo_cache");
 localStorage.removeItem("catalogo_fecha");
 
-// 🖨️ IMPRIMIR (ÚNICA VEZ Y ÚLTIMO PASO)
-imprimirRAWBT(texto);
-} // 👈 ESTA LLAVE FALTABA
+// 🟢 OCULTAR OVERLAY ANTES DE IMPRIMIR
+overlayText.textContent = "Corte generado correctamente";
+setTimeout(() => {
+  overlay.style.display = "none";
+}, 300);
+
+// 🖨️ IMPRIMIR **FUERA DEL EVENT LOOP**
+setTimeout(() => {
+  imprimirRAWBT(texto);
+}, 800);
 </script>
 
 <script>
