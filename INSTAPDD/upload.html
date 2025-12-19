@@ -91,17 +91,17 @@ label.btn input[type=file] {
   📷 Tomar foto
   <input
     type="file"
+    id="cameraInput"
     accept="image/*"
-    capture="environment"
-    onchange="loadPreviewFile(this.files[0])">
+    capture="environment">
 </label>
 
 <label class="btn gallery">
   🖼️ Galería
   <input
     type="file"
-    accept="image/*"
-    onchange="loadPreviewFile(this.files[0])">
+    id="galleryInput"
+    accept="image/*">
 </label>
 
 <textarea id="caption" rows="3" placeholder="Escribe una nota..."></textarea>
@@ -115,6 +115,17 @@ const supabase = window.supabase.createClient(
 );
 
 let selectedFile = null;
+document.getElementById("cameraInput").addEventListener("change", (e) => {
+  if (e.target.files && e.target.files.length > 0) {
+    loadPreviewFile(e.target.files[0]);
+  }
+});
+
+document.getElementById("galleryInput").addEventListener("change", (e) => {
+  if (e.target.files && e.target.files.length > 0) {
+    loadPreviewFile(e.target.files[0]);
+  }
+});
 
 /* ============================
    🧩 PEGADO CTRL+V
@@ -137,6 +148,11 @@ document.addEventListener("paste", (event) => {
    🎨 VISTA PREVIA
 ============================ */
 function loadPreviewFile(file) {
+  if (!file) {
+    alert("No se pudo leer la imagen");
+    return;
+  }
+
   selectedFile = file;
 
   const preview = document.getElementById("preview");
