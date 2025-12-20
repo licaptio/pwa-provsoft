@@ -230,7 +230,7 @@ async function reimprimirCorte(corteDoc) {
     };
   }
 
-  await generarPDF(resumen);
+  await generarPDF(resumen, corteDoc);
   overlay.style.display = "none";
 }
 
@@ -244,7 +244,7 @@ async function reimprimirCorte(corteDoc) {
 // No necesitas modificar nada, porque 'resumen' tiene toda la estructura V4 completa.
 // Ejemplo de cómo invocarlo:
 
-async function generarPDF(r) {
+async function generarPDF(r, corte) {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ format: "letter", unit: "mm" });
 
@@ -259,7 +259,56 @@ async function generarPDF(r) {
   pdf.text(`Descuento: $${r.totalDescuento.toFixed(2)}`, 15, 53);
   pdf.text(`Utilidad: $${r.utilidadTotal.toFixed(2)}`, 15, 60);
   pdf.text(`Margen Global: ${r.margenGlobal}%`, 15, 67);
+  let y = 75;
 
+// ====================
+// RESUMEN POR DEPARTAMENTO
+// ====================
+if (corte.vista?.deptosOrdenados?.length) {
+  pdf.setFontSize(11);
+  pdf.text("Resumen por Departamento", 10, y);
+  y += 6;
+
+  pdf.setFontSize(10);
+  corte.vista.deptosOrdenados.forEach(d => {
+    pdf.text(
+      `${d.departamento} | Venta: $${d.venta.toFixed(2)} | Utilidad: $${d.utilidad.toFixed(2)}`,
+      12,
+      y
+    );
+    y += 5;
+
+    if (y > 260) {
+      pdf.addPage();
+      y = 20;
+    }
+  });
+}
+y += 8;
+
+// ====================
+// TOP ARTÍCULOS
+// ====================
+if (corte.vista?.topArticulos?.length) {
+  pdf.setFontSize(11);
+  pdf.text("Top Artículos", 10, y);
+  y += 6;
+
+  pdf.setFontSize(10);
+  corte.vista.topArticulos.forEach(a => {
+    pdf.text(
+      `${a.articulo} | Cant: ${a.cantidad} | Venta: $${a.importe.toFixed(2)}`,
+      12,
+      y
+    );
+    y += 5;
+
+    if (y > 260) {
+      pdf.addPage();
+      y = 20;
+    }
+  });
+}
   // ⚙️ Puedes reusar aquí los gráficos, top artículos, mapa, etc.
   // Por brevedad no se repite todo el Bloque 6 aquí, pero copia literalmente
   // la misma función generarPDF completa del archivo principal.
