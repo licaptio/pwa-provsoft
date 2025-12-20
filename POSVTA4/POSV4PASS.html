@@ -399,15 +399,6 @@ const productosMayoreo = [
   "75071776","75080495","7501020540666"   // 👈 AGREGADO Y LISTO
 ];
 
-function permiteDescuentoPorCodigo(prod) {
-  const codigo = String(prod.codigo || "").trim();
-
-  // ❌ Si está en mayoreo → NO descuento
-  if (productosMayoreo.includes(codigo)) return false;
-
-  // ✅ Solo si el flag es true explícito
-  return prod.permite_descuento === true;
-}
 
 // 🧮 Función que selecciona precio según cantidad
 function obtenerPrecioSegunCantidad(prod, cantidad) {
@@ -597,7 +588,6 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null, // 🔥 FIX
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true,
   }));
 
   // 🔁 RECONSTRUIR ÍNDICES
@@ -644,7 +634,6 @@ catalogo = snap.docs.map(doc => {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null,   // 🔥 ESTE FALTABA
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true
   };
 });
 
@@ -816,8 +805,7 @@ function addProduct(prod, cant = 1) {
       claveSat: prod.claveSat || null,
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
-      iepsTasa: prod.iepsTasa ?? 0,
-      permite_descuento: permiteDescuentoPorCodigo(prod),
+      iepsTasa: prod.iepsTasa ?? 0
     });
 
     renderDebounced();
@@ -846,8 +834,7 @@ function addProduct(prod, cant = 1) {
       claveSat: prod.claveSat || null,
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
-      iepsTasa: prod.iepsTasa ?? 0,
-     permite_descuento: permiteDescuentoPorCodigo(prod),
+      iepsTasa: prod.iepsTasa ?? 0
     });
   }
 
@@ -906,8 +893,8 @@ function calcularTotales(descPorc = 0) {
 carrito.forEach(it => {
   const imp = it.cantidad * it.precioUnit;
 
-  const ivaT  = Number(it.ivaTasa || 0);
-  const iepsT = Number(it.iepsTasa || 0);
+const ivaT  = Number(it.ivaTasa || 0);   // ya viene 0.16
+const iepsT = Number(it.iepsTasa || 0);  // ya viene 0
 
   let base = imp;
   if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
@@ -917,20 +904,13 @@ carrito.forEach(it => {
   const ivaCalc  = +(base * ivaT).toFixed(2);
   const iepsCalc = +(base * iepsT).toFixed(2);
 
-  it.iva_calculado  = ivaCalc;
+  it.iva_calculado = ivaCalc;
   it.ieps_calculado = iepsCalc;
 
   subtotal += base;
   iva += ivaCalc;
   ieps += iepsCalc;
   total += imp;
-
-  // 🔥 AQUÍ SE DEFINE QUIÉN RECIBE DESCUENTO
-  if (it.permite_descuento) {
-    subtotalElegible += base;
-  } else {
-    subtotalNoElegible += base;
-  }
 });
 
   // 🧮 Cálculo seguro de descuentos (sin dividir por cero)
@@ -1447,9 +1427,6 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   cobroTotal.textContent = money(tot.total);
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
-// 🔥 PUNTO 4 — FORZAR ACTUALIZACIÓN DEL POS
-render(descuentoAutorizado);
-localStorage.setItem("desc_porcentaje", descuentoAutorizado);
 
 // 🔥 FIX: Recalcular cambio AUTOMÁTICAMENTE después del descuento
 const pagoActual = parseFloat(montoRecibido.value) || 0;
