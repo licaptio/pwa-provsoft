@@ -69,12 +69,16 @@ async function cargarFechasPendientes(){
   where("rutaId","==",RUTA_USUARIO)
 );
   const snap=await getDocs(q),ventas=snap.docs.map(d=>d.data()),fechas={};
-  ventas.forEach(v => {
+ventas.forEach(v => {
+  // 👇 ignorar ventas ya cortadas
+  if (v.cortado === true) return;
+
   if (v.fecha_txt) {
     const f = v.fecha_txt.split(" ")[0];
     fechas[f] = (fechas[f] || 0) + 1;
   }
 });
+
   selectFecha.innerHTML="<option value=''>Selecciona una fecha pendiente...</option>";
 Object.entries(fechas)
   .sort((a,b)=>{
