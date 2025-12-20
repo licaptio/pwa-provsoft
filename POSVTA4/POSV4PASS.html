@@ -399,6 +399,15 @@ const productosMayoreo = [
   "75071776","75080495","7501020540666"   // 👈 AGREGADO Y LISTO
 ];
 
+function permiteDescuentoPorCodigo(prod) {
+  const codigo = String(prod.codigo || "").trim();
+
+  // ❌ Si está en mayoreo → NO descuento
+  if (productosMayoreo.includes(codigo)) return false;
+
+  // ✅ Solo si el flag es true explícito
+  return prod.permite_descuento === true;
+}
 
 // 🧮 Función que selecciona precio según cantidad
 function obtenerPrecioSegunCantidad(prod, cantidad) {
@@ -588,7 +597,7 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null, // 🔥 FIX
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento !== false,
+    permite_descuento: x.permite_descuento === true,
   }));
 
   // 🔁 RECONSTRUIR ÍNDICES
@@ -635,7 +644,7 @@ catalogo = snap.docs.map(doc => {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null,   // 🔥 ESTE FALTABA
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento !== false,
+    permite_descuento: x.permite_descuento === true
   };
 });
 
@@ -808,7 +817,7 @@ function addProduct(prod, cant = 1) {
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
       iepsTasa: prod.iepsTasa ?? 0,
-      permite_descuento: prod.permite_descuento !== false,
+      permite_descuento: permiteDescuentoPorCodigo(prod),
     });
 
     renderDebounced();
@@ -838,7 +847,7 @@ function addProduct(prod, cant = 1) {
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
       iepsTasa: prod.iepsTasa ?? 0,
-      permite_descuento: prod.permite_descuento !== false,
+     permite_descuento: permiteDescuentoPorCodigo(prod),
     });
   }
 
