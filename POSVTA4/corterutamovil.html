@@ -76,9 +76,19 @@ async function cargarFechasPendientes(){
   }
 });
   selectFecha.innerHTML="<option value=''>Selecciona una fecha pendiente...</option>";
-  Object.entries(fechas).forEach(([f,c])=>{
-    const o=document.createElement("option");o.value=f;o.textContent=`${f} – ${c} ventas pendientes`;selectFecha.appendChild(o);
+Object.entries(fechas)
+  .sort((a,b)=>{
+    const [da,ma,ya] = a[0].split("/").map(Number);
+    const [db,mb,yb] = b[0].split("/").map(Number);
+    return new Date(ya, ma-1, da) - new Date(yb, mb-1, db);
+  })
+  .forEach(([f,c])=>{
+    const o = document.createElement("option");
+    o.value = f;
+    o.textContent = `${f} – ${c} ventas pendientes`;
+    selectFecha.appendChild(o);
   });
+
 }
 
 cargarUsuarioLogueado();
