@@ -34,6 +34,16 @@ import {
 
 const firebaseConfig={apiKey:"AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",authDomain:"inventariopv-643f1.firebaseapp.com",projectId:"inventariopv-643f1",storageBucket:"inventariopv-643f1.appspot.com",messagingSenderId:"96242533231",appId:"1:96242533231:web:aae75a18fbaf9840529e9a"};
 const app=initializeApp(firebaseConfig),db=getFirestore(app);
+// 🧠 GUARDIÁN: si vengo de imprimir, cerrar sesión y volver a login
+(function controlarLogoutPostImpresion(){
+  if(localStorage.getItem("logout_after_print") === "1"){
+    localStorage.removeItem("logout_after_print");
+    localStorage.removeItem("usuario_ruta");
+    localStorage.removeItem("catalogo_cache");
+    localStorage.removeItem("catalogo_fecha");
+    location.href = "index.html"; // LOGIN
+  }
+})();
 
 const selectRuta=document.getElementById("selectRuta"),
 selectFecha=document.getElementById("selectFecha"),
@@ -209,18 +219,14 @@ await addDoc(
     console.error("Error cortando venta:", v.id, e);
   }
 }
-// 🔐 CERRAR SESIÓN
-// 🔐 CERRAR SESIÓN
-localStorage.removeItem("usuario_ruta");
-localStorage.removeItem("catalogo_cache");
-localStorage.removeItem("catalogo_fecha");
 
 // 🟢 OCULTAR OVERLAY ANTES DE IMPRIMIR
 overlayText.textContent = "Corte generado correctamente";
 setTimeout(() => {
   overlay.style.display = "none";
 }, 300);
-
+// 🏁 MARCAR QUE AL REGRESAR SE CIERRA SESIÓN
+localStorage.setItem("logout_after_print", "1");
 // 🖨️ IMPRIMIR **FUERA DEL EVENT LOOP**
 setTimeout(() => {
   imprimirRAWBT(texto);
