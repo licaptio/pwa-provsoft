@@ -208,29 +208,32 @@ await addDoc(
   collection(db,"cortes_globalesV4"),
   snapshotCorte
 );
-
-  for(const v of ventasDia){
+// 🧾 MARCAR TODAS LAS VENTAS COMO CORTADAS
+for(const v of ventasDia){
   try{
     await updateDoc(
-      doc(db,"ventas_rutav2",v.id),
-      { cortado:true }
+      doc(db,"ventas_rutav2", v.id),
+      { cortado: true }
     );
   }catch(e){
     console.error("Error cortando venta:", v.id, e);
   }
 }
 
-// 🟢 OCULTAR OVERLAY ANTES DE IMPRIMIR
-overlayText.textContent = "Corte generado correctamente";
-setTimeout(() => {
-  overlay.style.display = "none";
-}, 300);
-// 🏁 MARCAR QUE AL REGRESAR SE CIERRA SESIÓN
-localStorage.setItem("logout_after_print", "1");
-// 🖨️ IMPRIMIR **FUERA DEL EVENT LOOP**
-setTimeout(() => {
-  imprimirRAWBT(texto);
-}, 800);
+  // 🟢 OCULTAR OVERLAY ANTES DE IMPRIMIR
+  overlayText.textContent = "Corte generado correctamente";
+  setTimeout(() => {
+    overlay.style.display = "none";
+  }, 300);
+
+  // 🏁 MARCAR QUE AL REGRESAR SE CIERRA SESIÓN
+  localStorage.setItem("logout_after_print", "1");
+
+  // 🖨️ IMPRIMIR **FUERA DEL EVENT LOOP**
+  setTimeout(() => {
+    imprimirRAWBT(texto);
+  }, 800);
+} // ✅ AHORA SÍ: FIN DE generarCorteMovil()
 </script>
 
 <script>
