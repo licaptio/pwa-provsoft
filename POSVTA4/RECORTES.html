@@ -145,12 +145,13 @@ async function listarCortes() {
   const q = query(collection(db, "cortes_globalesV4"));
   const snap = await getDocs(q);
 
-  const cortes = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(c =>
-      (!rutaFiltro.value || c.rutaId === rutaFiltro.value) &&
-      (!fechaFiltro.value || c.fecha_corte === fechaFiltro.value)
-    );
+const cortes = snap.docs
+  .map(d => ({ id: d.id, ...d.data() }))
+  .filter(c => {
+    const okRuta = !rutaFiltro.value || c.rutaId === rutaFiltro.value;
+    const okFecha = !fechaFiltro.value || c.fecha_corte === fechaFiltro.value;
+    return okRuta && okFecha;
+  });
 
   if (!cortes.length) {
     tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Sin resultados</td></tr>";
