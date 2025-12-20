@@ -632,6 +632,7 @@ catalogo = snap.docs.map(doc => {
     iepsTasa: Number(x.iepsTasa || 0),
     equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
     departamento_id: x.departamento_id || null,
+    departamento: x.departamento || null,   // 🔥 ESTE FALTABA
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
   };
 });
@@ -779,14 +780,12 @@ function decodificarBalanza(codigo) {
 function addProduct(prod, cant = 1) {
   if (!prod) return;
 
-  cant = parseFloat(cant);
-  // 🛠️ FIX UNIVERSAL: asegurar departamento desde catálogo
-if (!prod.departamento_id || prod.departamento_id === "null" || prod.departamento_id === "undefined") {
-  const prodReal = catalogo.find(x => x.id === prod.id);
-  if (prodReal && prodReal.departamento_id) {
+  const prodReal = catalogoById.get(prod.id);
+
+  if (prodReal) {
     prod.departamento_id = prodReal.departamento_id;
+    prod.departamento = prodReal.departamento;
   }
-}
 
   const existente = carrito.find(x => x.id === prod.id);
 
@@ -841,7 +840,6 @@ if (!prod.departamento_id || prod.departamento_id === "null" || prod.departament
 
   // Mostrar notificación
   mostrarConfirmacionProducto(prod, cant, precioCorrecto);
-
   renderDebounced();
 }
 
@@ -1598,13 +1596,13 @@ const venta = {
     ieps_calculado: it.ieps_calculado,
 
     departamento_id: it.departamento_id,
-    departamento_info: {
-      id: it.departamento_id,
-      nombre: it.departamento || "DESCONOCIDO",
-      iva: Math.round(it.ivaTasa * 100),
-      ieps: Math.round(it.iepsTasa * 100)
-    }
-  }))
+  departamento_info: {
+  id: it.departamento_id,
+  nombre: it.departamento || catalogoById.get(it.id)?.departamento || "DESCONOCIDO",
+  iva: Math.round(it.ivaTasa * 100),
+  ieps: Math.round(it.iepsTasa * 100)
+}
+}))
 };
 
     // 💾 GUARDAR VENTA UNA SOLA VEZ
