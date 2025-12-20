@@ -207,18 +207,33 @@ cortes.forEach(c => {
 // =============================================
 async function reimprimirCorte(corteDoc) {
   overlay.style.display = "flex";
-  const resumen = corteDoc.resumen;
 
+  // 🔹 Caso 1: cortes antiguos (ya traen resumen)
+  let resumen = corteDoc.resumen;
+
+  // 🔹 Caso 2: cortes nuevos (armar resumen desde raíz)
   if (!resumen) {
-    alert("⚠️ Este corte no tiene datos de resumen almacenados.");
-    overlay.style.display = "none";
-    return;
+    if (!corteDoc.totales) {
+      overlay.style.display = "none";
+      alert("⚠️ Este corte no tiene datos suficientes para reimprimir.");
+      return;
+    }
+
+    resumen = {
+      usuario: corteDoc.usuario || corteDoc.realizado_por || "—",
+      rutaId: corteDoc.rutaId,
+      fecha: normalizarFechaCorte(corteDoc.fecha_corte),
+      totalDia: corteDoc.totales.totalDia || 0,
+      totalDescuento: corteDoc.totales.totalDescuento || 0,
+      utilidadTotal: corteDoc.totales.utilidadTotal || 0,
+      margenGlobal: corteDoc.totales.utilidadPorcentaje || "0",
+    };
   }
 
   await generarPDF(resumen);
   overlay.style.display = "none";
-  alert("✅ Reimpresión completada");
 }
+
 
 // =============================================
 // 🧭 BLOQUE 4 — REUTILIZAR FUNCIÓN generarPDF()
