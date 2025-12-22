@@ -6,7 +6,8 @@
 
 <script>
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
+    navigator.serviceWorker.register("service-worker.js?v=8");
+
   }
 </script>
 
@@ -85,23 +86,18 @@ label.btn input[type=file] {
 <img id="preview">
 
 <!-- 📌 Zona de pegado -->
-<div id="pasteArea">📌 Pega aquí una imagen (Ctrl+V o Windows+Shift+S)</div>
+<div id="pasteArea" tabindex="0">
+  📌 Haz clic aquí y pega una imagen (Ctrl+V)
+</div>
+
 <!-- 📸 Selección de imagen (Android + Desktop OK) -->
 <label class="btn camera">
-  📷 Tomar foto
+  📷 Cámara / Galería
   <input
     type="file"
-    id="cameraInput"
+    id="fileInput"
     accept="image/*"
-    capture="environment">
-</label>
-
-<label class="btn gallery">
-  🖼️ Galería
-  <input
-    type="file"
-    id="galleryInput"
-    accept="image/*">
+  >
 </label>
 
 <textarea id="caption" rows="3" placeholder="Escribe una nota..."></textarea>
@@ -115,14 +111,8 @@ const supabase = window.supabase.createClient(
 );
 
 let selectedFile = null;
-document.getElementById("cameraInput").addEventListener("change", (e) => {
-  if (e.target.files && e.target.files.length > 0) {
-    loadPreviewFile(e.target.files[0]);
-  }
-});
-
-document.getElementById("galleryInput").addEventListener("change", (e) => {
-  if (e.target.files && e.target.files.length > 0) {
+document.getElementById("fileInput").addEventListener("change", (e) => {
+  if (e.target.files.length > 0) {
     loadPreviewFile(e.target.files[0]);
   }
 });
@@ -130,18 +120,24 @@ document.getElementById("galleryInput").addEventListener("change", (e) => {
 /* ============================
    🧩 PEGADO CTRL+V
 ============================ */
-document.addEventListener("paste", (event) => {
+const pasteArea = document.getElementById("pasteArea");
+
+pasteArea.addEventListener("click", () => {
+  pasteArea.focus();
+});
+
+pasteArea.addEventListener("paste", (event) => {
   const items = event.clipboardData.items;
 
   for (let i = 0; i < items.length; i++) {
-    if (items[i].type.indexOf("image") !== -1) {
+    if (items[i].type.includes("image")) {
       const file = items[i].getAsFile();
       loadPreviewFile(file);
       return;
     }
   }
 
-  alert("No pegaste una imagen.");
+  alert("⚠️ No pegaste una imagen válida");
 });
 
 /* ============================
