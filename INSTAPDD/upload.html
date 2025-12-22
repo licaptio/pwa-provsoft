@@ -105,7 +105,8 @@ label.btn input[type=file] {
 
 <button class="btn upload" onclick="upload()">🚀 SUBIR FOTO</button>
 <script>
-const supabase = window.supabase.createClient(
+const supa = window.supabase.createClient(
+
   "https://cvpbtjlupswbyxenugpz.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY"
 );
@@ -122,22 +123,44 @@ document.getElementById("fileInput").addEventListener("change", (e) => {
 ============================ */
 const pasteArea = document.getElementById("pasteArea");
 
-pasteArea.addEventListener("click", () => {
-  pasteArea.focus();
-});
 
-pasteArea.addEventListener("paste", (event) => {
-  const items = event.clipboardData.items;
+pasteArea.addEventListener("click", async () => {
+  pasteArea.focus();
+
+  try {
+    const items = await navigator.clipboard.read();
+
+    for (const item of items) {
+      for (const type of item.types) {
+        if (type.startsWith("image/")) {
+          const blob = await item.getType(type);
+          const file = new File([blob], "clipboard.png", { type });
+          loadPreviewFile(file);
+          return;
+        }
+      }
+    }
+
+    alert("⚠️ No hay imagen en el portapapeles");
+  } catch (err) {
+    console.error(err);
+    alert("❌ El navegador bloqueó el acceso al portapapeles");
+  }
+});
+/* ============================
+   🧩 SOPORTE CTRL+V CLÁSICO
+============================ */
+document.addEventListener("paste", (event) => {
+  const items = event.clipboardData?.items;
+  if (!items) return;
 
   for (let i = 0; i < items.length; i++) {
-    if (items[i].type.includes("image")) {
+    if (items[i].type.startsWith("image/")) {
       const file = items[i].getAsFile();
       loadPreviewFile(file);
       return;
     }
   }
-
-  alert("⚠️ No pegaste una imagen válida");
 });
 
 /* ============================
@@ -213,7 +236,7 @@ async function upload() {
 
   const fileName = Date.now() + "-" + compressed.name.replace(/\s+/g, "");
 
-  const { data: uploadData, error: uploadError } = await supabase.storage
+  const { data: uploadData, error: uploadError } = await supa.storage
     .from("bookit")
     .upload(fileName, compressed);
 
@@ -225,7 +248,7 @@ async function upload() {
   // MUY IMPORTANTE: AQUÍ SE GUARDA LA RUTA CORRECTA
   const path = uploadData.path;
 
-  await supabase.from("bookit_entries").insert({
+  await supa.from("bookit_entries").insert({
     image_url: path,
     caption,
     relation
