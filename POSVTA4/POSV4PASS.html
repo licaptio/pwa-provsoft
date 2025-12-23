@@ -889,7 +889,10 @@ function mostrarConfirmacionProducto(prod, cant, precioUnit) {
 }
   
   
-function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+function delItem(id){
+  carrito = carrito.filter(x => x.id !== id);
+  renderDebounced(); // ✅ NO render()
+}
 window.delItem=delItem;
 
 /* ===========================================================
@@ -973,7 +976,6 @@ function render(desc = 0) {
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
           style="width:70px;text-align:center;padding:4px;border-radius:6px;
           border:1px solid #ccc;font-size:14px;"
-          onchange="actualizarCantidad('${it.id}', this.value)"
           oninput="actualizarCantidad('${it.id}', this.value)">
       </td>
       <td style="text-align:right">${money(it.importe)}</td>
@@ -1028,8 +1030,9 @@ let renderTimer;
 
 function renderDebounced() {
   clearTimeout(renderTimer);      // Cancelar render pendiente
-  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
-}
+ renderTimer = setTimeout(() => {
+  render(descuentoAutorizado || 0);
+}, 100);
 
 /* ===========================================================
    ⌨️ SECCIÓN 10: FLUJO DE ENTRADA (BUSCADOR + CANTIDAD)
