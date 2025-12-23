@@ -1029,11 +1029,11 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);      // Cancelar render pendiente
- renderTimer = setTimeout(() => {
-  render(descuentoAutorizado || 0);
-}, 100);
-
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    render(descuentoAutorizado || 0);
+  }, 100);
+}
 /* ===========================================================
    ⌨️ SECCIÓN 10: FLUJO DE ENTRADA (BUSCADOR + CANTIDAD)
    =========================================================== */
