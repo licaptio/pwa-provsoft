@@ -789,6 +789,7 @@ function decodificarBalanza(codigo) {
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
    =========================================================== */
 function addProduct(prod, cant = 1) {
+  prod = structuredClone(prod); // 🔥 CLAVE ABSOLUTA
   if (!prod) return;
 
   const prodReal = catalogoById.get(prod.id);
@@ -820,7 +821,8 @@ function addProduct(prod, cant = 1) {
       permite_descuento: permiteDescuentoPorCodigo(prod),
     });
 
-    renderDebounced();
+   resetearDescuento();
+renderDebounced();
     return;
   }
 
@@ -850,9 +852,9 @@ function addProduct(prod, cant = 1) {
      permite_descuento: permiteDescuentoPorCodigo(prod),
     });
   }
-
   // Mostrar notificación
   mostrarConfirmacionProducto(prod, cant, precioCorrecto);
+  resetearDescuento();
   renderDebounced();
 }
 
@@ -891,9 +893,10 @@ function mostrarConfirmacionProducto(prod, cant, precioUnit) {
   
 function delItem(id){
   carrito = carrito.filter(x => x.id !== id);
-  renderDebounced(); // ✅ NO render()
+  resetearDescuento();     // ✅ importantísimo si el descuento estaba autorizado
+  renderDebounced();       // ✅ NO render()
 }
-window.delItem=delItem;
+window.delItem = delItem;
 
 /* ===========================================================
    🧮 SECCIÓN 8: CÁLCULO DE TOTALES CON DESCUENTO (OPTIMIZADO)
@@ -976,7 +979,7 @@ function render(desc = 0) {
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
           style="width:70px;text-align:center;padding:4px;border-radius:6px;
           border:1px solid #ccc;font-size:14px;"
-          oninput="actualizarCantidad('${it.id}', this.value)">
+          onchange="actualizarCantidad('${it.id}', this.value)"
       </td>
       <td style="text-align:right">${money(it.importe)}</td>
       <td class='del-col'>
@@ -1020,7 +1023,7 @@ function actualizarCantidad(id, nuevaCant) {
 
   // 🧮 Mantener descuento activo automáticamente
   const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
-  render(desc);
+  renderDebounced();
 }
   
 /* ===========================================================
@@ -1034,6 +1037,13 @@ function renderDebounced() {
     render(descuentoAutorizado || 0);
   }, 100);
 }
+  function resetearDescuento() {
+  descuentoAutorizado = 0;
+  localStorage.removeItem("desc_porcentaje");
+  const descuentoInfo = document.getElementById("descuentoInfo");
+  if (descuentoInfo) descuentoInfo.style.display = "none";
+}
+
 /* ===========================================================
    ⌨️ SECCIÓN 10: FLUJO DE ENTRADA (BUSCADOR + CANTIDAD)
    =========================================================== */
@@ -1043,20 +1053,19 @@ let productoTemporal = null;
 
 // 🔁 Escaneo continuo: cada código se agrega directo al carrito
 function seleccionarProducto(prod, pedirCantidad = false) {
-  prod.codigo = prod.codigo || prod.codigoBarra || "";
+  const codigo = prod.codigo || prod.codigoBarra || "";
+
+  const prodSeguro = { ...prod, codigo }; // ✅ copia nueva
 
   if (pedirCantidad) {
-    solicitarCantidadYAgregar(prod);
+    solicitarCantidadYAgregar(prodSeguro);
     return;
   }
 
-  // flujo rápido (scanner / enter)
-  addProduct(prod, 1);
-  beep(950, 0.12);
-  resultadosDiv.style.display = "none";
-  buscador.value = "";
-  buscador.focus();
+  addProduct(prodSeguro, 1);
+  // ...
 }
+
 
 // 📱 Modal con teclado numérico en móviles + beep al abrir
 function solicitarCantidadYAgregar(prod) {
@@ -1251,14 +1260,26 @@ function resetScanner() {
     setTimeout(() => buscador.focus(), 30); // reactiva HID
   }
 }
-
+let ultimoCodigoProcesado = "";
+let ultimoTiempoScan = 0;
+  
 function procesarCodigoEscaneado(codigo) {
+  const ahora = Date.now();
+
+  if (
+    codigo === ultimoCodigoProcesado &&
+    ahora - ultimoTiempoScan < 500
+  ) return;
+
+  ultimoCodigoProcesado = codigo;
+  ultimoTiempoScan = ahora;
+
   const limpio = codigo.trim();
   if (!limpio) return;
 
-  console.log("📦 Código detectado:", limpio);
   beep(950, 0.1);
   ejecutarBusqueda(limpio);
+
   buscador.value = "";
   scanBuffer = "";
   modoScanner = false;
@@ -1456,7 +1477,7 @@ if (lblDescAplicado) {
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
 // 🔥 PUNTO 4 — FORZAR ACTUALIZACIÓN DEL POS
-render(descuentoAutorizado);
+renderDebounced();
 localStorage.setItem("desc_porcentaje", descuentoAutorizado);
 
 // 🔥 FIX: Recalcular cambio AUTOMÁTICAMENTE después del descuento
@@ -1467,17 +1488,6 @@ if (pagoActual > 0) {
 } else {
   montoCambio.textContent = "$0.00";
 }  
-  
-  // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
-  const pago = parseFloat(montoRecibido.value) || 0;
-  if (pago > 0) {
-    const cambio = pago - tot.total;
-    montoCambio.textContent = money(cambio > 0 ? cambio : 0);
-  } else {
-    // si no hay pago todavía, simplemente resetea el cambio
-    montoCambio.textContent = "$0.00";
-  }
-
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
 
