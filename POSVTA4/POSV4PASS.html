@@ -1442,6 +1442,11 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   // ✅ Descuento autorizado
   descuentoAutorizado = porc;
   const tot = calcularTotales(porc);
+  // 🔥 ACTUALIZAR DESCUENTO EN LA PANTALLA PRINCIPAL
+const lblDescAplicado = document.getElementById("descuentoAplicado");
+if (lblDescAplicado) {
+  lblDescAplicado.textContent = money(tot.descuento);
+}
 
   // 🔁 Actualiza visualmente total y resumen
   cobroTotal.textContent = money(tot.total);
