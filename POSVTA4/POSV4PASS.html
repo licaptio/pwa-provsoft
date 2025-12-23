@@ -399,15 +399,6 @@ const productosMayoreo = [
   "75071776","75080495","7501020540666"   // 👈 AGREGADO Y LISTO
 ];
 
-function permiteDescuentoPorCodigo(prod) {
-  const codigo = String(prod.codigo || "").trim();
-
-  // ❌ Si está en mayoreo → NO descuento
-  if (productosMayoreo.includes(codigo)) return false;
-
-  // ✅ Solo si el flag es true explícito
-  return prod.permite_descuento === true;
-}
 
 // 🧮 Función que selecciona precio según cantidad
 function obtenerPrecioSegunCantidad(prod, cantidad) {
@@ -597,7 +588,6 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null, // 🔥 FIX
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true,
   }));
 
   // 🔁 RECONSTRUIR ÍNDICES
@@ -644,7 +634,6 @@ catalogo = snap.docs.map(doc => {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null,   // 🔥 ESTE FALTABA
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true
   };
 });
 
@@ -789,7 +778,6 @@ function decodificarBalanza(codigo) {
    🧮 SECCIÓN 7: CARRITO DE COMPRAS
    =========================================================== */
 function addProduct(prod, cant = 1) {
-  prod = structuredClone(prod); // 🔥 CLAVE ABSOLUTA
   if (!prod) return;
 
   const prodReal = catalogoById.get(prod.id);
@@ -817,12 +805,10 @@ function addProduct(prod, cant = 1) {
       claveSat: prod.claveSat || null,
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
-      iepsTasa: prod.iepsTasa ?? 0,
-      permite_descuento: permiteDescuentoPorCodigo(prod),
+      iepsTasa: prod.iepsTasa ?? 0
     });
 
-   resetearDescuento();
-renderDebounced();
+    renderDebounced();
     return;
   }
 
@@ -848,13 +834,12 @@ renderDebounced();
       claveSat: prod.claveSat || null,
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
-      iepsTasa: prod.iepsTasa ?? 0,
-     permite_descuento: permiteDescuentoPorCodigo(prod),
+      iepsTasa: prod.iepsTasa ?? 0
     });
   }
+
   // Mostrar notificación
   mostrarConfirmacionProducto(prod, cant, precioCorrecto);
-  resetearDescuento();
   renderDebounced();
 }
 
@@ -891,12 +876,8 @@ function mostrarConfirmacionProducto(prod, cant, precioUnit) {
 }
   
   
-function delItem(id){
-  carrito = carrito.filter(x => x.id !== id);
-  resetearDescuento();     // ✅ importantísimo si el descuento estaba autorizado
-  renderDebounced();       // ✅ NO render()
-}
-window.delItem = delItem;
+function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
+window.delItem=delItem;
 
 /* ===========================================================
    🧮 SECCIÓN 8: CÁLCULO DE TOTALES CON DESCUENTO (OPTIMIZADO)
@@ -912,8 +893,8 @@ function calcularTotales(descPorc = 0) {
 carrito.forEach(it => {
   const imp = it.cantidad * it.precioUnit;
 
-  const ivaT  = Number(it.ivaTasa || 0);
-  const iepsT = Number(it.iepsTasa || 0);
+const ivaT  = Number(it.ivaTasa || 0);   // ya viene 0.16
+const iepsT = Number(it.iepsTasa || 0);  // ya viene 0
 
   let base = imp;
   if (iepsT > 0 && ivaT > 0) base = imp / (1 + iepsT + ivaT * (1 + iepsT));
@@ -923,20 +904,13 @@ carrito.forEach(it => {
   const ivaCalc  = +(base * ivaT).toFixed(2);
   const iepsCalc = +(base * iepsT).toFixed(2);
 
-  it.iva_calculado  = ivaCalc;
+  it.iva_calculado = ivaCalc;
   it.ieps_calculado = iepsCalc;
 
   subtotal += base;
   iva += ivaCalc;
   ieps += iepsCalc;
   total += imp;
-
-  // 🔥 AQUÍ SE DEFINE QUIÉN RECIBE DESCUENTO
-  if (it.permite_descuento) {
-    subtotalElegible += base;
-  } else {
-    subtotalNoElegible += base;
-  }
 });
 
   // 🧮 Cálculo seguro de descuentos (sin dividir por cero)
@@ -980,6 +954,7 @@ function render(desc = 0) {
           style="width:70px;text-align:center;padding:4px;border-radius:6px;
           border:1px solid #ccc;font-size:14px;"
           onchange="actualizarCantidad('${it.id}', this.value)"
+          oninput="actualizarCantidad('${it.id}', this.value)">
       </td>
       <td style="text-align:right">${money(it.importe)}</td>
       <td class='del-col'>
@@ -1023,7 +998,7 @@ function actualizarCantidad(id, nuevaCant) {
 
   // 🧮 Mantener descuento activo automáticamente
   const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
-  renderDebounced();
+  render(desc);
 }
   
 /* ===========================================================
@@ -1032,16 +1007,8 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);
-  renderTimer = setTimeout(() => {
-    render(descuentoAutorizado || 0);
-  }, 100);
-}
-  function resetearDescuento() {
-  descuentoAutorizado = 0;
-  localStorage.removeItem("desc_porcentaje");
-  const descuentoInfo = document.getElementById("descuentoInfo");
-  if (descuentoInfo) descuentoInfo.style.display = "none";
+  clearTimeout(renderTimer);      // Cancelar render pendiente
+  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
 }
 
 /* ===========================================================
@@ -1053,19 +1020,20 @@ let productoTemporal = null;
 
 // 🔁 Escaneo continuo: cada código se agrega directo al carrito
 function seleccionarProducto(prod, pedirCantidad = false) {
-  const codigo = prod.codigo || prod.codigoBarra || "";
-
-  const prodSeguro = { ...prod, codigo }; // ✅ copia nueva
+  prod.codigo = prod.codigo || prod.codigoBarra || "";
 
   if (pedirCantidad) {
-    solicitarCantidadYAgregar(prodSeguro);
+    solicitarCantidadYAgregar(prod);
     return;
   }
 
-  addProduct(prodSeguro, 1);
-  // ...
+  // flujo rápido (scanner / enter)
+  addProduct(prod, 1);
+  beep(950, 0.12);
+  resultadosDiv.style.display = "none";
+  buscador.value = "";
+  buscador.focus();
 }
-
 
 // 📱 Modal con teclado numérico en móviles + beep al abrir
 function solicitarCantidadYAgregar(prod) {
@@ -1260,26 +1228,14 @@ function resetScanner() {
     setTimeout(() => buscador.focus(), 30); // reactiva HID
   }
 }
-let ultimoCodigoProcesado = "";
-let ultimoTiempoScan = 0;
-  
+
 function procesarCodigoEscaneado(codigo) {
-  const ahora = Date.now();
-
-  if (
-    codigo === ultimoCodigoProcesado &&
-    ahora - ultimoTiempoScan < 500
-  ) return;
-
-  ultimoCodigoProcesado = codigo;
-  ultimoTiempoScan = ahora;
-
   const limpio = codigo.trim();
   if (!limpio) return;
 
+  console.log("📦 Código detectado:", limpio);
   beep(950, 0.1);
   ejecutarBusqueda(limpio);
-
   buscador.value = "";
   scanBuffer = "";
   modoScanner = false;
@@ -1466,19 +1422,11 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
   // ✅ Descuento autorizado
   descuentoAutorizado = porc;
   const tot = calcularTotales(porc);
-  // 🔥 ACTUALIZAR DESCUENTO EN LA PANTALLA PRINCIPAL
-const lblDescAplicado = document.getElementById("descuentoAplicado");
-if (lblDescAplicado) {
-  lblDescAplicado.textContent = money(tot.descuento);
-}
 
   // 🔁 Actualiza visualmente total y resumen
   cobroTotal.textContent = money(tot.total);
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
-// 🔥 PUNTO 4 — FORZAR ACTUALIZACIÓN DEL POS
-renderDebounced();
-localStorage.setItem("desc_porcentaje", descuentoAutorizado);
 
 // 🔥 FIX: Recalcular cambio AUTOMÁTICAMENTE después del descuento
 const pagoActual = parseFloat(montoRecibido.value) || 0;
@@ -1488,6 +1436,17 @@ if (pagoActual > 0) {
 } else {
   montoCambio.textContent = "$0.00";
 }  
+  
+  // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
+  const pago = parseFloat(montoRecibido.value) || 0;
+  if (pago > 0) {
+    const cambio = pago - tot.total;
+    montoCambio.textContent = money(cambio > 0 ? cambio : 0);
+  } else {
+    // si no hay pago todavía, simplemente resetea el cambio
+    montoCambio.textContent = "$0.00";
+  }
+
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
 
