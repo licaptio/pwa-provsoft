@@ -402,11 +402,13 @@ const productosMayoreo = [
 function permiteDescuentoPorCodigo(prod) {
   const codigo = String(prod.codigo || "").trim();
 
-  // ❌ Si está en mayoreo → NO descuento
+  // ❌ CIGARROS/MAYOREO -> NO descuento
   if (productosMayoreo.includes(codigo)) return false;
 
-  // ✅ Solo si el flag es true explícito
-  return prod.permite_descuento === true;
+  // ✅ Por defecto SÍ permite descuento (a menos que explícitamente lo bloquees)
+  if (prod.permite_descuento === false) return false;
+
+  return true;
 }
 
 // 🧮 Función que selecciona precio según cantidad
@@ -889,8 +891,11 @@ function mostrarConfirmacionProducto(prod, cant, precioUnit) {
 }
   
   
-function delItem(id){ carrito=carrito.filter(x=>x.id!==id); render(); }
-window.delItem=delItem;
+function delItem(id){
+  carrito = carrito.filter(x => x.id !== id);
+  render(descuentoAutorizado || 0);
+}
+window.delItem = delItem;
 
 /* ===========================================================
    🧮 SECCIÓN 8: CÁLCULO DE TOTALES CON DESCUENTO (OPTIMIZADO)
@@ -961,12 +966,7 @@ function acortarNombre(nombre) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render(desc = null) {
-  const descuentoActivo =
-    desc !== null
-      ? desc
-      : Number(localStorage.getItem("desc_porcentaje")) || 0;
-
+function render(desc = 0) {
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
@@ -986,18 +986,15 @@ function render(desc = null) {
     tbody.appendChild(tr);
   });
 
- const { subtotal, descuento, impuestos, total } =
-  calcularTotales(descuentoActivo);
+  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
   $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
 
-  // 🔥 AQUÍ ES DONDE DEBE IR
+  // 🔥 🔥 🔥 FIX FINAL DEL DESCUENTO (ESTO ES LO QUE FALTABA)
   if (modalCobro.style.display === "flex") {
-    const d = Number(localStorage.getItem("desc_porcentaje")) || 0;
-    if (d > 0) {
-      const totCobro = calcularTotales(d);
-      descuentoResumen.textContent = money(totCobro.descuento);
+    if (desc > 0) {
+      descuentoResumen.textContent = money(descuento);
       descuentoInfo.style.display = "block";
     } else {
       descuentoInfo.style.display = "none";
@@ -1032,10 +1029,9 @@ function actualizarCantidad(id, nuevaCant) {
     }
   }
 
-  // 🧮 Mantener descuento autorizado activo
-  const desc = Number(localStorage.getItem("desc_porcentaje")) || 0;
-  descuentoAutorizado = desc;
-  render(descuentoAutorizado);
+  // 🧮 Mantener descuento activo automáticamente
+  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
+  render(desc);
 }
   
 /* ===========================================================
@@ -1044,11 +1040,11 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);
+  clearTimeout(renderTimer);      // Cancelar render pendiente
   renderTimer = setTimeout(() => {
-    const d = Number(localStorage.getItem("desc_porcentaje")) || 0;
-    render(d);
-  }, 100);
+  const d = Number(localStorage.getItem("desc_porcentaje")) || 0;
+  render(d);
+}, 100);
 }
 
 /* ===========================================================
@@ -1409,7 +1405,7 @@ const montoCambio = $("#montoCambio");
 const descuentoInfo = $("#descuentoInfo");
 const descuentoResumen = $("#descuentoResumen");
 
-let descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje")) || 0;
+let descuentoAutorizado = 0;
 
 function abrirCobro() {
   if (carrito.length === 0) {
@@ -1417,15 +1413,18 @@ function abrirCobro() {
     return;
   }
 
-  // 🔥 USAR DESCUENTO ACTIVO
+  // ✅ 1. Cargar descuento ANTES de calcular
   descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje")) || 0;
 
+  // ✅ 2. Calcular totales con descuento REAL
   const tot = calcularTotales(descuentoAutorizado);
 
+  // ✅ 3. Mostrar totales correctos
   cobroTotal.textContent = money(tot.total);
   montoRecibido.value = "";
   montoCambio.textContent = "$0.00";
 
+  // ✅ 4. Mostrar descuento si existe
   if (descuentoAutorizado > 0) {
     descuentoResumen.textContent = money(tot.descuento);
     descuentoInfo.style.display = "block";
@@ -1439,7 +1438,6 @@ function abrirCobro() {
 
 function cerrarCobro() {
   modalCobro.style.display = "none";
-  descuentoAutorizado = 0;
 }
 
 $("#btnCobrar").onclick = abrirCobro;
@@ -1447,51 +1445,46 @@ $("#btnCancelarCobro").onclick = cerrarCobro;
 
 // 💵 Calcular cambio automáticamente
 montoRecibido.addEventListener("input", () => {
-  const pago = parseFloat(montoRecibido.value) || 0;
-
-  // 🔥 SIEMPRE usar descuento activo
-  descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje")) || 0;
-
+  const valRec = parseFloat(montoRecibido.value) || 0;
   const tot = calcularTotales(descuentoAutorizado);
-  montoCambio.textContent = money(Math.max(0, pago - tot.total));
+  const cambio = valRec - tot.total;
+  montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
 // 🔐 Aplicar descuento con contraseña “MADERO690*”
 $("#btnSolicitarDescuento").addEventListener("click", () => {
-
   const porc = parseFloat(prompt("Introduce el descuento (%)"));
   if (isNaN(porc) || porc <= 0 || porc > 100) {
-    alert("Porcentaje inválido");
+    alert("Porcentaje inválido.");
     return;
   }
 
   const pass = prompt("Introduce la contraseña de autorización");
   const CLAVE_DESCUENTO = "MADERO690*";
-
   if (pass !== CLAVE_DESCUENTO) {
-    alert("❌ Contraseña incorrecta");
+    alert("❌ Contraseña incorrecta. No se aplicó el descuento.");
     return;
   }
 
-  // ✅ Guardar descuento autorizado
+  // ✅ 1. Guardar descuento (FUENTE ÚNICA)
   descuentoAutorizado = porc;
   localStorage.setItem("desc_porcentaje", porc);
 
-  // 🔁 Recalcular totales con descuento
+  // ✅ 2. Recalcular totales CON descuento
   const tot = calcularTotales(descuentoAutorizado);
 
-  // 🔄 Actualizar UI del cobro
+  // ✅ 3. Actualizar UI
   cobroTotal.textContent = money(tot.total);
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
 
-  // 🔥 FORZAR actualización del carrito y totales
+  // ✅ 4. Forzar render con descuento
   render(descuentoAutorizado);
 
-  // 🔁 Recalcular cambio si ya hay monto recibido
+  // ✅ 5. Recalcular cambio UNA SOLA VEZ
   const pago = parseFloat(montoRecibido.value) || 0;
   montoCambio.textContent = money(Math.max(0, pago - tot.total));
 
-  alert(`✅ Descuento del ${porc}% aplicado correctamente`);
+  alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
 
 // ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
