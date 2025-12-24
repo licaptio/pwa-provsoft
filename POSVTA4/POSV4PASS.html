@@ -1016,9 +1016,10 @@ function actualizarCantidad(id, nuevaCant) {
     }
   }
 
-  // 🧮 Mantener descuento activo automáticamente
-  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
-  render(desc);
+  // 🧮 Mantener descuento autorizado activo
+  const desc = Number(localStorage.getItem("desc_porcentaje")) || 0;
+  descuentoAutorizado = desc;
+  render(descuentoAutorizado);
 }
   
 /* ===========================================================
@@ -1389,7 +1390,7 @@ const montoCambio = $("#montoCambio");
 const descuentoInfo = $("#descuentoInfo");
 const descuentoResumen = $("#descuentoResumen");
 
-let descuentoAutorizado = 0;
+let descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje")) || 0;
 
 function abrirCobro() {
   if (carrito.length === 0) {
@@ -1397,15 +1398,24 @@ function abrirCobro() {
     return;
   }
 
-  const tot = calcularTotales(0);
+  // 🔥 USAR DESCUENTO ACTIVO
+  descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje")) || 0;
+
+  const tot = calcularTotales(descuentoAutorizado);
+
   cobroTotal.textContent = money(tot.total);
   montoRecibido.value = "";
   montoCambio.textContent = "$0.00";
-  descuentoInfo.style.display = "none";
-  descuentoAutorizado = 0;
+
+  if (descuentoAutorizado > 0) {
+    descuentoResumen.textContent = money(tot.descuento);
+    descuentoInfo.style.display = "block";
+  } else {
+    descuentoInfo.style.display = "none";
+  }
 
   modalCobro.style.display = "flex";
-  $("#montoRecibido").focus();
+  montoRecibido.focus();
 }
 
 function cerrarCobro() {
@@ -1418,59 +1428,51 @@ $("#btnCancelarCobro").onclick = cerrarCobro;
 
 // 💵 Calcular cambio automáticamente
 montoRecibido.addEventListener("input", () => {
-  const valRec = parseFloat(montoRecibido.value) || 0;
+  const pago = parseFloat(montoRecibido.value) || 0;
+
+  // 🔥 SIEMPRE usar descuento activo
+  descuentoAutorizado = Number(localStorage.getItem("desc_porcentaje")) || 0;
+
   const tot = calcularTotales(descuentoAutorizado);
-  const cambio = valRec - tot.total;
-  montoCambio.textContent = money(cambio > 0 ? cambio : 0);
+  montoCambio.textContent = money(Math.max(0, pago - tot.total));
 });
 // 🔐 Aplicar descuento con contraseña “MADERO690*”
-$("#btnSolicitarDescuento").addEventListener("click", async () => {
-  const porcStr = prompt("Introduce el descuento (%)");
-  const porc = parseFloat(porcStr);
+$("#btnSolicitarDescuento").addEventListener("click", () => {
+
+  const porc = parseFloat(prompt("Introduce el descuento (%)"));
   if (isNaN(porc) || porc <= 0 || porc > 100) {
-    alert("Porcentaje inválido."); return;
+    alert("Porcentaje inválido");
+    return;
   }
 
   const pass = prompt("Introduce la contraseña de autorización");
   const CLAVE_DESCUENTO = "MADERO690*";
 
   if (pass !== CLAVE_DESCUENTO) {
-    alert("❌ Contraseña incorrecta. No se aplicó el descuento.");
+    alert("❌ Contraseña incorrecta");
     return;
   }
 
-  // ✅ Descuento autorizado
+  // ✅ Guardar descuento autorizado
   descuentoAutorizado = porc;
-  const tot = calcularTotales(porc);
+  localStorage.setItem("desc_porcentaje", porc);
 
-  // 🔁 Actualiza visualmente total y resumen
+  // 🔁 Recalcular totales con descuento
+  const tot = calcularTotales(descuentoAutorizado);
+
+  // 🔄 Actualizar UI del cobro
   cobroTotal.textContent = money(tot.total);
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
-// 🔥 PUNTO 4 — FORZAR ACTUALIZACIÓN DEL POS
-render(descuentoAutorizado);
-localStorage.setItem("desc_porcentaje", descuentoAutorizado);
 
-// 🔥 FIX: Recalcular cambio AUTOMÁTICAMENTE después del descuento
-const pagoActual = parseFloat(montoRecibido.value) || 0;
-if (pagoActual > 0) {
-  const cambioCalc = pagoActual - tot.total;
-  montoCambio.textContent = money(cambioCalc > 0 ? cambioCalc : 0);
-} else {
-  montoCambio.textContent = "$0.00";
-}  
-  
-  // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
+  // 🔥 FORZAR actualización del carrito y totales
+  render(descuentoAutorizado);
+
+  // 🔁 Recalcular cambio si ya hay monto recibido
   const pago = parseFloat(montoRecibido.value) || 0;
-  if (pago > 0) {
-    const cambio = pago - tot.total;
-    montoCambio.textContent = money(cambio > 0 ? cambio : 0);
-  } else {
-    // si no hay pago todavía, simplemente resetea el cambio
-    montoCambio.textContent = "$0.00";
-  }
+  montoCambio.textContent = money(Math.max(0, pago - tot.total));
 
-  alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
+  alert(`✅ Descuento del ${porc}% aplicado correctamente`);
 });
 
 // ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
