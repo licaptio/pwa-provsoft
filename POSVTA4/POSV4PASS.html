@@ -971,8 +971,6 @@ function render(desc = 0) {
       <td>${acortarNombre(it.nombre)}</td>
       <td style="text-align:center">
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
-          style="width:70px;text-align:center;padding:4px;border-radius:6px;
-          border:1px solid #ccc;font-size:14px;"
           onchange="actualizarCantidad('${it.id}', this.value)"
           oninput="actualizarCantidad('${it.id}', this.value)">
       </td>
@@ -987,6 +985,18 @@ function render(desc = 0) {
   $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
+
+  // 🔥 AQUÍ ES DONDE DEBE IR
+  if (modalCobro.style.display === "flex") {
+    const d = Number(localStorage.getItem("desc_porcentaje")) || 0;
+    if (d > 0) {
+      const totCobro = calcularTotales(d);
+      descuentoResumen.textContent = money(totCobro.descuento);
+      descuentoInfo.style.display = "block";
+    } else {
+      descuentoInfo.style.display = "none";
+    }
+  }
 }
 
 /* ===========================================================
