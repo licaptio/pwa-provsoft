@@ -961,7 +961,12 @@ function acortarNombre(nombre) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render(desc = 0) {
+function render(desc = null) {
+  const descuentoActivo =
+    desc !== null
+      ? desc
+      : Number(localStorage.getItem("desc_porcentaje")) || 0;
+
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
@@ -981,7 +986,8 @@ function render(desc = 0) {
     tbody.appendChild(tr);
   });
 
-  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
+ const { subtotal, descuento, impuestos, total } =
+  calcularTotales(descuentoActivo);
   $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
@@ -1038,8 +1044,11 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);      // Cancelar render pendiente
-  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    const d = Number(localStorage.getItem("desc_porcentaje")) || 0;
+    render(d);
+  }, 100);
 }
 
 /* ===========================================================
