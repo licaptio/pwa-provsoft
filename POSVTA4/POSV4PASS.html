@@ -961,7 +961,7 @@ function acortarNombre(nombre) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render(desc = descuentoAutorizado || 0) {
+function render(desc = 0) {
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
@@ -984,17 +984,9 @@ function render(desc = descuentoAutorizado || 0) {
   });
 
   const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
- $("#lblSubtotal").textContent = money(subtotal);
+  $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
-
-  // 🔥 MOSTRAR DESCUENTO EN PANTALLA
-  if (descuento > 0) {
-    $("#descuentoResumen").textContent = money(descuento);
-    $("#descuentoInfo").style.display = "block";
-  } else {
-    $("#descuentoInfo").style.display = "none";
-  }
 }
 
 /* ===========================================================
@@ -1035,10 +1027,8 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);
-  renderTimer = setTimeout(() => {
-    render(descuentoAutorizado);
-  }, 100);
+  clearTimeout(renderTimer);      // Cancelar render pendiente
+  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
 }
 
 /* ===========================================================
@@ -1648,16 +1638,11 @@ const venta = {
     
     // 🧾 Generar e imprimir ticket
     console.log("🧾 Generando ticket...");
+    rellenarTicket(venta);
+window.__ULTIMOS_TOTALES = calcularTotales(descuentoAutorizado);
 
-    // 🔥 PASAR TOTALES CON DESCUENTO AL TICKET
-const totalesConDescuento = calcularTotales(descuentoAutorizado);
-window.__ULTIMOS_TOTALES = {
-  ...totalesConDescuento,
-  descPorc: descuentoAutorizado
-};
+    imprimirTicketEstilado();
 
-rellenarTicket(venta);
-imprimirTicketEstilado();
 
     // 🧹 Limpieza y regreso
     console.log("✅ Venta completada, limpiando carrito...");
@@ -1778,14 +1763,10 @@ Cliente : ${cliente}
     });
 
     ticket += `--------------------------------
-Subtotal : $${window.__ULTIMOS_TOTALES.subtotal}
-
-Desc. ${window.__ULTIMOS_TOTALES.descPorc || 0}% :
--$${Number(window.__ULTIMOS_TOTALES.descuento || 0).toFixed(2)}
-
-Impuestos: $${window.__ULTIMOS_TOTALES.impuestos}
-Total    : $${window.__ULTIMOS_TOTALES.total}
-
+Subtotal : $${subtotal}
+Desc. ${descPorc}% : $${desc}
+Impuestos: $${imp}
+Total    : $${total}
 Su Pago  : $${pago}
 Cambio   : $${cambio}
 --------------------------------
