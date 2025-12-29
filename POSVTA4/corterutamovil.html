@@ -130,7 +130,7 @@ async function generarCorteMovil(){
 }
 
 
-  let totalDia=0,totalDescuento=0,utilidadTotal=0,porDepto={},porArticulo={},porNota=[];
+  let totalDia=0,totalDescuento=0,utilidadTotal=0,porDepto={},porArticulo={},porDeptoConcentrado={},porNota=[];
   for(const v of ventasDia){
     const rf=v.resumen_financiero||{},total=+rf.total||0,desc=+rf.descuento||+v.descuento_monto||0,costo=+rf.costo_total||0,util=total-costo;
     totalDia+=total;totalDescuento+=desc;utilidadTotal+=util;
@@ -148,8 +148,24 @@ async function generarCorteMovil(){
       porArticulo[art].importe+=imp;
       porArticulo[art].costo+=c;
     }
+      for (const d of (v.detalle || [])) {
+
+  const deptoNombre =
+    d.departamento_info?.nombre?.toUpperCase() || "SIN DEPARTAMENTO";
+
+  const importe = Number(d.importe || 0);
+  const descuento = Number(d.descuento_monto || 0);
+  const ventaNeta = importe - descuento;
+
+  if (!porDeptoConcentrado[deptoNombre]) {
+    porDeptoConcentrado[deptoNombre] = 0;
+  }
+
+  porDeptoConcentrado[deptoNombre] += ventaNeta;
+}
     porNota.push({folio:v.folio||v.id,total,desc,costo,utilidad:util});
   }
+
   const utilidadPorcentaje = totalDia
   ? ((utilidadTotal / (totalDia - totalDescuento)) * 100).toFixed(2)
   : 0;
@@ -172,7 +188,11 @@ VENTA POR DEPARTAMENTO
 --------------------------------
 `;
 
-  listaDeptos.forEach(([d,v])=>texto+=`${d.substring(0,16).padEnd(16)} $${mxn(v.venta)}\n`);
+ Object.entries(porDeptoConcentrado)
+  .sort((a,b)=>b[1]-a[1])
+  .forEach(([d,total])=>{
+    texto += `${d.substring(0,16).padEnd(16)} $${mxn(total)}\n`;
+  });
   texto+=`\n--------------------------------\nTOP ARTICULOS\n--------------------------------\n`;
   topArt.forEach(([n,v])=>{
   const nombre = n.substring(0,20).padEnd(22," ");
