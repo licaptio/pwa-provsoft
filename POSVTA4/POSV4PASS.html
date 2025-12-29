@@ -961,7 +961,7 @@ function acortarNombre(nombre) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render(desc = 0) {
+function render(desc = descuentoAutorizado || 0) {
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
@@ -1638,11 +1638,16 @@ const venta = {
     
     // 🧾 Generar e imprimir ticket
     console.log("🧾 Generando ticket...");
-    rellenarTicket(venta);
-window.__ULTIMOS_TOTALES = calcularTotales(descuentoAutorizado);
 
-    imprimirTicketEstilado();
+    // 🔥 PASAR TOTALES CON DESCUENTO AL TICKET
+const totalesConDescuento = calcularTotales(descuentoAutorizado);
+window.__ULTIMOS_TOTALES = {
+  ...totalesConDescuento,
+  descPorc: descuentoAutorizado
+};
 
+rellenarTicket(venta);
+imprimirTicketEstilado();
 
     // 🧹 Limpieza y regreso
     console.log("✅ Venta completada, limpiando carrito...");
@@ -1763,10 +1768,14 @@ Cliente : ${cliente}
     });
 
     ticket += `--------------------------------
-Subtotal : $${subtotal}
-Desc. ${descPorc}% : $${desc}
-Impuestos: $${imp}
-Total    : $${total}
+Subtotal : $${window.__ULTIMOS_TOTALES.subtotal}
+
+Desc. ${window.__ULTIMOS_TOTALES.descPorc || 0}% :
+-$${window.__ULTIMOS_TOTALES.descuento}
+
+Impuestos: $${window.__ULTIMOS_TOTALES.impuestos}
+Total    : $${window.__ULTIMOS_TOTALES.total}
+
 Su Pago  : $${pago}
 Cambio   : $${cambio}
 --------------------------------
