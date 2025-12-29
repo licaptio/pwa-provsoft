@@ -984,9 +984,17 @@ function render(desc = descuentoAutorizado || 0) {
   });
 
   const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
-  $("#lblSubtotal").textContent = money(subtotal);
+ $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
+
+  // 🔥 MOSTRAR DESCUENTO EN PANTALLA
+  if (descuento > 0) {
+    $("#descuentoResumen").textContent = money(descuento);
+    $("#descuentoInfo").style.display = "block";
+  } else {
+    $("#descuentoInfo").style.display = "none";
+  }
 }
 
 /* ===========================================================
@@ -1027,8 +1035,10 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);      // Cancelar render pendiente
-  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    render(descuentoAutorizado);
+  }, 100);
 }
 
 /* ===========================================================
@@ -1771,7 +1781,7 @@ Cliente : ${cliente}
 Subtotal : $${window.__ULTIMOS_TOTALES.subtotal}
 
 Desc. ${window.__ULTIMOS_TOTALES.descPorc || 0}% :
--$${window.__ULTIMOS_TOTALES.descuento}
+-$${Number(window.__ULTIMOS_TOTALES.descuento || 0).toFixed(2)}
 
 Impuestos: $${window.__ULTIMOS_TOTALES.impuestos}
 Total    : $${window.__ULTIMOS_TOTALES.total}
