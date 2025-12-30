@@ -194,9 +194,19 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 <header>
   <span>POS – Ruta de Venta / Descuento</span>
   <img src="logo_proveedora.webp" alt="Logo">
-
-
 </header>
+
+<div id="usuarioBar" style="
+  background:#0c6cbd;
+  color:#fff;
+  font-size:13px;
+  padding:4px 10px;
+  text-align:center;
+  font-weight:600;
+  letter-spacing:.3px;
+">
+  Usuario: —
+</div>
 
 <!-- 🧩 CUERPO PRINCIPAL -->
 <div class="main-content">
@@ -472,6 +482,9 @@ const msg = document.getElementById("loginMsg");
     const data = snap.docs[0].data();
     USUARIO_LOGUEADO = { id: snap.docs[0].id, ...data };
     rutaId = data.rutaId || null;
+    document.getElementById("usuarioBar").textContent =
+  `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
+
 
     // 💾 Guarda sesión para acceso rápido
     localStorage.setItem("usuario_ruta", JSON.stringify(USUARIO_LOGUEADO));
@@ -514,6 +527,9 @@ $("#btnLogin").onclick = loginUsuario;
   try {
     USUARIO_LOGUEADO = JSON.parse(guardado);
     rutaId = USUARIO_LOGUEADO?.rutaId || null;
+    document.getElementById("usuarioBar").textContent =
+  `Usuario: ${USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario}`;
+
 
     console.log("🔐 Sesión restaurada:", USUARIO_LOGUEADO.nombre || USUARIO_LOGUEADO.usuario);
 
