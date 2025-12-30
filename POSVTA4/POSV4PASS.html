@@ -1072,8 +1072,17 @@ function actualizarCantidad(id, nuevaCant) {
 let renderTimer;
 
 function renderDebounced() {
-  clearTimeout(renderTimer);      // Cancelar render pendiente
-  renderTimer = setTimeout(render, 100); // Esperar 100 ms antes de ejecutar
+  clearTimeout(renderTimer);
+
+  const desc = Number(
+  localStorage.getItem("desc_porcentaje") ??
+  descuentoAutorizado ??
+  0
+);
+
+  renderTimer = setTimeout(() => {
+    render(desc);
+  }, 100);
 }
 
 /* ===========================================================
@@ -1442,12 +1451,15 @@ function abrirCobro() {
     return;
   }
 
+  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
+  descuentoAutorizado = 0;
+
   const tot = calcularTotales(0);
   cobroTotal.textContent = money(tot.total);
+
   montoRecibido.value = "";
   montoCambio.textContent = "$0.00";
   descuentoInfo.style.display = "none";
-  descuentoAutorizado = 0;
 
   modalCobro.style.display = "flex";
   $("#montoRecibido").focus();
@@ -1456,7 +1468,9 @@ function abrirCobro() {
 function cerrarCobro() {
   modalCobro.style.display = "none";
   descuentoAutorizado = 0;
+  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
 }
+
 
 $("#btnCobrar").onclick = abrirCobro;
 $("#btnCancelarCobro").onclick = cerrarCobro;
@@ -1470,50 +1484,28 @@ montoRecibido.addEventListener("input", () => {
 });
 // 🔐 Aplicar descuento con contraseña “MADERO690*”
 $("#btnSolicitarDescuento").addEventListener("click", async () => {
-  const porcStr = prompt("Introduce el descuento (%)");
-  const porc = parseFloat(porcStr);
+  const porc = parseFloat(prompt("Introduce el descuento (%)"));
   if (isNaN(porc) || porc <= 0 || porc > 100) {
     alert("Porcentaje inválido."); return;
   }
 
-  const pass = prompt("Introduce la contraseña de autorización");
-  const CLAVE_DESCUENTO = "MADERO690*";
-
-  if (pass !== CLAVE_DESCUENTO) {
-    alert("❌ Contraseña incorrecta. No se aplicó el descuento.");
-    return;
+  if (prompt("Introduce la contraseña de autorización") !== "MADERO690*") {
+    alert("❌ Contraseña incorrecta."); return;
   }
 
-  // ✅ Descuento autorizado
   descuentoAutorizado = porc;
+  localStorage.setItem("desc_porcentaje", porc);
+
   const tot = calcularTotales(porc);
 
-  // 🔁 Actualiza visualmente total y resumen
   cobroTotal.textContent = money(tot.total);
   descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
-// 🔥 PUNTO 4 — FORZAR ACTUALIZACIÓN DEL POS
-render(descuentoAutorizado);
-localStorage.setItem("desc_porcentaje", descuentoAutorizado);
 
-// 🔥 FIX: Recalcular cambio AUTOMÁTICAMENTE después del descuento
-const pagoActual = parseFloat(montoRecibido.value) || 0;
-if (pagoActual > 0) {
-  const cambioCalc = pagoActual - tot.total;
-  montoCambio.textContent = money(cambioCalc > 0 ? cambioCalc : 0);
-} else {
-  montoCambio.textContent = "$0.00";
-}  
-  
-  // 💵 Si ya hay monto recibido, recalcula el cambio con el nuevo total
+  render(porc);
+
   const pago = parseFloat(montoRecibido.value) || 0;
-  if (pago > 0) {
-    const cambio = pago - tot.total;
-    montoCambio.textContent = money(cambio > 0 ? cambio : 0);
-  } else {
-    // si no hay pago todavía, simplemente resetea el cambio
-    montoCambio.textContent = "$0.00";
-  }
+  montoCambio.textContent = money(pago > 0 ? Math.max(0, pago - tot.total) : 0);
 
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
