@@ -340,6 +340,17 @@ const {
 } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { enableIndexedDbPersistence } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
   const { obtenerUbicacionRobusta } = await import("./geoHelper.js");
+// 🔧 FLAG GLOBAL: apagar/encender geolocalización sin tocar el resto del POS
+const GEO_ACTIVO = false; // false = NO pedir ubicación
+async function obtenerUbicacionSegura() {
+  if (!GEO_ACTIVO) return null;
+  try {
+    return await obtenerUbicacionRobusta();
+  } catch (e) {
+    console.warn("⚠️ Geolocalización desactivada por error:", e);
+    return null;
+  }
+}
 
 // ⚙️ BLOQUE 5: SCRIPT PRINCIPAL (FIREBASE + LÓGICA POS)
 
@@ -1596,7 +1607,7 @@ const venta = {
 
   notas: $("#notasCobro").value || "",
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
-  ubicacion: await obtenerUbicacionRobusta().catch(() => null),
+  ubicacion: await obtenerUbicacionSegura(),
 
   // ✅ AQUÍ VA EL DETALLE (NO SUELTO)
   detalle: carrito.map(it => ({
