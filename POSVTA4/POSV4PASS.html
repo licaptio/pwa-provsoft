@@ -390,6 +390,9 @@ let origenEscaneo = null; // "camara" | "hid" 👈 AQUÍ
 // 🔒 Anti-doble-disparo de escáner
 let ultimoProductoAgregado = null;
 let tiempoUltimoAgregado = 0;
+// 🔒 Bloqueo duro para evitar reprocesar input
+let procesandoAddProducto = false;
+
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
 const catalogoById = new Map();
@@ -821,20 +824,12 @@ function decodificarBalanza(codigo) {
    =========================================================== */
 function addProduct(prod, cant = 1) {
   if (!prod) return;
-    // 🚫 EVITAR DOBLE DISPARO DEL ESCÁNER / INPUT
-  const ahora = Date.now();
-  if (
-    ultimoProductoAgregado === prod.id &&
-    ahora - tiempoUltimoAgregado < 300
-  ) {
-    return;
-  }
 
-  ultimoProductoAgregado = prod.id;
-  tiempoUltimoAgregado = ahora;
+  // 🚫 BLOQUEO DURO
+  if (procesandoAddProducto) return;
+  procesandoAddProducto = true;
 
   const prodReal = catalogoById.get(prod.id);
-
   if (prodReal) {
     prod.departamento_id = prodReal.departamento_id;
     prod.departamento = prodReal.departamento;
@@ -846,7 +841,6 @@ function addProduct(prod, cant = 1) {
   // 🚨 PRODUCTO DE BALANZA
   // -------------------------------
   if (String(prod.codigo || "").startsWith("2")) {
-    
     carrito.push({
       ...prod,
       codigo: prod.codigo || prod.codigoBarra || "",
@@ -863,6 +857,7 @@ function addProduct(prod, cant = 1) {
     });
 
     renderDebounced();
+    liberarAddProducto();
     return;
   }
 
@@ -889,13 +884,21 @@ function addProduct(prod, cant = 1) {
       unidadSat: prod.unidadMedidaSat || null,
       ivaTasa: prod.ivaTasa ?? 0,
       iepsTasa: prod.iepsTasa ?? 0,
-     permite_descuento: permiteDescuentoPorCodigo(prod),
+      permite_descuento: permiteDescuentoPorCodigo(prod),
     });
   }
 
-  // Mostrar notificación
   mostrarConfirmacionProducto(prod, cant, precioCorrecto);
   renderDebounced();
+  liberarAddProducto();
+}
+function liberarAddProducto() {
+  const buscador = document.getElementById("buscarProducto");
+  if (buscador) buscador.value = "";
+
+  setTimeout(() => {
+    procesandoAddProducto = false;
+  }, 150);
 }
 
 /* ===========================================================
