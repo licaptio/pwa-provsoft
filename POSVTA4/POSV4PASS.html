@@ -1028,19 +1028,20 @@ function render(desc = 0) {
     tbody.appendChild(tr);
   });
 
-const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
+  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
 
-$("#lblSubtotal").textContent = money(subtotal);
-$("#lblImpuestos").textContent = money(impuestos);
-$("#lblTotal").textContent = money(total);
+  $("#lblSubtotal").textContent = money(subtotal);
+  $("#lblImpuestos").textContent = money(impuestos);
+  $("#lblTotal").textContent = money(total);
 
-if (descuento > 0) {
-  descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
-  descuentoInfo.style.display = "block";
-} else {
-  descuentoInfo.textContent = "Descuento aplicado: $0.00";
-}
-
+  if (descuento > 0) {
+    descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
+    descuentoInfo.style.display = "block";
+  } else {
+    descuentoInfo.textContent = "Descuento aplicado: $0.00";
+    descuentoInfo.style.display = "block";
+  }
+} // ✅ ESTA LLAVE FALTABA
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
    =========================================================== */  
