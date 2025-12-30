@@ -387,9 +387,13 @@ let rutaId = null;
 let USUARIO_LOGUEADO = null;
 let clienteSeleccionado = null;
 let origenEscaneo = null; // "camara" | "hid" 👈 AQUÍ
+// 🔒 Anti-doble-disparo de escáner
+let ultimoProductoAgregado = null;
+let tiempoUltimoAgregado = 0;
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
 const catalogoById = new Map();
+  
 
 
 /* ===========================================================
@@ -817,6 +821,17 @@ function decodificarBalanza(codigo) {
    =========================================================== */
 function addProduct(prod, cant = 1) {
   if (!prod) return;
+    // 🚫 EVITAR DOBLE DISPARO DEL ESCÁNER / INPUT
+  const ahora = Date.now();
+  if (
+    ultimoProductoAgregado === prod.id &&
+    ahora - tiempoUltimoAgregado < 300
+  ) {
+    return;
+  }
+
+  ultimoProductoAgregado = prod.id;
+  tiempoUltimoAgregado = ahora;
 
   const prodReal = catalogoById.get(prod.id);
 
