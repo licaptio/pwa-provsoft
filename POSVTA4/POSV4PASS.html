@@ -320,7 +320,6 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   <div id="descuentoInfo"
        style="font-size:15px;color:#00416A;font-weight:600;
               text-align:right;display:none;">
-    Descuento aplicado: <span id="descuentoResumen">$0.00</span>
   </div>
 
   <!-- 🔘 Botones principales -->
@@ -893,7 +892,7 @@ function addProduct(prod, cant = 1) {
   liberarAddProducto();
 }
 function liberarAddProducto() {
-  const buscador = document.getElementById("buscarProducto");
+  const buscador = document.getElementById("buscador");
   if (buscador) buscador.value = "";
 
   setTimeout(() => {
@@ -1034,14 +1033,14 @@ function render(desc = 0) {
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
 
-  if (descuento > 0) {
-    descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
-    descuentoInfo.style.display = "block";
-  } else {
-    descuentoInfo.textContent = "Descuento aplicado: $0.00";
-    descuentoInfo.style.display = "block";
-  }
-} // ✅ ESTA LLAVE FALTABA
+if (descuento > 0) {
+  descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
+  descuentoInfo.style.display = "block";
+} else {
+  descuentoInfo.textContent = "Descuento aplicado: $0.00";
+  descuentoInfo.style.display = "block";
+}
+} // 👈 CIERRA function render()
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
    =========================================================== */  
@@ -1449,7 +1448,7 @@ const cobroTotal = $("#cobroTotal");
 const montoRecibido = $("#montoRecibido");
 const montoCambio = $("#montoCambio");
 const descuentoInfo = $("#descuentoInfo");
-const descuentoResumen = $("#descuentoResumen");
+
 
 let descuentoAutorizado = 0;
 
@@ -1509,7 +1508,6 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
 descuentoInfo.style.display = "block";
 
   cobroTotal.textContent = money(tot.total);
-  descuentoResumen.textContent = money(tot.descuento);
   descuentoInfo.style.display = "block";
 
   render(porc);
