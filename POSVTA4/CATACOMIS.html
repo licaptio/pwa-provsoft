@@ -44,6 +44,10 @@ button{
   cursor:pointer
 }
 button:active{transform:scale(.97)}
+button:disabled{
+  opacity:.6;
+  cursor:not-allowed
+}
 
 .badge{
   background:#c0392b;
@@ -56,6 +60,39 @@ button:active{transform:scale(.97)}
 
 .ok{
   background:#1e8e3e!important
+}
+
+/* 🔒 OVERLAY */
+#overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+#overlay .box{
+  background:#fff;
+  padding:25px 35px;
+  border-radius:12px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,.3)
+}
+
+.spinner{
+  width:38px;
+  height:38px;
+  border:4px solid #ddd;
+  border-top:4px solid #0c6cbd;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
 }
 </style>
 </head>
@@ -82,6 +119,15 @@ Se aplica a <b>todos los productos activos</b> del departamento.
 <tbody></tbody>
 </table>
 
+<!-- 🔒 OVERLAY -->
+<div id="overlay">
+  <div class="box">
+    <div class="spinner"></div>
+    <b>Actualizando productos…</b>
+    <div class="small">Por favor espera</div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -99,8 +145,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* 🔒 BLOQUEO UI */
+function bloquearUI(){
+  document.getElementById("overlay").style.display="flex";
+  document.querySelectorAll("button,input,select")
+    .forEach(el=>el.disabled=true);
+}
+function desbloquearUI(){
+  document.getElementById("overlay").style.display="none";
+  document.querySelectorAll("button,input,select")
+    .forEach(el=>el.disabled=false);
+}
+
 /* ======================================================
-   OBTENER DEPARTAMENTOS DESDE PRODUCTOS ACTIVOS
+   OBTENER DEPARTAMENTOS
    ====================================================== */
 async function obtenerDepartamentos() {
   const snap = await getDocs(
@@ -108,7 +166,6 @@ async function obtenerDepartamentos() {
   );
 
   const map = new Map();
-
   snap.forEach(d => {
     const p = d.data();
     if (p.departamento_id) {
@@ -141,21 +198,15 @@ async function render() {
         ${dep.nombre}
         ${sinNombre ? `<span class="badge">SIN NOMBRE</span>` : ""}
       </td>
-      <td>
-        <input placeholder="Nuevo nombre (opcional)">
-      </td>
+      <td><input placeholder="Nuevo nombre (opcional)"></td>
       <td>
         <select>
           <option value="porcentaje">%</option>
           <option value="pieza">$ / pza</option>
         </select>
       </td>
-      <td>
-        <input type="number" step="0.01" value="0">
-      </td>
-      <td>
-        <button>💾 Aplicar</button>
-      </td>
+      <td><input type="number" step="0.01" value="0"></td>
+      <td><button>💾 Aplicar</button></td>
     `;
 
     const inpNombre = tr.querySelector("input");
@@ -164,45 +215,47 @@ async function render() {
     const btn = tr.querySelector("button");
 
     btn.onclick = async () => {
-      const nuevoNombre =
-        inpNombre.value.trim().toUpperCase() || dep.nombre;
+      try{
+        const nuevoNombre =
+          inpNombre.value.trim().toUpperCase() || dep.nombre;
+        const tipo = sel.value;
+        const valor = Number(inpValor.value) || 0;
 
-      const tipo = sel.value;
-      const valor = Number(inpValor.value) || 0;
+        if(!confirm(
+          `Aplicar cambios al departamento "${dep.id}"?\n\n` +
+          `Nombre: ${nuevoNombre}\n` +
+          `Comisión: ${tipo} ${valor}`
+        )) return;
 
-      if (!confirm(
-        `Aplicar cambios al departamento "${dep.id}"?\n\n` +
-        `Nombre: ${nuevoNombre}\n` +
-        `Comisión: ${tipo} ${valor}`
-      )) return;
+        bloquearUI();
 
-      const snap = await getDocs(
-        query(
+        const snap = await getDocs(query(
           collection(db,"productos"),
           where("activo","==",true),
           where("departamento_id","==",dep.id)
-        )
-      );
+        ));
 
-      let total = 0;
+        let total=0;
+        for(const d of snap.docs){
+          await updateDoc(d.ref,{
+            departamento:nuevoNombre,
+            comision_tipo:tipo,
+            comision_valor:valor,
+            updatedAt:serverTimestamp()
+          });
+          total++;
+        }
 
-      for (const d of snap.docs) {
-        await updateDoc(d.ref, {
-          departamento: nuevoNombre,
-          comision_tipo: tipo,
-          comision_valor: valor,
-          updatedAt: serverTimestamp()
-        });
-        total++;
+        alert(`✅ ${total} productos actualizados`);
+        btn.textContent="✔ Listo";
+        btn.classList.add("ok");
+
+      }catch(err){
+        console.error("🔥 ERROR:",err);
+        alert("❌ Error al actualizar, revisa consola");
+      }finally{
+        desbloquearUI();
       }
-
-      btn.textContent = "✔ Listo";
-      btn.classList.add("ok");
-      inpNombre.disabled = true;
-      inpValor.disabled = true;
-      sel.disabled = true;
-
-      alert(`✅ ${total} productos actualizados`);
     };
 
     tbody.appendChild(tr);
