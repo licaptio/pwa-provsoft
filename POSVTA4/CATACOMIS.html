@@ -97,7 +97,8 @@ async function render() {
   const tbody = document.querySelector("#tabla tbody");
   tbody.innerHTML = "";
 
-  const departamentos = await obtenerDepartamentosDesdeProductos();
+const departamentos = (await obtenerDepartamentosDesdeProductos())
+  .sort((a, b) => Number(a.id) - Number(b.id));
   const configMap = await obtenerConfigComisiones();
 
   departamentos.forEach(dep => {
