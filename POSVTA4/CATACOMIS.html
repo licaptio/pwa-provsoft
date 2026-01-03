@@ -2,129 +2,79 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Departamentos y Comisiones – PROVSOFT</title>
+<title>Control de Departamentos y Comisiones – PROVSOFT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  font-family:Poppins,Arial;
-  background:#f4f6f8;
-  padding:20px
-}
+body{font-family:Poppins,Arial;background:#f4f6f8;padding:20px}
 h2{margin-bottom:6px}
 .small{font-size:12px;color:#666;margin-bottom:12px}
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff
-}
-th,td{
-  border:1px solid #ddd;
-  padding:8px;
-  font-size:14px
-}
-th{
-  background:#00416A;
-  color:#fff
-}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border:1px solid #ddd;padding:8px;font-size:14px}
+th{background:#00416A;color:#fff}
 
-input,select{
-  padding:6px;
-  width:100%;
-  box-sizing:border-box
-}
+input,select{padding:6px;width:100%;box-sizing:border-box}
 
 button{
-  padding:6px 12px;
-  border:none;
-  border-radius:6px;
-  background:#0c6cbd;
-  color:#fff;
-  cursor:pointer
+  padding:6px 10px;border:none;border-radius:6px;
+  background:#0c6cbd;color:#fff;cursor:pointer
 }
-button:active{transform:scale(.97)}
-button:disabled{
-  opacity:.6;
-  cursor:not-allowed
-}
+button.ok{background:#1e8e3e}
+button.warn{background:#e67e22}
 
-.badge{
-  background:#c0392b;
-  color:#fff;
-  font-size:11px;
-  padding:3px 6px;
-  border-radius:6px;
-  margin-left:6px
-}
+.badge{font-size:11px;padding:2px 6px;border-radius:6px;color:#fff}
+.badge.ok{background:#1e8e3e}
+.badge.warn{background:#e67e22}
 
-.ok{
-  background:#1e8e3e!important
-}
-
-/* 🔒 OVERLAY */
+/* OVERLAY */
 #overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  display:none;align-items:center;justify-content:center;z-index:9999
 }
-
 #overlay .box{
-  background:#fff;
-  padding:25px 35px;
-  border-radius:12px;
-  text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,.3)
+  background:#fff;padding:20px;border-radius:12px;
+  text-align:center;width:260px
 }
-
 .spinner{
-  width:38px;
-  height:38px;
-  border:4px solid #ddd;
-  border-top:4px solid #0c6cbd;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin:0 auto 12px
+  width:36px;height:36px;border:4px solid #ddd;
+  border-top-color:#0c6cbd;border-radius:50%;
+  animation:spin 1s linear infinite;margin:0 auto 10px
 }
-
-@keyframes spin{
-  to{transform:rotate(360deg)}
-}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
 
-<h2>⚙️ Departamentos y Comisiones</h2>
+<h2>⚙️ Control de Departamentos y Comisiones</h2>
 <div class="small">
-Renombra departamentos y asigna comisión.  
-Se aplica a <b>todos los productos activos</b> del departamento.
+Recorre productos activos, detecta comisión dominante y completa al 100 % si falta.
 </div>
 
 <table id="tabla">
 <thead>
 <tr>
   <th>ID</th>
-  <th>Nombre actual</th>
+  <th>Departamento</th>
   <th>Nuevo nombre</th>
-  <th>Tipo comisión</th>
-  <th>Valor</th>
-  <th>Aplicar</th>
+  <th>Comisión dominante</th>
+  <th>Estado</th>
+  <th>Acción</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
 
-<!-- 🔒 OVERLAY -->
+<!-- OVERLAY -->
 <div id="overlay">
   <div class="box">
     <div class="spinner"></div>
-    <b>Actualizando productos…</b>
-    <div class="small">Por favor espera</div>
+    <b>Procesando…</b>
+    <div class="small" id="progressText">0 / 0</div>
+    <div style="margin-top:8px;background:#eee;border-radius:6px;overflow:hidden">
+      <div id="bar" style="height:10px;width:0%;background:#0c6cbd"></div>
+    </div>
   </div>
 </div>
 
@@ -135,134 +85,132 @@ import {
   updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
-const firebaseConfig = {
+/* FIREBASE */
+const app = initializeApp({
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
-};
-
-const app = initializeApp(firebaseConfig);
+  projectId: "inventariopv-643f1"
+});
 const db = getFirestore(app);
 
-/* 🔒 BLOQUEO UI */
-function bloquearUI(){
-  document.getElementById("overlay").style.display="flex";
-  document.querySelectorAll("button,input,select")
-    .forEach(el=>el.disabled=true);
-}
-function desbloquearUI(){
-  document.getElementById("overlay").style.display="none";
-  document.querySelectorAll("button,input,select")
-    .forEach(el=>el.disabled=false);
-}
+/* UI */
+const overlay = document.getElementById("overlay");
+const bar = document.getElementById("bar");
+const progressText = document.getElementById("progressText");
 
-/* ======================================================
-   OBTENER DEPARTAMENTOS
-   ====================================================== */
-async function obtenerDepartamentos() {
-  const snap = await getDocs(
-    query(collection(db, "productos"), where("activo", "==", true))
+function start(total){
+  overlay.style.display="flex";
+  bar.style.width="0%";
+  progressText.textContent=`0 / ${total}`;
+}
+function step(i,total){
+  bar.style.width=Math.round((i/total)*100)+"%";
+  progressText.textContent=`${i} / ${total}`;
+}
+function stop(){overlay.style.display="none";}
+
+/* LOAD */
+async function cargar(){
+  const tbody=document.querySelector("#tabla tbody");
+  tbody.innerHTML="";
+
+  const snapAll = await getDocs(
+    query(collection(db,"productos"), where("activo","==",true))
   );
 
-  const map = new Map();
-  snap.forEach(d => {
-    const p = d.data();
-    if (p.departamento_id) {
-      map.set(p.departamento_id, {
-        id: p.departamento_id,
-        nombre: p.departamento || "SIN NOMBRE"
+  const porDepto = new Map();
+
+  snapAll.forEach(d=>{
+    const p=d.data();
+    if(!p.departamento_id) return;
+    if(!porDepto.has(p.departamento_id)){
+      porDepto.set(p.departamento_id,{
+        id:p.departamento_id,
+        nombre:p.departamento||"SIN NOMBRE",
+        docs:[]
       });
+    }
+    porDepto.get(p.departamento_id).docs.push(d);
+  });
+
+  [...porDepto.values()]
+    .sort((a,b)=>Number(a.id)-Number(b.id))
+    .forEach(dep=>{
+      renderFila(dep,tbody);
+    });
+}
+
+function renderFila(dep,tbody){
+  const tr=document.createElement("tr");
+
+  /* detectar comisión dominante */
+  const count=new Map();
+  dep.docs.forEach(d=>{
+    const p=d.data();
+    if(p.comision_tipo!=null){
+      const k=`${p.comision_tipo}|${p.comision_valor}`;
+      count.set(k,(count.get(k)||0)+1);
     }
   });
 
-  return [...map.values()].sort((a,b)=>Number(a.id)-Number(b.id));
-}
+  let dominante=null,max=0;
+  for(const [k,v] of count){if(v>max){max=v;dominante=k}}
 
-/* ======================================================
-   RENDER
-   ====================================================== */
-async function render() {
-  const tbody = document.querySelector("#tabla tbody");
-  tbody.innerHTML = "";
+  let tipo="-",valor="-",pct=0,faltan=dep.docs.length;
+  if(dominante){
+    [tipo,valor]=dominante.split("|");
+    pct=Math.round((max/dep.docs.length)*100);
+    faltan=dep.docs.length-max;
+  }
 
-  const deps = await obtenerDepartamentos();
+  tr.innerHTML=`
+    <td>${dep.id}</td>
+    <td>${dep.nombre}</td>
+    <td><input placeholder="Nuevo nombre"></td>
+    <td>${dominante?`${tipo} ${valor}`:"—"}</td>
+    <td>
+      ${pct===100
+        ? `<span class="badge ok">100 % ✔</span>`
+        : `<span class="badge warn">${pct} % (${faltan} faltan)</span>`}
+    </td>
+    <td>
+      ${pct<100 && dominante
+        ? `<button class="warn">Completar 100 %</button>`
+        : `<button class="ok" disabled>OK</button>`}
+    </td>
+  `;
 
-  deps.forEach(dep => {
-    const tr = document.createElement("tr");
-    const sinNombre = dep.nombre === "SIN NOMBRE";
+  const inp=tr.querySelector("input");
+  const btn=tr.querySelector("button");
 
-    tr.innerHTML = `
-      <td>${dep.id}</td>
-      <td>
-        ${dep.nombre}
-        ${sinNombre ? `<span class="badge">SIN NOMBRE</span>` : ""}
-      </td>
-      <td><input placeholder="Nuevo nombre (opcional)"></td>
-      <td>
-        <select>
-          <option value="porcentaje">%</option>
-          <option value="pieza">$ / pza</option>
-        </select>
-      </td>
-      <td><input type="number" step="0.01" value="0"></td>
-      <td><button>💾 Aplicar</button></td>
-    `;
+  if(pct<100 && dominante){
+    btn.onclick=async()=>{
+      if(!confirm(`Completar comisión ${tipo} ${valor} para ${faltan} productos?`))return;
+      start(faltan);
+      let i=0;
 
-    const inpNombre = tr.querySelector("input");
-    const sel = tr.querySelector("select");
-    const inpValor = tr.querySelectorAll("input")[1];
-    const btn = tr.querySelector("button");
-
-    btn.onclick = async () => {
-      try{
-        const nuevoNombre =
-          inpNombre.value.trim().toUpperCase() || dep.nombre;
-        const tipo = sel.value;
-        const valor = Number(inpValor.value) || 0;
-
-        if(!confirm(
-          `Aplicar cambios al departamento "${dep.id}"?\n\n` +
-          `Nombre: ${nuevoNombre}\n` +
-          `Comisión: ${tipo} ${valor}`
-        )) return;
-
-        bloquearUI();
-
-        const snap = await getDocs(query(
-          collection(db,"productos"),
-          where("activo","==",true),
-          where("departamento_id","==",dep.id)
-        ));
-
-        let total=0;
-        for(const d of snap.docs){
+      for(const d of dep.docs){
+        const p=d.data();
+        if(p.comision_tipo!==tipo || p.comision_valor!=Number(valor)){
+          i++;
           await updateDoc(d.ref,{
-            departamento:nuevoNombre,
             comision_tipo:tipo,
-            comision_valor:valor,
+            comision_valor:Number(valor),
+            departamento: inp.value.trim().toUpperCase()||dep.nombre,
             updatedAt:serverTimestamp()
           });
-          total++;
+          step(i,faltan);
         }
-
-        alert(`✅ ${total} productos actualizados`);
-        btn.textContent="✔ Listo";
-        btn.classList.add("ok");
-
-      }catch(err){
-        console.error("🔥 ERROR:",err);
-        alert("❌ Error al actualizar, revisa consola");
-      }finally{
-        desbloquearUI();
       }
+      stop();
+      cargar();
     };
+  }
 
-    tbody.appendChild(tr);
-  });
+  tbody.appendChild(tr);
 }
 
-render();
+cargar();
 </script>
 
 </body>
