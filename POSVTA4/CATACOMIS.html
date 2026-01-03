@@ -39,7 +39,7 @@ button:active{transform:scale(.97)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, getDocs, query, where,
-  doc, setDoc, serverTimestamp
+  doc, updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* 🔥 TU CONFIG */
@@ -81,16 +81,6 @@ async function obtenerDepartamentosDesdeProductos() {
 }
 
 /* ======================================================
-   2️⃣ LEER CONFIGURACIÓN EXISTENTE
-   ====================================================== */
-async function obtenerConfigComisiones() {
-  const snap = await getDocs(collection(db, "departamentos_config"));
-  const map = new Map();
-  snap.forEach(d => map.set(d.id, d.data()));
-  return map;
-}
-
-/* ======================================================
    3️⃣ RENDER TABLA
    ====================================================== */
 async function render() {
@@ -99,8 +89,7 @@ async function render() {
 
 const departamentos = (await obtenerDepartamentosDesdeProductos())
   .sort((a, b) => Number(a.id) - Number(b.id));
-  const configMap = await obtenerConfigComisiones();
-
+  
   departamentos.forEach(dep => {
     const conf = configMap.get(dep.id) || {};
     const tr = document.createElement("tr");
@@ -129,20 +118,7 @@ const departamentos = (await obtenerDepartamentosDesdeProductos())
     sel.value = conf.comision_tipo || "porcentaje";
     inp.value = conf.comision_valor ?? 0;
 
-    btn.onclick = async () => {
-      await setDoc(
-        doc(db, "departamentos_config", dep.id),
-        {
-          nombre: dep.nombre,
-          comision_tipo: sel.value,
-          comision_valor: Number(inp.value),
-          activo: true,
-          updatedAt: serverTimestamp()
-        },
-        { merge: true }
-      );
-      alert("✅ Comisión guardada");
-    };
+btn.onclick = async () => {
 
     tbody.appendChild(tr);
   });
