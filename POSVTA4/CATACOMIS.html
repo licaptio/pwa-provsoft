@@ -20,7 +20,7 @@ button:active{transform:scale(.97)}
 <body>
 
 <h2>⚙️ Configuración de Comisiones</h2>
-<div class="small">Departamentos detectados desde productos activos</div>
+<div class="small">Esto actualiza la comisión directamente en los productos (SKUs)</div>
 
 <table id="tabla">
 <thead>
@@ -29,7 +29,7 @@ button:active{transform:scale(.97)}
   <th>Departamento</th>
   <th>Tipo</th>
   <th>Valor</th>
-  <th>Guardar</th>
+  <th>Aplicar</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -39,32 +39,26 @@ button:active{transform:scale(.97)}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, getDocs, query, where,
-  doc, updateDoc, serverTimestamp
+  updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* 🔥 TU CONFIG */
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
   projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.firebasestorage.app",
-  messagingSenderId: "96242533231",
-  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 /* ======================================================
-   1️⃣ LEER PRODUCTOS ACTIVOS Y EXTRAER DEPARTAMENTOS
+   1️⃣ OBTENER DEPARTAMENTOS DESDE PRODUCTOS ACTIVOS
    ====================================================== */
-async function obtenerDepartamentosDesdeProductos() {
-  const q = query(
-    collection(db, "productos"),
-    where("activo", "==", true)
-  );
-
+async function obtenerDepartamentos() {
+  const q = query(collection(db, "productos"), where("activo", "==", true));
   const snap = await getDocs(q);
+
   const map = new Map();
 
   snap.forEach(d => {
@@ -77,21 +71,20 @@ async function obtenerDepartamentosDesdeProductos() {
     }
   });
 
-  return Array.from(map.values());
+  return Array.from(map.values())
+    .sort((a, b) => Number(a.id) - Number(b.id));
 }
 
 /* ======================================================
-   3️⃣ RENDER TABLA
+   2️⃣ RENDER Y APLICAR COMISIÓN A SKUs
    ====================================================== */
 async function render() {
   const tbody = document.querySelector("#tabla tbody");
   tbody.innerHTML = "";
 
-const departamentos = (await obtenerDepartamentosDesdeProductos())
-  .sort((a, b) => Number(a.id) - Number(b.id));
-  
+  const departamentos = await obtenerDepartamentos();
+
   departamentos.forEach(dep => {
-    const conf = configMap.get(dep.id) || {};
     const tr = document.createElement("tr");
 
     tr.innerHTML = `
@@ -104,10 +97,10 @@ const departamentos = (await obtenerDepartamentosDesdeProductos())
         </select>
       </td>
       <td>
-        <input type="number" step="0.01" style="width:80px">
+        <input type="number" step="0.01" value="0" style="width:80px">
       </td>
       <td>
-        <button>💾</button>
+        <button>💾 Aplicar</button>
       </td>
     `;
 
@@ -115,10 +108,31 @@ const departamentos = (await obtenerDepartamentosDesdeProductos())
     const inp = tr.querySelector("input");
     const btn = tr.querySelector("button");
 
-    sel.value = conf.comision_tipo || "porcentaje";
-    inp.value = conf.comision_valor ?? 0;
+    btn.onclick = async () => {
+      if (!confirm(`Aplicar comisión a TODOS los productos de "${dep.nombre}"?`)) {
+        return;
+      }
 
-btn.onclick = async () => {
+      const q = query(
+        collection(db, "productos"),
+        where("activo", "==", true),
+        where("departamento_id", "==", dep.id)
+      );
+
+      const snap = await getDocs(q);
+      let total = 0;
+
+      for (const d of snap.docs) {
+        await updateDoc(d.ref, {
+          comision_tipo: sel.value,
+          comision_valor: Number(inp.value),
+          updatedAt: serverTimestamp()
+        });
+        total++;
+      }
+
+      alert(`✅ Comisión aplicada a ${total} productos`);
+    };
 
     tbody.appendChild(tr);
   });
