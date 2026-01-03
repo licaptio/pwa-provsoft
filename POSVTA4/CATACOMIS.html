@@ -2,30 +2,31 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Control de Departamentos y Comisiones – PROVSOFT</title>
+<title>Control Dominante de Comisiones – PROVSOFT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{font-family:Poppins,Arial;background:#f4f6f8;padding:20px}
-h2{margin-bottom:6px}
+h2{margin-bottom:4px}
 .small{font-size:12px;color:#666;margin-bottom:12px}
 
 table{width:100%;border-collapse:collapse;background:#fff}
 th,td{border:1px solid #ddd;padding:8px;font-size:14px}
 th{background:#00416A;color:#fff}
 
-input,select{padding:6px;width:100%;box-sizing:border-box}
-
 button{
   padding:6px 10px;border:none;border-radius:6px;
-  background:#0c6cbd;color:#fff;cursor:pointer
+  cursor:pointer;color:#fff
 }
+button.fix{background:#e67e22}
 button.ok{background:#1e8e3e}
-button.warn{background:#e67e22}
+button.edit{background:#7f8c8d}
 
-.badge{font-size:11px;padding:2px 6px;border-radius:6px;color:#fff}
+.badge{font-size:11px;padding:3px 6px;border-radius:6px;color:#fff}
 .badge.ok{background:#1e8e3e}
 .badge.warn{background:#e67e22}
+
+input{padding:6px;width:100%;box-sizing:border-box}
 
 /* OVERLAY */
 #overlay{
@@ -47,9 +48,9 @@ button.warn{background:#e67e22}
 
 <body>
 
-<h2>⚙️ Control de Departamentos y Comisiones</h2>
+<h2>⚙️ Control Dominante de Comisiones</h2>
 <div class="small">
-Recorre productos activos, detecta comisión dominante y completa al 100 % si falta.
+Detecta comisión dominante por departamento y completa automáticamente al 100 %.
 </div>
 
 <table id="tabla">
@@ -57,7 +58,6 @@ Recorre productos activos, detecta comisión dominante y completa al 100 % si fa
 <tr>
   <th>ID</th>
   <th>Departamento</th>
-  <th>Nuevo nombre</th>
   <th>Comisión dominante</th>
   <th>Estado</th>
   <th>Acción</th>
@@ -70,7 +70,7 @@ Recorre productos activos, detecta comisión dominante y completa al 100 % si fa
 <div id="overlay">
   <div class="box">
     <div class="spinner"></div>
-    <b>Procesando…</b>
+    <b>Procesando productos…</b>
     <div class="small" id="progressText">0 / 0</div>
     <div style="margin-top:8px;background:#eee;border-radius:6px;overflow:hidden">
       <div id="bar" style="height:10px;width:0%;background:#0c6cbd"></div>
@@ -94,9 +94,9 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 /* UI */
-const overlay = document.getElementById("overlay");
-const bar = document.getElementById("bar");
-const progressText = document.getElementById("progressText");
+const overlay=document.getElementById("overlay");
+const bar=document.getElementById("bar");
+const progressText=document.getElementById("progressText");
 
 function start(total){
   overlay.style.display="flex";
@@ -109,41 +109,38 @@ function step(i,total){
 }
 function stop(){overlay.style.display="none";}
 
-/* LOAD */
+/* MAIN */
 async function cargar(){
   const tbody=document.querySelector("#tabla tbody");
   tbody.innerHTML="";
 
-  const snapAll = await getDocs(
-    query(collection(db,"productos"), where("activo","==",true))
+  const snap=await getDocs(
+    query(collection(db,"productos"),where("activo","==",true))
   );
 
-  const porDepto = new Map();
+  const map=new Map();
 
-  snapAll.forEach(d=>{
+  snap.forEach(d=>{
     const p=d.data();
-    if(!p.departamento_id) return;
-    if(!porDepto.has(p.departamento_id)){
-      porDepto.set(p.departamento_id,{
+    if(!p.departamento_id)return;
+    if(!map.has(p.departamento_id)){
+      map.set(p.departamento_id,{
         id:p.departamento_id,
         nombre:p.departamento||"SIN NOMBRE",
         docs:[]
       });
     }
-    porDepto.get(p.departamento_id).docs.push(d);
+    map.get(p.departamento_id).docs.push(d);
   });
 
-  [...porDepto.values()]
-    .sort((a,b)=>Number(a.id)-Number(b.id))
-    .forEach(dep=>{
-      renderFila(dep,tbody);
-    });
+  [...map.values()].sort((a,b)=>Number(a.id)-Number(b.id))
+    .forEach(dep=>renderFila(dep,tbody));
 }
 
 function renderFila(dep,tbody){
   const tr=document.createElement("tr");
 
-  /* detectar comisión dominante */
+  /* detectar dominante */
   const count=new Map();
   dep.docs.forEach(d=>{
     const p=d.data();
@@ -156,9 +153,10 @@ function renderFila(dep,tbody){
   let dominante=null,max=0;
   for(const [k,v] of count){if(v>max){max=v;dominante=k}}
 
-  let tipo="-",valor="-",pct=0,faltan=dep.docs.length;
+  let texto="—",pct=0,faltan=dep.docs.length;
   if(dominante){
-    [tipo,valor]=dominante.split("|");
+    const [t,v]=dominante.split("|");
+    texto=`${t} ${v}`;
     pct=Math.round((max/dep.docs.length)*100);
     faltan=dep.docs.length-max;
   }
@@ -166,8 +164,7 @@ function renderFila(dep,tbody){
   tr.innerHTML=`
     <td>${dep.id}</td>
     <td>${dep.nombre}</td>
-    <td><input placeholder="Nuevo nombre"></td>
-    <td>${dominante?`${tipo} ${valor}`:"—"}</td>
+    <td>${texto}</td>
     <td>
       ${pct===100
         ? `<span class="badge ok">100 % ✔</span>`
@@ -175,28 +172,27 @@ function renderFila(dep,tbody){
     </td>
     <td>
       ${pct<100 && dominante
-        ? `<button class="warn">Completar 100 %</button>`
+        ? `<button class="fix">Completar</button>`
         : `<button class="ok" disabled>OK</button>`}
     </td>
   `;
 
-  const inp=tr.querySelector("input");
   const btn=tr.querySelector("button");
 
   if(pct<100 && dominante){
     btn.onclick=async()=>{
-      if(!confirm(`Completar comisión ${tipo} ${valor} para ${faltan} productos?`))return;
+      if(!confirm(`Completar comisión ${texto} para ${faltan} productos?`))return;
       start(faltan);
       let i=0;
 
       for(const d of dep.docs){
         const p=d.data();
-        if(p.comision_tipo!==tipo || p.comision_valor!=Number(valor)){
+        const [t,v]=dominante.split("|");
+        if(p.comision_tipo!==t || p.comision_valor!=Number(v)){
           i++;
           await updateDoc(d.ref,{
-            comision_tipo:tipo,
-            comision_valor:Number(valor),
-            departamento: inp.value.trim().toUpperCase()||dep.nombre,
+            comision_tipo:t,
+            comision_valor:Number(v),
             updatedAt:serverTimestamp()
           });
           step(i,faltan);
