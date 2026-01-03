@@ -6,56 +6,203 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{font-family:Poppins,Arial;background:#f4f6f8;padding:20px}
-h2{margin-bottom:4px}
-.small{font-size:12px;color:#666;margin-bottom:12px}
-
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{border:1px solid #ddd;padding:8px;font-size:14px}
-th{background:#00416A;color:#fff}
-
-input,select{
-  padding:6px;width:100%;box-sizing:border-box
+/* =============================
+   BASE
+============================= */
+body{
+  font-family:'Inter','Poppins',Arial,sans-serif;
+  background:#eef1f5;
+  margin:0;
+  padding:30px;
+  color:#222;
 }
 
-button{
-  padding:6px 10px;border:none;border-radius:6px;
-  cursor:pointer;color:#fff;font-size:13px
+h2{
+  margin:0 0 6px 0;
+  font-weight:600;
 }
-button.save{background:#0c6cbd}
-button.fix{background:#e67e22}
-button.ok{background:#1e8e3e}
-button.edit{background:#7f8c8d}
 
+.small{
+  font-size:13px;
+  color:#666;
+  margin-bottom:18px;
+}
+
+/* =============================
+   CONTAINER
+============================= */
+.container{
+  max-width:1280px;
+  margin:0 auto;
+}
+
+/* =============================
+   TABLE
+============================= */
+table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  background:#fff;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+th{
+  background:linear-gradient(135deg,#00416A,#0c6cbd);
+  color:#fff;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  font-weight:600;
+  padding:14px 12px;
+}
+
+td{
+  padding:12px;
+  border-bottom:1px solid #edf0f4;
+  vertical-align:middle;
+  font-size:14px;
+}
+
+tr:last-child td{
+  border-bottom:none;
+}
+
+/* =============================
+   BADGES
+============================= */
 .badge{
-  font-size:11px;padding:3px 6px;border-radius:6px;color:#fff
+  display:inline-block;
+  padding:4px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  color:#fff;
 }
-.badge.ok{background:#1e8e3e}
-.badge.warn{background:#e67e22}
 
-/* OVERLAY */
+.badge.ok{
+  background:linear-gradient(135deg,#1e8e3e,#34c759);
+}
+
+.badge.warn{
+  background:linear-gradient(135deg,#e67e22,#f39c12);
+}
+
+/* =============================
+   ASSIGN BOX
+============================= */
+.assign-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.assign-box select{
+  width:70px;
+  padding:6px;
+}
+
+.assign-box input{
+  width:90px;
+  padding:6px;
+  text-align:right;
+}
+
+/* =============================
+   BUTTONS
+============================= */
+button{
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:600;
+}
+
+button.save{
+  background:linear-gradient(135deg,#0c6cbd,#00416A);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(12,108,189,.35);
+}
+
+button.save:hover{filter:brightness(1.1)}
+
+button.edit{
+  background:#ecf0f1;
+  color:#555;
+}
+
+button.edit:hover{
+  background:#dcdde1;
+}
+
+button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* =============================
+   OVERLAY
+============================= */
 #overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.45);
-  display:none;align-items:center;justify-content:center;z-index:9999
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
 }
+
 #overlay .box{
-  background:#fff;padding:20px;border-radius:12px;
-  text-align:center;width:260px
+  background:#fff;
+  padding:24px;
+  border-radius:16px;
+  width:280px;
+  text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,.25);
 }
+
 .spinner{
-  width:36px;height:36px;border:4px solid #ddd;
-  border-top-color:#0c6cbd;border-radius:50%;
-  animation:spin 1s linear infinite;margin:0 auto 10px
+  width:38px;
+  height:38px;
+  border:4px solid #e0e0e0;
+  border-top-color:#0c6cbd;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px;
 }
-@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+.progress-bar{
+  background:#eee;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.progress-bar div{
+  height:10px;
+  width:0%;
+  background:#0c6cbd;
+  transition:width .25s;
+}
 </style>
 </head>
 
 <body>
 
+<div class="container">
+
 <h2>⚙️ Departamentos y Comisiones</h2>
 <div class="small">
-Control total por departamento. La comisión vive en los productos.
+Panel administrativo de control. La comisión vive en los productos.
 </div>
 
 <table id="tabla">
@@ -72,14 +219,16 @@ Control total por departamento. La comisión vive en los productos.
 <tbody></tbody>
 </table>
 
+</div>
+
 <!-- OVERLAY -->
 <div id="overlay">
   <div class="box">
     <div class="spinner"></div>
-    <b>Procesando productos…</b>
+    <b>Actualizando productos…</b>
     <div class="small" id="progressText">0 / 0</div>
-    <div style="margin-top:8px;background:#eee;border-radius:6px;overflow:hidden">
-      <div id="bar" style="height:10px;width:0%;background:#0c6cbd"></div>
+    <div class="progress-bar">
+      <div id="bar"></div>
     </div>
   </div>
 </div>
@@ -99,7 +248,7 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-/* UI helpers */
+/* UI */
 const overlay=document.getElementById("overlay");
 const bar=document.getElementById("bar");
 const progressText=document.getElementById("progressText");
@@ -147,7 +296,6 @@ async function cargar(){
 function renderFila(dep,tbody){
   const tr=document.createElement("tr");
 
-  /* detectar dominante */
   const count=new Map();
   dep.docs.forEach(d=>{
     const p=d.data();
@@ -179,26 +327,27 @@ function renderFila(dep,tbody){
         : `<span class="badge warn">${pct} % (${faltan})</span>`}
     </td>
     <td>
-      <select class="tipo">
-        <option value="porcentaje">%</option>
-        <option value="pieza">$ / pza</option>
-      </select>
-      <input class="valor" type="number" step="0.01" value="${valorDom||0}">
-      <button class="save">💾 Guardar</button>
+      <div class="assign-box">
+        <select>
+          <option value="porcentaje">%</option>
+          <option value="pieza">$</option>
+        </select>
+        <input type="number" step="0.01" value="${valorDom||0}">
+        <button class="save">Guardar</button>
+      </div>
     </td>
     <td>
       <button class="edit">✏️</button>
     </td>
   `;
 
-  const sel=tr.querySelector(".tipo");
-  const inp=tr.querySelector(".valor");
+  const sel=tr.querySelector("select");
+  const inp=tr.querySelector("input");
   const btnSave=tr.querySelector(".save");
   const btnEdit=tr.querySelector(".edit");
 
   if(tipoDom) sel.value=tipoDom;
 
-  /* GUARDAR COMISIÓN */
   btnSave.onclick=async()=>{
     const tipo=sel.value;
     const valor=Number(inp.value)||0;
@@ -206,7 +355,6 @@ function renderFila(dep,tbody){
 
     start(dep.docs.length);
     let i=0;
-
     for(const d of dep.docs){
       i++;
       await updateDoc(d.ref,{
@@ -220,14 +368,12 @@ function renderFila(dep,tbody){
     cargar();
   };
 
-  /* RENOMBRAR */
   btnEdit.onclick=async()=>{
     const nuevo=prompt("Nuevo nombre del departamento:",dep.nombre);
     if(!nuevo)return;
 
     start(dep.docs.length);
     let i=0;
-
     for(const d of dep.docs){
       i++;
       await updateDoc(d.ref,{
