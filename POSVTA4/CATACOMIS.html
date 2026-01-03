@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Control Dominante de Comisiones – PROVSOFT</title>
+<title>Departamentos y Comisiones – PROVSOFT</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -14,19 +14,24 @@ table{width:100%;border-collapse:collapse;background:#fff}
 th,td{border:1px solid #ddd;padding:8px;font-size:14px}
 th{background:#00416A;color:#fff}
 
+input,select{
+  padding:6px;width:100%;box-sizing:border-box
+}
+
 button{
   padding:6px 10px;border:none;border-radius:6px;
-  cursor:pointer;color:#fff
+  cursor:pointer;color:#fff;font-size:13px
 }
+button.save{background:#0c6cbd}
 button.fix{background:#e67e22}
 button.ok{background:#1e8e3e}
 button.edit{background:#7f8c8d}
 
-.badge{font-size:11px;padding:3px 6px;border-radius:6px;color:#fff}
+.badge{
+  font-size:11px;padding:3px 6px;border-radius:6px;color:#fff
+}
 .badge.ok{background:#1e8e3e}
 .badge.warn{background:#e67e22}
-
-input{padding:6px;width:100%;box-sizing:border-box}
 
 /* OVERLAY */
 #overlay{
@@ -48,9 +53,9 @@ input{padding:6px;width:100%;box-sizing:border-box}
 
 <body>
 
-<h2>⚙️ Control Dominante de Comisiones</h2>
+<h2>⚙️ Departamentos y Comisiones</h2>
 <div class="small">
-Detecta comisión dominante por departamento y completa automáticamente al 100 %.
+Control total por departamento. La comisión vive en los productos.
 </div>
 
 <table id="tabla">
@@ -58,9 +63,10 @@ Detecta comisión dominante por departamento y completa automáticamente al 100 
 <tr>
   <th>ID</th>
   <th>Departamento</th>
-  <th>Comisión dominante</th>
-  <th>Estado</th>
-  <th>Acción</th>
+  <th>Comisión actual</th>
+  <th>Avance</th>
+  <th>Asignar comisión</th>
+  <th>Renombrar</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -93,7 +99,7 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-/* UI */
+/* UI helpers */
 const overlay=document.getElementById("overlay");
 const bar=document.getElementById("bar");
 const progressText=document.getElementById("progressText");
@@ -133,7 +139,8 @@ async function cargar(){
     map.get(p.departamento_id).docs.push(d);
   });
 
-  [...map.values()].sort((a,b)=>Number(a.id)-Number(b.id))
+  [...map.values()]
+    .sort((a,b)=>Number(a.id)-Number(b.id))
     .forEach(dep=>renderFila(dep,tbody));
 }
 
@@ -154,9 +161,10 @@ function renderFila(dep,tbody){
   for(const [k,v] of count){if(v>max){max=v;dominante=k}}
 
   let texto="—",pct=0,faltan=dep.docs.length;
+  let tipoDom="",valorDom="";
   if(dominante){
-    const [t,v]=dominante.split("|");
-    texto=`${t} ${v}`;
+    [tipoDom,valorDom]=dominante.split("|");
+    texto=`${tipoDom} ${valorDom}`;
     pct=Math.round((max/dep.docs.length)*100);
     faltan=dep.docs.length-max;
   }
@@ -167,41 +175,70 @@ function renderFila(dep,tbody){
     <td>${texto}</td>
     <td>
       ${pct===100
-        ? `<span class="badge ok">100 % ✔</span>`
-        : `<span class="badge warn">${pct} % (${faltan} faltan)</span>`}
+        ? `<span class="badge ok">100 %</span>`
+        : `<span class="badge warn">${pct} % (${faltan})</span>`}
     </td>
     <td>
-      ${pct<100 && dominante
-        ? `<button class="fix">Completar</button>`
-        : `<button class="ok" disabled>OK</button>`}
+      <select class="tipo">
+        <option value="porcentaje">%</option>
+        <option value="pieza">$ / pza</option>
+      </select>
+      <input class="valor" type="number" step="0.01" value="${valorDom||0}">
+      <button class="save">💾 Guardar</button>
+    </td>
+    <td>
+      <button class="edit">✏️</button>
     </td>
   `;
 
-  const btn=tr.querySelector("button");
+  const sel=tr.querySelector(".tipo");
+  const inp=tr.querySelector(".valor");
+  const btnSave=tr.querySelector(".save");
+  const btnEdit=tr.querySelector(".edit");
 
-  if(pct<100 && dominante){
-    btn.onclick=async()=>{
-      if(!confirm(`Completar comisión ${texto} para ${faltan} productos?`))return;
-      start(faltan);
-      let i=0;
+  if(tipoDom) sel.value=tipoDom;
 
-      for(const d of dep.docs){
-        const p=d.data();
-        const [t,v]=dominante.split("|");
-        if(p.comision_tipo!==t || p.comision_valor!=Number(v)){
-          i++;
-          await updateDoc(d.ref,{
-            comision_tipo:t,
-            comision_valor:Number(v),
-            updatedAt:serverTimestamp()
-          });
-          step(i,faltan);
-        }
-      }
-      stop();
-      cargar();
-    };
-  }
+  /* GUARDAR COMISIÓN */
+  btnSave.onclick=async()=>{
+    const tipo=sel.value;
+    const valor=Number(inp.value)||0;
+    if(!confirm(`Asignar comisión ${tipo} ${valor} a ${dep.docs.length} productos?`))return;
+
+    start(dep.docs.length);
+    let i=0;
+
+    for(const d of dep.docs){
+      i++;
+      await updateDoc(d.ref,{
+        comision_tipo:tipo,
+        comision_valor:valor,
+        updatedAt:serverTimestamp()
+      });
+      step(i,dep.docs.length);
+    }
+    stop();
+    cargar();
+  };
+
+  /* RENOMBRAR */
+  btnEdit.onclick=async()=>{
+    const nuevo=prompt("Nuevo nombre del departamento:",dep.nombre);
+    if(!nuevo)return;
+
+    start(dep.docs.length);
+    let i=0;
+
+    for(const d of dep.docs){
+      i++;
+      await updateDoc(d.ref,{
+        departamento:nuevo.toUpperCase(),
+        updatedAt:serverTimestamp()
+      });
+      step(i,dep.docs.length);
+    }
+    stop();
+    cargar();
+  };
 
   tbody.appendChild(tr);
 }
