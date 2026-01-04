@@ -1601,6 +1601,8 @@ $("#btnConfirmarCobro").onclick = async () => {
       tx.set(folioRef, { ultimo: consecutivo, fecha: fechaTag });
       folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
     });
+// 💸 ACUMULADOR DE COMISIONES (ANTES DE ARMAR VENTA)
+let comision_total = 0;
 
 // 🧾 ARMAR VENTA COMPLETA (ESTE BLOQUE NO EXISTÍA BIEN)
 const venta = {
@@ -1608,7 +1610,6 @@ const venta = {
   rutaId,
   cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
 
-  // 🔹 CFDI READY
   moneda: "MXN",
   tipoCambio: 1,
 
@@ -1645,35 +1646,64 @@ const venta = {
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
   ubicacion: await obtenerUbicacionSegura(),
 
-  // ✅ AQUÍ VA EL DETALLE (NO SUELTO)
-  detalle: carrito.map(it => ({
-    id: it.id,
-    nombre: it.nombre,
-    codigo: it.codigo,
-    cantidad: it.cantidad,
-    precio_unit: it.precioUnit,
-    importe: it.importe,
+  // 👇 AQUÍ SÍ VA EL MAP
+  detalle: carrito.map(it => {
 
-    costo_unit: +(it.costoUnit || 0).toFixed(2),
-    costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+    let comision_monto = 0;
 
-    claveSat: it.claveSat,
-    unidadSat: it.unidadSat,
+    // 🟫 CIGARROS → proporcional por 10
+    if (it.comision_tipo === "por_10" && it.comision_valor) {
+      comision_monto = +((it.cantidad / 10) * it.comision_valor).toFixed(2);
+    }
 
-    ivaTasa: it.ivaTasa,       // 0.16
-    iepsTasa: it.iepsTasa,     // 0
-    iva_calculado: it.iva_calculado,
-    ieps_calculado: it.ieps_calculado,
+    // 🟦 PORCENTAJE
+    if (it.comision_tipo === "porcentaje" && it.comision_valor) {
+      comision_monto = +((it.importe * it.comision_valor) / 100).toFixed(2);
+    }
 
-    departamento_id: it.departamento_id,
-  departamento_info: {
-  id: it.departamento_id,
-  nombre: it.departamento || catalogoById.get(it.id)?.departamento || "DESCONOCIDO",
-  iva: Math.round(it.ivaTasa * 100),
-  ieps: Math.round(it.iepsTasa * 100)
-}
-}))
+    // 🔼 acumular
+    comision_total += comision_monto;
+
+    return {
+      id: it.id,
+      nombre: it.nombre,
+      codigo: it.codigo,
+
+      cantidad: it.cantidad,
+      precio_unit: it.precioUnit,
+      importe: it.importe,
+
+      costo_unit: +(it.costoUnit || 0).toFixed(2),
+      costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
+
+      claveSat: it.claveSat,
+      unidadSat: it.unidadSat,
+
+      ivaTasa: it.ivaTasa,
+      iepsTasa: it.iepsTasa,
+      iva_calculado: it.iva_calculado,
+      ieps_calculado: it.ieps_calculado,
+
+      departamento_id: it.departamento_id,
+      departamento_info: {
+        id: it.departamento_id,
+        nombre:
+          it.departamento ||
+          catalogoById.get(it.id)?.departamento ||
+          "DESCONOCIDO",
+        iva: Math.round(it.ivaTasa * 100),
+        ieps: Math.round(it.iepsTasa * 100)
+      },
+
+      // 💸 comisión por línea
+      comision_tipo: it.comision_tipo || null,
+      comision_valor: it.comision_valor || 0,
+      comision_monto
+    };
+  })
 };
+// 👈 AQUÍ VA (NO DENTRO DEL MAP, NO ANTES)
+venta.comision_total = +comision_total.toFixed(2);
 
     // 💾 GUARDAR VENTA UNA SOLA VEZ
     console.log("💾 Guardando venta en Firestore...");
