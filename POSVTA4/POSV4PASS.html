@@ -881,6 +881,8 @@ function addProduct(prod, cant = 1) {
       departamento_id: prod.departamento_id || null,
       claveSat: prod.claveSat || null,
       unidadSat: prod.unidadMedidaSat || null,
+      comision_tipo: prod.comision_tipo || null,
+      comision_valor: prod.comision_valor || null,
       ivaTasa: prod.ivaTasa ?? 0,
       iepsTasa: prod.iepsTasa ?? 0,
       permite_descuento: permiteDescuentoPorCodigo(prod),
@@ -2689,46 +2691,3 @@ document.getElementById("btnCorteRuta").addEventListener("click", () => {
 <div class="snow"></div>
 </body>
 </html>
-
-<!--
-📌 NOTAS PROVSOFT – 2025-12-15
---------------------------------
-/*
-🧠 NOTA DESARROLLO – BLOQUEO TEMPORAL DEL POS
---------------------------------------------
-Se ajustó el bloqueo de F5 / Ctrl+R / beforeunload
-para permitir HARD REFRESH en la pantalla de LOGIN
-mientras se realizan cambios y pruebas.
-
-ESTE AJUSTE ES TEMPORAL.
-
-CUANDO TERMINES EL DESARROLLO Y QUIERAS
-BLINDAR TODO EL POS DE NUEVO:
-
-👉 BORRAR COMPLETAMENTE esta función:
-   function haySesionActiva() {
-     return !!localStorage.getItem("usuario_ruta");
-   }
-
-👉 BORRAR ÚNICAMENTE estas dos líneas (y solo estas):
-
-   En el listener de keydown:
-   if (!haySesionActiva()) return;
-
-   En el listener de beforeunload:
-   if (!haySesionActiva()) return;
-
-👉 Dejar el bloqueo GLOBAL como estaba originalmente
-(sin distinguir login / sesión activa).
-
-Estado actual del sistema:
-- Login: refresh permitido (F5 / Ctrl+R / hard refresh)
-- POS activo: refresh bloqueado
-- Cobro activo: refresh bloqueado
-- VERSION ACTUAL ESTABLE 7adaacf
-- en prubas de la version 63c5c43
-
-⚠️ IMPORTANTE:
-No olvidar eliminar este ajuste antes de producción final
-para mantener el POS totalmente blindado.
-*/
