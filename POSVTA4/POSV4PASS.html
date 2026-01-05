@@ -620,6 +620,9 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
     nombre: x.nombre || x.concepto || "SIN NOMBRE",
     codigo: String(x.codigo || x.codigoBarra || ""),
     precioPublico: Number(x.precioPublico || 0),
+   // 💸 COMISIONES
+    comision_tipo: x.comision_tipo || null,
+    comision_valor: Number(x.comision_valor || 0),
     mayoreo: Number(x.mayoreo || 0),
     medioMayoreo: Number(x.medioMayoreo || 0),
     ivaTasa: Number(x.ivaTasa || 0),
@@ -669,6 +672,9 @@ catalogo = snap.docs.map(doc => {
     nombre: x.nombre || x.concepto || "SIN NOMBRE",
     codigo: String(x.codigo || x.codigoBarra || "").trim(),
     precioPublico: Number(x.precioPublico || 0),
+    // 💸 COMISIONES
+    comision_tipo: x.comision_tipo || null,
+    comision_valor: Number(x.comision_valor || 0),
     mayoreo: Number(x.mayoreo || 0),
     medioMayoreo: Number(x.medioMayoreo || 0),
     ivaTasa: Number(x.ivaTasa || 0),
