@@ -1451,6 +1451,11 @@ let descuentoAutorizado = 0;
 let descuentoMontoActual = 0; // 🔥 ESTE FALTABA
 let descuentoVisible = false;
 
+  // 🔐 Verifica si hay sesión activa (FIX CRÍTICO)
+function haySesionActiva() {
+  return document.body.classList.contains("sesion-activa");
+}
+
 function abrirCobro() {
   if (carrito.length === 0) {
     alert("Agrega productos antes de cobrar.");
