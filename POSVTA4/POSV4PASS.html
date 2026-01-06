@@ -427,13 +427,14 @@ const productosMayoreo = [
 ];
 
 function permiteDescuentoPorCodigo(prod) {
-  const codigo = String(prod.codigo || "").trim();
+  const codigo = String(prod.codigo || prod.codigoBarra || "").trim();
 
   // ❌ Si está en mayoreo → NO descuento
   if (productosMayoreo.includes(codigo)) return false;
 
-  // ✅ Solo si el flag es true explícito
-  return prod.permite_descuento === true;
+  // ✅ Por defecto SÍ permite descuento
+  // Solo NO permite si explícitamente está en false en Firestore
+  return prod.permite_descuento !== false;
 }
 
 // 🧮 Función que selecciona precio según cantidad
@@ -633,7 +634,7 @@ if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null, // 🔥 FIX
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true,
+   permite_descuento: x.permite_descuento !== false,
   }));
 
   // 🔁 RECONSTRUIR ÍNDICES
