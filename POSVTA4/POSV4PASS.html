@@ -1014,7 +1014,7 @@ function acortarNombre(nombre) {
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
-function render(desc = 0) {
+function render() {
   const tbody = $("#tbody");
   tbody.innerHTML = "";
 
@@ -1024,10 +1024,8 @@ function render(desc = 0) {
       <td>${acortarNombre(it.nombre)}</td>
       <td style="text-align:center">
         <input type="number" min="0" step="0.01" value="${it.cantidad}"
-          style="width:70px;text-align:center;padding:4px;border-radius:6px;
-          border:1px solid #ccc;font-size:14px;"
-          onchange="actualizarCantidad('${it.id}', this.value)"
-          oninput="actualizarCantidad('${it.id}', this.value)">
+          style="width:70px;text-align:center"
+          onchange="actualizarCantidad('${it.id}', this.value)">
       </td>
       <td style="text-align:right">${money(it.importe)}</td>
       <td class='del-col'>
@@ -1036,18 +1034,20 @@ function render(desc = 0) {
     tbody.appendChild(tr);
   });
 
-  const { subtotal, descuento, impuestos, total } = calcularTotales(desc);
+  const tot = calcularTotales(descuentoAutorizado);
 
-  $("#lblSubtotal").textContent = money(subtotal);
-  $("#lblImpuestos").textContent = money(impuestos);
-  $("#lblTotal").textContent = money(total);
- 
-  if (descuentoVisible && descuentoMontoActual > 0) {
-  descuentoInfo.textContent = `Descuento aplicado: ${money(descuentoMontoActual)}`;
+  $("#lblSubtotal").textContent = money(tot.subtotal);
+  $("#lblImpuestos").textContent = money(tot.impuestos);
+  $("#lblTotal").textContent = money(tot.total);
+
+if (descuentoAutorizado > 0) {
+  descuentoInfo.textContent =
+    `Descuento aplicado: ${money(tot.descuento)}`;
   descuentoInfo.style.display = "block";
+} else {
+  descuentoInfo.style.display = "none";
 }
-} // 👈 CIERRA function render()
-
+}
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
    =========================================================== */  
@@ -1075,10 +1075,9 @@ function actualizarCantidad(id, nuevaCant) {
     }
   }
 
-  // 🧮 Mantener descuento activo automáticamente
-  const desc = Number(localStorage.getItem("desc_porcentaje") || 0);
-  render(desc);
-}
+// 🔥 Mantener descuento autorizado activo
+render();
+
   
 /* ===========================================================
    ⚙️ SECCIÓN 9.2: RENDER OPTIMIZADO CON DEBOUNCE
@@ -1087,16 +1086,7 @@ let renderTimer;
 
 function renderDebounced() {
   clearTimeout(renderTimer);
-
-  const desc = Number(
-  localStorage.getItem("desc_porcentaje") ??
-  descuentoAutorizado ??
-  0
-);
-
-  renderTimer = setTimeout(() => {
-    render(desc);
-  }, 100);
+  renderTimer = setTimeout(() => render(), 100);
 }
 
 /* ===========================================================
@@ -1467,16 +1457,21 @@ function abrirCobro() {
     return;
   }
 
-  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
-  descuentoAutorizado = 0;
-
-  const tot = calcularTotales(0);
+  const tot = calcularTotales(descuentoAutorizado);
   cobroTotal.textContent = money(tot.total);
 
   montoRecibido.value = "";
   montoCambio.textContent = "$0.00";
- descuentoVisible = false;
- descuentoInfo.style.display = "none";
+
+  if (descuentoAutorizado > 0) {
+    descuentoVisible = true;
+    descuentoInfo.textContent =
+      `Descuento aplicado: ${money(tot.descuento)}`;
+    descuentoInfo.style.display = "block";
+  } else {
+    descuentoVisible = false;
+    descuentoInfo.style.display = "none";
+  }
 
   modalCobro.style.display = "flex";
   $("#montoRecibido").focus();
@@ -1485,9 +1480,10 @@ function abrirCobro() {
 function cerrarCobro() {
   modalCobro.style.display = "none";
   descuentoAutorizado = 0;
-  localStorage.removeItem("desc_porcentaje"); // 🔥 AÑADIR
+  descuentoVisible = false;
+  descuentoInfo.style.display = "none";
+  localStorage.removeItem("desc_porcentaje");
 }
-
 
 $("#btnCobrar").onclick = abrirCobro;
 $("#btnCancelarCobro").onclick = cerrarCobro;
@@ -2107,29 +2103,16 @@ Cliente : ${cliente}
 `;
 
     // 📋 Detalle de productos
-carrito.forEach(p => {
-  const nombre = p.nombre.substring(0, 32);
+const detalle = window.__VENTA_ACTUAL?.detalle || [];
+
+detalle.forEach(p => {
   const cant = p.cantidad;
-  const precioUnit = p.precioUnit;
-  const importe = cant * precioUnit;
+  const precio = p.precio_unit;
+  const importe = p.importe;
 
-  // aplicar descuento igual que antes:
-const subtotal = window.__VENTA_ACTUAL?.resumen_financiero?.subtotal || 0;
-const descMonto = window.__VENTA_ACTUAL?.descuento_monto || 0;
-const factorDesc = subtotal > 0 ? (subtotal - descMonto) / subtotal : 1;
-
-const precioConDescuento = precioUnit * factorDesc;
-
-
-  const impFinal = cant * precioConDescuento;
-
-  ticket += `${nombre}\n`;
-  ticket += `Cant:${String(cant).padStart(5)}  `
-         + `${precioConDescuento.toFixed(2).padStart(8)}  `
-         + `${impFinal.toFixed(2).padStart(9)}\n`;
+  ticket += `${p.nombre}\n`;
+  ticket += `Cant:${cant}  ${precio.toFixed(2)}  ${importe.toFixed(2)}\n`;
 });
-
-
 
     // 💵 Totales
     ticket += `--------------------------------
