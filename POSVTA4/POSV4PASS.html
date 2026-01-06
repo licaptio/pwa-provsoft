@@ -1041,13 +1041,6 @@ function render(desc = 0) {
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
 
-if (descuento > 0) {
-  descuentoInfo.textContent = `Descuento aplicado: ${money(descuento)}`;
-  descuentoInfo.style.display = "block";
-} else {
-  descuentoInfo.textContent = "Descuento aplicado: $0.00";
-  descuentoInfo.style.display = "block";
-}
 } // 👈 CIERRA function render()
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
@@ -1459,6 +1452,7 @@ const descuentoInfo = $("#descuentoInfo");
 
 
 let descuentoAutorizado = 0;
+let descuentoMontoActual = 0; // 🔥 ESTE FALTABA
 
 function abrirCobro() {
   if (carrito.length === 0) {
@@ -1501,31 +1495,39 @@ montoRecibido.addEventListener("input", () => {
 $("#btnSolicitarDescuento").addEventListener("click", async () => {
   const porc = parseFloat(prompt("Introduce el descuento (%)"));
   if (isNaN(porc) || porc <= 0 || porc > 100) {
-    alert("Porcentaje inválido."); return;
+    alert("Porcentaje inválido.");
+    return;
   }
 
   if (prompt("Introduce la contraseña de autorización") !== "MADERO690*") {
-    alert("❌ Contraseña incorrecta."); return;
+    alert("❌ Contraseña incorrecta.");
+    return;
   }
 
+  // 🔥 Guardar porcentaje
   descuentoAutorizado = porc;
   localStorage.setItem("desc_porcentaje", porc);
 
+  // 🔥 Cálculo REAL
   const tot = calcularTotales(porc);
-  descuentoInfo.textContent = `Descuento aplicado: ${money(tot.descuento)}`;
-descuentoInfo.style.display = "block";
+  descuentoMontoActual = tot.descuento; // 🔥 CLAVE
 
-  cobroTotal.textContent = money(tot.total);
+  // 🔥 MOSTRAR EN PANTALLA
+  descuentoInfo.textContent = `Descuento aplicado: ${money(descuentoMontoActual)}`;
   descuentoInfo.style.display = "block";
 
-  render(porc);
+  // 🔥 ACTUALIZAR TOTAL
+  cobroTotal.textContent = money(tot.total);
 
+  // 🔥 ACTUALIZAR CAMBIO
   const pago = parseFloat(montoRecibido.value) || 0;
-  montoCambio.textContent = money(pago > 0 ? Math.max(0, pago - tot.total) : 0);
+  montoCambio.textContent = money(Math.max(0, pago - tot.total));
+
+  // 🔥 REDIBUJAR CARRITO
+  render(porc);
 
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
-
 // ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
 
 /* ===========================================================
@@ -1622,7 +1624,6 @@ const venta = {
   cortado: false,
   descuento_porcentaje: descuentoAutorizado,
   descuento_monto: tot.descuento,
-
   resumen_financiero: {
     subtotal: tot.subtotal,
     descuento: tot.descuento,
@@ -1727,6 +1728,7 @@ venta.comision_total = +comision_total.toFixed(2);
     // 🧾 Generar e imprimir ticket
     console.log("🧾 Generando ticket...");
     rellenarTicket(venta);
+    window.__VENTA_ACTUAL = venta; // 👈 AQUÍ
 window.__ULTIMOS_TOTALES = calcularTotales(descuentoAutorizado);
 
     imprimirTicketEstilado();
@@ -2035,11 +2037,11 @@ const cantidad = p.cantidad ?? 0;
 const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
 
 // 💸 Calcular precio unitario con descuento prorrateado
-let precioConDesc = precioUnit;
-if (v.descuento_porcentaje > 0) {
-  const descFactor = (100 - v.descuento_porcentaje) / 100;
-  precioConDesc = (precioUnit * descFactor);
-}
+const subtotal = v.resumen_financiero.subtotal || 0;
+const descMonto = v.descuento_monto || 0;
+const factorDesc = subtotal > 0 ? (subtotal - descMonto) / subtotal : 1;
+
+let precioConDesc = precioUnit * factorDesc;
 
 // 💲 Importe correcto
 const importe = cantidad * precioConDesc;
@@ -2071,7 +2073,7 @@ const cliente = $("#tCliente").textContent.trim();
 const t = window.__ULTIMOS_TOTALES || {};
 const subtotal = formatoNum(t.subtotal || 0);
 const descPorc = $("#tDescPorc").textContent.trim();
-const descMonto = formatoNum(t.descuento || 0);
+const descMonto = formatoNum(window.__VENTA_ACTUAL?.descuento_monto || 0);
 const total = formatoNum(t.total || 0);
 const impuestos = formatoNum(t.impuestos || 0);
 
@@ -2104,11 +2106,12 @@ carrito.forEach(p => {
   const importe = cant * precioUnit;
 
   // aplicar descuento igual que antes:
-  let precioConDescuento = precioUnit;
-  if (descPorc !== "0%") {
-    const porc = parseFloat(descPorc.replace("%","")) || 0;
-    precioConDescuento = precioUnit * ((100 - porc) / 100);
-  }
+const subtotal = window.__VENTA_ACTUAL?.resumen_financiero?.subtotal || 0;
+const descMonto = window.__VENTA_ACTUAL?.descuento_monto || 0;
+const factorDesc = subtotal > 0 ? (subtotal - descMonto) / subtotal : 1;
+
+const precioConDescuento = precioUnit * factorDesc;
+
 
   const impFinal = cant * precioConDescuento;
 
