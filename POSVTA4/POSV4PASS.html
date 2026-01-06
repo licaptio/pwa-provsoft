@@ -1041,8 +1041,13 @@ function render(desc = 0) {
   $("#lblSubtotal").textContent = money(subtotal);
   $("#lblImpuestos").textContent = money(impuestos);
   $("#lblTotal").textContent = money(total);
-
+ 
+  if (descuentoVisible && descuentoMontoActual > 0) {
+  descuentoInfo.textContent = `Descuento aplicado: ${money(descuentoMontoActual)}`;
+  descuentoInfo.style.display = "block";
+}
 } // 👈 CIERRA function render()
+
 /* ===========================================================
    ⚙️ SECCIÓN 9.1: Nueva función para manejar los spinners
    =========================================================== */  
@@ -1454,6 +1459,7 @@ const descuentoInfo = $("#descuentoInfo");
 
 let descuentoAutorizado = 0;
 let descuentoMontoActual = 0; // 🔥 ESTE FALTABA
+let descuentoVisible = false;
 
 function abrirCobro() {
   if (carrito.length === 0) {
@@ -1469,7 +1475,8 @@ function abrirCobro() {
 
   montoRecibido.value = "";
   montoCambio.textContent = "$0.00";
-  descuentoInfo.style.display = "none";
+ descuentoVisible = false;
+ descuentoInfo.style.display = "none";
 
   modalCobro.style.display = "flex";
   $("#montoRecibido").focus();
@@ -1505,27 +1512,27 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
     return;
   }
 
-  // 🔥 Guardar porcentaje
-  descuentoAutorizado = porc;
-  localStorage.setItem("desc_porcentaje", porc);
+// ✅ Descuento autorizado
+descuentoAutorizado = porc;
+localStorage.setItem("desc_porcentaje", porc);
 
-  // 🔥 Cálculo REAL
-  const tot = calcularTotales(porc);
-  descuentoMontoActual = tot.descuento; // 🔥 CLAVE
+const tot = calcularTotales(porc);
+descuentoMontoActual = tot.descuento;
 
-  // 🔥 MOSTRAR EN PANTALLA
-  descuentoInfo.textContent = `Descuento aplicado: ${money(descuentoMontoActual)}`;
-  descuentoInfo.style.display = "block";
+// 🔥🔥🔥 AQUÍ ESTÁ LO QUE TE FALTABA 🔥🔥🔥
+descuentoVisible = true;
 
-  // 🔥 ACTUALIZAR TOTAL
-  cobroTotal.textContent = money(tot.total);
+// 🔥 MOSTRAR TEXTO EN PANTALLA
+descuentoInfo.textContent = `Descuento aplicado: ${money(descuentoMontoActual)}`;
+descuentoInfo.style.display = "block";
 
-  // 🔥 ACTUALIZAR CAMBIO
-  const pago = parseFloat(montoRecibido.value) || 0;
-  montoCambio.textContent = money(Math.max(0, pago - tot.total));
+// 🔥 ACTUALIZAR TOTAL Y CAMBIO
+cobroTotal.textContent = money(tot.total);
+const pago = parseFloat(montoRecibido.value) || 0;
+montoCambio.textContent = money(Math.max(0, pago - tot.total));
 
-  // 🔥 REDIBUJAR CARRITO
-  render(porc);
+// 🔥 REDIBUJAR CARRITO
+render(porc);
 
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
