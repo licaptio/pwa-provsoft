@@ -1528,7 +1528,7 @@ const pago = parseFloat(montoRecibido.value) || 0;
 montoCambio.textContent = money(Math.max(0, pago - tot.total));
 
 // 🔥 REDIBUJAR CARRITO
-render(porc);
+render();
 
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
