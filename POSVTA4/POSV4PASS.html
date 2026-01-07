@@ -3,7 +3,7 @@
 <head>
   <!-- 🧱 BLOQUE 1: CABECERA Y CONFIGURACIÓN GLOBAL -->
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0c6cbd">
+  <meta name="theme-color" content="#0c6cbd">calcularTotales
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>POS – Ruta de Venta con Descuento</title>
@@ -1011,6 +1011,24 @@ function acortarNombre(nombre) {
     ? nombre.substring(0, max) + "…"
     : nombre;
 }
+  function actualizarCobroVisual() {
+  const tot = calcularTotales(descuentoAutorizado);
+
+  // Total grande del modal
+  cobroTotal.textContent = money(tot.total);
+
+  // Descuento visible
+  if (descuentoAutorizado > 0) {
+    descuentoInfo.textContent = `Descuento aplicado: ${money(tot.descuento)}`;
+    descuentoInfo.style.display = "block";
+  } else {
+    descuentoInfo.style.display = "none";
+  }
+
+  // Cambio
+  const recibido = parseFloat(montoRecibido.value) || 0;
+  montoCambio.textContent = money(Math.max(0, recibido - tot.total));
+}
   /* ===========================================================
    🖥️ SECCIÓN 9: RENDER Y ACTUALIZACIÓN VISUAL DEL CARRITO
    =========================================================== */
@@ -1046,6 +1064,10 @@ if (descuentoAutorizado > 0) {
   descuentoInfo.style.display = "block";
 } else {
   descuentoInfo.style.display = "none";
+}
+  // 🔥 Si el modal de cobro está abierto, sincronizar totales
+if (modalCobro.style.display === "flex") {
+  actualizarCobroVisual();
 }
 }
 /* ===========================================================
@@ -1501,7 +1523,7 @@ montoRecibido.addEventListener("input", () => {
   montoCambio.textContent = money(cambio > 0 ? cambio : 0);
 });
 // 🔐 Aplicar descuento con contraseña “MADERO690*”
-$("#btnSolicitarDescuento").addEventListener("click", async () => {
+$("#btnSolicitarDescuento").addEventListener("click", () => {
   const porc = parseFloat(prompt("Introduce el descuento (%)"));
   if (isNaN(porc) || porc <= 0 || porc > 100) {
     alert("Porcentaje inválido.");
@@ -1513,30 +1535,17 @@ $("#btnSolicitarDescuento").addEventListener("click", async () => {
     return;
   }
 
-// ✅ Descuento autorizado
-descuentoAutorizado = porc;
-localStorage.setItem("desc_porcentaje", porc);
+  // ✅ Guardar descuento
+  descuentoAutorizado = porc;
+  localStorage.setItem("desc_porcentaje", porc);
 
-const tot = calcularTotales(porc);
-descuentoMontoActual = tot.descuento;
-
-// 🔥🔥🔥 AQUÍ ESTÁ LO QUE TE FALTABA 🔥🔥🔥
-descuentoVisible = true;
-
-// 🔥 MOSTRAR TEXTO EN PANTALLA
-descuentoInfo.textContent = `Descuento aplicado: ${money(descuentoMontoActual)}`;
-descuentoInfo.style.display = "block";
-
-// 🔥 ACTUALIZAR TOTAL Y CAMBIO
-cobroTotal.textContent = money(tot.total);
-const pago = parseFloat(montoRecibido.value) || 0;
-montoCambio.textContent = money(Math.max(0, pago - tot.total));
-
-// 🔥 REDIBUJAR CARRITO
-render();
+  // 🔥 ACTUALIZAR TODO
+  actualizarCobroVisual();
+  render();
 
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
+
 // ✅ REEMPLAZAR ESTA SECCIÓN EN EL CÓDIGO ORIGINAL
 
 /* ===========================================================
