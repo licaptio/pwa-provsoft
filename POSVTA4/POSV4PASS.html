@@ -1690,9 +1690,10 @@ const venta = {
     }
 
     // 🟦 PORCENTAJE
-    if (it.comision_tipo === "porcentaje" && it.comision_valor) {
-      comision_monto = +((it.importe * it.comision_valor) / 100).toFixed(2);
-    }
+if (it.comision_tipo === "porcentaje" && it.comision_valor) {
+  comision_monto = +((importeFinal * it.comision_valor) / 100).toFixed(2);
+}
+
     // 🟨 POR PIEZA (CIGARROS)
     if (it.comision_tipo === "pieza" && it.comision_valor) {
     comision_monto = +(it.cantidad * it.comision_valor).toFixed(2);
@@ -2074,7 +2075,8 @@ v.detalle.forEach(p => {
   const tr = document.createElement("tr");
 const cantidad = p.cantidad ?? 0;
 const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
-
+const importe = p.importe ?? 0;
+  
   tr.innerHTML = `
     <td>${p.nombre}</td>
     <td style="text-align:center">${cantidad.toFixed(2)}</td>
