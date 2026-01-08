@@ -12,10 +12,14 @@ const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
 const SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
 
-const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+// 🔹 CLIENTE SUPABASE (ANTI-DUPLICADO)
+window._supabaseClient = window._supabaseClient || 
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+
+const supabase = window._supabaseClient;
 
 // 🔹 STORAGE
 const CSD_BUCKET = 'csd_files';
