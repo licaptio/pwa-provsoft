@@ -1061,7 +1061,6 @@ function render() {
     tbody.appendChild(tr);
   });
 
-  const tot = calcularTotales(descuentoAutorizado);
 
   $("#lblSubtotal").textContent = money(tot.subtotal);
   $("#lblImpuestos").textContent = money(tot.impuestos);
@@ -1680,7 +1679,7 @@ const venta = {
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
   ubicacion: await obtenerUbicacionSegura(),
 
-  // 👇 AQUÍ SÍ VA EL MAP
+  
   detalle: carrito.map(it => {
 
     let comision_monto = 0;
@@ -1702,6 +1701,15 @@ const venta = {
     
     // 🔼 acumular
     comision_total += comision_monto;
+// 🔥 DESCUENTO PRORRATEADO REAL (AQUÍ ES)
+const totLinea = calcularTotales(descuentoAutorizado);
+const factorDescLinea = totLinea.factorDesc || 1;
+
+const precioUnitFinal = it.permite_descuento
+  ? +(it.precioUnit * factorDescLinea).toFixed(2)
+  : it.precioUnit;
+
+const importeFinal = +(it.cantidad * precioUnitFinal).toFixed(2);
 
     return {
       id: it.id,
@@ -1709,8 +1717,12 @@ const venta = {
       codigo: it.codigo,
 
       cantidad: it.cantidad,
-      precio_unit: it.precioUnit,
-      importe: it.importe,
+precio_unit: precioUnitFinal,
+importe: importeFinal,
+
+      descuento_aplicado: it.permite_descuento
+  ? +(it.importe - importeFinal).toFixed(2)
+  : 0,
 
       costo_unit: +(it.costoUnit || 0).toFixed(2),
       costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
@@ -1722,7 +1734,7 @@ const venta = {
       iepsTasa: it.iepsTasa,
       iva_calculado: it.iva_calculado,
       ieps_calculado: it.ieps_calculado,
-
+      
       departamento_id: it.departamento_id,
       departamento_info: {
         id: it.departamento_id,
@@ -2062,23 +2074,6 @@ v.detalle.forEach(p => {
   const tr = document.createElement("tr");
 const cantidad = p.cantidad ?? 0;
 const precioUnit = p.precioUnit ?? p.precio_unit ?? 0;
-
-// 💸 Calcular precio unitario con descuento prorrateado
-const subtotal = v.resumen_financiero.subtotal || 0;
-const descMonto = v.descuento_monto || 0;
-const factorDesc = subtotal > 0 ? (subtotal - descMonto) / subtotal : 1;
-return {
-  subtotal: +subtotal.toFixed(2),
-  descuento: +montoDesc.toFixed(2),
-  impuestos: +(ivaFinal + iepsFinal).toFixed(2),
-  total: +totalFinal.toFixed(2),
-  factorDesc   // 👈🔥 CLAVE
-};
-
-let precioConDesc = precioUnit * factorDesc;
-
-// 💲 Importe correcto
-const importe = cantidad * precioConDesc;
 
   tr.innerHTML = `
     <td>${p.nombre}</td>
