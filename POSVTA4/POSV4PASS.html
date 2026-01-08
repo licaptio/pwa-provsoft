@@ -684,7 +684,7 @@ catalogo = snap.docs.map(doc => {
     departamento_id: x.departamento_id || null,
     departamento: x.departamento || null,   // 🔥 ESTE FALTABA
     costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-    permite_descuento: x.permite_descuento === true
+    permite_descuento: x.permite_descuento !== false
   };
 });
 
