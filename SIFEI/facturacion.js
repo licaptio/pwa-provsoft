@@ -99,6 +99,26 @@ async function cargarCSD(){
 async function descargarArchivosCSD(){
   log('📥 Descargando archivos CSD...');
 
+  try {
+    const cerBlob = await descargarArchivoSeguro(CSD_CONFIG.cer_file);
+    const keyBlob = await descargarArchivoSeguro(CSD_CONFIG.key_file);
+
+    CSD_CONFIG.cer_blob = cerBlob;
+    CSD_CONFIG.key_blob = keyBlob;
+
+    log('✅ CER y KEY descargados');
+
+    await leerCertificado();
+    await leerKeyBasico();
+    prepararPKCS8Placeholder();
+    estadoCSD();
+
+  } catch (e) {
+    console.error(e);
+    log('❌ Error descargando archivos CSD');
+  }
+}
+
 async function descargarArchivoSeguro(nombreArchivo){
   const { data, error } = await supabase.storage
     .from(CSD_BUCKET)
