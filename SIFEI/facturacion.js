@@ -184,5 +184,144 @@ function estadoCSD(){
   });
 }
 
+function obtenerDatosFacturaDemo(){
+  return {
+    serie: 'A',
+    folio: '1',
+    fecha: new Date().toISOString().replace('Z','')
+    forma_pago: '01',
+    metodo_pago: 'PUE',
+    tipo_comprobante: 'I',
+    moneda: 'MXN',
+    lugar_expedicion: CSD_CONFIG.codigo_postal,
+
+    receptor: {
+      rfc: 'XAXX010101000',
+      nombre: 'PUBLICO EN GENERAL',
+      regimen_fiscal: '616',
+      domicilio_fiscal: '67700',
+      uso_cfdi: 'S01'
+    },
+
+    conceptos: [
+      {
+        clave_sat: '01010101',
+        descripcion: 'VENTA DE MERCANCÍA',
+        cantidad: 1,
+        unidad: 'PIEZA',
+        clave_unidad: 'H87',
+        valor_unitario: 100,
+        objeto_imp: '02',
+        impuestos: {
+          traslados: [
+            { impuesto:'002', tipo:'Tasa', tasa:0.16 }
+          ]
+        }
+      }
+    ]
+  };
+}
+
+function generarXML(){
+  clearLog();
+  log('🧩 Generando XML CFDI 4.0 (sin sello)...');
+
+  if(!CSD_CONFIG){
+    log('❌ CSD no cargado');
+    return;
+  }
+
+  const data = obtenerDatosFacturaDemo();
+
+  let subtotal = 0;
+  let totalImpuestos = 0;
+
+  data.conceptos.forEach(c=>{
+    subtotal += c.cantidad * c.valor_unitario;
+    c.impuestos.traslados.forEach(t=>{
+      totalImpuestos += (c.cantidad * c.valor_unitario) * t.tasa;
+    });
+  });
+
+  const total = subtotal + totalImpuestos;
+
+  const xml = `
+<cfdi:Comprobante
+ xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ Version="4.0"
+ Serie="${data.serie}"
+ Folio="${data.folio}"
+ Fecha="${data.fecha}"
+ FormaPago="${data.forma_pago}"
+ MetodoPago="${data.metodo_pago}"
+ TipoDeComprobante="${data.tipo_comprobante}"
+ Moneda="${data.moneda}"
+ SubTotal="${subtotal.toFixed(2)}"
+ Total="${total.toFixed(2)}"
+ LugarExpedicion="${data.lugar_expedicion}"
+ Exportacion="01"
+>
+
+<cfdi:Emisor
+ Rfc="${CSD_CONFIG.rfc}"
+ Nombre="${CSD_CONFIG.razon_social}"
+ RegimenFiscal="${CSD_CONFIG.regimen_fiscal}"
+/>
+
+<cfdi:Receptor
+ Rfc="${data.receptor.rfc}"
+ Nombre="${data.receptor.nombre}"
+ DomicilioFiscalReceptor="${data.receptor.domicilio_fiscal}"
+ RegimenFiscalReceptor="${data.receptor.regimen_fiscal}"
+ UsoCFDI="${data.receptor.uso_cfdi}"
+/>
+
+<cfdi:Conceptos>
+${data.conceptos.map(c=>`
+  <cfdi:Concepto
+    ClaveProdServ="${c.clave_sat}"
+    Cantidad="${c.cantidad}"
+    ClaveUnidad="${c.clave_unidad}"
+    Unidad="${c.unidad}"
+    Descripcion="${c.descripcion}"
+    ValorUnitario="${c.valor_unitario.toFixed(2)}"
+    Importe="${(c.cantidad*c.valor_unitario).toFixed(2)}"
+    ObjetoImp="${c.objeto_imp}"
+  >
+    <cfdi:Impuestos>
+      <cfdi:Traslados>
+        ${c.impuestos.traslados.map(t=>`
+        <cfdi:Traslado
+          Base="${(c.cantidad*c.valor_unitario).toFixed(2)}"
+          Impuesto="${t.impuesto}"
+          TipoFactor="${t.tipo}"
+          TasaOCuota="${t.tasa.toFixed(6)}"
+          Importe="${((c.cantidad*c.valor_unitario)*t.tasa).toFixed(2)}"
+        />`).join('')}
+      </cfdi:Traslados>
+    </cfdi:Impuestos>
+  </cfdi:Concepto>
+`).join('')}
+</cfdi:Conceptos>
+
+<cfdi:Impuestos TotalImpuestosTrasladados="${totalImpuestos.toFixed(2)}">
+  <cfdi:Traslados>
+    <cfdi:Traslado
+      Impuesto="002"
+      TipoFactor="Tasa"
+      TasaOCuota="0.160000"
+      Importe="${totalImpuestos.toFixed(2)}"
+    />
+  </cfdi:Traslados>
+</cfdi:Impuestos>
+
+</cfdi:Comprobante>
+`;
+
+  XML_PREVIO = xml.trim();
+  log('✅ XML CFDI 4.0 generado (sin sello)');
+  console.log(XML_PREVIO);
+}
 
 
