@@ -93,7 +93,7 @@ async function cargarCSD(){
 }
 
 /* ===============================
-   PASO 2.2 – DESCARGAR CER / KEY
+   PASO 2.2 – DESCARGAR CER / KEY (SEGURO)
 ================================ */
 
 async function descargarArchivosCSD(){
@@ -122,7 +122,7 @@ async function descargarArchivosCSD(){
 async function descargarArchivoSeguro(nombreArchivo){
   const { data, error } = await supabase.storage
     .from(CSD_BUCKET)
-    .createSignedUrl(nombreArchivo, 60); // 60 segundos
+    .createSignedUrl(nombreArchivo, 60);
 
   if (error) throw error;
 
@@ -130,32 +130,6 @@ async function descargarArchivoSeguro(nombreArchivo){
   if (!res.ok) throw new Error('Error fetch archivo');
 
   return await res.blob();
-}
-
-  if(cerErr){
-    log('❌ Error descargando CER');
-    return;
-  }
-
-  const { data: keyBlob, error: keyErr } =
-    await supabase.storage
-      .from(CSD_BUCKET)
-      .download(CSD_CONFIG.key_file);
-
-  if(keyErr){
-    log('❌ Error descargando KEY');
-    return;
-  }
-
-  CSD_CONFIG.cer_blob = cerBlob;
-  CSD_CONFIG.key_blob = keyBlob;
-
-  log('✅ CER y KEY descargados');
-
-  await leerCertificado();
-  await leerKeyBasico();
-  prepararPKCS8Placeholder();
-  estadoCSD();
 }
 
 /* ===============================
@@ -207,5 +181,6 @@ function estadoCSD(){
     KEY_Bytes: CSD_CONFIG?.key_size || 0
   });
 }
+
 
 
