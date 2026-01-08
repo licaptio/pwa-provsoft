@@ -175,3 +175,5 @@ function estadoCSD(){
     KEY_Bytes: CSD_CONFIG?.key_size || 0
   });
 }
+
+
