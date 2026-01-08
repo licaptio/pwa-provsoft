@@ -120,13 +120,15 @@ async function descargarArchivosCSD(){
 }
 
 async function descargarArchivoSeguro(nombreArchivo){
-  const { data, error } = await supabase.storage
+  const { data } = supabase.storage
     .from(CSD_BUCKET)
-    .createSignedUrl(nombreArchivo, 60);
+    .getPublicUrl(nombreArchivo);
 
-  if (error) throw error;
+  if (!data?.publicUrl) {
+    throw new Error('No se pudo obtener URL pública');
+  }
 
-  const res = await fetch(data.signedUrl);
+  const res = await fetch(data.publicUrl);
   if (!res.ok) throw new Error('Error fetch archivo');
 
   return await res.blob();
