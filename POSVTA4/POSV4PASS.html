@@ -1680,79 +1680,55 @@ const venta = {
   ubicacion: await obtenerUbicacionSegura(),
 
   
-  detalle: carrito.map(it => {
+detalle: carrito.map(it => {
 
-    let comision_monto = 0;
+  // 🔥 DESCUENTO PRORRATEADO REAL
+  const totLinea = calcularTotales(descuentoAutorizado);
+  const factorDescLinea = totLinea.factorDesc || 1;
 
-    // 🟫 CIGARROS → proporcional por 10
-    if (it.comision_tipo === "por_10" && it.comision_valor) {
-      comision_monto = +((it.cantidad / 10) * it.comision_valor).toFixed(2);
-    }
+  const precioUnitFinal = it.permite_descuento
+    ? +(it.precioUnit * factorDescLinea).toFixed(2)
+    : it.precioUnit;
 
-    // 🟦 PORCENTAJE
-if (it.comision_tipo === "porcentaje" && it.comision_valor) {
-  comision_monto = +((importeFinal * it.comision_valor) / 100).toFixed(2);
-}
+  const importeFinal = +(it.cantidad * precioUnitFinal).toFixed(2);
 
-    // 🟨 POR PIEZA (CIGARROS)
-    if (it.comision_tipo === "pieza" && it.comision_valor) {
+  let comision_monto = 0;
+
+  // 🟫 CIGARROS → proporcional por 10
+  if (it.comision_tipo === "por_10" && it.comision_valor) {
+    comision_monto = +((it.cantidad / 10) * it.comision_valor).toFixed(2);
+  }
+
+  // 🟦 PORCENTAJE (YA CORRECTO)
+  if (it.comision_tipo === "porcentaje" && it.comision_valor) {
+    comision_monto = +((importeFinal * it.comision_valor) / 100).toFixed(2);
+  }
+
+  // 🟨 POR PIEZA
+  if (it.comision_tipo === "pieza" && it.comision_valor) {
     comision_monto = +(it.cantidad * it.comision_valor).toFixed(2);
-    }
+  }
 
-    
-    // 🔼 acumular
-    comision_total += comision_monto;
-// 🔥 DESCUENTO PRORRATEADO REAL (AQUÍ ES)
-const totLinea = calcularTotales(descuentoAutorizado);
-const factorDescLinea = totLinea.factorDesc || 1;
+  comision_total += comision_monto;
 
-const precioUnitFinal = it.permite_descuento
-  ? +(it.precioUnit * factorDescLinea).toFixed(2)
-  : it.precioUnit;
+  return {
+    id: it.id,
+    nombre: it.nombre,
+    codigo: it.codigo,
 
-const importeFinal = +(it.cantidad * precioUnitFinal).toFixed(2);
+    cantidad: it.cantidad,
+    precio_unit: precioUnitFinal,
+    importe: importeFinal,
 
-    return {
-      id: it.id,
-      nombre: it.nombre,
-      codigo: it.codigo,
+    descuento_aplicado: it.permite_descuento
+      ? +(it.importe - importeFinal).toFixed(2)
+      : 0,
 
-      cantidad: it.cantidad,
-precio_unit: precioUnitFinal,
-importe: importeFinal,
-
-      descuento_aplicado: it.permite_descuento
-  ? +(it.importe - importeFinal).toFixed(2)
-  : 0,
-
-      costo_unit: +(it.costoUnit || 0).toFixed(2),
-      costo_total: +(it.cantidad * (it.costoUnit || 0)).toFixed(2),
-
-      claveSat: it.claveSat,
-      unidadSat: it.unidadSat,
-
-      ivaTasa: it.ivaTasa,
-      iepsTasa: it.iepsTasa,
-      iva_calculado: it.iva_calculado,
-      ieps_calculado: it.ieps_calculado,
-      
-      departamento_id: it.departamento_id,
-      departamento_info: {
-        id: it.departamento_id,
-        nombre:
-          it.departamento ||
-          catalogoById.get(it.id)?.departamento ||
-          "DESCONOCIDO",
-        iva: Math.round(it.ivaTasa * 100),
-        ieps: Math.round(it.iepsTasa * 100)
-      },
-
-      // 💸 comisión por línea
-      comision_tipo: it.comision_tipo || null,
-      comision_valor: it.comision_valor || 0,
-      comision_monto
-    };
-  })
+    comision_tipo: it.comision_tipo || null,
+    comision_valor: it.comision_valor || 0,
+    comision_monto
+  };
+})
 };
 // 👈 AQUÍ VA (NO DENTRO DEL MAP, NO ANTES)
 venta.comision_total = +comision_total.toFixed(2);
