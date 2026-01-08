@@ -1010,21 +1010,21 @@ function acortarNombre(nombre) {
     ? nombre.substring(0, max) + "…"
     : nombre;
 }
-  function actualizarCobroVisual() {
+function actualizarCobroVisual() {
   const tot = calcularTotales(descuentoAutorizado);
 
-  // Total grande del modal
+  // 🔥 FORZAR ACTUALIZACIÓN TOTAL
   cobroTotal.textContent = money(tot.total);
 
-  // Descuento visible
-  if (descuentoAutorizado > 0) {
+  // 🔥 MOSTRAR DESCUENTO SI EXISTE
+  if (tot.descuento > 0) {
     descuentoInfo.textContent = `Descuento aplicado: ${money(tot.descuento)}`;
     descuentoInfo.style.display = "block";
   } else {
     descuentoInfo.style.display = "none";
   }
 
-  // Cambio
+  // 🔥 RECALCULAR CAMBIO
   const recibido = parseFloat(montoRecibido.value) || 0;
   montoCambio.textContent = money(Math.max(0, recibido - tot.total));
 }
@@ -1548,8 +1548,8 @@ $("#btnSolicitarDescuento").addEventListener("click", () => {
   localStorage.setItem("desc_porcentaje", porc);
 
   // 🔥 ACTUALIZAR TODO
-  actualizarCobroVisual();
-  render();
+render();
+actualizarCobroVisual();
 
   alert(`✅ Descuento del ${porc}% aplicado correctamente.`);
 });
