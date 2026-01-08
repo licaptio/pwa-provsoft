@@ -6,77 +6,81 @@
   <title>Menú de Apps – PROVSOFT</title>
 
   <style>
-    body {
-      font-family: 'Poppins', Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      text-align: center;
-      background: linear-gradient(135deg, #fff9e6, #fff1b8);
-      color: #333;
+    body{
+      font-family:'Poppins',Arial,sans-serif;
+      margin:0;
+      padding:25px;
+      text-align:center;
+      background:linear-gradient(135deg,#fff9e6,#fff1b8);
+      color:#333;
     }
 
-    h1 {
-      font-size: 28px;
-      margin-bottom: 10px;
-      color: #c40000;
-      font-weight: 700;
+    h1{
+      font-size:28px;
+      margin-bottom:25px;
+      color:#c40000;
+      font-weight:700;
     }
 
-    .apps {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      max-width: 420px;
-      margin: 25px auto;
+    .apps{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:16px;
+      max-width:900px;
+      margin:auto;
     }
 
-    a {
-      display: block;
-      padding: 15px;
-      border-radius: 14px;
-      text-decoration: none;
-      background: linear-gradient(135deg, #ffcc00, #ffb300);
-      color: #7a0000;
-      font-weight: 700;
-      font-size: 15px;
-      box-shadow: 0 6px 14px rgba(0,0,0,.15);
-      transition: transform .15s, box-shadow .15s, background .2s;
+    a{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:14px;
+      border-radius:14px;
+      text-decoration:none;
+      background:linear-gradient(135deg,#ffcc00,#ffb300);
+      color:#7a0000;
+      font-weight:700;
+      font-size:14px;
+      box-shadow:0 6px 14px rgba(0,0,0,.15);
+      transition:.15s;
     }
 
-    a:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 18px rgba(0,0,0,.25);
-      background: linear-gradient(135deg, #ffd633, #ffc107);
+    a:hover{
+      transform:translateY(-3px);
+      box-shadow:0 10px 20px rgba(0,0,0,.25);
+      background:linear-gradient(135deg,#ffd633,#ffc107);
     }
 
-    footer {
-      margin-top: 35px;
-      font-size: 13px;
-      color: #7a0000;
-      font-weight: 600;
+    footer{
+      margin-top:35px;
+      font-size:13px;
+      color:#7a0000;
+      font-weight:600;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>🍬 PROVSOFT – Menú de Apps</h1>
+<h1>🍬 PROVSOFT – Menú de Apps</h1>
 
-  <div class="apps">
-    <a href="ARTPDDPWA/index.html">🔎 Buscador de Artículos</a>
-    <a href="MAPEOCATA/MAPEO.html">🧩 Mapear Tecnopro Artículos</a>
-    <a href="MAPEOCATA/SUBIDA.html">⬆️ Subida Tecnopro Artículos</a>
-    <a href="POSVTA4/POSV4PASS.html">🧾 POS V4 General</a>
-    <a href="POSVTA4/CORTEV4.html">📊 Corte V4 POS</a>
-    <a href="POSVTA4/MONITORTICKETS.html">🎫 Visor de Tickets</a>
+<!-- 🔤 ORDENADOS POR ABC -->
+<div class="apps">
+  <a href="POSVTA4/CATACOMIS.html">💰 Asignación Comisiones</a>
+  <a href="ARTPDDPWA/index.html">🔎 Buscador de Artículos</a>
+  <a href="POSVTA4/CORTEV4.html">📊 Corte V4 POS</a>
+  <a href="MAPEOCATA/MAPEO.html">🧩 Mapear Tecnopro Artículos</a>
+  <a href="POSVTA4/MONITORTICKETS.html">🎫 Visor de Tickets</a>
+  <a href="POSVTA4/POSV4PASS.html">🧾 POS V4 PUNTO DE VENTA MOVIL </a>
     <a href="POSVTA4/REPORTE-CORTE-V1.2.html">📄 Reporte Ventas para Facturar</a>
-    <a href="SIFEI/FACTURACIONTICKETS.html">🧾 SIFEI POS</a>
-    <a href="POSVTA4/CATACOMIS.html">💰 Asignación Comisiones</a>
-  </div>
+  <a href="SIFEI/FACTURACIONTICKETS.html">🧾 SIFEI POS</a>
+  <a href="MAPEOCATA/SUBIDA.html">⬆️ Subida Tecnopro Artículos</a>
+</div>
 
-  <footer>
-    Powered by <b>PROVSOFT</b>
-  </footer>
+<footer>
+  Powered by <b>PROVSOFT</b>
+</footer>
 
 </body>
 </html>
