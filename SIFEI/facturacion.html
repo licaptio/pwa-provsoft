@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Facturación CFDI 4.0 – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#f4f6f8;
+      margin:0;
+      padding:20px;
+    }
+    h1{
+      color:#0c6cbd;
+    }
+    .card{
+      background:#fff;
+      border-radius:10px;
+      padding:16px;
+      margin-bottom:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,.1);
+    }
+    button{
+      padding:10px 14px;
+      border:none;
+      border-radius:8px;
+      background:#0c6cbd;
+      color:#fff;
+      cursor:pointer;
+      font-weight:bold;
+    }
+    button.secondary{
+      background:#666;
+    }
+    pre{
+      background:#111;
+      color:#0f0;
+      padding:12px;
+      border-radius:8px;
+      overflow:auto;
+      max-height:300px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🧾 Facturación CFDI 4.0 – PRUEBAS</h1>
+
+  <div class="card">
+    <h3>1️⃣ Cargar configuración fiscal</h3>
+    <button onclick="cargarCSD()">Cargar CSD</button>
+  </div>
+
+  <div class="card">
+    <h3>2️⃣ Generar XML (sin timbrar)</h3>
+    <button onclick="generarXML()">Generar XML</button>
+  </div>
+
+  <div class="card">
+    <h3>3️⃣ Timbrar (SIFEI PRUEBAS)</h3>
+    <button onclick="timbrarXML()">Timbrar CFDI</button>
+  </div>
+
+  <div class="card">
+    <h3>📄 Salida técnica</h3>
+    <pre id="output">Esperando acciones…</pre>
+  </div>
+
+  <!-- MOTOR -->
+  <script src="facturacion.js"></script>
+</body>
+</html>
