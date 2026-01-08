@@ -19,7 +19,7 @@ window._supabaseClient = window._supabaseClient ||
     SUPABASE_ANON_KEY
   );
 
-const supabase = window._supabaseClient;
+var supabase = window._supabaseClient;
 
 // 🔹 STORAGE
 const CSD_BUCKET = 'csd_files';
