@@ -188,7 +188,7 @@ function obtenerDatosFacturaDemo(){
   return {
     serie: 'A',
     folio: '1',
-    fecha: new Date().toISOString().replace('Z','')
+    fecha: new Date().toISOString().replace('Z',''),
     forma_pago: '01',
     metodo_pago: 'PUE',
     tipo_comprobante: 'I',
