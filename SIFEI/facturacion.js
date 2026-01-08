@@ -7,15 +7,26 @@
    CONFIGURACIÓN GENERAL
 ================================ */
 
+// 🔹 SUPABASE (REAL)
 const SUPABASE_URL = 'https://cvpbtjlupswbyxenugpz.supabase.co';
-const SUPABASE_ANON_KEY = 'TU_ANON_KEY_AQUI'; // ya la tienes
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2cGJ0amx1cHN3Ynl4ZW51Z3B6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3MDIxOTQsImV4cCI6MjA2MzI3ODE5NH0.iiJsYM3TtaGPdeCtPcEXwAz3LfFc1uJGECEvOErvrqY';
 
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+
+// 🔹 STORAGE
+const CSD_BUCKET = 'csd_files';
+
+// 🔹 ENTORNO SIFEI (PRUEBAS)
 const SIFEI_ENV = 'TEST'; // TEST | PROD
 
 const SIFEI_ENDPOINTS = {
   TEST: 'https://dev.sifei.com.mx:8443/servicioTimbrado?wsdl',
   PROD: 'https://sat.sifei.com.mx/sifei33/servicioTimbrado?wsdl'
 };
+
 
 /* ===============================
    ESTADO EN MEMORIA
