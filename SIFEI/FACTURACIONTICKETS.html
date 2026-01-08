@@ -31,6 +31,8 @@ header {
   padding: 15px;
 }
 
+.hidden { display: none; }
+
 .card {
   background: white;
   padding: 15px;
@@ -39,7 +41,10 @@ header {
   margin-bottom: 20px;
 }
 
-label { font-size: 15px; font-weight: 600; }
+label {
+  font-size: 15px;
+  font-weight: 600;
+}
 
 select, input[type="date"], button {
   width: 100%;
@@ -58,9 +63,15 @@ button {
   border: none;
 }
 
-button:hover { background: #00416A; }
+button:hover {
+  background: #00416A;
+}
 
-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
 
 th, td {
   border-bottom: 1px solid #ddd;
@@ -68,13 +79,20 @@ th, td {
   font-size: 14px;
 }
 
-th { background: #00416A; color: white; }
+th {
+  background: #00416A;
+  color: white;
+}
+
 td { background: white; }
 
 .facturada { color: green; font-weight: 600; }
 .pendiente { color: red; font-weight: 600; }
 
-.actions { display: flex; gap: 10px; }
+.actions {
+  display: flex;
+  gap: 10px;
+}
 
 .footer {
   margin-top: 30px;
@@ -89,9 +107,15 @@ td { background: white; }
   letter-spacing: .5px;
 }
 
-/* Pantallas del wizard */
-.wizard { display:none; }
-.wizard.active { display:block; }
+textarea {
+  width: 100%;
+  height: 350px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #aaa;
+  font-family: monospace;
+  font-size: 12px;
+}
 </style>
 </head>
 
@@ -101,16 +125,12 @@ td { background: white; }
 
 <div class="container">
 
-<!-- ===================================================== -->
-<!-- PANTALLA 1: FILTRO Y VENTAS                           -->
-<!-- ===================================================== -->
-<div id="p1" class="wizard active">
+<!-- ============= PANTALLA 1: SELECCIÓN DE VENTAS ============= -->
+<div id="pantalla1">
 
   <div class="card">
     <label>Ruta:</label>
-    <select id="rutaSelect">
-      <option value="">Cargando usuarios…</option>
-    </select>
+    <select id="rutaSelect"><option value="">Cargando usuarios…</option></select>
 
     <label>Fecha:</label>
     <input type="date" id="fechaInput">
@@ -136,85 +156,59 @@ td { background: white; }
   </div>
 
   <div class="actions">
-    <button id="btnContinuar">Continuar →</button>
+    <button id="btnContinuar">Continuar</button>
   </div>
 
 </div>
 
-
-<!-- ===================================================== -->
-<!-- PANTALLA 2: SELECCIÓN CLIENTE O GLOBAL               -->
-<!-- ===================================================== -->
-<div id="p2" class="wizard">
-
+<!-- ============= PANTALLA 2: SELECCIÓN DEL TIPO DE FACTURA ============= -->
+<div id="pantalla2" class="hidden">
   <div class="card">
-    <h3>Selecciona el tipo de factura</h3>
+    <h3>Tipo de facturación</h3>
 
-    <label><input type="radio" name="tipoFactura" value="GLOBAL"> Factura GLOBAL</label><br>
-    <label><input type="radio" name="tipoFactura" value="CLIENTE"> Factura a CLIENTE</label>
+    <select id="tipoFacturaSelect">
+      <option value="">Seleccione...</option>
+      <option value="global">Factura Global (Público en general)</option>
+      <option value="cliente">Factura a Cliente</option>
+    </select>
 
-    <div id="clienteForm" style="display:none; margin-top:20px;">
-      <label>Cliente:</label>
-      <select id="selectCliente"></select>
-
-      <div id="datosCliente" style="background:#f3f3f3; padding:12px; border-radius:10px; margin-top:10px;">
-        <p><strong>RFC:</strong> <span id="cliRFC"></span></p>
-        <p><strong>Nombre:</strong> <span id="cliNombre"></span></p>
-        <p><strong>CP:</strong> <span id="cliCP"></span></p>
-
-        <label>Uso CFDI:</label>
-        <select id="cliUso">
-          <option value="G01">G01 Adquisición</option>
-          <option value="G03">G03 Gastos</option>
-          <option value="S01">S01 Sin Efectos Fiscales</option>
-        </select>
-      </div>
-    </div>
+    <button id="btnContinuarTipo">Siguiente</button>
   </div>
-
-  <div class="actions">
-    <button id="btnAtras1">← Regresar</button>
-    <button id="btnContinuar2">Continuar →</button>
-  </div>
-
 </div>
 
-
-<!-- ===================================================== -->
-<!-- PANTALLA 3: CONFIRMACIÓN FINAL                       -->
-<!-- ===================================================== -->
-<div id="p3" class="wizard">
-
+<!-- ============= PANTALLA 3: SELECCIÓN DE CLIENTE (SI APLICA) ============= -->
+<div id="pantalla3" class="hidden">
   <div class="card">
-    <h3>Confirmación de factura</h3>
+    <h3>Seleccionar cliente</h3>
 
-    <p><strong>Ventas seleccionadas:</strong></p>
-    <ul id="listaConfirmacion"></ul>
+    <select id="clienteSelect">
+      <option value="">Seleccione cliente…</option>
+    </select>
 
-    <p id="tipoResumen"></p>
+    <button id="btnGenerarXMLCliente">Generar XML Cliente</button>
   </div>
+</div>
 
-  <div class="actions">
-    <button id="btnAtras2">← Regresar</button>
-    <button id="btnGenerar">Generar CFDI</button>
+<!-- ============= PANTALLA 4: RESULTADO XML ============= -->
+<div id="pantallaXML" class="hidden">
+  <div class="card">
+    <h3>XML Generado (CFDI 4.0)</h3>
+    <textarea id="xmlOutput"></textarea>
   </div>
-
 </div>
 
 </div> <!-- container -->
 
 <footer class="footer">
-  © 2025 PROVSOFT · Sistema de Facturación - V1.0 - 6cfb086
+  <p>© 2025 PROVSOFT · Sistema de Facturación - V1.0 · by Gerardo & ChatGPT</p>
 </footer>
 
 
-<!-- ========================================================= -->
-<!-- ======================= SCRIPT =========================== -->
-<!-- ========================================================= -->
+<!-- ============================================================
+     🔥 FIREBASE + CONTROL DE FLUJOS
+     ============================================================ -->
 <script>
-/* ============================================================
-   FIREBASE
-============================================================ */
+/* -------- 🔥 CONFIG FIREBASE -------- */
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
@@ -223,67 +217,47 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ============================================================
-   UTILIDADES
-============================================================ */
-function show(p) {
-  document.querySelectorAll(".wizard").forEach(x => x.classList.remove("active"));
-  document.getElementById(p).classList.add("active");
-}
+/* ---------- VARIABLES GLOBALES ---------- */
+let VENTAS = [];
+let VENTAS_SELECCIONADAS = [];
 
 /* ============================================================
-   CARGAR USUARIOS RUTA
-============================================================ */
+   1. Cargar Usuarios de Ruta para selector
+   ============================================================ */
 async function cargarSelectorUsuarios() {
   const select = document.getElementById("rutaSelect");
-  select.innerHTML = "<option value=''>Seleccione usuario…</option>";
+  select.innerHTML = "<option value=''>Seleccione ruta…</option>";
 
   const snap = await db.collection("usuarios_ruta").get();
 
   snap.forEach(doc => {
     const u = doc.data();
-    if (!u.activo) return;
-    if (!u.rutaId) return;
+    if (!u.activo || !u.rutaId) return;
 
-    const nombre = u.nombre ?? u.usuario ?? "SIN NOMBRE";
-    select.innerHTML += `<option value="${u.rutaId}">${nombre} — ${u.rutaId}</option>`;
+    select.innerHTML += `
+      <option value="${u.rutaId}">
+        ${u.nombre} — ${u.rutaId}
+      </option>
+    `;
   });
 }
 cargarSelectorUsuarios();
 
 /* ============================================================
-   CARGAR CLIENTES
-============================================================ */
-let CLIENTES = {};
-
-async function cargarClientes() {
-  const snap = await db.collection("clientes").get();
-  const select = document.getElementById("selectCliente");
-  select.innerHTML = "<option value=''>Seleccione cliente…</option>";
-
-  snap.forEach(doc => {
-    CLIENTES[doc.id] = doc.data();
-    select.innerHTML += `<option value="${doc.id}">${CLIENTES[doc.id].nombre}</option>`;
-  });
-}
-cargarClientes();
-
-/* ============================================================
-   CARGAR VENTAS
-============================================================ */
-let VENTAS = [];
+   2. Cargar ventas por ruta + fecha
+   ============================================================ */
+const tabla = document.querySelector("#tablaVentas tbody");
 
 async function cargarVentas() {
-  const ruta = rutaSelect.value;
-  const fecha = fechaInput.value;
+  tabla.innerHTML = "<tr><td colspan='6'>Cargando…</td></tr>";
+
+  const ruta = document.getElementById("rutaSelect").value;
+  const fecha = document.getElementById("fechaInput").value;
 
   if (!ruta || !fecha) {
     alert("Seleccione ruta y fecha");
     return;
   }
-
-  tablaVentas.querySelector("tbody").innerHTML =
-    "<tr><td colspan='6'>Cargando…</td></tr>";
 
   const inicio = new Date(fecha + "T00:00:00");
   const fin = new Date(fecha + "T23:59:59");
@@ -294,8 +268,8 @@ async function cargarVentas() {
     .where("fecha", "<=", fin)
     .get();
 
+  tabla.innerHTML = "";
   VENTAS = [];
-  let html = "";
 
   snap.forEach(doc => {
     const v = doc.data();
@@ -308,106 +282,218 @@ async function cargarVentas() {
 
     const chk = !v.facturada ? `<input type='checkbox' data-id='${v.id}'>` : "";
 
-    html += `
+    tabla.innerHTML += `
       <tr>
         <td>${chk}</td>
         <td>${v.folio}</td>
         <td>${v.cliente}</td>
         <td>$${v.resumen_financiero.total.toFixed(2)}</td>
-        <td>${v.usuarioNombre}</td>
+        <td>${v.usuarioNombre ?? "SIN USUARIO"}</td>
         <td>${estado}</td>
-      </tr>`;
+      </tr>
+    `;
   });
-
-  tablaVentas.querySelector("tbody").innerHTML = html;
 }
 
-btnCargar.onclick = cargarVentas;
+document.getElementById("btnCargar").onclick = cargarVentas;
 
 /* ============================================================
-   PASO 1 → PASO 2
-============================================================ */
-btnContinuar.onclick = () => {
-  const seleccionadas = [...document.querySelectorAll("input[type=checkbox]:checked")]
-    .map(chk => chk.dataset.id);
+   3. Continuar a pantalla de tipo de factura
+   ============================================================ */
+document.getElementById("btnContinuar").onclick = () => {
+  const checks = [...document.querySelectorAll("input[type=checkbox]:checked")];
+  if (checks.length === 0) return alert("Seleccione al menos una venta");
 
-  if (seleccionadas.length === 0) {
-    alert("Seleccione al menos una venta.");
-    return;
-  }
+  VENTAS_SELECCIONADAS = checks.map(c => c.dataset.id);
 
-  window.VENTAS_SELECCIONADAS = seleccionadas;
-  show("p2");
+  pantalla1.classList.add("hidden");
+  pantalla2.classList.remove("hidden");
 };
 
 /* ============================================================
-   PANTALLA 2: SELECCIÓN TIPO DE FACTURA
-============================================================ */
-document.getElementsByName("tipoFactura").forEach(r => {
-  r.addEventListener("change", e => {
-    if (e.target.value === "CLIENTE") {
-      clienteForm.style.display = "block";
-    } else {
-      clienteForm.style.display = "none";
-    }
+   4. Elegir tipo de factura
+   ============================================================ */
+document.getElementById("btnContinuarTipo").onclick = () => {
+  const tipo = document.getElementById("tipoFacturaSelect").value;
+
+  if (!tipo) return alert("Seleccione un tipo de factura");
+
+  if (tipo === "global") {
+    generarXMLGlobalUI();
+  } else {
+    pantalla2.classList.add("hidden");
+    pantalla3.classList.remove("hidden");
+    cargarClientes();
+  }
+};
+
+/* ============================================================
+   5. Cargar clientes
+   ============================================================ */
+async function cargarClientes() {
+  const select = document.getElementById("clienteSelect");
+  select.innerHTML = "<option value=''>Seleccione…</option>";
+
+  const snap = await db.collection("clientes").get();
+
+  snap.forEach(doc => {
+    const c = doc.data();
+    select.innerHTML += `<option value="${doc.id}">${c.nombre} — ${c.rfc}</option>`;
   });
-});
+}
 
-selectCliente.onchange = () => {
-  const cli = CLIENTES[selectCliente.value];
-  if (!cli) return;
+/* ============================================================
+   6. Botón generar XML cliente
+   ============================================================ */
+document.getElementById("btnGenerarXMLCliente").onclick = async () => {
+  const id = document.getElementById("clienteSelect").value;
+  if (!id) return alert("Seleccione un cliente");
 
-  cliRFC.textContent = cli.rfc;
-  cliNombre.textContent = cli.nombre;
-  cliCP.textContent = cli.cp;
+  const clienteDoc = await db.collection("clientes").doc(id).get();
+  const cliente = clienteDoc.data();
+
+  const venta = VENTAS.find(v => v.id === VENTAS_SELECCIONADAS[0]);
+
+  const xml = generarXMLCliente(venta, EMISOR, cliente);
+
+  mostrarXML(xml);
 };
 
 /* ============================================================
-   PASO 2 → PASO 3
-============================================================ */
-btnContinuar2.onclick = () => {
-  const tipo = [...document.getElementsByName("tipoFactura")]
-    .find(x => x.checked);
+   🔥 GENERADORES XML (GLOBAL / CLIENTE)
+   ============================================================ */
 
-  if (!tipo) {
-    alert("Seleccione GLOBAL o CLIENTE");
-    return;
-  }
+const EMISOR = {
+  rfc: "PDD031204KL5",
+  nombre: "PROVEEDORA DE DULCES Y DESECHABLES",
+  regimen_fiscal: "601",
+  cp_fiscal: "64000"
+};
 
-  window.TIPO_FACTURA = tipo.value;
+/* ---------- GLOBAL ---------- */
+function generarXMLGlobalUI() {
+  const ventas = VENTAS.filter(v => VENTAS_SELECCIONADAS.includes(v.id));
+  const xml = generarXMLGlobal(ventas, EMISOR);
+  mostrarXML(xml);
+}
 
-  if (tipo.value === "CLIENTE" && !selectCliente.value) {
-    alert("Seleccione un cliente.");
-    return;
-  }
+function generarXMLGlobal(ventas, emisorInfo) {
+  let subtotal = 0;
+  let total = 0;
+  let conceptosXML = "";
 
-  // Mostrar ventas seleccionadas
-  listaConfirmacion.innerHTML = "";
-  window.VENTAS_SELECCIONADAS.forEach(id => {
-    const v = VENTAS.find(x => x.id === id);
-    listaConfirmacion.innerHTML += `<li>${v.folio} - $${v.resumen_financiero.total}</li>`;
+  ventas.forEach(v => {
+    subtotal += v.resumen_financiero.subtotal;
+    total += v.resumen_financiero.total;
+
+    v.detalle.forEach(item => {
+      conceptosXML += `
+        <cfdi:Concepto 
+          ClaveProdServ="${item.claveSat}"
+          Cantidad="${item.cantidad}"
+          ClaveUnidad="${item.unidadSat || 'H87'}"
+          Descripcion="${item.nombre}"
+          ValorUnitario="${item.precio_unit}"
+          Importe="${item.importe}"
+        ></cfdi:Concepto>
+      `;
+    });
   });
 
-  tipoResumen.textContent =
-    tipo.value === "GLOBAL"
-      ? "Factura global de público en general"
-      : `Factura para cliente: ${CLIENTES[selectCliente.value].nombre}`;
+  const fecha = new Date().toISOString().slice(0, 19);
 
-  show("p3");
-};
+  return `
+<cfdi:Comprobante Version="4.0" Serie="GLO" Fecha="${fecha}"
+  Moneda="MXN" SubTotal="${subtotal.toFixed(2)}" Total="${total.toFixed(2)}"
+  TipoDeComprobante="I" Exportacion="01" LugarExpedicion="${emisorInfo.cp_fiscal}"
+  xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+>
+  <cfdi:Emisor 
+    Rfc="${emisorInfo.rfc}"
+    Nombre="${emisorInfo.nombre}"
+    RegimenFiscal="${emisorInfo.regimen_fiscal}"
+  />
+
+  <cfdi:Receptor 
+    Rfc="XAXX010101000"
+    Nombre="PUBLICO EN GENERAL"
+    DomicilioFiscalReceptor="${emisorInfo.cp_fiscal}"
+    RegimenFiscalReceptor="616"
+    UsoCFDI="S01"
+  />
+
+  <cfdi:Conceptos>
+    ${conceptosXML}
+  </cfdi:Conceptos>
+
+  <cfdi:Impuestos TotalImpuestosTrasladados="0.00"></cfdi:Impuestos>
+
+</cfdi:Comprobante>
+  `;
+}
+
+/* ---------- CLIENTE ---------- */
+function generarXMLCliente(venta, emisorInfo, clienteInfo) {
+  let conceptosXML = "";
+  let subtotal = venta.resumen_financiero.subtotal;
+  let total = venta.resumen_financiero.total;
+
+  venta.detalle.forEach(item => {
+    conceptosXML += `
+      <cfdi:Concepto 
+        ClaveProdServ="${item.claveSat}"
+        Cantidad="${item.cantidad}"
+        ClaveUnidad="${item.unidadSat || 'H87'}"
+        Descripcion="${item.nombre}"
+        ValorUnitario="${item.precio_unit}"
+        Importe="${item.importe}">
+      </cfdi:Concepto>
+    `;
+  });
+
+  const fecha = new Date().toISOString().slice(0, 19);
+
+  return `
+<cfdi:Comprobante Version="4.0" Serie="CLI" Fecha="${fecha}"
+  Moneda="MXN" SubTotal="${subtotal.toFixed(2)}" Total="${total.toFixed(2)}"
+  TipoDeComprobante="I" Exportacion="01" LugarExpedicion="${emisorInfo.cp_fiscal}"
+  xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+>
+  <cfdi:Emisor 
+    Rfc="${emisorInfo.rfc}"
+    Nombre="${emisorInfo.nombre}"
+    RegimenFiscal="${emisorInfo.regimen_fiscal}"
+  />
+
+  <cfdi:Receptor 
+    Rfc="${clienteInfo.rfc}"
+    Nombre="${clienteInfo.nombre}"
+    DomicilioFiscalReceptor="${clienteInfo.cp}"
+    RegimenFiscalReceptor="${clienteInfo.regimen}"
+    UsoCFDI="${clienteInfo.uso_cfdi}"
+  />
+
+  <cfdi:Conceptos>
+    ${conceptosXML}
+  </cfdi:Conceptos>
+
+  <cfdi:Impuestos TotalImpuestosTrasladados="0.00"></cfdi:Impuestos>
+
+</cfdi:Comprobante>
+  `;
+}
 
 /* ============================================================
-   PASO 3 → GENERAR CFDI
-============================================================ */
-btnGenerar.onclick = () => {
-  alert("Aquí generaremos el XML, TXT y timbrado final.");
-};
+   Mostrar XML en pantalla
+   ============================================================ */
+function mostrarXML(xml) {
+  pantalla1.classList.add("hidden");
+  pantalla2.classList.add("hidden");
+  pantalla3.classList.add("hidden");
 
-/* ============================================================
-   BOTONES DE RETROCESO
-============================================================ */
-btnAtras1.onclick = () => show("p1");
-btnAtras2.onclick = () => show("p2");
+  pantallaXML.classList.remove("hidden");
+  document.getElementById("xmlOutput").value = xml.trim();
+}
 
 </script>
 
