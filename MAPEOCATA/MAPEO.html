@@ -47,6 +47,8 @@
 <script>
 const CAMPOS=["claveSat","codigoBarra","concepto","costoSinImpuesto","departamento_id","mayoreo","medioMayoreo","precioPublico","unidadMedidaSat"];
 let lineas=[],separador=/\s{2,}/,mapeo={};
+  let jsonGenerado = null;
+const STORAGE_KEY = "provsoft_mapeo_catalogo";
 
 // Detecta separador
 function detectarSeparador(l){
@@ -66,15 +68,21 @@ function leerArchivo(){
   const file=document.getElementById("fileInput").files[0];
   if(!file)return alert("Selecciona un archivo TXT primero.");
   const reader=new FileReader();
-  reader.onload=e=>{
-    lineas=e.target.result.split('\n').filter(l=>l.trim()!=="");
-    separador=detectarSeparador(lineas[0]);
-    const datos=lineas.map(l=>dividirRespetandoComillas(l)); // TODAS las filas
-    const maxCols=Math.max(...datos.map(r=>r.length));
-    document.getElementById("status").innerText=
-      `Archivo cargado con ${lineas.length} líneas. Columnas detectadas: ${maxCols}`;
-    mostrarTabla(datos,maxCols);
-  };
+reader.onload = e => {
+  lineas = e.target.result.split('\n').filter(l => l.trim() !== "");
+  separador = detectarSeparador(lineas[0]);
+
+  const datos = lineas.map(l => dividirRespetandoComillas(l));
+  const maxCols = Math.max(...datos.map(r => r.length));
+
+  document.getElementById("status").innerText =
+    `Archivo cargado con ${lineas.length} líneas. Procesando automáticamente...`;
+
+  mostrarTabla(datos, maxCols);
+
+  // ⚙️ PROCESAR AUTOMÁTICO
+  setTimeout(() => procesarAutomatico(), 200);
+};
   reader.readAsText(file,"utf-8");
 }
 // Mostrar tabla
@@ -119,7 +127,8 @@ function mostrarTabla(datos,maxCols){
   });
   document.getElementById("tablaContainer").style.display="block";
   const btn=document.getElementById("btnGenerar");
-  btn.disabled=true;btn.classList.remove("activo");
+btn.disabled = !jsonGenerado;
+btn.classList.toggle("activo", !!jsonGenerado);
 }
 // Validar mapeo
 function validarMapeo(){
@@ -130,7 +139,13 @@ function validarMapeo(){
   sels.forEach(s=>s.classList.remove("error"));
   sels.forEach(s=>{if(repetidos.includes(s.value))s.classList.add("error");});
   const btn=document.getElementById("btnGenerar");
-  if(faltantes.length===0&&repetidos.length===0){btn.classList.add("activo");btn.disabled=false;}
+if(faltantes.length===0 && repetidos.length===0){
+  btn.classList.add("activo");
+  btn.disabled = false;
+} else {
+  btn.classList.remove("activo");
+  btn.disabled = true;
+}
   else{btn.classList.remove("activo");btn.disabled=true;}
 }
 function resaltarColumna(i,activo){
@@ -138,28 +153,84 @@ function resaltarColumna(i,activo){
 }
 // Generar JSON, usando último registro por claveSat o código
 function generarJSON(){
-  const sels=document.querySelectorAll("thead select");
-  mapeo={};
-  sels.forEach(s=>{if(s.value!=="")mapeo[s.value]=parseInt(s.dataset.columna);});
-  const mapa=new Map();
-  for(const l of lineas){
-    const d=dividirRespetandoComillas(l);
-    const obj={};
-    for(const c of CAMPOS){
-      const idx=mapeo[c];let val=d[idx]||"";
-      if(["costoSinImpuesto","mayoreo","medioMayoreo","precioPublico"].includes(c))
-        val=parseFloat(val)||0;
-      obj[c]=val;
-    }
-    const clave=obj.codigoBarra||obj.claveSat||Math.random();
-    mapa.set(clave,obj); // sobreescribe si ya existía
+  if (!jsonGenerado) {
+    alert("No hay datos procesados.");
+    return;
   }
-  const productos=[...mapa.values()];
-  const blob=new Blob([JSON.stringify(productos,null,2)],{type:"application/json"});
-  const link=document.createElement("a");
-  link.href=URL.createObjectURL(blob);
-  link.download="catalogo_actualizado.json";
+
+  const blob = new Blob(
+    [JSON.stringify(jsonGenerado, null, 2)],
+    { type: "application/json" }
+  );
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "catalogo_actualizado.json";
   link.click();
+  aplicarMapeoVisual();
+}
+  // ===============================
+// 💾 GUARDAR / CARGAR MAPEO
+// ===============================
+function guardarMapeo() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(mapeo));
+}
+
+function cargarMapeoGuardado() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  return data ? JSON.parse(data) : null;
+}
+function aplicarMapeoVisual() {
+  const guardado = cargarMapeoGuardado();
+  if (!guardado) return;
+
+  const selects = document.querySelectorAll("thead select");
+  selects.forEach(sel => {
+    const col = parseInt(sel.dataset.columna);
+    const campo = Object.keys(guardado).find(k => guardado[k] === col);
+    if (campo) {
+      sel.value = campo;
+      resaltarColumna(col, true);
+    }
+  });
+}
+
+// ===============================
+// ⚙️ PROCESO AUTOMÁTICO
+// ===============================
+function procesarAutomatico() {
+  const guardado = cargarMapeoGuardado();
+  if (!guardado) {
+    console.warn("No hay mapeo guardado aún.");
+    return;
+  }
+
+  mapeo = guardado;
+  const mapa = new Map();
+
+  for (const l of lineas) {
+    const d = dividirRespetandoComillas(l);
+    const obj = {};
+
+    for (const c of CAMPOS) {
+      const idx = mapeo[c];
+      let val = d[idx] || "";
+
+      if (["costoSinImpuesto","mayoreo","medioMayoreo","precioPublico"].includes(c))
+        val = parseFloat(val) || 0;
+
+      obj[c] = val;
+    }
+
+    const clave = obj.codigoBarra || obj.claveSat || Math.random();
+    mapa.set(clave, obj);
+  }
+
+  jsonGenerado = [...mapa.values()];
+
+  const btn = document.getElementById("btnGenerar");
+  btn.disabled = false;
+  btn.classList.add("activo");
 }
 </script>
 </body>
