@@ -99,10 +99,18 @@ async function cargarCSD(){
 async function descargarArchivosCSD(){
   log('📥 Descargando archivos CSD...');
 
-  const { data: cerBlob, error: cerErr } =
-    await supabase.storage
-      .from(CSD_BUCKET)
-      .download(CSD_CONFIG.cer_file);
+async function descargarArchivoSeguro(nombreArchivo){
+  const { data, error } = await supabase.storage
+    .from(CSD_BUCKET)
+    .createSignedUrl(nombreArchivo, 60); // 60 segundos
+
+  if (error) throw error;
+
+  const res = await fetch(data.signedUrl);
+  if (!res.ok) throw new Error('Error fetch archivo');
+
+  return await res.blob();
+}
 
   if(cerErr){
     log('❌ Error descargando CER');
