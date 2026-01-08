@@ -4,234 +4,216 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>🧩 PROVSOFT – Catalog Mapper Visual</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
 <style>
-  :root {
-    --azul:#00416A;--resalte:#0c6cbd;--gris:#E4E5E6;--blanco:#fff;
-    --borde:#cfd8dc;--resalte-columna:#d0e6ff;
-  }
-  body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,var(--azul),var(--gris));color:#111;margin:0;padding:20px;}
-  h1{color:white;text-align:center;text-shadow:1px 1px 3px rgba(0,0,0,.3);}
-  .card{background:rgba(255,255,255,.96);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(0,0,0,.15);max-width:95%;margin:20px auto;}
-  input[type=file],button{padding:10px 16px;border-radius:10px;border:1px solid #ccc;font-size:15px;margin:6px;}
-  button{background:#9e9e9e;color:white;font-weight:600;cursor:not-allowed;transition:.3s;}
-  button.activo{background:var(--resalte);cursor:pointer;}
-  button.activo:hover{background:var(--azul);transform:scale(1.02);}
-  table{width:100%;border-collapse:collapse;margin-top:15px;background:var(--blanco);}
-  th,td{border:1px solid var(--borde);padding:6px 8px;font-size:13px;text-align:left;white-space:nowrap;}
-  th{background:var(--resalte);color:white;position:sticky;top:0;z-index:3;}
-  select{padding:4px 6px;border-radius:6px;border:1px solid #ccc;font-size:13px;}
-  .tabla-container{overflow:auto;max-height:70vh;border:2px solid var(--borde);border-radius:8px;}
-  .resaltada{background:var(--resalte-columna);}
+:root{
+  --azul:#00416A;--res:#0c6cbd;--gris:#E4E5E6;--blanco:#fff;
+  --borde:#cfd8dc;--resaltado:#d0e6ff;
+}
+body{
+  font-family:Poppins,sans-serif;
+  background:linear-gradient(135deg,var(--azul),var(--gris));
+  margin:0;padding:20px;color:#111;
+}
+h1{color:#fff;text-align:center}
+.card{
+  background:#fff;border-radius:16px;padding:20px;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+  max-width:95%;margin:auto;
+}
+button,input{padding:10px 16px;border-radius:10px}
+button{background:#999;color:#fff;border:none;cursor:not-allowed}
+button.activo{background:var(--res);cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th,td{border:1px solid var(--borde);padding:6px;font-size:13px}
+th{background:var(--res);color:#fff;position:sticky;top:0}
+.resaltada{background:var(--resaltado)}
+.tabla-container{max-height:65vh;overflow:auto;border:2px solid var(--borde)}
 </style>
 </head>
+
 <body>
 <h1>🧩 PROVSOFT – Catalog Mapper Visual</h1>
+
 <div class="card">
-  <h3>1️⃣ Selecciona tu archivo TXT</h3>
   <input type="file" id="fileInput" accept=".txt">
-  <button onclick="leerArchivo()">📂 Cargar y visualizar</button>
+  <button onclick="leerArchivo()">📂 Cargar TXT</button>
+  <button onclick="exportarMapeo()">📦 Exportar mapeo</button>
+  <input type="file" accept=".json" onchange="importarMapeo(this.files[0])">
   <p id="status"></p>
 
-  <div id="tablaContainer" class="tabla-container" style="display:none;">
-    <h3>2️⃣ Asigna las columnas</h3>
-    <table id="tablaDatos">
+  <div id="tablaContainer" class="tabla-container" style="display:none">
+    <table>
       <thead id="thead"></thead>
       <tbody id="tbody"></tbody>
     </table>
     <br>
-    <button id="btnGenerar" onclick="generarJSON()">💾 Generar JSON</button>
+    <button id="btnGenerar" onclick="generarJSON()">💾 Descargar JSON</button>
   </div>
 </div>
 
-<script>
-const CAMPOS=["claveSat","codigoBarra","concepto","costoSinImpuesto","departamento_id","mayoreo","medioMayoreo","precioPublico","unidadMedidaSat"];
-let lineas=[],separador=/\s{2,}/,mapeo={};
-  let jsonGenerado = null;
-const STORAGE_KEY = "provsoft_mapeo_catalogo";
+<!-- ================= FIREBASE + APP ================= -->
+<script type="module">
+/* ================= FIREBASE ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Detecta separador
-function detectarSeparador(l){
-  if(l.includes('\t'))return /\t/;
-  if(l.includes(';'))return /;/;
-  if(l.includes('|'))return /\|/;
-  return /\s{2,}/;
-}
-// Divide respetando comillas
-function dividirRespetandoComillas(l){
-  const regex=/"([^"]*)"|(\S+)/g,tokens=[];let m;
-  while((m=regex.exec(l))!==null)tokens.push(m[1]??m[2]);
-  return tokens;
-}
-// Leer archivo
-function leerArchivo(){
-  const file=document.getElementById("fileInput").files[0];
-  if(!file)return alert("Selecciona un archivo TXT primero.");
-  const reader=new FileReader();
-reader.onload = e => {
-  lineas = e.target.result.split('\n').filter(l => l.trim() !== "");
-  separador = detectarSeparador(lineas[0]);
-
-  const datos = lineas.map(l => dividirRespetandoComillas(l));
-  const maxCols = Math.max(...datos.map(r => r.length));
-
-  document.getElementById("status").innerText =
-    `Archivo cargado con ${lineas.length} líneas. Procesando automáticamente...`;
-
-  mostrarTabla(datos, maxCols);
-
-  // ⚙️ PROCESAR AUTOMÁTICO
-  setTimeout(() => procesarAutomatico(), 200);
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
-  reader.readAsText(file,"utf-8");
-}
-// Mostrar tabla
-function mostrarTabla(datos,maxCols){
-  const thead=document.getElementById("thead");
-  const tbody=document.getElementById("tbody");
-  thead.innerHTML="";tbody.innerHTML="";
-  // fila selects
-  const filaMap=document.createElement("tr");
-  for(let i=0;i<maxCols;i++){
-    const th=document.createElement("th");
-    const sel=document.createElement("select");
-    sel.dataset.columna=i;
-    sel.innerHTML=`<option value="">-- Sin asignar --</option>`;
-    CAMPOS.forEach(c=>{
-      const op=document.createElement("option");
-      op.value=c;op.textContent=c;sel.appendChild(op);
-    });
-    sel.addEventListener("change",validarMapeo);
-    sel.addEventListener("change",e=>resaltarColumna(i,e.target.value!==""));
-    th.appendChild(sel);filaMap.appendChild(th);
-  }
-  thead.appendChild(filaMap);
-  // encabezado fijo
-  const filaHead=document.createElement("tr");
-  for(let i=0;i<maxCols;i++){
-    const th=document.createElement("th");
-    th.textContent=`Col${String(i+1).padStart(2,'0')}`;
-    filaHead.appendChild(th);
-  }
-  thead.appendChild(filaHead);
-  // filas
-  datos.forEach(fila=>{
-    const tr=document.createElement("tr");
-    for(let i=0;i<maxCols;i++){
-      const td=document.createElement("td");
-      td.textContent=fila[i]||"";
-      td.classList.add(`col-${i}`);
-      tr.appendChild(td);
-    }
-    tbody.appendChild(tr);
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/* ================= APP ================= */
+const CAMPOS=[
+  "claveSat","codigoBarra","concepto","costoSinImpuesto",
+  "departamento_id","mayoreo","medioMayoreo",
+  "precioPublico","unidadMedidaSat"
+];
+
+let lineas=[],mapeo={},jsonGenerado=null;
+const STORAGE_KEY="provsoft_mapeo_catalogo";
+const MAPEO_DOC="catalogo_default";
+
+/* ================= MAPEO STORAGE ================= */
+async function guardarMapeoFirestore(data){
+  await setDoc(doc(db,"configuraciones","mapeos","catalogos",MAPEO_DOC),{
+    mapeo:data,updatedAt:new Date()
   });
-  document.getElementById("tablaContainer").style.display="block";
-  const btn=document.getElementById("btnGenerar");
-btn.disabled = !jsonGenerado;
-btn.classList.toggle("activo", !!jsonGenerado);
 }
-// Validar mapeo
-function validarMapeo(){
-  const sels=document.querySelectorAll("thead select");
-  const valores=[...sels].map(s=>s.value).filter(v=>v!=="");
-  const faltantes=CAMPOS.filter(c=>!valores.includes(c));
-  const repetidos=valores.filter((v,i,a)=>a.indexOf(v)!==i&&v!=="");
-  sels.forEach(s=>s.classList.remove("error"));
-  sels.forEach(s=>{if(repetidos.includes(s.value))s.classList.add("error");});
-  const btn=document.getElementById("btnGenerar");
-if(faltantes.length===0 && repetidos.length===0){
-  btn.classList.add("activo");
-  btn.disabled = false;
-} else {
-  btn.classList.remove("activo");
-  btn.disabled = true;
+
+async function cargarMapeoFirestore(){
+  const d=await getDoc(doc(db,"configuraciones","mapeos","catalogos",MAPEO_DOC));
+  return d.exists()?d.data().mapeo:null;
 }
-  else{btn.classList.remove("activo");btn.disabled=true;}
-}
-function resaltarColumna(i,activo){
-  document.querySelectorAll(`.col-${i}`).forEach(td=>td.classList.toggle("resaltada",activo));
-}
-// Generar JSON, usando último registro por claveSat o código
-function generarJSON(){
-  if (!jsonGenerado) {
-    alert("No hay datos procesados.");
-    return;
+
+async function inicializarMapeo(){
+  const remoto=await cargarMapeoFirestore();
+  if(remoto){
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(remoto));
+    mapeo=remoto;
+  } else {
+    const local=localStorage.getItem(STORAGE_KEY);
+    if(local) mapeo=JSON.parse(local);
   }
+}
+window.addEventListener("DOMContentLoaded",inicializarMapeo);
 
-  const blob = new Blob(
-    [JSON.stringify(jsonGenerado, null, 2)],
-    { type: "application/json" }
-  );
+/* ================= UTIL ================= */
+function dividir(l){
+  const r=/"([^"]*)"|(\S+)/g,a=[];let m;
+  while((m=r.exec(l))!==null)a.push(m[1]??m[2]);
+  return a;
+}
 
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "catalogo_actualizado.json";
-  link.click();
+/* ================= UI ================= */
+window.leerArchivo=()=>{
+  const f=document.getElementById("fileInput").files[0];
+  if(!f)return alert("Selecciona archivo");
+  const r=new FileReader();
+  r.onload=e=>{
+    lineas=e.target.result.split("\n").filter(x=>x.trim());
+    mostrarTabla(lineas.map(dividir));
+    setTimeout(procesarAutomatico,200);
+  };
+  r.readAsText(f,"utf-8");
+};
+
+function mostrarTabla(datos){
+  const th=document.getElementById("thead");
+  const tb=document.getElementById("tbody");
+  th.innerHTML="";tb.innerHTML="";
+  const max=Math.max(...datos.map(r=>r.length));
+
+  const tr=document.createElement("tr");
+  for(let i=0;i<max;i++){
+    const sel=document.createElement("select");
+    sel.dataset.col=i;
+    sel.innerHTML="<option></option>"+CAMPOS.map(c=>`<option>${c}</option>`).join("");
+    sel.onchange=()=>guardarMapeoDesdeUI();
+    const thd=document.createElement("th");
+    thd.appendChild(sel);tr.appendChild(thd);
+  }
+  th.appendChild(tr);
+
+  datos.forEach(r=>{
+    const tr=document.createElement("tr");
+    for(let i=0;i<max;i++){
+      const td=document.createElement("td");
+      td.textContent=r[i]||"";tr.appendChild(td);
+    }
+    tb.appendChild(tr);
+  });
+
+  document.getElementById("tablaContainer").style.display="block";
   aplicarMapeoVisual();
 }
-  // ===============================
-// 💾 GUARDAR / CARGAR MAPEO
-// ===============================
-function guardarMapeo() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mapeo));
+
+async function guardarMapeoDesdeUI(){
+  mapeo={};
+  document.querySelectorAll("thead select").forEach(s=>{
+    if(s.value)mapeo[s.value]=+s.dataset.col;
+  });
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(mapeo));
+  await guardarMapeoFirestore(mapeo);
 }
 
-function cargarMapeoGuardado() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : null;
-}
-function aplicarMapeoVisual() {
-  const guardado = cargarMapeoGuardado();
-  if (!guardado) return;
-
-  const selects = document.querySelectorAll("thead select");
-  selects.forEach(sel => {
-    const col = parseInt(sel.dataset.columna);
-    const campo = Object.keys(guardado).find(k => guardado[k] === col);
-    if (campo) {
-      sel.value = campo;
-      resaltarColumna(col, true);
-    }
+function aplicarMapeoVisual(){
+  document.querySelectorAll("thead select").forEach(s=>{
+    const k=Object.keys(mapeo).find(x=>mapeo[x]==s.dataset.col);
+    if(k)s.value=k;
   });
 }
 
-// ===============================
-// ⚙️ PROCESO AUTOMÁTICO
-// ===============================
-function procesarAutomatico() {
-  const guardado = cargarMapeoGuardado();
-  if (!guardado) {
-    console.warn("No hay mapeo guardado aún.");
-    return;
+function procesarAutomatico(){
+  if(!Object.keys(mapeo).length)return;
+  const map=new Map();
+  for(const l of lineas){
+    const d=dividir(l),o={};
+    CAMPOS.forEach(c=>{
+      let v=d[mapeo[c]]||"";
+      if(["costoSinImpuesto","mayoreo","medioMayoreo","precioPublico"].includes(c))
+        v=parseFloat(v)||0;
+      o[c]=v;
+    });
+    map.set(o.codigoBarra||o.claveSat||Math.random(),o);
   }
-
-  mapeo = guardado;
-  const mapa = new Map();
-
-  for (const l of lineas) {
-    const d = dividirRespetandoComillas(l);
-    const obj = {};
-
-    for (const c of CAMPOS) {
-      const idx = mapeo[c];
-      let val = d[idx] || "";
-
-      if (["costoSinImpuesto","mayoreo","medioMayoreo","precioPublico"].includes(c))
-        val = parseFloat(val) || 0;
-
-      obj[c] = val;
-    }
-
-    const clave = obj.codigoBarra || obj.claveSat || Math.random();
-    mapa.set(clave, obj);
-  }
-
-  jsonGenerado = [...mapa.values()];
-
-  const btn = document.getElementById("btnGenerar");
-  btn.disabled = false;
-  btn.classList.add("activo");
+  jsonGenerado=[...map.values()];
+  document.getElementById("btnGenerar").classList.add("activo");
+  document.getElementById("btnGenerar").disabled=false;
 }
+
+window.generarJSON=()=>{
+  if(!jsonGenerado)return alert("Nada procesado");
+  const b=new Blob([JSON.stringify(jsonGenerado,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download="catalogo_actualizado.json";a.click();
+};
+
+window.exportarMapeo=()=>{
+  const d=localStorage.getItem(STORAGE_KEY);
+  if(!d)return alert("No hay mapeo");
+  const b=new Blob([d],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(b);a.download="mapeo_provsoft.json";a.click();
+};
+
+window.importarMapeo=f=>{
+  const r=new FileReader();
+  r.onload=e=>{
+    localStorage.setItem(STORAGE_KEY,e.target.result);
+    location.reload();
+  };
+  r.readAsText(f);
+};
 </script>
 </body>
 </html>
