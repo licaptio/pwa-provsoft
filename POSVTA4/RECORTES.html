@@ -142,14 +142,15 @@ function resolverUsuario(doc) {
   ).toString().trim();
 }
 
-  function resolverFecha(doc) {
+function resolverFecha(doc) {
   return normalizarFechaCorte(
-    doc.fecha_corte ||
-    doc.fecha ||
+    doc.fecha ||          // 🔥 Timestamp REAL
+    doc.fecha_corte ||    // respaldo
     doc.fecha_txt ||
     ""
   );
 }
+
 
 
 // Cargar lista de rutas distintas
@@ -178,15 +179,31 @@ rutaFiltro.addEventListener("change", listarCortes);
 function normalizarFechaCorte(fecha) {
   if (!fecha) return "";
 
-  fecha = fecha.replace(",", "").trim();
+  // 🔥 Timestamp Firestore → FECHA LOCAL
+  if (typeof fecha === "object" && fecha.seconds) {
+    const d = new Date(fecha.seconds * 1000);
 
-  if (fecha.includes("/")) {
-    const [d, m, y] = fecha.split("/");
-    return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
   }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-    return fecha;
+  // 🔥 String
+  if (typeof fecha === "string") {
+    fecha = fecha.trim();
+
+    // DD/MM/YYYY
+    if (fecha.includes("/")) {
+      const [d, m, y] = fecha.split("/");
+      return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+    }
+
+    // YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      return fecha;
+    }
   }
 
   return "";
@@ -195,60 +212,43 @@ function normalizarFechaCorte(fecha) {
 async function listarCortes() {
   tbody.innerHTML = "<tr><td colspan='4'>Buscando cortes...</td></tr>";
 
- let ref = collection(db, "cortes_globalesV4");
-const filtros = [];
+  const snap = await getDocs(collection(db, "cortes_globalesV4"));
 
-if (rutaFiltro.value) {
-  filtros.push(where("rutaId", "==", rutaFiltro.value));
-}
+  const cortes = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(c => {
+      const okRuta =
+        !rutaFiltro.value ||
+        resolverRuta(c) === rutaFiltro.value.trim();
 
-if (fechaFiltro.value) {
-  filtros.push(where("fecha_corte", "==", fechaFiltro.value));
-}
+      const okFecha =
+        !fechaFiltro.value ||
+        resolverFecha(c) === fechaFiltro.value;
 
-const q = filtros.length ? query(ref, ...filtros) : ref;
-const snap = await getDocs(q);
-
-const cortes = snap.docs
-  .map(d => ({ id: d.id, ...d.data() }))
-  .filter(c => {
-const okRuta =
-  !rutaFiltro.value ||
-  resolverRuta(c) === rutaFiltro.value.trim();
-
-const okFecha =
-  !fechaFiltro.value ||
-  resolverFecha(c) === fechaFiltro.value;
-    
-    return okRuta && okFecha;
-  })
-  .sort((a, b) =>
-  resolverFecha(b).localeCompare(resolverFecha(a))
-);
-if (rutaFiltro.value && !fechaFiltro.value && cortes.length) {
-  fechaFiltro.value = normalizarFechaCorte(cortes[0].fecha_corte);
-}
+      return okRuta && okFecha;
+    })
+    .sort((a, b) =>
+      resolverFecha(b).localeCompare(resolverFecha(a))
+    );
 
   if (!cortes.length) {
-    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Sin resultados</td></tr>";
+    tbody.innerHTML =
+      "<tr><td colspan='4' style='text-align:center;'>Sin resultados</td></tr>";
     return;
   }
 
-tbody.innerHTML = "";
-cortes.forEach(c => {
-  const fila = document.createElement("tr");
-const usuarioMostrado = resolverUsuario(c);
-
-fila.innerHTML = `
-  <td>${resolverRuta(c) || "—"}</td>
-  <td>${usuarioMostrado}</td>
-  <td>${resolverFecha(c) || "—"}</td>
-  <td><button>🧾 Reimprimir</button></td>
-`;
-
-  fila.querySelector("button").onclick = () => reimprimirCorte(c);
-  tbody.appendChild(fila);
-});
+  tbody.innerHTML = "";
+  cortes.forEach(c => {
+    const fila = document.createElement("tr");
+    fila.innerHTML = `
+      <td>${resolverRuta(c) || "—"}</td>
+      <td>${resolverUsuario(c)}</td>
+      <td>${resolverFecha(c) || "—"}</td>
+      <td><button>🧾 Reimprimir</button></td>
+    `;
+    fila.querySelector("button").onclick = () => reimprimirCorte(c);
+    tbody.appendChild(fila);
+  });
 }
 
 // =============================================
