@@ -130,15 +130,18 @@ const overlay = document.getElementById("overlay");
     ""
   ).toString().trim();
 }
-  function resolverUsuario(doc) {
+function resolverUsuario(doc) {
   return (
     doc.usuarioNombre ||
     doc.usuario ||
     doc.realizado_por ||
+    doc.creado_por ||
+    doc.resumen?.creado_por ||
     doc.encargado ||
     "—"
   ).toString().trim();
 }
+
   function resolverFecha(doc) {
   return normalizarFechaCorte(
     doc.fecha_corte ||
@@ -192,8 +195,19 @@ function normalizarFechaCorte(fecha) {
 async function listarCortes() {
   tbody.innerHTML = "<tr><td colspan='4'>Buscando cortes...</td></tr>";
 
-  const q = query(collection(db, "cortes_globalesV4"));
-  const snap = await getDocs(q);
+ let ref = collection(db, "cortes_globalesV4");
+const filtros = [];
+
+if (rutaFiltro.value) {
+  filtros.push(where("rutaId", "==", rutaFiltro.value));
+}
+
+if (fechaFiltro.value) {
+  filtros.push(where("fecha_corte", "==", fechaFiltro.value));
+}
+
+const q = filtros.length ? query(ref, ...filtros) : ref;
+const snap = await getDocs(q);
 
 const cortes = snap.docs
   .map(d => ({ id: d.id, ...d.data() }))
