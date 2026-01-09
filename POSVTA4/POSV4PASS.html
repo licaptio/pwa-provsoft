@@ -1679,12 +1679,11 @@ const venta = {
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
   ubicacion: await obtenerUbicacionSegura(),
 
+// 🔥 TOTALES DE VENTA CALCULADOS UNA SOLA VEZ
+const totVenta = calcularTotales(descuentoAutorizado);
+const factorDescLinea = totVenta.factorDesc || 1;
   
 detalle: carrito.map(it => {
-
-  // 🔥 DESCUENTO PRORRATEADO REAL
-  const totLinea = calcularTotales(descuentoAutorizado);
-  const factorDescLinea = totLinea.factorDesc || 1;
 
   const precioUnitFinal = it.permite_descuento
     ? +(it.precioUnit * factorDescLinea).toFixed(2)
