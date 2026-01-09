@@ -191,12 +191,19 @@ if (rutaFiltro.value && !fechaFiltro.value && cortes.length) {
 tbody.innerHTML = "";
 cortes.forEach(c => {
   const fila = document.createElement("tr");
-  fila.innerHTML = `
-    <td>${c.rutaId}</td>
-    <td>${c.usuario || c.realizado_por || "—"}</td>
-    <td>${normalizarFechaCorte(c.fecha_corte)}</td>
-    <td><button>🧾 Reimprimir</button></td>
-  `;
+const usuarioMostrado =
+  c.usuarioNombre ||
+  c.usuario ||
+  c.realizado_por ||
+  "—";
+
+fila.innerHTML = `
+  <td>${c.rutaId || "—"}</td>
+  <td>${usuarioMostrado}</td>
+  <td>${normalizarFechaCorte(c.fecha_corte)}</td>
+  <td><button>🧾 Reimprimir</button></td>
+`;
+
   fila.querySelector("button").onclick = () => reimprimirCorte(c);
   tbody.appendChild(fila);
 });
@@ -219,15 +226,22 @@ async function reimprimirCorte(corteDoc) {
       return;
     }
 
-    resumen = {
-      usuario: corteDoc.usuario || corteDoc.realizado_por || "—",
-      rutaId: corteDoc.rutaId,
-      fecha: normalizarFechaCorte(corteDoc.fecha_corte),
-      totalDia: corteDoc.totales.totalDia || 0,
-      totalDescuento: corteDoc.totales.totalDescuento || 0,
-      utilidadTotal: corteDoc.totales.utilidadTotal || 0,
-      margenGlobal: corteDoc.totales.utilidadPorcentaje || "0",
-    };
+const usuarioResumen =
+  corteDoc.usuarioNombre ||
+  corteDoc.usuario ||
+  corteDoc.realizado_por ||
+  "—";
+
+resumen = {
+  usuario: usuarioResumen,
+  rutaId: corteDoc.rutaId,
+  fecha: normalizarFechaCorte(corteDoc.fecha_corte),
+  totalDia: corteDoc.totales?.totalDia || 0,
+  totalDescuento: corteDoc.totales?.totalDescuento || 0,
+  utilidadTotal: corteDoc.totales?.utilidadTotal || 0,
+  margenGlobal: corteDoc.totales?.utilidadPorcentaje || "0",
+};
+    
   }
 
   await generarPDF(resumen, corteDoc);
