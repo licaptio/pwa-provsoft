@@ -314,53 +314,71 @@ async function generarPDF(r, corte) {
   let y = 75;
 
 // ====================
-// RESUMEN POR DEPARTAMENTO
+// 📊 VENTAS POR DEPARTAMENTO
 // ====================
 if (corte.vista?.deptosOrdenados?.length) {
-  pdf.setFontSize(11);
-  pdf.text("Resumen por Departamento", 10, y);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("VENTAS POR DEPARTAMENTO", 10, y);
   y += 6;
 
+  pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
+
   corte.vista.deptosOrdenados.forEach(d => {
+    const margen = d.venta > 0
+      ? ((d.utilidad / d.venta) * 100).toFixed(2)
+      : "0.00";
+
     pdf.text(
-      `${d.departamento} | Venta: $${d.venta.toFixed(2)} | Utilidad: $${d.utilidad.toFixed(2)}`,
+      `${d.departamento} | Venta: $${d.venta.toFixed(2)} | Utilidad: $${d.utilidad.toFixed(2)} | Margen: ${margen}%`,
       12,
       y
     );
-    y += 5;
 
+    y += 5;
     if (y > 260) {
       pdf.addPage();
       y = 20;
     }
   });
+
+  y += 6;
 }
-y += 8;
 
 // ====================
-// TOP ARTÍCULOS
+// 🔝 TOP 10 ARTÍCULOS MÁS VENDIDOS
 // ====================
 if (corte.vista?.topArticulos?.length) {
-  pdf.setFontSize(11);
-  pdf.text("Top Artículos", 10, y);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("TOP 10 ARTÍCULOS MÁS VENDIDOS", 10, y);
   y += 6;
 
+  pdf.setFont("helvetica", "normal");
   pdf.setFontSize(10);
-  corte.vista.topArticulos.forEach(a => {
-    pdf.text(
-      `${a.articulo} | Cant: ${a.cantidad} | Venta: $${a.importe.toFixed(2)}`,
-      12,
-      y
-    );
-    y += 5;
 
-    if (y > 260) {
-      pdf.addPage();
-      y = 20;
-    }
-  });
+  corte.vista.topArticulos
+    .slice(0, 10)
+    .forEach(a => {
+      const margen = a.importe > 0 && a.utilidad
+        ? ((a.utilidad / a.importe) * 100).toFixed(2)
+        : "0.00";
+
+      pdf.text(
+        `${a.articulo} | Cant: ${a.cantidad} | Venta: $${a.importe.toFixed(2)} | Margen: ${margen}%`,
+        12,
+        y
+      );
+
+      y += 5;
+      if (y > 260) {
+        pdf.addPage();
+        y = 20;
+      }
+    });
 }
+
   // ⚙️ Puedes reusar aquí los gráficos, top artículos, mapa, etc.
   // Por brevedad no se repite todo el Bloque 6 aquí, pero copia literalmente
   // la misma función generarPDF completa del archivo principal.
