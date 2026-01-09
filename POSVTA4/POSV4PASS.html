@@ -1638,7 +1638,11 @@ $("#btnConfirmarCobro").onclick = async () => {
 // 💸 ACUMULADOR DE COMISIONES (ANTES DE ARMAR VENTA)
 let comision_total = 0;
 
-// 🧾 ARMAR VENTA COMPLETA (ESTE BLOQUE NO EXISTÍA BIEN)
+    // 🔥 TOTALES DE VENTA CALCULADOS UNA SOLA VEZ
+const totVenta = calcularTotales(descuentoAutorizado);
+const factorDescLinea = totVenta.factorDesc || 1;
+
+    // 🧾 ARMAR VENTA COMPLETA (ESTE BLOQUE NO EXISTÍA BIEN)
 const venta = {
   folio,
   rutaId,
@@ -1678,10 +1682,6 @@ const venta = {
   notas: $("#notasCobro").value || "",
   autorizado_por: descuentoAutorizado > 0 ? "Gerente autorizado" : null,
   ubicacion: await obtenerUbicacionSegura(),
-
-// 🔥 TOTALES DE VENTA CALCULADOS UNA SOLA VEZ
-const totVenta = calcularTotales(descuentoAutorizado);
-const factorDescLinea = totVenta.factorDesc || 1;
   
 detalle: carrito.map(it => {
 
