@@ -1711,23 +1711,41 @@ detalle: carrito.map(it => {
 
   comision_total += comision_monto;
 
-  return {
-    id: it.id,
-    nombre: it.nombre,
-    codigo: it.codigo,
+return {
+  id: it.id,
+  nombre: it.nombre,
+  codigo: it.codigo,
 
-    cantidad: it.cantidad,
-    precio_unit: precioUnitFinal,
-    importe: importeFinal,
+  cantidad: it.cantidad,
+  precio_unit: precioUnitFinal,
+  importe: importeFinal,
 
-    descuento_aplicado: it.permite_descuento
-      ? +(it.importe - importeFinal).toFixed(2)
-      : 0,
+  // 🔥 DESCUENTO
+  descuento_aplicado: it.permite_descuento
+    ? +(it.importe - importeFinal).toFixed(2)
+    : 0,
 
-    comision_tipo: it.comision_tipo || null,
-    comision_valor: it.comision_valor || 0,
-    comision_monto
-  };
+  // 🧾 IMPUESTOS (NECESARIOS)
+  ivaTasa: it.ivaTasa ?? 0,
+  iepsTasa: it.iepsTasa ?? 0,
+  iva_calculado: it.iva_calculado ?? 0,
+  ieps_calculado: it.ieps_calculado ?? 0,
+
+  // 🏷️ DEPARTAMENTO (🔥 ESTO FALTABA)
+  departamento_id: it.departamento_id ?? null,
+
+  departamento_info: it.departamento_id ? {
+    id: it.departamento_id,
+    nombre: it.departamento ?? null,
+    iva: it.ivaTasa ? it.ivaTasa * 100 : 0,
+    ieps: it.iepsTasa ? it.iepsTasa * 100 : 0
+  } : null,
+
+  // 💰 COMISIONES
+  comision_tipo: it.comision_tipo || null,
+  comision_valor: it.comision_valor || 0,
+  comision_monto
+};
 })
 };
 // 👈 AQUÍ VA (NO DENTRO DEL MAP, NO ANTES)
