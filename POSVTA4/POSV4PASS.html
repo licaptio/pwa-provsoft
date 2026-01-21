@@ -144,40 +144,6 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
   bottom: -65px !important;     /* 🔥 baja más el carrito */
   margin-top: 25px !important;  /* espacio visual extra */
 }
-/* 💖 CORAZONES TIPO NIEVE — MUY PEQUEÑOS */
-.snow{
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  opacity: 0.28;
-  animation: heartsSnow 32s linear infinite;
-
-  background-image:
-    /* corazones MUY pequeños */
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1'%3E%3Cpath d='M12 21s-6.7-4.4-9.3-7.9C-0.8 8.8 2.2 3 7 5.3 9 6.2 10 8.3 12 10.4 14 8.3 15 6.2 17 5.3c4.8-2.3 7.8 3.5 4.3 7.8C18.7 16.6 12 21 12 21z'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.1'%3E%3Cpath d='M12 21s-6.7-4.4-9.3-7.9C-0.8 8.8 2.2 3 7 5.3 9 6.2 10 8.3 12 10.4 14 8.3 15 6.2 17 5.3c4.8-2.3 7.8 3.5 4.3 7.8C18.7 16.6 12 21 12 21z'/%3E%3C/svg%3E");
-
-  /* 🔑 AQUÍ ESTÁ LA MAGIA */
-  background-size:
-    14px 14px,
-    20px 20px;
-
-  background-repeat: repeat;
-}
-
-/* ⬇️ Caída suave, tipo nieve */
-@keyframes heartsSnow{
-  from{
-    background-position:
-      0 -200px,
-      0 -600px;
-  }
-  to{
-    background-position:
-      0 1200px,
-      0 1800px;
-  }
 }
 </style>
 </head>
