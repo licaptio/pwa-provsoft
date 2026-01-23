@@ -122,35 +122,34 @@ const rutaFiltro = document.getElementById("rutaFiltro");
 const tbody = document.getElementById("tbodyCortes");
 const overlay = document.getElementById("overlay");
 
-  function resolverRuta(doc) {
+function resolverRuta(doc) {
   return (
     doc.rutaId ||
+    doc.resumen?.rutaId ||
     doc.ruta ||
     doc.ruta_nombre ||
     ""
   ).toString().trim();
 }
+
 function resolverUsuario(doc) {
   return (
+    doc.realizado_por ||
+    doc.resumen?.creado_por ||
     doc.usuarioNombre ||
     doc.usuario ||
-    doc.realizado_por ||
-    doc.creado_por ||
-    doc.resumen?.creado_por ||
-    doc.encargado ||
     "—"
   ).toString().trim();
 }
 
 function resolverFecha(doc) {
   return normalizarFechaCorte(
-    doc.fecha ||          // 🔥 Timestamp REAL
-    doc.fecha_corte ||    // respaldo
+    doc.fecha_corte ||   // ✅ PRIORIDAD
+    doc.fecha ||
     doc.fecha_txt ||
     ""
   );
 }
-
 
 
 // Cargar lista de rutas distintas
@@ -257,36 +256,15 @@ async function listarCortes() {
 async function reimprimirCorte(corteDoc) {
   overlay.style.display = "flex";
 
-  // 🔹 Caso 1: cortes antiguos (ya traen resumen)
-  let resumen = corteDoc.resumen;
-
-  // 🔹 Caso 2: cortes nuevos (armar resumen desde raíz)
-  if (!resumen) {
-    if (!corteDoc.totales) {
-      overlay.style.display = "none";
-      alert("⚠️ Este corte no tiene datos suficientes para reimprimir.");
-      return;
-    }
-
-const usuarioResumen = resolverUsuario(corteDoc);
-
-resumen = {
-  usuario: usuarioResumen,
-  rutaId: resolverRuta(corteDoc),
-  fecha: resolverFecha(corteDoc),
-  totalDia: corteDoc.totales?.totalDia || 0,
-  totalDescuento: corteDoc.totales?.totalDescuento || 0,
-  utilidadTotal: corteDoc.totales?.utilidadTotal || 0,
-  margenGlobal: corteDoc.totales?.utilidadPorcentaje || "0",
-};
-    
+  if (!corteDoc.resumen) {
+    overlay.style.display = "none";
+    alert("❌ Este corte no tiene resumen guardado");
+    return;
   }
 
-  await generarPDF(resumen, corteDoc);
+  await generarPDF(corteDoc.resumen);
   overlay.style.display = "none";
 }
-
-
 // =============================================
 // 🧭 BLOQUE 4 — REUTILIZAR FUNCIÓN generarPDF()
 // =============================================
@@ -296,7 +274,7 @@ resumen = {
 // No necesitas modificar nada, porque 'resumen' tiene toda la estructura V4 completa.
 // Ejemplo de cómo invocarlo:
 
-async function generarPDF(r, corte) {
+async function generarPDF(r) {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ format: "letter", unit: "mm" });
 
@@ -312,71 +290,25 @@ async function generarPDF(r, corte) {
   pdf.text(`Utilidad: $${r.utilidadTotal.toFixed(2)}`, 15, 60);
   pdf.text(`Margen Global: ${r.margenGlobal}%`, 15, 67);
   let y = 75;
-
-// ====================
-// 📊 VENTAS POR DEPARTAMENTO
-// ====================
-if (corte.vista?.deptosOrdenados?.length) {
+  
+if (r.porDepto && Object.keys(r.porDepto).length) {
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(12);
   pdf.text("VENTAS POR DEPARTAMENTO", 10, y);
   y += 6;
 
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(10);
-
-  corte.vista.deptosOrdenados.forEach(d => {
+  Object.entries(r.porDepto).forEach(([dep, d]) => {
     const margen = d.venta > 0
       ? ((d.utilidad / d.venta) * 100).toFixed(2)
       : "0.00";
 
     pdf.text(
-      `${d.departamento} | Venta: $${d.venta.toFixed(2)} | Utilidad: $${d.utilidad.toFixed(2)} | Margen: ${margen}%`,
+      `${dep} | Venta: $${d.venta.toFixed(2)} | Utilidad: $${d.utilidad.toFixed(2)} | Margen: ${margen}%`,
       12,
       y
     );
-
     y += 5;
-    if (y > 260) {
-      pdf.addPage();
-      y = 20;
-    }
   });
-
-  y += 6;
-}
-
-// ====================
-// 🔝 TOP 10 ARTÍCULOS MÁS VENDIDOS
-// ====================
-if (corte.vista?.topArticulos?.length) {
-  pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(12);
-  pdf.text("TOP 10 ARTÍCULOS MÁS VENDIDOS", 10, y);
-  y += 6;
-
-  pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(10);
-
-  corte.vista.topArticulos
-    .slice(0, 10)
-    .forEach(a => {
-      const margen = a.importe > 0 && a.utilidad
-        ? ((a.utilidad / a.importe) * 100).toFixed(2)
-        : "0.00";
-
-      pdf.text(
-        `${a.articulo} | Cant: ${a.cantidad} | Venta: $${a.importe.toFixed(2)} | Margen: ${margen}%`,
-        12,
-        y
-      );
-
-      y += 5;
-      if (y > 260) {
-        pdf.addPage();
-        y = 20;
-      }
-    });
 }
 
   // ⚙️ Puedes reusar aquí los gráficos, top artículos, mapa, etc.
