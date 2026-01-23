@@ -213,24 +213,24 @@ async function listarCortes() {
 
   const snap = await getDocs(collection(db, "cortes_globalesV4"));
 
-  const cortes = snap.docs
-    .map(d => ({ id: d.id, ...d.data() }))
-    .filter(c => {
-      const okRuta =
-        !rutaFiltro.value ||
-        resolverRuta(c) === rutaFiltro.value.trim();
+  const rutaSel = (rutaFiltro.value || "").trim();
+  const fechaSel = (fechaFiltro.value || "").trim(); // opcional, solo para “refinar”
 
-.filter(c => {
-  const okRuta =
-    !rutaFiltro.value ||
-    resolverRuta(c) === rutaFiltro.value.trim();
+  let cortes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-  return okRuta;
-})
+  // ✅ Filtrar por ruta (principal)
+  if (rutaSel) {
+    cortes = cortes.filter(c => resolverRuta(c) === rutaSel);
+  }
 
-    .sort((a, b) =>
-      resolverFecha(b).localeCompare(resolverFecha(a))
-    );
+  // ✅ (OPCIONAL) Filtrar por fecha SOLO si quieres refinar
+  // Si te vuelve a fallar por zona horaria, comenta este bloque.
+  if (fechaSel) {
+    cortes = cortes.filter(c => resolverFecha(c) === fechaSel);
+  }
+
+  // Ordenar por fecha (desc)
+  cortes.sort((a, b) => resolverFecha(b).localeCompare(resolverFecha(a)));
 
   if (!cortes.length) {
     tbody.innerHTML =
