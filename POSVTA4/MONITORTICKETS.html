@@ -352,12 +352,25 @@ row.innerHTML = `
   <td>$${total.toFixed(2)}</td>
   <td>${fechaStr}</td>
   <td>${horaStr}</td>
-  <td>
-    <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
-    <button class="btn-undo" onclick="solicitarPwAccion('${doc.id}', '${data.cortado ? "descortar" : "cortar"}')">
-      ${data.cortado ? "Descortar" : "Cortar"}
-    </button>
-  </td>
+<td>
+  <button class="btn-delete" onclick="solicitarPwYEliminar('${doc.id}')">Eliminar</button>
+
+  <button class="btn-undo"
+    onclick="solicitarPwAccion('${doc.id}', '${data.cortado ? "descortar" : "cortar"}')">
+    ${data.cortado ? "Descortar" : "Cortar"}
+  </button>
+
+  <button class="btn-undo"
+    onclick="solicitarPwAccion('${doc.id}', '${data.facturada_global ? "desfacturar" : "facturar"}')">
+    ${data.facturada_global ? "Quitar Factura" : "Marcar Facturada"}
+  </button>
+</td>
+if (data.facturada_global) {
+  row.style.borderLeft = "6px solid #2ecc71"; // verde
+} else {
+  row.style.borderLeft = "6px solid #f1c40f"; // amarillo
+}
+  
 `;
 if (data.cortado) {
   row.style.backgroundColor = "#d1ffd6"; // verde claro para cortadas
@@ -390,13 +403,17 @@ function solicitarPwYEliminar(id) {
 function solicitarPwAccion(id, accion) {
   pendingDeleteId = id;
   pendingAction = accion; // "cortar" o "descortar"
-  const textoAccion = accion === "cortar"
-    ? "Confirmar corte de venta"
-    : "Confirmar descorte de venta";
-  const textoDetalle = accion === "cortar"
-    ? "Ingrese la contraseña para marcar la venta como CORTADA."
-    : "Ingrese la contraseña para marcar la venta como NO cortada.";
-  mostrarModal(textoAccion, textoDetalle);
+  const textoAccion =
+  accion === "cortar" ? "Confirmar corte de venta" :
+  accion === "descortar" ? "Confirmar descorte de venta" :
+  accion === "facturar" ? "Confirmar facturación" :
+  "Confirmar quitar facturación";
+
+const textoDetalle =
+  accion === "cortar" ? "Ingrese la contraseña para marcar la venta como CORTADA." :
+  accion === "descortar" ? "Ingrese la contraseña para marcar la venta como NO cortada." :
+  accion === "facturar" ? "Ingrese la contraseña para marcar la venta como FACTURADA." :
+  "Ingrese la contraseña para quitar la facturación del ticket.";
 }
 
 // Mostrar modal dinámico
@@ -435,6 +452,23 @@ pwSubmit.addEventListener("click", async () => {
 
   try {
     const ref = db.collection("ventas_rutav2").doc(pendingDeleteId);
+if (pendingAction === "facturar") {
+  await ref.update({
+    facturada_global: true,
+    facturada_at: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  alert("🧾 Venta marcada como FACTURADA.");
+}
+
+else if (pendingAction === "desfacturar") {
+  await ref.update({
+    facturada_global: false,
+    facturada_at: null,
+    folio_fiscal: null,
+    serie_fiscal: null
+  });
+  alert("⚠️ Facturación removida del ticket.");
+}
 
     if (pendingAction === "cortar") {
       await ref.update({ cortado: true });
