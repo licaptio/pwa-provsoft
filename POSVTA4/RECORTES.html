@@ -220,12 +220,14 @@ async function listarCortes() {
         !rutaFiltro.value ||
         resolverRuta(c) === rutaFiltro.value.trim();
 
-      const okFecha =
-        !fechaFiltro.value ||
-        resolverFecha(c) === fechaFiltro.value;
+.filter(c => {
+  const okRuta =
+    !rutaFiltro.value ||
+    resolverRuta(c) === rutaFiltro.value.trim();
 
-      return okRuta && okFecha;
-    })
+  return okRuta;
+})
+
     .sort((a, b) =>
       resolverFecha(b).localeCompare(resolverFecha(a))
     );
