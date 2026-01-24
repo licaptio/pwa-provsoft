@@ -191,7 +191,7 @@ function normalizarFechaCorte(fecha) {
 
   // 🔥 String
   if (typeof fecha === "string") {
-    fecha = fecha.trim();
+   fecha = fecha.trim().replace(/[^0-9/]/g, "");
 
     // DD/MM/YYYY
     if (fecha.includes("/")) {
