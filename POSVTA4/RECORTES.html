@@ -134,14 +134,12 @@ function resolverRuta(doc) {
 
 function resolverUsuario(doc) {
   return (
-    doc.realizado_por ||
-    doc.resumen?.creado_por ||
+    doc.creado_por ||        // ✅ CORRECTO
     doc.usuarioNombre ||
     doc.usuario ||
     "—"
   ).toString().trim();
 }
-
 function resolverFecha(doc) {
   return normalizarFechaCorte(
     doc.fecha_corte ||   // ✅ PRIORIDAD
@@ -151,6 +149,16 @@ function resolverFecha(doc) {
   );
 }
 
+function mapearDeptos(arr = []) {
+  const obj = {};
+  arr.forEach(d => {
+    obj[d.departamento] = {
+      venta: d.venta || 0,
+      utilidad: d.utilidad || 0
+    };
+  });
+  return obj;
+}
 
 // Cargar lista de rutas distintas
 async function cargarRutas() {
@@ -255,18 +263,32 @@ async function listarCortes() {
 // =============================================
 // 🧾 BLOQUE 3 — FUNCIÓN DE REIMPRESIÓN
 // =============================================
-async function reimprimirCorte(corteDoc) {
+async function reimprimirCorte(c) {
   overlay.style.display = "flex";
 
-  if (!corteDoc.resumen) {
+  const resumen = {
+    usuario: c.creado_por || "—",
+    rutaId: c.rutaId || "—",
+    fecha: resolverFecha(c),
+    totalDia: c.totales?.totalDia || 0,
+    totalDescuento: c.totales?.totalDescuento || 0,
+    utilidadTotal: c.totales?.utilidadTotal || 0,
+    margenGlobal: Number(c.totales?.utilidadPorcentaje || 0),
+    porDepto: mapearDeptos(c.vista?.deptosOrdenados),
+    topArticulos: c.vista?.topArticulos || []
+  };
+
+  if (!resumen.totalDia) {
     overlay.style.display = "none";
-    alert("❌ Este corte no tiene resumen guardado");
+    alert("❌ Corte sin totales válidos");
     return;
   }
 
-  await generarPDF(corteDoc.resumen);
+  await generarPDF(resumen);
   overlay.style.display = "none";
 }
+
+
 // =============================================
 // 🧭 BLOQUE 4 — REUTILIZAR FUNCIÓN generarPDF()
 // =============================================
@@ -306,6 +328,23 @@ if (r.porDepto && Object.keys(r.porDepto).length) {
 
     pdf.text(
       `${dep} | Venta: $${d.venta.toFixed(2)} | Utilidad: $${d.utilidad.toFixed(2)} | Margen: ${margen}%`,
+      12,
+      y
+    );
+    y += 5;
+  });
+}
+// 🏆 TOP ARTÍCULOS
+if (r.topArticulos && r.topArticulos.length) {
+  y += 8;
+  pdf.setFont("helvetica", "bold");
+  pdf.text("TOP ARTÍCULOS", 10, y);
+  y += 6;
+
+  pdf.setFont("helvetica", "normal");
+  r.topArticulos.slice(0, 10).forEach(a => {
+    pdf.text(
+      `${a.articulo} | Cant: ${a.cantidad} | Importe: $${a.importe.toFixed(2)}`,
       12,
       y
     );
