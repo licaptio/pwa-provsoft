@@ -12,7 +12,6 @@ body{
   margin:0;
   font-family:'Poppins',sans-serif;
   background:linear-gradient(135deg,#00416A,#E4E5E6);
-  color:#111;
 }
 header{
   background:#0c6cbd;
@@ -24,13 +23,13 @@ header{
 }
 .card{
   background:#fff;
-  border-radius:14px;
-  margin:12px;
+  margin:14px;
   padding:14px;
+  border-radius:14px;
   box-shadow:0 6px 18px rgba(0,0,0,.2);
 }
 label{font-size:13px;font-weight:600}
-input,select,button{
+select,input,button{
   width:100%;
   padding:10px;
   margin-top:6px;
@@ -45,12 +44,12 @@ button{
   font-weight:700;
   cursor:pointer;
 }
-.ticket-row{
+.ticket{
   border-bottom:1px dashed #ccc;
   padding:10px 0;
 }
-.ticket-row:last-child{border:none}
-.ticket-row button{
+.ticket:last-child{border:none}
+.ticket button{
   margin-top:6px;
   background:#1e8e3e;
 }
@@ -64,7 +63,7 @@ button{
 
 <div class="card">
   <label>Ruta</label>
-  <input id="rutaId" placeholder="Ej. RUTA01">
+  <select id="selRuta"></select>
 
   <label>Desde</label>
   <input type="date" id="desde">
@@ -76,147 +75,130 @@ button{
 </div>
 
 <div class="card" id="listaTickets">
-  <div class="small">No hay resultados</div>
+  <div class="small">Seleccione una ruta y fechas</div>
 </div>
 
-<!-- ================= TICKET (OCULTO) ================= -->
+<!-- ========= TICKET OCULTO ========= -->
 <div id="ticketArea" style="display:none">
-  <div id="ticket" style="font-family:monospace;width:72mm">
-    <div style="text-align:center;font-weight:bold">
-      PROVEEDORA MATRIZ<br>
-      MADERO 690 SUR, CENTRO<br>
-      LINARES, NUEVO LEÓN<br>
-      RFC: PDD-031204-KL5
-    </div>
-    <hr>
-    <div># Venta: <span id="tFolio"></span></div>
-    <div>Fecha: <span id="tFecha"></span></div>
-    <div>Cliente: <span id="tCliente"></span></div>
-    <hr>
-    <table width="100%">
-      <thead>
-        <tr>
-          <th align="left">Desc</th>
-          <th>Cant</th>
-          <th>P.U</th>
-          <th>Imp</th>
-        </tr>
-      </thead>
-      <tbody id="tLineas"></tbody>
-    </table>
-    <hr>
-    <div>Subtotal: <span id="tSubtotal"></span></div>
-    <div>Impuestos: <span id="tImpuestos"></span></div>
-    <div>Total: <span id="tTotal"></span></div>
-    <div>Cajero: <span id="tCajero"></span></div>
-    <hr>
-    <div style="text-align:center">¡Gracias por su compra!</div>
-  </div>
+  <pre id="ticketTexto"></pre>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getFirestore, collection, query, where, orderBy, getDocs, Timestamp
+  getFirestore, collection, getDocs, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ================= FIREBASE ================= */
+/* 🔥 Firebase */
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
-  projectId: "inventariopv-643f1",
+  projectId: "inventariopv-643f1"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const selRuta = document.getElementById("selRuta");
+const lista = document.getElementById("listaTickets");
 const money = n => "$" + Number(n||0).toFixed(2);
+
+/* ================= CARGAR RUTAS ================= */
+async function cargarRutas(){
+  selRuta.innerHTML = `<option value="">Seleccione ruta</option>`;
+  const snap = await getDocs(collection(db,"usuarios_ruta"));
+  snap.forEach(d=>{
+    const u = d.data();
+    selRuta.innerHTML +=
+      `<option value="${u.rutaId || d.id}">
+        ${u.nombre || u.usuario || d.id}
+      </option>`;
+  });
+}
+cargarRutas();
 
 /* ================= BUSCAR ================= */
 window.buscar = async function(){
-  const ruta = rutaId.value.trim();
-  if(!ruta){ alert("Ruta requerida"); return; }
+  const ruta = selRuta.value;
+  if(!ruta){ alert("Seleccione una ruta"); return; }
 
-  const d1 = new Date(desde.value);
-  const d2 = new Date(hasta.value);
-  d2.setHours(23,59,59);
+  const f1 = new Date(desde.value);
+  const f2 = new Date(hasta.value);
+  f2.setHours(23,59,59);
 
   const q = query(
     collection(db,"ventas_rutav2"),
-    where("rutaId","==",ruta),
-    where("fecha",">=",Timestamp.fromDate(d1)),
-    where("fecha","<=",Timestamp.fromDate(d2)),
-    orderBy("fecha","desc")
+    where("rutaId","==",ruta)
   );
 
   const snap = await getDocs(q);
-  const cont = document.getElementById("listaTickets");
-  cont.innerHTML = "";
+  lista.innerHTML = "";
 
-  if(snap.empty){
-    cont.innerHTML = "<div class='small'>Sin resultados</div>";
-    return;
-  }
+  let encontrados = 0;
 
-  snap.docs.forEach(d=>{
+  snap.forEach(d=>{
     const v = d.data();
+    if(!v.fecha?.toDate) return;
+
+    const f = v.fecha.toDate();
+    if(f < f1 || f > f2) return;
+
+    encontrados++;
+
     const div = document.createElement("div");
-    div.className="ticket-row";
-    div.innerHTML=`
+    div.className="ticket";
+    div.innerHTML = `
       <strong>${v.folio}</strong><br>
       <span class="small">${v.fecha_txt}</span><br>
       Total: ${money(v.resumen_financiero.total)}
-      <button>🖨️ Reimprimir</button>
+      <button>🖨️ Imprimir</button>
     `;
-    div.querySelector("button").onclick=()=>reimprimir(v);
-    cont.appendChild(div);
+    div.querySelector("button").onclick=()=>imprimir(v);
+    lista.appendChild(div);
   });
+
+  if(!encontrados){
+    lista.innerHTML = "<div class='small'>No hay resultados</div>";
+  }
 };
 
-/* ================= REIMPRESIÓN ================= */
-function reimprimir(v){
-  window.__VENTA_ACTUAL = v;
-  window.__ULTIMOS_TOTALES = v.resumen_financiero;
+/* ================= IMPRIMIR ================= */
+function imprimir(v){
+  let t = `
+PROVEEDORA MATRIZ
+MADERO 690 SUR, CENTRO
+LINARES, NL
+------------------------------
+Venta: ${v.folio}
+Fecha: ${v.fecha_txt}
+Cliente: ${v.cliente || "PÚBLICO"}
+------------------------------
+`;
 
-  document.getElementById("tFolio").textContent = v.folio;
-  document.getElementById("tFecha").textContent = v.fecha_txt;
-  document.getElementById("tCliente").textContent = v.cliente;
-  document.getElementById("tSubtotal").textContent = money(v.resumen_financiero.subtotal);
-  document.getElementById("tImpuestos").textContent = money(v.resumen_financiero.impuestos);
-  document.getElementById("tTotal").textContent = money(v.resumen_financiero.total);
-  document.getElementById("tCajero").textContent = v.usuarioNombre;
-
-  const tb = document.getElementById("tLineas");
-  tb.innerHTML="";
-  v.detalle.forEach(p=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${p.nombre}</td>
-      <td align="center">${p.cantidad}</td>
-      <td align="right">${p.precio_unit.toFixed(2)}</td>
-      <td align="right">${p.importe.toFixed(2)}</td>
-    `;
-    tb.appendChild(tr);
+  (v.detalle||[]).forEach(p=>{
+    t+=`${p.nombre}\n`;
+    t+=`Cant:${p.cantidad}  ${p.precio_unit.toFixed(2)}  ${p.importe.toFixed(2)}\n`;
   });
 
-  imprimir();
-}
-
-/* ================= IMPRESIÓN ================= */
-function imprimir(){
-  let txt = document.getElementById("ticket").innerText;
+  t+=`
+------------------------------
+Total: ${money(v.resumen_financiero.total)}
+Cajero: ${v.usuarioNombre || ""}
+------------------------------
+¡Gracias por su compra!
+`;
 
   if(window.InnerPrinter){
-    InnerPrinter.printText(txt);
+    InnerPrinter.printText(t);
     return;
   }
 
   if(/Android/i.test(navigator.userAgent)){
-    location.href="rawbt:print?data="+encodeURIComponent(txt);
+    location.href="rawbt:print?data="+encodeURIComponent(t);
     return;
   }
 
   const w=window.open("");
-  w.document.write("<pre>"+txt+"</pre>");
+  w.document.write("<pre>"+t+"</pre>");
   w.print();
 }
 </script>
