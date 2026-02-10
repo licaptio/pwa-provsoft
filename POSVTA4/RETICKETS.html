@@ -126,14 +126,22 @@ async function cargarRutas(){
 }
 cargarRutas();
 
-/* ================= BUSCAR ================= */
 window.buscar = async function(){
   const ruta = selRuta.value;
-  if(!ruta){ alert("Seleccione una ruta"); return; }
+  if(!ruta){ 
+    alert("Seleccione una ruta"); 
+    return; 
+  }
 
-  const f1 = new Date(desde.value);
-  const f2 = new Date(hasta.value);
-  f2.setHours(23,59,59);
+  let f1 = null;
+  let f2 = null;
+
+  if(desde.value){
+    f1 = new Date(desde.value + "T00:00:00");
+  }
+  if(hasta.value){
+    f2 = new Date(hasta.value + "T23:59:59");
+  }
 
   const q = query(
     collection(db,"ventas_rutav2"),
@@ -147,10 +155,13 @@ window.buscar = async function(){
 
   snap.forEach(d=>{
     const v = d.data();
-    if(!v.fecha?.toDate) return;
+    if(!v.fecha || !v.fecha.toDate) return;
 
     const f = v.fecha.toDate();
-    if(f < f1 || f > f2) return;
+
+    // 🔎 FILTRO DE FECHAS SEGURO
+    if(f1 && f < f1) return;
+    if(f2 && f > f2) return;
 
     encontrados++;
 
