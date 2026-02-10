@@ -105,13 +105,23 @@ const money = n => "$" + Number(n||0).toFixed(2);
 /* ================= CARGAR RUTAS ================= */
 async function cargarRutas(){
   selRuta.innerHTML = `<option value="">Seleccione ruta</option>`;
+
   const snap = await getDocs(collection(db,"usuarios_ruta"));
+
   snap.forEach(d=>{
     const u = d.data();
-    selRuta.innerHTML +=
-      `<option value="${u.rutaId || d.id}">
-        ${u.nombre || u.usuario || d.id}
-      </option>`;
+
+    // 🔴 ESTA ES LA CLAVE
+    // value = rutaId (NO el nombre)
+    // texto = nombre del vendedor
+
+    if(!u.rutaId) return;
+
+    selRuta.innerHTML += `
+      <option value="${u.rutaId}">
+        ${u.nombre || u.usuario || u.rutaId}
+      </option>
+    `;
   });
 }
 cargarRutas();
