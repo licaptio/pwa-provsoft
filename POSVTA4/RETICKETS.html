@@ -184,27 +184,33 @@ window.buscar = async function(){
 
 /* ================= IMPRIMIR ================= */
 function imprimir(v){
-  let t = `
+let t = `
 PROVEEDORA MATRIZ
 MADERO 690 SUR, CENTRO
 LINARES, NL
-------------------------------
+RFC: PDM030204XXX
+REGIMEN: GENERAL DE LEY P.M.
+----------------------------------
+*** TICKET DE VENTA ***
+ESTE COMPROBANTE NO ES CFDI
+----------------------------------
 Venta: ${v.folio}
 Fecha: ${v.fecha_txt}
-Cliente: ${v.cliente || "PÚBLICO"}
-------------------------------
+Cliente: ${v.cliente || "PUBLICO EN GENERAL"}
+----------------------------------
 `;
 
   (v.detalle||[]).forEach(p=>{
-    t+=`${p.nombre}\n`;
-    t+=`Cant:${p.cantidad}  ${p.precio_unit.toFixed(2)}  ${p.importe.toFixed(2)}\n`;
+const nombre = p.nombre.substring(0,22);
+t+=`${nombre}\n`;
+t+=`C:${p.cantidad}  P:${p.precio_unit.toFixed(2)}  T:${p.importe.toFixed(2)}\n`;
   });
 
   t+=`
-------------------------------
+---------------------------------
 Total: ${money(v.resumen_financiero.total)}
 Cajero: ${v.usuarioNombre || ""}
-------------------------------
+---------------------------------
 ¡Gracias por su compra!
 `;
 
