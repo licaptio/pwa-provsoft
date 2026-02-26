@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Panel Global de Facturación | PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+body{
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(to right,#00416A,#E4E5E6);
+  padding:20px;
+  margin:0;
+}
+
+h2{
+  text-align:center;
+  color:white;
+}
+
+.panel{
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  margin-top:20px;
+}
+
+select,input,button{
+  padding:8px 12px;
+  border-radius:8px;
+  border:none;
+  margin-right:10px;
+}
+
+button{
+  background:#00416A;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#002b4c;
+}
+
+.resumen{
+  margin-top:20px;
+  font-size:15px;
+}
+
+.total{
+  font-weight:bold;
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<h2>🧾 Panel Global de Facturación – PROVSOFT</h2>
+
+<div class="panel">
+
+<label>📅 Fecha:</label>
+<input type="date" id="fecha">
+
+<label>🚚 Ruta:</label>
+<select id="ruta">
+<option value="">Seleccione fecha primero</option>
+</select>
+
+<button onclick="consultar()">Consultar</button>
+
+<div class="resumen" id="resultado"></div>
+
+<button id="btnDesfacturar" style="display:none;background:#b71c1c;margin-top:20px;">
+❌ Cancelar Facturación Global
+</button>
+
+</div>
+
+<script>
+
+// 🔥 CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSy...",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const ADMIN_PASSWORD = "131282";
+
+const fechaInput = document.getElementById("fecha");
+const rutaSelect = document.getElementById("ruta");
+const resultadoDiv = document.getElementById("resultado");
+const btnDesfacturar = document.getElementById("btnDesfacturar");
+
+let documentosFacturados = [];
+
+// =================================================
+// 1️⃣ CARGAR RUTAS POR FECHA
+// =================================================
+fechaInput.addEventListener("change", async () => {
+
+  rutaSelect.innerHTML = "<option>Cargando...</option>";
+
+  const snapshot = await db.collection("ventas_rutav2").get();
+  const rutas = new Set();
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(!data.fecha) return;
+
+    const fechaDoc = data.fecha.toDate();
+    const fechaStr = fechaDoc.toISOString().split("T")[0];
+
+    if(fechaStr === fechaInput.value){
+      rutas.add(data.usuarioNombre);
+    }
+  });
+
+  rutaSelect.innerHTML = "<option value=''>Seleccione ruta</option>";
+
+  rutas.forEach(r=>{
+    const opt = document.createElement("option");
+    opt.value = r;
+    opt.textContent = r;
+    rutaSelect.appendChild(opt);
+  });
+
+});
+
+// =================================================
+// 2️⃣ CONSULTAR RESUMEN GLOBAL
+// =================================================
+async function consultar(){
+
+  const fecha = fechaInput.value;
+  const ruta = rutaSelect.value;
+
+  if(!fecha || !ruta){
+    alert("Seleccione fecha y ruta");
+    return;
+  }
+
+  resultadoDiv.innerHTML = "Consultando...";
+  btnDesfacturar.style.display = "none";
+  documentosFacturados = [];
+
+  let totalFacturado = 0;
+  let totalNoFacturado = 0;
+  let importeFacturado = 0;
+
+  const snapshot = await db.collection("ventas_rutav2")
+    .where("usuarioNombre","==",ruta)
+    .get();
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    if(!data.fecha) return;
+
+    const fechaStr = data.fecha.toDate().toISOString().split("T")[0];
+    if(fechaStr !== fecha) return;
+
+    const total = parseFloat(data.total || 0);
+
+    if(data.facturada_global){
+      totalFacturado++;
+      importeFacturado += total;
+      documentosFacturados.push(doc.id);
+    }else{
+      totalNoFacturado++;
+    }
+  });
+
+  resultadoDiv.innerHTML = `
+  <div class="total">📦 Tickets Facturados: ${totalFacturado}</div>
+  <div class="total">💰 Importe Facturado: $${importeFacturado.toFixed(2)}</div>
+  <div class="total">🟡 No Facturados: ${totalNoFacturado}</div>
+  `;
+
+  if(totalFacturado > 0){
+    btnDesfacturar.style.display = "inline-block";
+  }
+}
+
+// =================================================
+// 3️⃣ DESFACTURAR GLOBAL
+// =================================================
+btnDesfacturar.addEventListener("click", async ()=>{
+
+  const pw = prompt("Ingrese contraseña para cancelar facturación global:");
+
+  if(pw !== ADMIN_PASSWORD){
+    alert("Contraseña incorrecta");
+    return;
+  }
+
+  if(documentosFacturados.length === 0){
+    alert("No hay tickets facturados");
+    return;
+  }
+
+  const batch = db.batch();
+
+  documentosFacturados.forEach(id=>{
+    const ref = db.collection("ventas_rutav2").doc(id);
+    batch.update(ref,{
+      facturada_global:false,
+      facturada_at:null,
+      folio_fiscal:null,
+      serie_fiscal:null
+    });
+  });
+
+  await batch.commit();
+
+  alert("✅ Facturación global cancelada correctamente");
+
+  consultar();
+});
+
+</script>
+
+</body>
+</html>
