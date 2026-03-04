@@ -1663,61 +1663,71 @@ detalle: carrito.map(it => {
 
   const importeFinal = +(it.cantidad * precioUnitFinal).toFixed(2);
 
+  // 🔥 COSTOS
+  const costoUnit = Number(it.costoUnit || 0);
+  const costoTotalLinea = +(costoUnit * it.cantidad).toFixed(2);
+
+  // 🔥 UTILIDAD POR PARTIDA
+  const utilidadLinea = +(importeFinal - costoTotalLinea).toFixed(2);
+
   let comision_monto = 0;
 
-  // 🟫 CIGARROS → proporcional por 10
   if (it.comision_tipo === "por_10" && it.comision_valor) {
     comision_monto = +((it.cantidad / 10) * it.comision_valor).toFixed(2);
   }
 
-  // 🟦 PORCENTAJE (YA CORRECTO)
   if (it.comision_tipo === "porcentaje" && it.comision_valor) {
     comision_monto = +((importeFinal * it.comision_valor) / 100).toFixed(2);
   }
 
-  // 🟨 POR PIEZA
   if (it.comision_tipo === "pieza" && it.comision_valor) {
     comision_monto = +(it.cantidad * it.comision_valor).toFixed(2);
   }
 
   comision_total += comision_monto;
 
-return {
-  id: it.id,
-  nombre: it.nombre,
-  codigo: it.codigo,
+  return {
+    id: it.id,
+    nombre: it.nombre,
+    codigo: it.codigo,
 
-  cantidad: it.cantidad,
-  precio_unit: precioUnitFinal,
-  importe: importeFinal,
+    cantidad: it.cantidad,
+    precio_unit: precioUnitFinal,
+    importe: importeFinal,
 
-  // 🔥 DESCUENTO
-  descuento_aplicado: it.permite_descuento
-    ? +(it.importe - importeFinal).toFixed(2)
-    : 0,
+    // 🧾 COSTOS (NUEVO)
+    costo_unit: costoUnit,
+    costo_total_linea: costoTotalLinea,
+    utilidad_linea: utilidadLinea,
 
-  // 🧾 IMPUESTOS (NECESARIOS)
-  ivaTasa: it.ivaTasa ?? 0,
-  iepsTasa: it.iepsTasa ?? 0,
-  iva_calculado: it.iva_calculado ?? 0,
-  ieps_calculado: it.ieps_calculado ?? 0,
+    // 🔥 DESCUENTO
+    descuento_aplicado: it.permite_descuento
+      ? +(it.importe - importeFinal).toFixed(2)
+      : 0,
 
-  // 🏷️ DEPARTAMENTO (🔥 ESTO FALTABA)
-  departamento_id: it.departamento_id ?? null,
+    // 🧾 IMPUESTOS
+    ivaTasa: it.ivaTasa ?? 0,
+    iepsTasa: it.iepsTasa ?? 0,
+    iva_calculado: it.iva_calculado ?? 0,
+    ieps_calculado: it.ieps_calculado ?? 0,
 
-  departamento_info: it.departamento_id ? {
-    id: it.departamento_id,
-    nombre: it.departamento ?? null,
-    iva: it.ivaTasa ? it.ivaTasa * 100 : 0,
-    ieps: it.iepsTasa ? it.iepsTasa * 100 : 0
-  } : null,
+    // 🏷️ DEPARTAMENTO
+    departamento_id: it.departamento_id ?? null,
 
-  // 💰 COMISIONES
-  comision_tipo: it.comision_tipo || null,
-  comision_valor: it.comision_valor || 0,
-  comision_monto
-};
+    departamento_info: it.departamento_id ? {
+      id: it.departamento_id,
+      nombre: it.departamento ?? null,
+      iva: it.ivaTasa ? it.ivaTasa * 100 : 0,
+      ieps: it.iepsTasa ? it.iepsTasa * 100 : 0
+    } : null,
+
+    // 💰 COMISIONES
+    comision_tipo: it.comision_tipo || null,
+    comision_valor: it.comision_valor || 0,
+    comision_monto
+  };
 })
+
 };
 // 👈 AQUÍ VA (NO DENTRO DEL MAP, NO ANTES)
 venta.comision_total = +comision_total.toFixed(2);
