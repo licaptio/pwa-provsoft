@@ -580,10 +580,12 @@
           contestado_en: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        await batch.commit();
+await batch.commit();
 
-        setStatus(`Respuesta guardada correctamente con folio ${folioRespuesta}.`, "ok");
-        await cargarSolicitudesPendientes();
+setStatus(`Respuesta guardada correctamente con folio ${folioRespuesta}.`, "ok");
+
+await cargarSolicitudesPendientes();
+limpiarPantalla(); // 👈 ESTA ES LA CLAVE
       } catch (err) {
         console.error(err);
         setStatus("Error al guardar respuesta: " + err.message, "error");
@@ -610,6 +612,20 @@
 
       setStatus("Lista la app de respuesta. Selecciona una solicitud pendiente.");
     });
+    function limpiarPantalla() {
+  solicitudActual = null;
+  productosActuales = [];
+
+  $("folioSelect").value = "";
+  $("respondidoPor").value = "";
+  $("observacionesGenerales").value = "";
+  $("folioRespuesta").value = "";
+
+  tbodyRespuesta.innerHTML = "";
+  emptyRespuesta.style.display = "block";
+
+  setStatus("Pantalla limpia. Lista para nueva solicitud.");
+}
   </script>
 </body>
 </html>
