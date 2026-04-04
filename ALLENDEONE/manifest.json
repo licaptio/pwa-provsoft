@@ -1,12 +1,12 @@
 {
-  "name": "PROVSOFT ALLENDE ONE",
-  "short_name": "PROVSOFT",
+  "name": "PROVEEDORA ALLENDE ONE",
+  "short_name": "PDD ALLENDE",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
   "theme_color": "#00416A",
-  "description": "Sistema interno PROVSOFT ALLENDE ONE",
+  "description": "Sistema PROVSOFT ALLENDE PROVEEDORA",
   "icons": [
     {
       "src": "icons/icon-192.png",
