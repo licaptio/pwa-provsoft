@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PROVSOFT Apps</title>
+  <meta name="theme-color" content="#00416A" />
+  <link rel="manifest" href="./manifest.json" />
+  <style>
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --gris:#e5e7eb;
+      --fondo:#f8fafc;
+      --texto:#1f2937;
+      --card:#ffffff;
+      --shadow:0 14px 34px rgba(0,0,0,.12);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial,sans-serif;
+      background:linear-gradient(180deg,#eef5fb,#f8fafc);
+      color:var(--texto);
+    }
+    .wrap{
+      max-width:1100px;
+      margin:0 auto;
+      padding:20px;
+    }
+    .hero{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      border-radius:24px;
+      padding:26px;
+      box-shadow:var(--shadow);
+      margin-bottom:18px;
+    }
+    .hero h1{margin:0 0 8px;font-size:30px}
+    .hero p{margin:0;opacity:.95}
+    .card{
+      background:var(--card);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:20px;
+      margin-bottom:16px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:14px;
+    }
+    a.btn, button{
+      display:inline-block;
+      border:none;
+      border-radius:14px;
+      padding:14px 18px;
+      font-weight:bold;
+      text-decoration:none;
+      cursor:pointer;
+    }
+    .btn-primary{background:var(--azul);color:#fff}
+    .btn-sec{background:#0f766e;color:#fff}
+    .muted{color:#64748b;font-size:13px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    input{
+      width:100%;
+      min-height:46px;
+      border-radius:12px;
+      border:1px solid #cbd5e1;
+      padding:10px 12px;
+      font-size:14px;
+    }
+    ul{margin:10px 0 0 18px;padding:0}
+    li{margin:8px 0}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>PROVSOFT Apps</h1>
+      <p>Contenedor PWA para abrir tus módulos sin tocar la lógica interna de cada app.</p>
+    </section>
+
+    <section class="card">
+      <h2>Instalación</h2>
+      <p class="muted">Esta shell sí es PWA instalable. Tus módulos actuales se abren desde aquí.</p>
+      <div class="row">
+        <button class="btn-primary" id="btnInstall" style="display:none;">Instalar app</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Abrir módulo</h2>
+      <p class="muted">Pega la ruta relativa o URL del módulo actual.</p>
+      <input id="moduleUrl" placeholder="./respuesta-inventario.html o https://tudominio/app.html" />
+      <div class="row">
+        <button class="btn-primary" id="btnOpen">Abrir módulo</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Rutas sugeridas</h2>
+      <div class="grid">
+        <a class="btn btn-sec" href="./index.html">Abrir index principal</a>
+        <a class="btn btn-sec" href="./respuesta-inventario.html">Respuesta inventario</a>
+        <a class="btn btn-sec" href="./solicitud-inventario.html">Solicitud inventario</a>
+      </div>
+      <ul class="muted">
+        <li>Este método no modifica tu app actual.</li>
+        <li>Sirve para tener una entrada instalable en celular y PC.</li>
+        <li>Si luego quieres que cada HTML individual sea PWA completa, sí hará falta agregar el manifest y registro al HTML correspondiente.</li>
+      </ul>
+    </section>
+  </div>
+
+  <script src="./pwa-register.js"></script>
+  <script>
+    let deferredPrompt = null;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById("btnInstall").style.display = "inline-block";
+    });
+
+    document.getElementById("btnInstall").addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      document.getElementById("btnInstall").style.display = "none";
+    });
+
+    document.getElementById("btnOpen").addEventListener("click", () => {
+      const url = document.getElementById("moduleUrl").value.trim();
+      if (!url) return alert("Pega una ruta o URL.");
+      window.location.href = url;
+    });
+  </script>
+</body>
+</html>
