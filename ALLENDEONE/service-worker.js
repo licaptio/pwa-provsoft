@@ -1,4 +1,4 @@
-const CACHE_NAME = "provsoft-allende-v1";
+const CACHE_NAME = "provsoft-allende-v2";
 
 const APP_ASSETS = [
   "./",
