@@ -1,12 +1,10 @@
-(function () {
-  if (!("serviceWorker" in navigator)) return;
-
-  window.addEventListener("load", async function () {
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
     try {
       await navigator.serviceWorker.register("./service-worker.js");
-      console.log("PWA lista");
+      console.log("Service Worker registrado");
     } catch (err) {
-      console.error("No se pudo registrar el service worker:", err);
+      console.error("Error registrando Service Worker:", err);
     }
   });
-})();
+}
