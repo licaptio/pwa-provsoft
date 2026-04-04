@@ -1,16 +1,20 @@
-const CACHE_NAME = "provsoft-shell-v1";
-const APP_SHELL = [
+const CACHE_NAME = "provsoft-allende-v1";
+
+const APP_ASSETS = [
   "./",
-  "./pwa-shell.html",
+  "./index.html",
   "./manifest.json",
   "./pwa-register.js",
-  "./icons/icon-192.svg",
-  "./icons/icon-512.svg"
+  "./CATALOGO.html",
+  "./SOLTRANAPP.html",
+  "./responderasolicitudalle1.html",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL))
+    caches.open(CACHE_NAME).then(cache => cache.addAll(APP_ASSETS))
   );
   self.skipWaiting();
 });
@@ -19,7 +23,9 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
       )
     )
   );
@@ -27,17 +33,11 @@ self.addEventListener("activate", event => {
 });
 
 self.addEventListener("fetch", event => {
-  const req = event.request;
-  if (req.method !== "GET") return;
+  if (event.request.method !== "GET") return;
 
   event.respondWith(
-    caches.match(req).then(cached => {
-      if (cached) return cached;
-      return fetch(req).then(networkResp => {
-        const copy = networkResp.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(req, copy));
-        return networkResp;
-      }).catch(() => cached);
+    caches.match(event.request).then(cached => {
+      return cached || fetch(event.request);
     })
   );
 });
