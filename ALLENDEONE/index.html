@@ -16,7 +16,6 @@
       --azul: #00416A;
       --azul2: #0c6cbd;
       --fondo: #f4f7fb;
-      --card: #ffffff;
       --shadow: 0 10px 25px rgba(0,0,0,.1);
     }
 
@@ -27,7 +26,8 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 20px;
     }
 
     .container {
@@ -56,6 +56,9 @@
       font-weight: 600;
       box-shadow: var(--shadow);
       transition: .2s;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
     }
 
     .btn:hover {
@@ -68,6 +71,10 @@
       font-size: 12px;
       color: #666;
     }
+
+    #btnInstall {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -76,7 +83,7 @@
     <h1>PROVSOFT<br>ALLENDE ONE</h1>
 
     <div class="menu">
-      <a class="btn" href="pwa-shell.html">📲 Abrir versión instalable PWA</a>
+      <button class="btn" id="btnInstall">📲 Instalar app</button>
       <a class="btn" href="CATALOGO.html">📦 Catálogo</a>
       <a class="btn" href="SOLTRANAPP.html">🚚 Solicitudes / Transferencias</a>
       <a class="btn" href="responderasolicitudalle1.html">📋 Responder Solicitud</a>
@@ -88,5 +95,23 @@
   </div>
 
   <script src="pwa-register.js"></script>
+  <script>
+    let deferredPrompt = null;
+    const btnInstall = document.getElementById("btnInstall");
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstall.style.display = "block";
+    });
+
+    btnInstall.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btnInstall.style.display = "none";
+    });
+  </script>
 </body>
 </html>
