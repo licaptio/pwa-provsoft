@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MENÚ INICIO – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Fuente -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --azul: #00416A;
+      --azul2: #0c6cbd;
+      --fondo: #f4f7fb;
+      --card: #ffffff;
+      --shadow: 0 10px 25px rgba(0,0,0,.1);
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: var(--fondo);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    h1 {
+      color: var(--azul);
+      margin-bottom: 30px;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--azul), var(--azul2));
+      color: white;
+      padding: 15px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+      transition: .2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.95;
+    }
+
+    .footer {
+      margin-top: 25px;
+      font-size: 12px;
+      color: #666;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>PROVSOFT<br>ALLENDE ONE</h1>
+
+    <div class="menu">
+      <a class="btn" href="CATALOGO.html">📦 Catálogo</a>
+      <a class="btn" href="SOLTRANAPP.html">🚚 Solicitudes / Transferencias</a>
+      <a class="btn" href="responderasolicitudalle1.html">📋 Responder Solicitud</a>
+    </div>
+
+    <div class="footer">
+      Sistema interno PROVSOFT
+    </div>
+  </div>
+
+</body>
+</html>
