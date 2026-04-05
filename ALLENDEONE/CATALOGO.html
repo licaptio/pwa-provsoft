@@ -217,74 +217,82 @@
   }
 
   .main{
-    flex: 1;
-    min-height: 0;
-    padding: 14px 16px;
-    display: grid;
-    grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    flex:1;
+    min-height:0;
+    padding:14px 16px;
+    display:grid;
+    grid-template-columns:minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+    grid-template-rows:auto minmax(0, 1fr);
     grid-template-areas:
       "producto precio"
       "ficha especial";
-    gap: 16px;
-    align-items: stretch;
-    overflow: hidden;
+    gap:16px;
+    align-items:stretch;
+    overflow:hidden;
   }
 
   .concepto-main{
-    grid-area: producto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    grid-area:producto;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
   }
 
   .precio-publico-wrap{
-    grid-area: precio;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
+    grid-area:precio;
+    min-height:0;
+    display:flex;
+    flex-direction:column;
   }
 
   .ficha-col{
-    grid-area: ficha;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    grid-area:ficha;
+    min-height:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
   }
 
   .precio-especial-wrap-col{
-    grid-area: especial;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    grid-area:especial;
+    min-height:0;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
     gap:12px;
+  }
+
+  .precio-especial-wrap-col > .precio-especial{
+    flex:0 0 auto;
+  }
+
+  .precio-especial-wrap-col > .fotos-box{
+    flex:1 1 280px;
   }
 
   .box{
     background:#fff;
     border:1px solid #eef2ff;
     border-radius:20px;
-    padding: 14px;
-    min-height: 0;
-    height: 100%;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    padding:14px;
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
   }
 
   .concepto-section{
     background:linear-gradient(135deg,#fef3c7 0%, #fde68a 100%);
     border-radius:20px;
-    padding: 12px 16px;
+    padding:12px 16px;
     border-left:5px solid #f59e0b;
     box-shadow:0 6px 18px rgba(245,158,11,.10);
-    min-height: auto;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-shrink: 0;
+    min-height:auto;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    flex-shrink:0;
   }
 
   .concepto-label{
@@ -318,9 +326,9 @@
     border:1px solid #dbe7f3;
     box-shadow:0 8px 24px rgba(15,23,42,.08);
     background:#fff;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
+    height:100%;
+    display:flex;
+    flex-direction:column;
   }
 
   .precio-panel::before{
@@ -338,7 +346,7 @@
     align-items:center;
     justify-content:space-between;
     gap:12px;
-    padding: 14px 18px 10px;
+    padding:14px 18px 10px;
     border-bottom:1px solid rgba(148,163,184,.20);
     flex:0 0 auto;
   }
@@ -372,15 +380,15 @@
   }
 
   .precio-panel-body{
-    padding: 14px 18px 16px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    padding:14px 18px 16px;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
   }
 
   .precio-publico{
-    background: linear-gradient(135deg,#00416A 0%, #0c6cbd 100%);
+    background:linear-gradient(135deg,#00416A 0%, #0c6cbd 100%);
     border:none;
   }
 
@@ -418,30 +426,30 @@
     background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
     display:flex;
     flex-direction:column;
-    height: auto;
-    min-height: 0;
+    height:auto;
+    min-height:0;
   }
 
   .precio-especial .precio-panel-body{
-    padding-top: 8px;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
+    padding-top:8px;
+    flex:1;
+    min-height:0;
+    overflow:hidden;
   }
 
   .precio-especial-scroller{
-    height: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 4px;
-    max-height: 100%;
+    height:100%;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:4px;
+    max-height:100%;
   }
 
   .precio-especial-empty{
     display:flex;
     align-items:center;
     justify-content:center;
-    min-height: 100px;
+    min-height:100px;
     border:1px dashed #cbd5e1;
     border-radius:18px;
     background:#f8fafc;
@@ -474,7 +482,7 @@
   }
 
   .tabla-precios-pro tbody td{
-    padding: 10px 10px;
+    padding:10px 10px;
     font-size:13px;
     font-weight:800;
     color:#0f172a;
@@ -526,17 +534,17 @@
   .info-grid{
     display:grid;
     grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    overflow-y: auto;
-    min-height: 0;
-    padding-right: 2px;
-    flex: 1;
+    gap:8px;
+    overflow-y:auto;
+    min-height:0;
+    padding-right:2px;
+    flex:1;
   }
 
   .info-item{
     background:#f8fafc;
     border-radius:14px;
-    padding: 10px;
+    padding:10px;
     border:1px solid #eef2ff;
     transition:all .2s;
   }
@@ -559,8 +567,14 @@
   }
 
   .fotos-box{
-    min-height: 0;
-    height: auto;
+    min-height:280px;
+    height:auto;
+    flex:1 1 280px;
+    overflow:hidden;
+  }
+
+  .fotos-box.box{
+    height:auto;
   }
 
   .fotos-head{
@@ -589,6 +603,12 @@
     padding:2px 4px 10px 2px;
     scroll-snap-type:x proximity;
     -webkit-overflow-scrolling:touch;
+  }
+
+  .fotos-box .fotos-scroller{
+    flex:1;
+    min-height:230px;
+    align-items:stretch;
   }
 
   .fotos-scroller::-webkit-scrollbar{
@@ -630,6 +650,7 @@
 
   .foto-stage{
     width:100%;
+    min-height:220px;
     height:220px;
     background:#f1f5f9;
     display:flex;
@@ -829,23 +850,23 @@
 
   @media (max-width: 1100px){
     html, body{
-      overflow: auto;
-      height: auto;
+      overflow:auto;
+      height:auto;
     }
 
     body{
-      height: auto;
-      overflow: auto;
-      padding: 12px;
+      height:auto;
+      overflow:auto;
+      padding:12px;
     }
 
     .app{
-      height: auto;
-      min-height: 100vh;
+      height:auto;
+      min-height:100vh;
     }
 
     .card{
-      height: auto;
+      height:auto;
     }
 
     .main{
@@ -856,8 +877,8 @@
         "precio"
         "especial"
         "ficha";
-      overflow: visible;
-      gap: 16px;
+      overflow:visible;
+      gap:16px;
     }
 
     .ficha-col,
@@ -866,9 +887,9 @@
     .precio-especial .precio-panel-body,
     .precio-especial-scroller,
     .info-grid{
-      overflow: visible;
-      height: auto;
-      max-height: none;
+      overflow:visible;
+      height:auto;
+      max-height:none;
     }
 
     .info-grid{
@@ -884,6 +905,7 @@
 
     .foto-stage{
       height:210px;
+      min-height:210px;
     }
   }
 
@@ -981,6 +1003,7 @@
 
     .foto-stage{
       height:180px;
+      min-height:180px;
     }
 
     .btn-rotar{
@@ -1014,28 +1037,29 @@
 
     .foto-stage{
       height:165px;
+      min-height:165px;
     }
   }
 
-  @media (min-width: 1101px) {
-    .main {
-      max-height: 100%;
+  @media (min-width: 1101px){
+    .main{
+      max-height:100%;
     }
 
-    .precio-especial-scroller {
-      max-height: 220px;
+    .precio-especial-scroller{
+      max-height:220px;
     }
 
-    .info-grid {
-      max-height: 180px;
+    .info-grid{
+      max-height:180px;
     }
 
-    .precio-panel-body {
-      justify-content: flex-start;
+    .precio-panel-body{
+      justify-content:flex-start;
     }
 
-    .precio-publico .precio-panel-body {
-      justify-content: center;
+    .precio-publico .precio-panel-body{
+      justify-content:center;
     }
 
     .fotos-scroller{
@@ -1172,7 +1196,7 @@
     import {
       getStorage,
       ref as storageRef,
-      getBlob
+      getDownloadURL
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
     const app = initializeApp(firebaseConfig);
@@ -1187,9 +1211,10 @@
     const AUTO_SYNC_HOURS = 24;
 
     const DB_FOTOS = "provsoft_fotos_cache";
-    const STORE_FOTOS = "fotos_cache";
-    const STORE_FOTOS_META = "meta_fotos";
-    const FOTOS_TTL_HOURS = 168;
+    const STORE_FOTOS_PRODUCTO = "fotos_producto";
+    const STORE_FOTOS_URLS = "fotos_urls";
+    const FOTOS_META_TTL_HOURS = 24;
+    const FOTOS_URL_TTL_HOURS = 72;
 
     const busquedaInput = document.getElementById("busquedaInput");
     const sugerenciasBox = document.getElementById("sugerenciasBox");
@@ -1224,18 +1249,10 @@
     let sugerenciasActuales = [];
     let indiceActivo = -1;
     let currentPhotoToken = 0;
-    let currentPhotoUrls = [];
 
     function mostrarStatus(msg, tipo = "ok") {
       statusBox.className = `status ${tipo}`;
       statusBox.textContent = msg;
-    }
-
-    function revocarPhotoUrls() {
-      currentPhotoUrls.forEach(url => {
-        try { URL.revokeObjectURL(url); } catch {}
-      });
-      currentPhotoUrls = [];
     }
 
     function limpiarVista() {
@@ -1246,7 +1263,6 @@
       preciosVolumenBoxEl.innerHTML = `<div class="precio-especial-empty">Sin consultar</div>`;
       fotosCount.textContent = "0 fotos";
       fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Sin consultar</div>`;
-      revocarPhotoUrls();
     }
 
     function formatearFecha(valor) {
@@ -1391,17 +1407,17 @@
 
     function abrirDBFotos() {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_FOTOS, 1);
+        const request = indexedDB.open(DB_FOTOS, 3);
 
         request.onupgradeneeded = (event) => {
           const dbFotos = event.target.result;
 
-          if (!dbFotos.objectStoreNames.contains(STORE_FOTOS)) {
-            dbFotos.createObjectStore(STORE_FOTOS, { keyPath: "path" });
+          if (!dbFotos.objectStoreNames.contains(STORE_FOTOS_PRODUCTO)) {
+            dbFotos.createObjectStore(STORE_FOTOS_PRODUCTO, { keyPath: "codigo" });
           }
 
-          if (!dbFotos.objectStoreNames.contains(STORE_FOTOS_META)) {
-            dbFotos.createObjectStore(STORE_FOTOS_META, { keyPath: "key" });
+          if (!dbFotos.objectStoreNames.contains(STORE_FOTOS_URLS)) {
+            dbFotos.createObjectStore(STORE_FOTOS_URLS, { keyPath: "path" });
           }
         };
 
@@ -1410,51 +1426,37 @@
       });
     }
 
-    async function guardarFotoCache(path, blob) {
+    async function guardarMetaFotosProducto(codigo, fotos) {
       const dbFotos = await abrirDBFotos();
 
       return new Promise((resolve, reject) => {
-        const tx = dbFotos.transaction([STORE_FOTOS, STORE_FOTOS_META], "readwrite");
-        tx.objectStore(STORE_FOTOS).put({
-          path,
-          blob,
-          guardadoEn: new Date().toISOString()
-        });
-
-        tx.objectStore(STORE_FOTOS_META).put({
-          key: `meta:${path}`,
+        const tx = dbFotos.transaction(STORE_FOTOS_PRODUCTO, "readwrite");
+        tx.objectStore(STORE_FOTOS_PRODUCTO).put({
+          codigo: String(codigo),
+          fotos: Array.isArray(fotos) ? fotos : [],
           fecha: new Date().toISOString()
         });
-
         tx.oncomplete = () => resolve(true);
         tx.onerror = () => reject(tx.error);
       });
     }
 
-    async function obtenerFotoCache(path) {
+    async function obtenerMetaFotosProducto(codigo) {
       const dbFotos = await abrirDBFotos();
 
       return new Promise((resolve) => {
-        const tx = dbFotos.transaction([STORE_FOTOS, STORE_FOTOS_META], "readonly");
-        const reqFoto = tx.objectStore(STORE_FOTOS).get(path);
-        const reqMeta = tx.objectStore(STORE_FOTOS_META).get(`meta:${path}`);
+        const tx = dbFotos.transaction(STORE_FOTOS_PRODUCTO, "readonly");
+        const req = tx.objectStore(STORE_FOTOS_PRODUCTO).get(String(codigo));
 
-        Promise.all([
-          new Promise(res => {
-            reqFoto.onsuccess = () => res(reqFoto.result || null);
-            reqFoto.onerror = () => res(null);
-          }),
-          new Promise(res => {
-            reqMeta.onsuccess = () => res(reqMeta.result || null);
-            reqMeta.onerror = () => res(null);
-          })
-        ]).then(([foto, meta]) => {
-          if (!foto?.blob || !meta?.fecha) {
+        req.onsuccess = () => {
+          const registro = req.result || null;
+
+          if (!registro?.fecha || !Array.isArray(registro?.fotos)) {
             resolve(null);
             return;
           }
 
-          const ultima = new Date(meta.fecha).getTime();
+          const ultima = new Date(registro.fecha).getTime();
           if (isNaN(ultima)) {
             resolve(null);
             return;
@@ -1463,129 +1465,217 @@
           const ahora = Date.now();
           const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
 
-          if (diffHoras >= FOTOS_TTL_HOURS) {
+          if (diffHoras >= FOTOS_META_TTL_HOURS) {
             resolve(null);
             return;
           }
 
-          resolve(foto.blob);
-        });
+          resolve(registro.fotos);
+        };
+
+        req.onerror = () => resolve(null);
       });
     }
 
+
+async function obtenerUrlFotoCache(path) {
+  const dbFotos = await abrirDBFotos();
+
+  return new Promise((resolve) => {
+    const tx = dbFotos.transaction(STORE_FOTOS_URLS, "readonly");
+    const req = tx.objectStore(STORE_FOTOS_URLS).get(path);
+
+    req.onsuccess = () => {
+      const registro = req.result || null;
+
+      if (!registro?.url || !registro?.fecha) {
+        resolve(null);
+        return;
+      }
+
+      const ultima = new Date(registro.fecha).getTime();
+      if (isNaN(ultima)) {
+        resolve(null);
+        return;
+      }
+
+      const ahora = Date.now();
+      const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
+
+      if (diffHoras >= FOTOS_URL_TTL_HOURS) {
+        resolve(null);
+        return;
+      }
+
+      resolve(registro.url);
+    };
+
+    req.onerror = () => resolve(null);
+  });
+}
+
+// CAMBIA obtenerUrlDirectaDesdeStorage por esta versión:
+async function obtenerUrlDirectaDesdeStorage(path) {
+  const limpio = normalizarStoragePath(path);
+  const refFoto = storageRef(storage, limpio);
+  const url = await getDownloadURL(refFoto);
+  return url;
+}
+
+
     function normalizarStoragePath(path) {
-      const limpio = String(path || "").trim().replace(/^\/+/, "");
-      if (!limpio) return "";
-      if (limpio.startsWith("gs://")) return limpio;
-      return limpio;
+      return String(path || "").trim().replace(/^\/+/, "");
     }
 
-    async function descargarBlobDesdeStorage(path) {
-      const limpio = normalizarStoragePath(path);
-      const refFoto = storageRef(storage, limpio);
-      return await getBlob(refFoto);
-    }
 
     function renderFotosVacias(texto = "Sin fotos") {
       fotosCount.textContent = "0 fotos";
       fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">${texto}</div>`;
     }
 
-    async function renderFotosProducto(codigo) {
-      const token = ++currentPhotoToken;
-      revocarPhotoUrls();
-      fotosCount.textContent = "Cargando...";
-      fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Cargando fotos...</div>`;
+async function obtenerListaFotosProducto(codigo) {
+  const codigoStr = String(codigo);
+  const cacheLista = await obtenerMetaFotosProducto(codigoStr);
 
-      try {
-        const docRef = doc(db, "productos_fotos", String(codigo));
-        const snap = await getDoc(docRef);
+  if (cacheLista) {
+    // Corregir extensión al devolver del cache
+return cacheLista.map(f => String(f || "").trim()).filter(Boolean);
+  }
 
-        if (token !== currentPhotoToken) return;
+  const docRef = doc(db, "productos_fotos", codigoStr);
+  const snap = await getDoc(docRef);
 
-        if (!snap.exists()) {
-          renderFotosVacias("Sin fotos registradas");
-          return;
-        }
+  if (!snap.exists()) {
+    await guardarMetaFotosProducto(codigoStr, []);
+    return [];
+  }
 
-        const data = snap.data() || {};
-        const lista = Array.isArray(data.fotos) ? data.fotos.filter(Boolean) : [];
+  const data = snap.data() || {};
+  // ⭐ CORREGIR EXTENSIÓN AQUÍ ⭐
+const lista = Array.isArray(data.fotos)
+  ? data.fotos.map(f => String(f || "").trim()).filter(Boolean)
+  : [];
+    
+  await guardarMetaFotosProducto(codigoStr, lista);
+  return lista;
+}
 
-        if (!lista.length) {
-          renderFotosVacias("Sin fotos registradas");
-          return;
-        }
+async function guardarUrlFotoCache(path, url) {
+  const dbFotos = await abrirDBFotos();
 
-        fotosScroller.innerHTML = "";
-        fotosCount.textContent = `${lista.length} foto${lista.length === 1 ? "" : "s"}`;
+  return new Promise((resolve, reject) => {
+    const tx = dbFotos.transaction(STORE_FOTOS_URLS, "readwrite");
+    tx.objectStore(STORE_FOTOS_URLS).put({
+      path,
+      url,
+      fecha: new Date().toISOString()
+    });
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
 
-        for (let i = 0; i < lista.length; i++) {
-          const path = normalizarStoragePath(lista[i]);
-          if (!path) continue;
 
-          let blob = await obtenerFotoCache(path);
+// DEJA esta función crearCardFoto:
+function crearCardFoto(srcFinal, index, codigo) {
+  const card = document.createElement("div");
+  card.className = "foto-card";
 
-          if (!blob) {
-            try {
-              blob = await descargarBlobDesdeStorage(path);
-              await guardarFotoCache(path, blob);
-            } catch (errorStorage) {
-              console.error("Error descargando foto desde Storage:", path, errorStorage);
-              continue;
-            }
-          }
+  const stage = document.createElement("div");
+  stage.className = "foto-stage";
 
-          if (token !== currentPhotoToken) return;
+  const img = document.createElement("img");
+  img.src = srcFinal;
+  img.alt = `Foto ${index + 1} del producto ${codigo}`;
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.referrerPolicy = "no-referrer";
 
-          const objectUrl = URL.createObjectURL(blob);
-          currentPhotoUrls.push(objectUrl);
+  const toolbar = document.createElement("div");
+  toolbar.className = "foto-toolbar";
 
-          const card = document.createElement("div");
-          card.className = "foto-card";
+  const label = document.createElement("div");
+  label.className = "foto-label";
+  label.textContent = `Foto ${index + 1}`;
 
-          const stage = document.createElement("div");
-          stage.className = "foto-stage";
+  const btnRotar = document.createElement("button");
+  btnRotar.type = "button";
+  btnRotar.className = "btn-rotar";
+  btnRotar.textContent = "Rotar";
 
-          const img = document.createElement("img");
-          img.src = objectUrl;
-          img.alt = `Foto ${i + 1} del producto ${codigo}`;
+  let rotacion = 0;
+  btnRotar.addEventListener("click", () => {
+    rotacion = (rotacion + 90) % 360;
+    img.style.transform = `rotate(${rotacion}deg)`;
+  });
 
-          const toolbar = document.createElement("div");
-          toolbar.className = "foto-toolbar";
+  img.addEventListener("error", () => {
+    stage.innerHTML = `<div class="fotos-empty" style="min-width:100%; min-height:100%;">No se pudo mostrar</div>`;
+  });
 
-          const label = document.createElement("div");
-          label.className = "foto-label";
-          label.textContent = `Foto ${i + 1}`;
+  stage.appendChild(img);
+  toolbar.appendChild(label);
+  toolbar.appendChild(btnRotar);
 
-          const btnRotar = document.createElement("button");
-          btnRotar.type = "button";
-          btnRotar.className = "btn-rotar";
-          btnRotar.textContent = "Rotar";
+  card.appendChild(stage);
+  card.appendChild(toolbar);
 
-          let rotacion = 0;
-          btnRotar.addEventListener("click", () => {
-            rotacion = (rotacion + 90) % 360;
-            img.style.transform = `rotate(${rotacion}deg)`;
-          });
+  return card;
+}
 
-          stage.appendChild(img);
-          toolbar.appendChild(label);
-          toolbar.appendChild(btnRotar);
+// 3) AGREGA esta función completa
+// Pégala después de crearCardFoto(...) y antes de renderProducto(...)
 
-          card.appendChild(stage);
-          card.appendChild(toolbar);
+async function renderFotosProducto(codigo) {
+  const token = ++currentPhotoToken;
+  fotosCount.textContent = "Cargando...";
+  fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Cargando fotos...</div>`;
 
-          fotosScroller.appendChild(card);
-        }
+  try {
+    const lista = await obtenerListaFotosProducto(codigo);
 
-        if (!fotosScroller.children.length) {
-          renderFotosVacias("No se pudieron cargar las fotos");
-        }
-      } catch (error) {
-        console.error("Error renderizando fotos del producto:", error);
-        renderFotosVacias("Error cargando fotos");
-      }
+    if (token !== currentPhotoToken) return;
+
+    if (!lista.length) {
+      renderFotosVacias("Sin fotos registradas");
+      return;
     }
+
+    fotosScroller.innerHTML = "";
+    let cargadasExitosamente = 0;
+
+    for (let i = 0; i < lista.length; i++) {
+      const path = normalizarStoragePath(lista[i]);
+      if (!path) continue;
+
+      let srcFinal = await obtenerUrlFotoCache(path);
+
+      if (!srcFinal) {
+        try {
+          srcFinal = await obtenerUrlDirectaDesdeStorage(path);
+          await guardarUrlFotoCache(path, srcFinal);
+        } catch (errorUrl) {
+          continue;
+        }
+      }
+
+      if (token !== currentPhotoToken) return;
+
+      const card = crearCardFoto(srcFinal, i, codigo);
+      fotosScroller.appendChild(card);
+      cargadasExitosamente++;
+    }
+
+    fotosCount.textContent = `${cargadasExitosamente} foto${cargadasExitosamente === 1 ? "" : "s"}`;
+
+    if (!cargadasExitosamente) {
+      renderFotosVacias("No se pudieron cargar las fotos");
+    }
+  } catch (error) {
+    renderFotosVacias("Error cargando fotos");
+  }
+}
+
 
     function renderProducto(producto) {
       const data = producto?.data || {};
