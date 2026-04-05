@@ -243,14 +243,13 @@ input:focus{
   line-height:1.35;
 }
 
-/* GRID PRINCIPAL */
 .main{
   flex:1;
   min-height:0;
   padding:12px 16px 16px;
   display:grid;
-  grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);
-  grid-template-rows:auto auto minmax(0,1fr);
+  grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);
+  grid-template-rows:130px 170px minmax(190px,1fr);
   grid-template-areas:
     "producto fotos"
     "precio ficha"
@@ -259,6 +258,7 @@ input:focus{
   overflow:hidden;
   align-items:stretch;
 }
+
 
 /* AREAS */
 .concepto-main{
@@ -306,42 +306,57 @@ input:focus{
   box-shadow:0 6px 18px rgba(15,23,42,.05);
 }
 
-/* PRODUCTO */
 .concepto-section{
-  background:linear-gradient(135deg,#fef3c7 0%, #fde68a 100%);
+  position:relative;
+  background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
+  border:1px solid #dbe7f3;
   border-radius:22px;
-  padding:14px 16px;
-  border-left:6px solid #f59e0b;
-  box-shadow:0 8px 18px rgba(245,158,11,.12);
+  box-shadow:0 8px 24px rgba(15,23,42,.08);
   height:100%;
   display:flex;
   flex-direction:column;
-  justify-content:center;
+  overflow:hidden;
+}
+
+.concepto-section::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  bottom:0;
+  width:5px;
+  background:linear-gradient(180deg,#f59e0b,#fbbf24);
 }
 
 .concepto-label{
-  font-size:10px;
-  text-transform:uppercase;
-  letter-spacing:2px;
-  color:#92400e;
-  margin-bottom:6px;
+  font-size:11px;
   font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  color:#92400e;
+  padding:12px 16px 8px 18px;
+  border-bottom:1px solid rgba(148,163,184,.18);
+  background:linear-gradient(180deg,#fffdf7 0%, #fff7df 100%);
+  margin:0;
 }
 
 .concepto-texto{
-  font-size:17px;
+  font-size:30px;
   font-weight:900;
   color:#78350f;
-  line-height:1.22;
+  line-height:1.08;
+  letter-spacing:-.02em;
+  padding:14px 16px 4px 18px;
   word-break:break-word;
 }
 
 .codigo-texto{
-  font-size:11px;
+  font-size:13px;
   color:#92400e;
-  margin-top:8px;
-  font-family:monospace;
-  font-weight:700;
+  font-weight:800;
+  padding:0 16px 14px 18px;
+  margin:0;
+  font-family:inherit;
 }
 
 /* PANEL PRECIO */
@@ -454,7 +469,6 @@ input:focus{
   color:#d9ebff;
 }
 
-/* PRECIO ESPECIAL */
 .precio-especial{
   background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
   min-height:0;
@@ -462,16 +476,20 @@ input:focus{
 }
 
 .precio-especial .precio-panel-body{
-  padding-top:8px;
-  overflow:hidden;
+  padding:10px 14px 14px;
+  overflow:visible;
+  height:auto;
+  display:block;
 }
 
 .precio-especial-scroller{
-  height:100%;
-  overflow:auto;
-  padding-right:4px;
+  height:auto;
   min-height:0;
+  overflow:visible;
+  padding-right:0;
 }
+
+
 
 .precio-especial-empty{
   display:flex;
@@ -491,7 +509,7 @@ input:focus{
 .tabla-precios-pro{
   width:100%;
   border-collapse:separate;
-  border-spacing:0 8px;
+  border-spacing:0 6px;
 }
 
 .tabla-precios-pro thead th{
@@ -500,22 +518,30 @@ input:focus{
   letter-spacing:.08em;
   color:#64748b;
   text-align:left;
-  padding:0 10px 4px;
+  padding:0 8px 2px;
   font-weight:900;
 }
 
-.tabla-precios-pro tbody tr{
-  background:#fff;
-  box-shadow:0 4px 12px rgba(15,23,42,.04);
-}
-
 .tabla-precios-pro tbody td{
-  padding:9px 10px;
-  font-size:13px;
+  padding:7px 8px;
+  font-size:12px;
   font-weight:800;
   color:#0f172a;
   border-top:1px solid #eef2f7;
   border-bottom:1px solid #eef2f7;
+}
+
+.tag-cantidad{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:linear-gradient(135deg,#e0f2fe,#dbeafe);
+  border:1px solid #bfdbfe;
+  color:#00416A;
+  font-size:10px;
+  font-weight:900;
 }
 
 .tabla-precios-pro tbody td:first-child{
