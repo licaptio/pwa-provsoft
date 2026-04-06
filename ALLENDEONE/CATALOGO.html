@@ -248,11 +248,11 @@ input:focus{
   min-height:0;
   padding:12px 16px 16px;
   display:grid;
-  grid-template-columns:minmax(0,1.05fr) minmax(360px,.95fr);
+  grid-template-columns:minmax(0,1.05fr) minmax(420px,1fr);
   grid-template-rows:130px 170px minmax(190px,1fr);
   grid-template-areas:
     "producto fotos"
-    "precio ficha"
+    "precio fotos"
     "especial ficha";
   gap:12px;
   overflow:hidden;
@@ -622,8 +622,11 @@ input:focus{
 
 /* FOTOS */
 .fotos-box{
-  min-height:170px;
-  max-height:170px;
+  min-height:100%;
+  max-height:none;
+  height:100%;
+  display:flex;
+  flex-direction:column;
 }
 
 .fotos-head{
@@ -646,14 +649,15 @@ input:focus{
 
 .fotos-scroller{
   display:flex;
-  gap:10px;
+  gap:12px;
   overflow-x:auto;
   overflow-y:hidden;
-  padding:2px 2px 8px;
+  padding:4px 4px 10px;
   scroll-snap-type:x proximity;
   -webkit-overflow-scrolling:touch;
   min-height:0;
   flex:1;
+  align-items:stretch;
 }
 
 .fotos-empty{
@@ -661,7 +665,7 @@ input:focus{
   align-items:center;
   justify-content:center;
   min-width:100%;
-  min-height:100px;
+  min-height:260px;
   border:1px dashed #cbd5e1;
   border-radius:18px;
   background:#f8fafc;
@@ -673,9 +677,9 @@ input:focus{
 }
 
 .foto-card{
-  width:180px;
-  min-width:180px;
-  max-width:180px;
+  width:240px;
+  min-width:240px;
+  max-width:240px;
   background:#fff;
   border:1px solid #e5e7eb;
   border-radius:18px;
@@ -687,7 +691,7 @@ input:focus{
 
 .foto-stage{
   width:100%;
-  height:120px;
+  height:220px;
   background:#f1f5f9;
   display:flex;
   align-items:center;
