@@ -1111,683 +1111,853 @@ input:focus{
   </div>
 
   <script type="module">
-    import { firebaseConfig } from "./config.js";
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      query,
-      where,
-      Timestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { firebaseConfig } from "./config.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    getDocs,
+    query,
+    where,
+    Timestamp,
+    doc,
+    getDoc,
+    limit
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const COLECCION = "productos";
+  import {
+    getStorage,
+    ref,
+    getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-    const DB_NAME = "provsoft_local_db";
-    const STORE_NAME = "catalogo_productos";
-    const META_STORE = "meta_store";
-    const CATALOGO_KEY = "productos";
-    const AUTO_SYNC_HOURS = 24;
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const storage = getStorage(app);
 
-    const busquedaInput = document.getElementById("busquedaInput");
-    const sugerenciasBox = document.getElementById("sugerenciasBox");
-    const statusBox = document.getElementById("status");
+  const COLECCION = "productos";
+  const COLECCION_FOTOS_META = "productos_fotos_meta";
 
-    const conceptoValor = document.getElementById("conceptoValor");
-    const codigoTexto = document.getElementById("codigoTexto");
-    const precioPublicoValor = document.getElementById("precioPublicoValor");
-    const infoGrid = document.getElementById("infoGrid");
-    const preciosVolumenBoxEl = document.getElementById("preciosVolumenBox");
-    const fotosScroller = document.getElementById("fotosScroller");
-    const fotosCount = document.getElementById("fotosCount");
+  const DB_NAME = "provsoft_local_db";
+  const STORE_NAME = "catalogo_productos";
+  const META_STORE = "meta_store";
+  const CATALOGO_KEY = "productos";
+  const AUTO_SYNC_HOURS = 24;
 
-    const overlayCarga = document.getElementById("overlayCarga");
-    const barraFill = document.getElementById("barraFill");
-    const cargaTexto = document.getElementById("cargaTexto");
+  const busquedaInput = document.getElementById("busquedaInput");
+  const sugerenciasBox = document.getElementById("sugerenciasBox");
+  const statusBox = document.getElementById("status");
 
-    const btnEscanear = document.getElementById("btnEscanear");
-    const scannerModal = document.getElementById("scannerModal");
-    const scannerVideo = document.getElementById("scannerVideo");
-    const scannerMsg = document.getElementById("scannerMsg");
-    const btnCerrarScanner = document.getElementById("btnCerrarScanner");
-    const btnDetenerScanner = document.getElementById("btnDetenerScanner");
-    const btnCambiarCamara = document.getElementById("btnCambiarCamara");
+  const conceptoValor = document.getElementById("conceptoValor");
+  const codigoTexto = document.getElementById("codigoTexto");
+  const precioPublicoValor = document.getElementById("precioPublicoValor");
+  const infoGrid = document.getElementById("infoGrid");
+  const preciosVolumenBoxEl = document.getElementById("preciosVolumenBox");
+  const fotosScroller = document.getElementById("fotosScroller");
+  const fotosCount = document.getElementById("fotosCount");
 
-    let scannerStream = null;
-    let scannerInterval = null;
-    let currentFacingMode = "environment";
-    let barcodeDetector = null;
+  const overlayCarga = document.getElementById("overlayCarga");
+  const barraFill = document.getElementById("barraFill");
+  const cargaTexto = document.getElementById("cargaTexto");
 
-    let catalogoProductos = [];
-    let sugerenciasActuales = [];
-    let indiceActivo = -1;
+  const btnEscanear = document.getElementById("btnEscanear");
+  const scannerModal = document.getElementById("scannerModal");
+  const scannerVideo = document.getElementById("scannerVideo");
+  const scannerMsg = document.getElementById("scannerMsg");
+  const btnCerrarScanner = document.getElementById("btnCerrarScanner");
+  const btnDetenerScanner = document.getElementById("btnDetenerScanner");
+  const btnCambiarCamara = document.getElementById("btnCambiarCamara");
 
-    function mostrarStatus(msg, tipo = "ok") {
-      statusBox.className = `status ${tipo}`;
-      statusBox.textContent = msg;
-    }
+  let scannerStream = null;
+  let scannerInterval = null;
+  let currentFacingMode = "environment";
+  let barcodeDetector = null;
 
-    function limpiarVista() {
-      conceptoValor.textContent = "Sin datos";
-      codigoTexto.textContent = "Código: --";
-      precioPublicoValor.textContent = "$---";
-      infoGrid.innerHTML = "";
-      preciosVolumenBoxEl.innerHTML = `<div class="precio-especial-empty">Sin consultar</div>`;
-      fotosCount.textContent = "0 fotos";
-      fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Sin fotos por ahora</div>`;
-    }
+  let catalogoProductos = [];
+  let sugerenciasActuales = [];
+  let indiceActivo = -1;
 
-    function formatearFecha(valor) {
-      try {
-        if (!valor) return "--";
+  // cache simple para no releer metas de fotos ya consultadas
+  const cacheFotosMeta = new Map();
 
-        let fecha = null;
+  function mostrarStatus(msg, tipo = "ok") {
+    statusBox.className = `status ${tipo}`;
+    statusBox.textContent = msg;
+  }
 
-        if (valor instanceof Timestamp) {
-          fecha = valor.toDate();
-        } else if (valor?.seconds !== undefined) {
-          fecha = new Date(valor.seconds * 1000);
-        } else if (valor instanceof Date) {
-          fecha = valor;
-        } else {
-          fecha = new Date(valor);
-        }
+  function limpiarVista() {
+    conceptoValor.textContent = "Sin datos";
+    codigoTexto.textContent = "Código: --";
+    precioPublicoValor.textContent = "$---";
+    infoGrid.innerHTML = "";
+    preciosVolumenBoxEl.innerHTML = `<div class="precio-especial-empty">Sin consultar</div>`;
+    limpiarFotosUI("Sin fotos por ahora");
+  }
 
-        if (isNaN(fecha.getTime())) return "--";
+  function limpiarFotosUI(texto = "Sin fotos por ahora") {
+    fotosCount.textContent = "0 fotos";
+    fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">${texto}</div>`;
+  }
 
-        return new Intl.DateTimeFormat("es-MX", {
-          dateStyle: "medium",
-          timeStyle: "short"
-        }).format(fecha);
-      } catch {
-        return "--";
-      }
-    }
+  function formatearFecha(valor) {
+    try {
+      if (!valor) return "--";
 
-    function normalizarTexto(txt) {
-      return String(txt || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim();
-    }
+      let fecha = null;
 
-    function tokenizarTexto(txt) {
-      return normalizarTexto(txt)
-        .split(/\s+/)
-        .map(x => x.trim())
-        .filter(Boolean);
-    }
-
-    function valorLegible(v) {
-      if (v === null || v === undefined || v === "") return "--";
-      if (v instanceof Timestamp) return formatearFecha(v);
-      if (typeof v === "boolean") return v ? "Sí" : "No";
-      if (Array.isArray(v)) return v.length ? v.join(", ") : "--";
-      if (typeof v === "object") return JSON.stringify(v);
-      return String(v);
-    }
-
-    function toNumberSeguro(v) {
-      if (v === null || v === undefined || v === "") return 0;
-      if (typeof v === "number") return isFinite(v) ? v : 0;
-
-      const limpio = String(v).replace(/[^0-9.-]/g, "");
-      const num = Number(limpio);
-      return isNaN(num) ? 0 : num;
-    }
-
-    function tomarPrimerValor(obj, keys = []) {
-      for (const key of keys) {
-        const value = obj?.[key];
-        if (value !== undefined && value !== null && value !== "") {
-          return value;
-        }
-      }
-      return null;
-    }
-
-    function renderPreciosVolumen(data) {
-      let lista =
-        tomarPrimerValor(data, ["preciosPorCantidad", "preciosVolumen", "precioEspecial", "precios_especiales"]) || [];
-
-      if (!Array.isArray(lista)) lista = [];
-      lista = lista.filter(item => item && typeof item === "object");
-
-      if (!lista.length) {
-        preciosVolumenBoxEl.innerHTML = `
-          <div class="precio-especial-empty">
-            Sin precios especiales definidos
-          </div>
-        `;
-        return;
+      if (valor instanceof Timestamp) {
+        fecha = valor.toDate();
+      } else if (valor?.seconds !== undefined) {
+        fecha = new Date(valor.seconds * 1000);
+      } else if (valor instanceof Date) {
+        fecha = valor;
+      } else {
+        fecha = new Date(valor);
       }
 
-      const filas = lista
-        .sort((a, b) => {
-          const ca = toNumberSeguro(a.cantidadMinima ?? a.cantidad ?? a.desde ?? 0);
-          const cb = toNumberSeguro(b.cantidadMinima ?? b.cantidad ?? b.desde ?? 0);
-          return ca - cb;
-        })
-        .map(item => {
-          const cantidad = toNumberSeguro(item.cantidadMinima ?? item.cantidad ?? item.desde ?? 0);
-          const unitario = toNumberSeguro(item.precioUnitario ?? item.precio ?? item.unitario ?? 0);
-          const total = toNumberSeguro(item.precioTotal ?? item.total ?? (cantidad * unitario));
+      if (isNaN(fecha.getTime())) return "--";
 
-          return `
-            <tr>
-              <td><span class="tag-cantidad">${cantidad}+ unidades</span></td>
-              <td class="precio-unit">$${unitario.toFixed(2)}</td>
-              <td class="precio-total">$${total.toFixed(2)}</td>
-            </tr>
-          `;
-        })
-        .join("");
+      return new Intl.DateTimeFormat("es-MX", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(fecha);
+    } catch {
+      return "--";
+    }
+  }
 
+  function normalizarTexto(txt) {
+    return String(txt || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .trim();
+  }
+
+  function tokenizarTexto(txt) {
+    return normalizarTexto(txt)
+      .split(/\s+/)
+      .map(x => x.trim())
+      .filter(Boolean);
+  }
+
+  function valorLegible(v) {
+    if (v === null || v === undefined || v === "") return "--";
+    if (v instanceof Timestamp) return formatearFecha(v);
+    if (typeof v === "boolean") return v ? "Sí" : "No";
+    if (Array.isArray(v)) return v.length ? v.join(", ") : "--";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
+  function toNumberSeguro(v) {
+    if (v === null || v === undefined || v === "") return 0;
+    if (typeof v === "number") return isFinite(v) ? v : 0;
+
+    const limpio = String(v).replace(/[^0-9.-]/g, "");
+    const num = Number(limpio);
+    return isNaN(num) ? 0 : num;
+  }
+
+  function tomarPrimerValor(obj, keys = []) {
+    for (const key of keys) {
+      const value = obj?.[key];
+      if (value !== undefined && value !== null && value !== "") {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  function renderPreciosVolumen(data) {
+    let lista =
+      tomarPrimerValor(data, ["preciosPorCantidad", "preciosVolumen", "precioEspecial", "precios_especiales"]) || [];
+
+    if (!Array.isArray(lista)) lista = [];
+    lista = lista.filter(item => item && typeof item === "object");
+
+    if (!lista.length) {
       preciosVolumenBoxEl.innerHTML = `
-        <table class="tabla-precios-pro">
-          <thead>
-            <tr>
-              <th>Cantidad</th>
-              <th>Precio unitario</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filas}
-          </tbody>
-        </table>
-      `;
-    }
-
-    function abrirDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-
-        request.onupgradeneeded = (event) => {
-          const dbLocal = event.target.result;
-
-          if (!dbLocal.objectStoreNames.contains(STORE_NAME)) {
-            dbLocal.createObjectStore(STORE_NAME, { keyPath: "key" });
-          }
-
-          if (!dbLocal.objectStoreNames.contains(META_STORE)) {
-            dbLocal.createObjectStore(META_STORE, { keyPath: "key" });
-          }
-        };
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    function renderProducto(producto) {
-      const data = producto?.data || {};
-
-      const codigo = tomarPrimerValor(data, ["codigoBarra", "codigo", "barcode"]) || producto.id || "--";
-      const concepto = tomarPrimerValor(data, ["concepto", "descripcion", "nombre", "producto"]) || "Sin concepto";
-
-      const precioPublicoRaw = tomarPrimerValor(data, [
-        "precioPublico",
-        "precio",
-        "precio_mostrador",
-        "precioLista",
-        "precio_publico"
-      ]);
-
-      const precioPublico = toNumberSeguro(precioPublicoRaw);
-
-      conceptoValor.textContent = concepto;
-      codigoTexto.textContent = `Código: ${codigo}`;
-      precioPublicoValor.textContent = precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00";
-
-      const camposSecundarios = [
-        ["Código de barras", codigo],
-        ["Clave SAT", tomarPrimerValor(data, ["claveSat", "claveSAT", "sat", "clave_sat"])],
-        ["Unidad SAT", tomarPrimerValor(data, ["unidadMedidaSat", "unidadSAT", "unidadSat", "unidad_medida_sat"])],
-        ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"])],
-        ["Marca", tomarPrimerValor(data, ["marca", "brand"])],
-        ["Activo", tomarPrimerValor(data, ["activo"])],
-        ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at"])],
-        ["Creado", tomarPrimerValor(data, ["createdAt", "fechaCreacion", "created_at"])]
-      ];
-
-      infoGrid.innerHTML = camposSecundarios.map(([label, valor]) => `
-        <div class="info-item">
-          <div class="info-item-label">${label}</div>
-          <div class="info-item-value">${valorLegible(valor)}</div>
+        <div class="precio-especial-empty">
+          Sin precios especiales definidos
         </div>
-      `).join("");
-
-      renderPreciosVolumen(data);
-
-      fotosCount.textContent = "0 fotos";
-      fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Sin fotos por ahora</div>`;
+      `;
+      return;
     }
 
-    function ocultarSugerencias() {
-      sugerenciasBox.classList.remove("show");
-      sugerenciasBox.innerHTML = "";
-      sugerenciasActuales = [];
-      indiceActivo = -1;
-    }
+    const filas = lista
+      .sort((a, b) => {
+        const ca = toNumberSeguro(a.cantidadMinima ?? a.cantidad ?? a.desde ?? 0);
+        const cb = toNumberSeguro(b.cantidadMinima ?? b.cantidad ?? b.desde ?? 0);
+        return ca - cb;
+      })
+      .map(item => {
+        const cantidad = toNumberSeguro(item.cantidadMinima ?? item.cantidad ?? item.desde ?? 0);
+        const unitario = toNumberSeguro(item.precioUnitario ?? item.precio ?? item.unitario ?? 0);
+        const total = toNumberSeguro(item.precioTotal ?? item.total ?? (cantidad * unitario));
 
-    function seleccionarProducto(producto) {
-      const data = producto.data || {};
-      busquedaInput.value = data.codigoBarra || data.codigo || data.concepto || data.descripcion || producto.id || "";
-      renderProducto(producto);
-      ocultarSugerencias();
-      mostrarStatus(`Producto cargado: ${data.concepto || data.descripcion || producto.id}`, "ok");
-    }
-
-    function renderSugerencias(lista) {
-      sugerenciasBox.innerHTML = "";
-      sugerenciasActuales = lista;
-      indiceActivo = -1;
-
-      if (!lista.length) {
-        ocultarSugerencias();
-        return;
-      }
-
-      lista.forEach((producto, i) => {
-        const data = producto.data || {};
-        const codigo = data.codigoBarra || data.codigo || producto.id || "--";
-        const concepto = data.concepto || data.descripcion || data.nombre || "Sin concepto";
-        const marca = data.marca || "--";
-        const precio = tomarPrimerValor(data, ["precioPublico", "precio", "precio_mostrador", "precioLista"]);
-
-        const div = document.createElement("div");
-        div.className = "sugerencia-item";
-        div.dataset.index = i;
-        div.innerHTML = `
-          <div class="sugerencia-title">${concepto}</div>
-          <div class="sugerencia-meta">
-            <strong>Código:</strong> ${codigo}
-            &nbsp; | &nbsp;
-            <strong>Marca:</strong> ${marca}
-            &nbsp; | &nbsp;
-            <strong>Precio:</strong> ${precio !== null && precio !== undefined ? precio : "--"}
-          </div>
+        return `
+          <tr>
+            <td><span class="tag-cantidad">${cantidad}+ unidades</span></td>
+            <td class="precio-unit">$${unitario.toFixed(2)}</td>
+            <td class="precio-total">$${total.toFixed(2)}</td>
+          </tr>
         `;
+      })
+      .join("");
 
-        div.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          seleccionarProducto(producto);
-        });
+    preciosVolumenBoxEl.innerHTML = `
+      <table class="tabla-precios-pro">
+        <thead>
+          <tr>
+            <th>Cantidad</th>
+            <th>Precio unitario</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filas}
+        </tbody>
+      </table>
+    `;
+  }
 
-        sugerenciasBox.appendChild(div);
-      });
+  function abrirDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
 
-      sugerenciasBox.classList.add("show");
+      request.onupgradeneeded = (event) => {
+        const dbLocal = event.target.result;
+
+        if (!dbLocal.objectStoreNames.contains(STORE_NAME)) {
+          dbLocal.createObjectStore(STORE_NAME, { keyPath: "key" });
+        }
+
+        if (!dbLocal.objectStoreNames.contains(META_STORE)) {
+          dbLocal.createObjectStore(META_STORE, { keyPath: "key" });
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  function renderFotos(urls = []) {
+    const lista = Array.isArray(urls)
+      ? urls.filter(u => typeof u === "string" && u.trim())
+      : [];
+
+    if (!lista.length) {
+      limpiarFotosUI("Sin fotos por ahora");
+      return;
     }
 
-    function actualizarItemActivo() {
-      const items = sugerenciasBox.querySelectorAll(".sugerencia-item");
-      items.forEach((item, idx) => item.classList.toggle("active", idx === indiceActivo));
+    fotosCount.textContent = `${lista.length} foto${lista.length === 1 ? "" : "s"}`;
 
-      if (indiceActivo >= 0 && items[indiceActivo]) {
-        items[indiceActivo].scrollIntoView({ block: "nearest" });
+    fotosScroller.innerHTML = lista.map((url, index) => `
+      <div class="foto-card">
+        <div class="foto-stage">
+          <img
+            src="${url}"
+            alt="Foto ${index + 1}"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            onerror="this.closest('.foto-card').style.display='none';"
+          />
+        </div>
+        <div class="foto-toolbar">
+          <div class="foto-label">Foto ${index + 1}</div>
+          <button type="button" class="btn-rotar" data-rotate="0">Rotar</button>
+        </div>
+      </div>
+    `).join("");
+
+    const botones = fotosScroller.querySelectorAll(".btn-rotar");
+    botones.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const card = btn.closest(".foto-card");
+        const img = card?.querySelector("img");
+        if (!img) return;
+
+        let current = Number(btn.dataset.rotate || "0");
+        current = (current + 90) % 360;
+        btn.dataset.rotate = String(current);
+        img.style.transform = `rotate(${current}deg)`;
+      });
+    });
+  }
+
+  async function resolverUrlsDesdeStoragePaths(storagePaths = []) {
+    if (!Array.isArray(storagePaths) || !storagePaths.length) return [];
+
+    const urls = await Promise.all(
+      storagePaths.map(async (path) => {
+        try {
+          if (!path || typeof path !== "string") return null;
+          const storageRef = ref(storage, path);
+          return await getDownloadURL(storageRef);
+        } catch (error) {
+          console.warn("No se pudo resolver storagePath:", path, error);
+          return null;
+        }
+      })
+    );
+
+    return urls.filter(Boolean);
+  }
+
+  async function obtenerMetaFotosPorCodigo(codigo) {
+    const codigoLimpio = String(codigo || "").trim();
+    if (!codigoLimpio) return null;
+
+    if (cacheFotosMeta.has(codigoLimpio)) {
+      return cacheFotosMeta.get(codigoLimpio);
+    }
+
+    // 1) intento directo por ID del documento
+    try {
+      const docRef = doc(db, COLECCION_FOTOS_META, codigoLimpio);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        cacheFotosMeta.set(codigoLimpio, data);
+        return data;
       }
+    } catch (error) {
+      console.warn("No se pudo leer meta por ID:", codigoLimpio, error);
     }
 
-    function buscarLocal(texto) {
-      const t = normalizarTexto(texto);
-      if (!t) return [];
-
-      const tokens = tokenizarTexto(texto);
-      const esNumerico = /^[0-9]+$/.test(t);
-
-      return catalogoProductos
-        .map(p => {
-          const codigo = p.busquedaCodigo;
-          const concepto = p.busquedaConcepto;
-          const equivalentes = p.busquedaEquivalentes;
-          const textoGeneral = p.busquedaGeneral;
-
-          let score = 9999;
-
-          if (codigo === t) score = 1;
-          else if (equivalentes.includes(t)) score = 2;
-          else if (codigo.startsWith(t)) score = 3;
-          else if (concepto.startsWith(t)) score = 4;
-          else if (concepto.includes(t)) score = 5;
-          else if (!esNumerico && equivalentes.some(eq => eq.includes(t))) score = 6;
-          else if (codigo.includes(t)) score = 7;
-          else if (tokens.length && tokens.every(tok => textoGeneral.includes(tok))) score = 8;
-          else if (tokens.length && tokens.some(tok => textoGeneral.includes(tok))) score = 9;
-
-          return { ...p, score };
-        })
-        .filter(x => x.score < 9999)
-        .sort((a, b) => {
-          if (a.score !== b.score) return a.score - b.score;
-          return String(a.data.concepto || a.data.descripcion || "").localeCompare(
-            String(b.data.concepto || b.data.descripcion || ""),
-            "es"
-          );
-        })
-        .slice(0, 12);
-    }
-
-    function manejarInput() {
-      const texto = busquedaInput.value.trim();
-      if (!texto) {
-        ocultarSugerencias();
-        return;
-      }
-
-      const resultados = buscarLocal(texto);
-      renderSugerencias(resultados);
-    }
-
-    async function guardarCatalogoIndexedDB(lista) {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
-
-        tx.objectStore(STORE_NAME).put({
-          key: CATALOGO_KEY,
-          items: lista
-        });
-
-        tx.objectStore(META_STORE).put({
-          key: "ultima_sync",
-          fecha: new Date().toISOString(),
-          total: lista.length
-        });
-
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    async function leerCatalogoIndexedDB() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(STORE_NAME, "readonly");
-        const request = tx.objectStore(STORE_NAME).get(CATALOGO_KEY);
-
-        request.onsuccess = () => resolve(request.result ? request.result.items : null);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    async function leerMetaIndexedDB() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(META_STORE, "readonly");
-        const request = tx.objectStore(META_STORE).get("ultima_sync");
-
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    function prepararCatalogo(lista) {
-      catalogoProductos = (Array.isArray(lista) ? lista : [])
-        .filter(item => {
-          const activo = item?.data?.activo;
-          return activo === true;
-        })
-        .map(item => {
-          const data = item.data || {};
-          const equivalentesRaw = tomarPrimerValor(data, ["codigosEquivalentes", "equivalentes", "codigos_alt"]);
-          const equivalentes = Array.isArray(equivalentesRaw) ? equivalentesRaw : [];
-
-          const codigo = normalizarTexto(data.codigoBarra || data.codigo || item.id);
-          const concepto = normalizarTexto(data.concepto || data.descripcion || data.nombre);
-          const marca = normalizarTexto(data.marca || "");
-          const depto = normalizarTexto(data.departamento || data.depto || data.categoria || "");
-
-          return {
-            id: item.id,
-            data,
-            busquedaCodigo: codigo,
-            busquedaConcepto: concepto,
-            busquedaEquivalentes: equivalentes.map(x => normalizarTexto(x)),
-            busquedaGeneral: [codigo, concepto, marca, depto, ...equivalentes.map(x => normalizarTexto(x))].join(" ")
-          };
-        });
-    }
-
-    async function descargarCatalogoDesdeFirebase() {
-      cargaTexto.textContent = "Consultando productos activos...";
-      barraFill.style.width = "15%";
-
+    // 2) fallback por campo codigoBarra
+    try {
       const q = query(
-        collection(db, COLECCION),
-        where("activo", "==", true)
+        collection(db, COLECCION_FOTOS_META),
+        where("codigoBarra", "==", codigoLimpio),
+        limit(1)
       );
 
       const snap = await getDocs(q);
-      const total = snap.size || 1;
-      let procesados = 0;
-      const lista = [];
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        cacheFotosMeta.set(codigoLimpio, data);
+        return data;
+      }
+    } catch (error) {
+      console.warn("No se pudo leer meta por codigoBarra:", codigoLimpio, error);
+    }
 
-      snap.forEach(docSnap => {
-        procesados++;
-        lista.push({
-          id: docSnap.id,
-          data: docSnap.data()
-        });
+    cacheFotosMeta.set(codigoLimpio, null);
+    return null;
+  }
 
-        const porcentaje = 15 + Math.round((procesados / total) * 85);
-        barraFill.style.width = `${porcentaje}%`;
-        cargaTexto.textContent = `Bajando catálogo... ${procesados} / ${total}`;
+  async function cargarFotosProducto(producto) {
+    try {
+      const data = producto?.data || {};
+      const codigo = tomarPrimerValor(data, ["codigoBarra", "codigo", "barcode"]) || producto?.id;
+
+      if (!codigo) {
+        limpiarFotosUI("Producto sin código válido");
+        return;
+      }
+
+      fotosCount.textContent = "...";
+      fotosScroller.innerHTML = `<div class="fotos-empty" style="min-width:100%;">Cargando fotos...</div>`;
+
+      const meta = await obtenerMetaFotosPorCodigo(codigo);
+
+      if (!meta) {
+        limpiarFotosUI("Sin fotos registradas");
+        return;
+      }
+
+      // Si existe estatus y no está OK, no mostramos
+      if (meta.estatus && String(meta.estatus).toUpperCase() !== "OK") {
+        limpiarFotosUI("Las fotos existen pero no están listas");
+        return;
+      }
+
+      let urls = Array.isArray(meta.urlsFotos) ? meta.urlsFotos.filter(Boolean) : [];
+
+      // fallback a storagePaths si urlsFotos viene vacío
+      if (!urls.length && Array.isArray(meta.storagePaths) && meta.storagePaths.length) {
+        urls = await resolverUrlsDesdeStoragePaths(meta.storagePaths);
+      }
+
+      if (!urls.length) {
+        limpiarFotosUI("No se pudieron resolver las fotos");
+        return;
+      }
+
+      renderFotos(urls);
+    } catch (error) {
+      console.error("Error cargando fotos del producto:", error);
+      limpiarFotosUI("Error cargando fotos");
+    }
+  }
+
+  function renderProducto(producto) {
+    const data = producto?.data || {};
+
+    const codigo = tomarPrimerValor(data, ["codigoBarra", "codigo", "barcode"]) || producto.id || "--";
+    const concepto = tomarPrimerValor(data, ["concepto", "descripcion", "nombre", "producto"]) || "Sin concepto";
+
+    const precioPublicoRaw = tomarPrimerValor(data, [
+      "precioPublico",
+      "precio",
+      "precio_mostrador",
+      "precioLista",
+      "precio_publico"
+    ]);
+
+    const precioPublico = toNumberSeguro(precioPublicoRaw);
+
+    conceptoValor.textContent = concepto;
+    codigoTexto.textContent = `Código: ${codigo}`;
+    precioPublicoValor.textContent = precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00";
+
+    const camposSecundarios = [
+      ["Código de barras", codigo],
+      ["Clave SAT", tomarPrimerValor(data, ["claveSat", "claveSAT", "sat", "clave_sat"])],
+      ["Unidad SAT", tomarPrimerValor(data, ["unidadMedidaSat", "unidadSAT", "unidadSat", "unidad_medida_sat"])],
+      ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"])],
+      ["Marca", tomarPrimerValor(data, ["marca", "brand"])],
+      ["Activo", tomarPrimerValor(data, ["activo"])],
+      ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at"])],
+      ["Creado", tomarPrimerValor(data, ["createdAt", "fechaCreacion", "created_at"])]
+    ];
+
+    infoGrid.innerHTML = camposSecundarios.map(([label, valor]) => `
+      <div class="info-item">
+        <div class="info-item-label">${label}</div>
+        <div class="info-item-value">${valorLegible(valor)}</div>
+      </div>
+    `).join("");
+
+    renderPreciosVolumen(data);
+
+    // importante: primero limpiamos y luego cargamos async
+    limpiarFotosUI("Cargando fotos...");
+    cargarFotosProducto(producto);
+  }
+
+  function ocultarSugerencias() {
+    sugerenciasBox.classList.remove("show");
+    sugerenciasBox.innerHTML = "";
+    sugerenciasActuales = [];
+    indiceActivo = -1;
+  }
+
+  function seleccionarProducto(producto) {
+    const data = producto.data || {};
+    busquedaInput.value = data.codigoBarra || data.codigo || data.concepto || data.descripcion || producto.id || "";
+    renderProducto(producto);
+    ocultarSugerencias();
+    mostrarStatus(`Producto cargado: ${data.concepto || data.descripcion || producto.id}`, "ok");
+  }
+
+  function renderSugerencias(lista) {
+    sugerenciasBox.innerHTML = "";
+    sugerenciasActuales = lista;
+    indiceActivo = -1;
+
+    if (!lista.length) {
+      ocultarSugerencias();
+      return;
+    }
+
+    lista.forEach((producto, i) => {
+      const data = producto.data || {};
+      const codigo = data.codigoBarra || data.codigo || producto.id || "--";
+      const concepto = data.concepto || data.descripcion || data.nombre || "Sin concepto";
+      const marca = data.marca || "--";
+      const precio = tomarPrimerValor(data, ["precioPublico", "precio", "precio_mostrador", "precioLista"]);
+
+      const div = document.createElement("div");
+      div.className = "sugerencia-item";
+      div.dataset.index = i;
+      div.innerHTML = `
+        <div class="sugerencia-title">${concepto}</div>
+        <div class="sugerencia-meta">
+          <strong>Código:</strong> ${codigo}
+          &nbsp; | &nbsp;
+          <strong>Marca:</strong> ${marca}
+          &nbsp; | &nbsp;
+          <strong>Precio:</strong> ${precio !== null && precio !== undefined ? precio : "--"}
+        </div>
+      `;
+
+      div.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        seleccionarProducto(producto);
       });
 
-      return lista;
+      sugerenciasBox.appendChild(div);
+    });
+
+    sugerenciasBox.classList.add("show");
+  }
+
+  function actualizarItemActivo() {
+    const items = sugerenciasBox.querySelectorAll(".sugerencia-item");
+    items.forEach((item, idx) => item.classList.toggle("active", idx === indiceActivo));
+
+    if (indiceActivo >= 0 && items[indiceActivo]) {
+      items[indiceActivo].scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function buscarLocal(texto) {
+    const t = normalizarTexto(texto);
+    if (!t) return [];
+
+    const tokens = tokenizarTexto(texto);
+    const esNumerico = /^[0-9]+$/.test(t);
+
+    return catalogoProductos
+      .map(p => {
+        const codigo = p.busquedaCodigo;
+        const concepto = p.busquedaConcepto;
+        const equivalentes = p.busquedaEquivalentes;
+        const textoGeneral = p.busquedaGeneral;
+
+        let score = 9999;
+
+        if (codigo === t) score = 1;
+        else if (equivalentes.includes(t)) score = 2;
+        else if (codigo.startsWith(t)) score = 3;
+        else if (concepto.startsWith(t)) score = 4;
+        else if (concepto.includes(t)) score = 5;
+        else if (!esNumerico && equivalentes.some(eq => eq.includes(t))) score = 6;
+        else if (codigo.includes(t)) score = 7;
+        else if (tokens.length && tokens.every(tok => textoGeneral.includes(tok))) score = 8;
+        else if (tokens.length && tokens.some(tok => textoGeneral.includes(tok))) score = 9;
+
+        return { ...p, score };
+      })
+      .filter(x => x.score < 9999)
+      .sort((a, b) => {
+        if (a.score !== b.score) return a.score - b.score;
+        return String(a.data.concepto || a.data.descripcion || "").localeCompare(
+          String(b.data.concepto || b.data.descripcion || ""),
+          "es"
+        );
+      })
+      .slice(0, 12);
+  }
+
+  function manejarInput() {
+    const texto = busquedaInput.value.trim();
+    if (!texto) {
+      ocultarSugerencias();
+      return;
     }
 
-    function necesitaAutoSync(meta) {
-      if (!meta?.fecha) return true;
+    const resultados = buscarLocal(texto);
+    renderSugerencias(resultados);
+  }
 
-      const ultima = new Date(meta.fecha).getTime();
-      if (isNaN(ultima)) return true;
+  async function guardarCatalogoIndexedDB(lista) {
+    const dbLocal = await abrirDB();
 
-      const ahora = Date.now();
-      const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
-      return diffHoras >= AUTO_SYNC_HOURS;
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
+
+      tx.objectStore(STORE_NAME).put({
+        key: CATALOGO_KEY,
+        items: lista
+      });
+
+      tx.objectStore(META_STORE).put({
+        key: "ultima_sync",
+        fecha: new Date().toISOString(),
+        total: lista.length
+      });
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function leerCatalogoIndexedDB() {
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(STORE_NAME, "readonly");
+      const request = tx.objectStore(STORE_NAME).get(CATALOGO_KEY);
+
+      request.onsuccess = () => resolve(request.result ? request.result.items : null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function leerMetaIndexedDB() {
+    const dbLocal = await abrirDB();
+
+    return new Promise((resolve, reject) => {
+      const tx = dbLocal.transaction(META_STORE, "readonly");
+      const request = tx.objectStore(META_STORE).get("ultima_sync");
+
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  function prepararCatalogo(lista) {
+    catalogoProductos = (Array.isArray(lista) ? lista : [])
+      .filter(item => item?.data?.activo === true)
+      .map(item => {
+        const data = item.data || {};
+        const equivalentesRaw = tomarPrimerValor(data, ["codigosEquivalentes", "equivalentes", "codigos_alt"]);
+        const equivalentes = Array.isArray(equivalentesRaw) ? equivalentesRaw : [];
+
+        const codigo = normalizarTexto(data.codigoBarra || data.codigo || item.id);
+        const concepto = normalizarTexto(data.concepto || data.descripcion || data.nombre);
+        const marca = normalizarTexto(data.marca || "");
+        const depto = normalizarTexto(data.departamento || data.depto || data.categoria || "");
+
+        return {
+          id: item.id,
+          data,
+          busquedaCodigo: codigo,
+          busquedaConcepto: concepto,
+          busquedaEquivalentes: equivalentes.map(x => normalizarTexto(x)),
+          busquedaGeneral: [codigo, concepto, marca, depto, ...equivalentes.map(x => normalizarTexto(x))].join(" ")
+        };
+      });
+  }
+
+  async function descargarCatalogoDesdeFirebase() {
+    cargaTexto.textContent = "Consultando productos activos...";
+    barraFill.style.width = "15%";
+
+    const q = query(
+      collection(db, COLECCION),
+      where("activo", "==", true)
+    );
+
+    const snap = await getDocs(q);
+    const total = snap.size || 1;
+    let procesados = 0;
+    const lista = [];
+
+    snap.forEach(docSnap => {
+      procesados++;
+      lista.push({
+        id: docSnap.id,
+        data: docSnap.data()
+      });
+
+      const porcentaje = 15 + Math.round((procesados / total) * 85);
+      barraFill.style.width = `${porcentaje}%`;
+      cargaTexto.textContent = `Bajando catálogo... ${procesados} / ${total}`;
+    });
+
+    return lista;
+  }
+
+  function necesitaAutoSync(meta) {
+    if (!meta?.fecha) return true;
+
+    const ultima = new Date(meta.fecha).getTime();
+    if (isNaN(ultima)) return true;
+
+    const ahora = Date.now();
+    const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
+    return diffHoras >= AUTO_SYNC_HOURS;
+  }
+
+  async function sincronizarCatalogoSilencioso() {
+    try {
+      mostrarStatus("Actualizando catálogo en segundo plano...", "info");
+      const lista = await descargarCatalogoDesdeFirebase();
+      prepararCatalogo(lista);
+      await guardarCatalogoIndexedDB(lista);
+      mostrarStatus(`Catálogo actualizado automáticamente (${catalogoProductos.length} productos).`, "ok");
+    } catch (error) {
+      console.error("Error en sync silenciosa:", error);
+      mostrarStatus("Se mantuvo el catálogo local actual. No se pudo actualizar en segundo plano.", "info");
     }
+  }
 
-    async function sincronizarCatalogoSilencioso() {
-      try {
-        mostrarStatus("Actualizando catálogo en segundo plano...", "info");
-        const lista = await descargarCatalogoDesdeFirebase();
-        prepararCatalogo(lista);
-        await guardarCatalogoIndexedDB(lista);
-        mostrarStatus(`Catálogo actualizado automáticamente (${catalogoProductos.length} productos).`, "ok");
-      } catch (error) {
-        console.error("Error en sync silenciosa:", error);
-        mostrarStatus("Se mantuvo el catálogo local actual. No se pudo actualizar en segundo plano.", "info");
-      }
-    }
+  async function iniciarCatalogo() {
+    try {
+      limpiarVista();
+      mostrarStatus("Revisando catálogo local...", "info");
 
-    async function iniciarCatalogo() {
-      try {
-        limpiarVista();
-        mostrarStatus("Revisando catálogo local...", "info");
+      const local = await leerCatalogoIndexedDB();
+      const meta = await leerMetaIndexedDB();
 
-        const local = await leerCatalogoIndexedDB();
-        const meta = await leerMetaIndexedDB();
-
-        if (local && local.length) {
-          prepararCatalogo(local);
-          overlayCarga.classList.add("hidden");
-
-          mostrarStatus(
-            `Catálogo local listo (${catalogoProductos.length} productos)` +
-            (meta?.fecha ? ` | última sync: ${new Date(meta.fecha).toLocaleString("es-MX")}` : ""),
-            "ok"
-          );
-
-          if (necesitaAutoSync(meta)) {
-            sincronizarCatalogoSilencioso();
-          }
-          return;
-        }
-
-        mostrarStatus("No existe catálogo local. Descargando desde Firebase...", "info");
-        overlayCarga.classList.remove("hidden");
-        barraFill.style.width = "10%";
-        cargaTexto.textContent = "Descargando catálogo inicial...";
-
-        const lista = await descargarCatalogoDesdeFirebase();
-        prepararCatalogo(lista);
-        await guardarCatalogoIndexedDB(lista);
-
-        barraFill.style.width = "100%";
-        cargaTexto.textContent = `Catálogo descargado: ${catalogoProductos.length} productos`;
+      if (local && local.length) {
+        prepararCatalogo(local);
         overlayCarga.classList.add("hidden");
-        mostrarStatus(`Catálogo listo (${catalogoProductos.length} productos).`, "ok");
-      } catch (error) {
-        console.error(error);
-        overlayCarga.classList.add("hidden");
-        mostrarStatus("Error cargando catálogo: " + error.message, "error");
+
+        mostrarStatus(
+          `Catálogo local listo (${catalogoProductos.length} productos)` +
+          (meta?.fecha ? ` | última sync: ${new Date(meta.fecha).toLocaleString("es-MX")}` : ""),
+          "ok"
+        );
+
+        if (necesitaAutoSync(meta)) {
+          sincronizarCatalogoSilencioso();
+        }
+        return;
       }
+
+      mostrarStatus("No existe catálogo local. Descargando desde Firebase...", "info");
+      overlayCarga.classList.remove("hidden");
+      barraFill.style.width = "10%";
+      cargaTexto.textContent = "Descargando catálogo inicial...";
+
+      const lista = await descargarCatalogoDesdeFirebase();
+      prepararCatalogo(lista);
+      await guardarCatalogoIndexedDB(lista);
+
+      barraFill.style.width = "100%";
+      cargaTexto.textContent = `Catálogo descargado: ${catalogoProductos.length} productos`;
+      overlayCarga.classList.add("hidden");
+      mostrarStatus(`Catálogo listo (${catalogoProductos.length} productos).`, "ok");
+    } catch (error) {
+      console.error(error);
+      overlayCarga.classList.add("hidden");
+      mostrarStatus("Error cargando catálogo: " + error.message, "error");
     }
+  }
 
-    async function iniciarScanner() {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          mostrarStatus("Este navegador no permite abrir la cámara.", "error");
-          return;
-        }
+  async function iniciarScanner() {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        mostrarStatus("Este navegador no permite abrir la cámara.", "error");
+        return;
+      }
 
-        if (!("BarcodeDetector" in window)) {
-          mostrarStatus("Este celular/navegador no soporta escaneo nativo. Usa Chrome actualizado en Android.", "error");
-          return;
-        }
+      if (!("BarcodeDetector" in window)) {
+        mostrarStatus("Este celular/navegador no soporta escaneo nativo. Usa Chrome actualizado en Android.", "error");
+        return;
+      }
 
-        const formatosSoportados = await BarcodeDetector.getSupportedFormats();
-        const formatosDeseados = ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"];
-        const formatosFinales = formatosDeseados.filter(f => formatosSoportados.includes(f));
+      const formatosSoportados = await BarcodeDetector.getSupportedFormats();
+      const formatosDeseados = ["ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"];
+      const formatosFinales = formatosDeseados.filter(f => formatosSoportados.includes(f));
 
-        if (!formatosFinales.length) {
-          mostrarStatus("El navegador no soporta formatos de código compatibles.", "error");
-          return;
-        }
+      if (!formatosFinales.length) {
+        mostrarStatus("El navegador no soporta formatos de código compatibles.", "error");
+        return;
+      }
 
-        barcodeDetector = new BarcodeDetector({ formats: formatosFinales });
+      barcodeDetector = new BarcodeDetector({ formats: formatosFinales });
 
-        scannerModal.classList.remove("hidden");
-        scannerMsg.textContent = "Abriendo cámara...";
+      scannerModal.classList.remove("hidden");
+      scannerMsg.textContent = "Abriendo cámara...";
 
-        scannerStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: currentFacingMode } },
-          audio: false
-        });
+      scannerStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: currentFacingMode } },
+        audio: false
+      });
 
-        scannerVideo.srcObject = scannerStream;
-        await scannerVideo.play();
+      scannerVideo.srcObject = scannerStream;
+      await scannerVideo.play();
 
-        scannerMsg.textContent = "Apunta la cámara al código de barras";
+      scannerMsg.textContent = "Apunta la cámara al código de barras";
 
-        if (scannerInterval) clearInterval(scannerInterval);
+      if (scannerInterval) clearInterval(scannerInterval);
 
-        scannerInterval = setInterval(async () => {
-          try {
-            if (!barcodeDetector || scannerVideo.readyState < 2) return;
+      scannerInterval = setInterval(async () => {
+        try {
+          if (!barcodeDetector || scannerVideo.readyState < 2) return;
 
-            const barcodes = await barcodeDetector.detect(scannerVideo);
+          const barcodes = await barcodeDetector.detect(scannerVideo);
 
-            if (barcodes && barcodes.length) {
-              const codigo = (barcodes[0].rawValue || "").trim();
-              if (!codigo) return;
+          if (barcodes && barcodes.length) {
+            const codigo = (barcodes[0].rawValue || "").trim();
+            if (!codigo) return;
 
-              detenerScanner();
-              busquedaInput.value = codigo;
+            detenerScanner();
+            busquedaInput.value = codigo;
 
-              const resultados = buscarLocal(codigo);
-              if (resultados.length) {
-                seleccionarProducto(resultados[0]);
-                mostrarStatus(`Código escaneado: ${codigo}`, "ok");
-              } else {
-                renderSugerencias([]);
-                mostrarStatus(`Código escaneado: ${codigo}, pero no existe en el catálogo local.`, "error");
-              }
+            const resultados = buscarLocal(codigo);
+            if (resultados.length) {
+              seleccionarProducto(resultados[0]);
+              mostrarStatus(`Código escaneado: ${codigo}`, "ok");
+            } else {
+              renderSugerencias([]);
+              mostrarStatus(`Código escaneado: ${codigo}, pero no existe en el catálogo local.`, "error");
             }
-          } catch (err) {
-            console.error("Error detectando código:", err);
           }
-        }, 400);
-      } catch (error) {
-        console.error(error);
-        detenerScanner();
-        mostrarStatus("No se pudo abrir la cámara: " + error.message, "error");
-      }
-    }
-
-    function detenerScanner() {
-      if (scannerInterval) {
-        clearInterval(scannerInterval);
-        scannerInterval = null;
-      }
-
-      if (scannerStream) {
-        scannerStream.getTracks().forEach(track => track.stop());
-        scannerStream = null;
-      }
-
-      scannerVideo.srcObject = null;
-      scannerModal.classList.add("hidden");
-    }
-
-    async function cambiarCamara() {
-      currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
-      detenerScanner();
-      await iniciarScanner();
-    }
-
-    busquedaInput.addEventListener("input", manejarInput);
-
-    busquedaInput.addEventListener("keydown", (e) => {
-      if (!sugerenciasActuales.length) return;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        indiceActivo = Math.min(indiceActivo + 1, sugerenciasActuales.length - 1);
-        actualizarItemActivo();
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        indiceActivo = Math.max(indiceActivo - 1, 0);
-        actualizarItemActivo();
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (indiceActivo >= 0 && sugerenciasActuales[indiceActivo]) {
-          seleccionarProducto(sugerenciasActuales[indiceActivo]);
-        } else if (sugerenciasActuales[0]) {
-          seleccionarProducto(sugerenciasActuales[0]);
+        } catch (err) {
+          console.error("Error detectando código:", err);
         }
-      } else if (e.key === "Escape") {
-        ocultarSugerencias();
+      }, 400);
+    } catch (error) {
+      console.error(error);
+      detenerScanner();
+      mostrarStatus("No se pudo abrir la cámara: " + error.message, "error");
+    }
+  }
+
+  function detenerScanner() {
+    if (scannerInterval) {
+      clearInterval(scannerInterval);
+      scannerInterval = null;
+    }
+
+    if (scannerStream) {
+      scannerStream.getTracks().forEach(track => track.stop());
+      scannerStream = null;
+    }
+
+    scannerVideo.srcObject = null;
+    scannerModal.classList.add("hidden");
+  }
+
+  async function cambiarCamara() {
+    currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+    detenerScanner();
+    await iniciarScanner();
+  }
+
+  busquedaInput.addEventListener("input", manejarInput);
+
+  busquedaInput.addEventListener("keydown", (e) => {
+    if (!sugerenciasActuales.length) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      indiceActivo = Math.min(indiceActivo + 1, sugerenciasActuales.length - 1);
+      actualizarItemActivo();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      indiceActivo = Math.max(indiceActivo - 1, 0);
+      actualizarItemActivo();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (indiceActivo >= 0 && sugerenciasActuales[indiceActivo]) {
+        seleccionarProducto(sugerenciasActuales[indiceActivo]);
+      } else if (sugerenciasActuales[0]) {
+        seleccionarProducto(sugerenciasActuales[0]);
       }
-    });
+    } else if (e.key === "Escape") {
+      ocultarSugerencias();
+    }
+  });
 
-    busquedaInput.addEventListener("focus", () => {
-      if (busquedaInput.value.trim()) manejarInput();
-    });
+  busquedaInput.addEventListener("focus", () => {
+    if (busquedaInput.value.trim()) manejarInput();
+  });
 
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".buscador-wrap")) {
-        ocultarSugerencias();
-      }
-    });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".buscador-wrap")) {
+      ocultarSugerencias();
+    }
+  });
 
-    btnEscanear.addEventListener("click", iniciarScanner);
-    btnCerrarScanner.addEventListener("click", detenerScanner);
-    btnDetenerScanner.addEventListener("click", detenerScanner);
-    btnCambiarCamara.addEventListener("click", cambiarCamara);
+  btnEscanear.addEventListener("click", iniciarScanner);
+  btnCerrarScanner.addEventListener("click", detenerScanner);
+  btnDetenerScanner.addEventListener("click", detenerScanner);
+  btnCambiarCamara.addEventListener("click", cambiarCamara);
 
-    iniciarCatalogo();
-  </script>
+  iniciarCatalogo();
+</script>
 </body>
 </html>
