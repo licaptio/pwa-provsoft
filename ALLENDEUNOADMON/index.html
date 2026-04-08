@@ -1,92 +1,309 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>MENÚ INICIO – PROVSOFT</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <title>PROVSOFT – Índice Allende One</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#00416A">
-  <link rel="icon" href="icons/icon-192.svg">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#00416A" />
+  <link rel="icon" href="icons/icon-192.svg" />
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
-    :root {
-      --azul: #00416A;
-      --azul2: #0c6cbd;
-      --fondo: #f4f7fb;
-      --shadow: 0 10px 25px rgba(0,0,0,.1);
+    :root{
+      --azul:#00416A;
+      --azul2:#0c6cbd;
+      --azul3:#0a58a0;
+      --bg:#eef3f9;
+      --card:#ffffff;
+      --txt:#18324a;
+      --muted:#6b7280;
+      --ok:#16a34a;
+      --shadow:0 8px 24px rgba(0,0,0,.10);
+      --radius:18px;
     }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      background: var(--fondo);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
+    *{
+      box-sizing:border-box;
+      -webkit-tap-highlight-color:transparent;
     }
 
-    .container {
-      width: 100%;
-      max-width: 500px;
-      text-align: center;
+    html,body{
+      margin:0;
+      padding:0;
+      font-family:'Poppins',sans-serif;
+      background:linear-gradient(180deg,#eaf2fb 0%, #f6f9fd 100%);
+      color:var(--txt);
     }
 
-    h1 {
-      color: var(--azul);
-      margin-bottom: 30px;
+    body{
+      min-height:100vh;
     }
 
-    .menu {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+    .wrap{
+      width:100%;
+      max-width:520px;
+      margin:0 auto;
+      padding:16px 14px 28px;
     }
 
-    .btn {
-      background: linear-gradient(135deg, var(--azul), var(--azul2));
-      color: white;
-      padding: 15px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 600;
-      box-shadow: var(--shadow);
-      transition: .2s;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
+    .hero{
+      background:linear-gradient(135deg,var(--azul),var(--azul2));
+      color:#fff;
+      border-radius:24px;
+      padding:20px 18px;
+      box-shadow:var(--shadow);
+      margin-bottom:16px;
     }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      opacity: 0.95;
+    .hero-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
     }
 
-    .footer {
-      margin-top: 25px;
-      font-size: 12px;
-      color: #666;
+    .brand{
+      font-size:24px;
+      font-weight:700;
+      line-height:1.1;
+      margin:0 0 6px;
     }
 
-    #btnInstall {
-      display: none;
+    .sub{
+      font-size:13px;
+      opacity:.92;
+      margin:0;
+    }
+
+    .badge{
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:600;
+      white-space:nowrap;
+    }
+
+    .install-box{
+      margin-top:14px;
+    }
+
+    .install-btn{
+      width:100%;
+      border:none;
+      border-radius:14px;
+      padding:13px 14px;
+      font-size:15px;
+      font-weight:700;
+      cursor:pointer;
+      background:#fff;
+      color:var(--azul);
+      box-shadow:0 6px 16px rgba(0,0,0,.12);
+      display:none;
+    }
+
+    .section-title{
+      margin:16px 4px 10px;
+      font-size:13px;
+      font-weight:700;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.5px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
+    .card-link{
+      text-decoration:none;
+      color:inherit;
+    }
+
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:15px 14px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      transition:transform .15s ease, box-shadow .15s ease;
+      border:1px solid rgba(12,108,189,.08);
+    }
+
+    .card:active{
+      transform:scale(.985);
+    }
+
+    .icon{
+      width:52px;
+      height:52px;
+      flex:0 0 52px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      background:linear-gradient(135deg,#e7f1fb,#d9eafb);
+      color:var(--azul);
+    }
+
+    .info{
+      flex:1;
+      min-width:0;
+    }
+
+    .title{
+      font-size:16px;
+      font-weight:700;
+      line-height:1.15;
+      margin:0 0 4px;
+      color:var(--txt);
+    }
+
+    .desc{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+      margin:0;
+    }
+
+    .go{
+      font-size:20px;
+      color:var(--azul2);
+      font-weight:700;
+      margin-left:8px;
+    }
+
+    .footer{
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      margin-top:18px;
+      padding-bottom:10px;
+    }
+
+    .quick{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .mini{
+      background:rgba(255,255,255,.14);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:14px;
+      padding:12px;
+      text-align:center;
+    }
+
+    .mini b{
+      display:block;
+      font-size:15px;
+      margin-bottom:3px;
+    }
+
+    .mini span{
+      font-size:11px;
+      opacity:.92;
     }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>PROVSOFT<br>ALLENDE ONE</h1>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-top">
+        <div>
+          <h1 class="brand">PROVSOFT<br>ALLENDE ONE</h1>
+          <p class="sub">Índice rápido de herramientas</p>
+        </div>
+        <div class="badge">Móvil</div>
+      </div>
 
-    <div class="menu">
-      <button class="btn" id="btnInstall">📲 Instalar app</button>
-      <a class="btn" href="CATALOGO.html">📦 Catálogo</a>
-      <a class="btn" href="SOLTRANAPP.html">🚚 Solicitudes / Transferencias</a>
-      <a class="btn" href="responderasolicitudalle1.html">📋 Responder Solicitud</a>
+      <div class="quick">
+        <div class="mini">
+          <b>Acceso rápido</b>
+          <span>Un toque por módulo</span>
+        </div>
+        <div class="mini">
+          <b>PWA</b>
+          <span>Instalable en celular</span>
+        </div>
+      </div>
+
+      <div class="install-box">
+        <button class="install-btn" id="btnInstall">📲 Instalar app</button>
+      </div>
+    </div>
+
+    <div class="section-title">Módulos principales</div>
+    <div class="grid">
+
+      <a class="card-link" href="CATALOGO.html">
+        <div class="card">
+          <div class="icon">📦</div>
+          <div class="info">
+            <p class="title">Catálogo</p>
+            <p class="desc">Consulta de productos y búsqueda rápida.</p>
+          </div>
+          <div class="go">›</div>
+        </div>
+      </a>
+
+      <a class="card-link" href="SOLTRANAPP.html">
+        <div class="card">
+          <div class="icon">🚚</div>
+          <div class="info">
+            <p class="title">Solicitudes / Transferencias</p>
+            <p class="desc">Captura y envío de solicitudes o traspasos.</p>
+          </div>
+          <div class="go">›</div>
+        </div>
+      </a>
+
+      <a class="card-link" href="VISORTRANSALLENDE.html">
+        <div class="card">
+          <div class="icon">📄</div>
+          <div class="info">
+            <p class="title">Visor de transferencias</p>
+            <p class="desc">Consulta y revisión de movimientos o folios.</p>
+          </div>
+          <div class="go">›</div>
+        </div>
+      </a>
+
+      <a class="card-link" href="INVENTARIOCOSTEOALLENDE1.html">
+        <div class="card">
+          <div class="icon">💰</div>
+          <div class="info">
+            <p class="title">Inventario costeo</p>
+            <p class="desc">Vista de inventario con enfoque en costeo.</p>
+          </div>
+          <div class="go">›</div>
+        </div>
+      </a>
+
+      <a class="card-link" href="INVLISTAALLE.html">
+        <div class="card">
+          <div class="icon">🧾</div>
+          <div class="info">
+            <p class="title">Lista de inventario</p>
+            <p class="desc">Consulta o revisión rápida del inventario.</p>
+          </div>
+          <div class="go">›</div>
+        </div>
+      </a>
+
     </div>
 
     <div class="footer">
@@ -113,5 +330,6 @@
       btnInstall.style.display = "none";
     });
   </script>
+
 </body>
 </html>
