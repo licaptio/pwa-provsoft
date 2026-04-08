@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>MENÚ INICIO – PROVSOFT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#00416A">
+  <link rel="icon" href="icons/icon-192.svg">
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --azul: #00416A;
+      --azul2: #0c6cbd;
+      --fondo: #f4f7fb;
+      --shadow: 0 10px 25px rgba(0,0,0,.1);
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      margin: 0;
+      background: var(--fondo);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    h1 {
+      color: var(--azul);
+      margin-bottom: 30px;
+    }
+
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--azul), var(--azul2));
+      color: white;
+      padding: 15px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: var(--shadow);
+      transition: .2s;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.95;
+    }
+
+    .footer {
+      margin-top: 25px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    #btnInstall {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>PROVSOFT<br>ALLENDE ONE</h1>
+
+    <div class="menu">
+      <button class="btn" id="btnInstall">📲 Instalar app</button>
+      <a class="btn" href="CATALOGO.html">📦 Catálogo</a>
+      <a class="btn" href="SOLTRANAPP.html">🚚 Solicitudes / Transferencias</a>
+      <a class="btn" href="responderasolicitudalle1.html">📋 Responder Solicitud</a>
+    </div>
+
+    <div class="footer">
+      Sistema interno PROVSOFT
+    </div>
+  </div>
+
+  <script src="pwa-register.js"></script>
+  <script>
+    let deferredPrompt = null;
+    const btnInstall = document.getElementById("btnInstall");
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      btnInstall.style.display = "block";
+    });
+
+    btnInstall.addEventListener("click", async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btnInstall.style.display = "none";
+    });
+  </script>
+</body>
+</html>
