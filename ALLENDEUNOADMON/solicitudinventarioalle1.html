@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -21,6 +21,7 @@
       --card: #ffffff;
       --shadow: 0 14px 34px rgba(0,0,0,.12);
       --amarillo: #f59e0b;
+      --morado: #6d28d9;
     }
 
     * { box-sizing: border-box; }
@@ -33,7 +34,7 @@
     }
 
     .wrap {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 0 auto;
       padding: 22px;
     }
@@ -72,6 +73,15 @@
       background: white;
     }
 
+    .grid-opts {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 14px;
+      padding: 18px;
+      border-bottom: 1px solid var(--gris);
+      background: #f8fbff;
+    }
+
     .field {
       display: flex;
       flex-direction: column;
@@ -93,6 +103,37 @@
       background: white;
     }
 
+    .check-card {
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 8px;
+      min-height: 74px;
+    }
+
+    .check-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .check-inline input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--azul2);
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #64748b;
+    }
+
     .actions {
       display: flex;
       gap: 10px;
@@ -112,29 +153,14 @@
       transition: .2s ease;
     }
 
-    button:hover {
-      transform: translateY(-1px);
-    }
+    button:hover { transform: translateY(-1px); }
 
-    .btn-primary {
-      background: var(--azul);
-      color: white;
-    }
-
-    .btn-green {
-      background: linear-gradient(135deg, var(--verde), var(--verde2));
-      color: white;
-    }
-
-    .btn-sec {
-      background: #0f766e;
-      color: white;
-    }
-
-    .btn-gray {
-      background: #475569;
-      color: white;
-    }
+    .btn-primary { background: var(--azul); color: white; }
+    .btn-green { background: linear-gradient(135deg, var(--verde), var(--verde2)); color: white; }
+    .btn-sec { background: #0f766e; color: white; }
+    .btn-gray { background: #475569; color: white; }
+    .btn-purple { background: var(--morado); color: white; }
+    .btn-red { background: var(--rojo); color: white; }
 
     .status {
       padding: 14px 18px;
@@ -165,9 +191,36 @@
       color: #1e3a8a;
     }
 
+    .manual-box {
+      padding: 18px;
+      border-bottom: 1px solid var(--gris);
+      background: #fcfcfd;
+    }
+
+    .manual-box h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #1e293b;
+    }
+
+    .manual-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 2fr 1.5fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .manual-list {
+      margin-top: 16px;
+      border: 1px solid var(--gris);
+      border-radius: 16px;
+      overflow: hidden;
+      background: white;
+    }
+
     .tables {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1.2fr 1fr;
       gap: 20px;
       padding: 18px;
     }
@@ -203,6 +256,7 @@
       padding: 9px 10px;
       text-align: left;
       white-space: nowrap;
+      vertical-align: top;
     }
 
     th {
@@ -212,9 +266,7 @@
       z-index: 1;
     }
 
-    td.num, th.num {
-      text-align: right;
-    }
+    td.num, th.num { text-align: right; }
 
     .tag {
       display: inline-block;
@@ -227,6 +279,7 @@
     .tag-fijo { background: #dbeafe; color: #1d4ed8; }
     .tag-alta { background: #dcfce7; color: #166534; }
     .tag-baja { background: #fef3c7; color: #92400e; }
+    .tag-manual { background: #ede9fe; color: #6d28d9; }
 
     .footer-box {
       padding: 18px;
@@ -254,13 +307,26 @@
       font-size: 14px;
     }
 
-    @media (max-width: 1100px) {
-      .grid { grid-template-columns: 1fr 1fr; }
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-mini {
+      padding: 7px 10px;
+      font-size: 12px;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 1200px) {
+      .grid, .grid-opts { grid-template-columns: 1fr 1fr; }
+      .manual-grid { grid-template-columns: 1fr 1fr; }
       .tables { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 700px) {
-      .grid { grid-template-columns: 1fr; }
+      .grid, .grid-opts, .manual-grid { grid-template-columns: 1fr; }
       .topbar h1 { font-size: 23px; }
       .wrap { padding: 12px; }
     }
@@ -271,7 +337,7 @@
     <div class="card">
       <div class="topbar">
         <h1>Solicitud de Inventario Cíclico - ALLENDE 1</h1>
-        <p>Genera la solicitud con productos fijos + 5 de alta demanda + 5 de baja demanda y la guarda en <b>/TIENDAS/ALLENDE 1/ciclicos_solicitudes</b>.</p>
+        <p>Genera la solicitud con productos fijos y, si tú lo decides, agrega alta demanda, baja demanda y manuales. Guarda en <b>/TIENDAS/ALLENDE 1/ciclicos_solicitudes</b>.</p>
       </div>
 
       <div class="grid">
@@ -293,6 +359,42 @@
         </div>
       </div>
 
+      <div class="grid-opts">
+        <div class="check-card">
+          <label class="check-inline">
+            <input id="chkAlta" type="checkbox">
+            <span>Incluir alta demanda</span>
+          </label>
+          <div class="hint">Solo se agregan si activas esta opción.</div>
+        </div>
+
+        <div class="field">
+          <label>Cantidad alta demanda</label>
+          <input id="cantidadAlta" type="number" min="0" value="5">
+        </div>
+
+        <div class="check-card">
+          <label class="check-inline">
+            <input id="chkBaja" type="checkbox">
+            <span>Incluir baja demanda</span>
+          </label>
+          <div class="hint">Puedes apagarla para que no salgan siempre.</div>
+        </div>
+
+        <div class="field">
+          <label>Cantidad baja demanda</label>
+          <input id="cantidadBaja" type="number" min="0" value="5">
+        </div>
+
+        <div class="check-card">
+          <label class="check-inline">
+            <input id="chkManuales" type="checkbox">
+            <span>Incluir manuales</span>
+          </label>
+          <div class="hint">Los puedes cargar y dejarlos listos, pero solo entran si activas esta opción.</div>
+        </div>
+      </div>
+
       <div class="actions">
         <button class="btn-primary" id="btnAnalizar">Analizar y armar solicitud</button>
         <button class="btn-sec" id="btnRecargar">Recalcular</button>
@@ -302,6 +404,47 @@
 
       <div id="status" class="status">Esperando análisis...</div>
       <div id="summary" class="summary"></div>
+
+      <div class="manual-box">
+        <h3>Productos manuales</h3>
+        <div class="manual-grid">
+          <div class="field">
+            <label>Código manual</label>
+            <input id="manualCodigo" placeholder="Ej. 75068776">
+          </div>
+          <div class="field">
+            <label>Descripción manual</label>
+            <input id="manualDescripcion" placeholder="Se autocompleta si existe en inventarios/ventas/transferencias">
+          </div>
+          <div class="field">
+            <label>Motivo manual</label>
+            <input id="manualMotivo" placeholder="Ej. revisar diferencia en reporte">
+          </div>
+          <div class="field">
+            <button class="btn-purple" id="btnAgregarManual">Agregar manual</button>
+          </div>
+        </div>
+
+        <div class="manual-list">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Código</th>
+                  <th>Descripción</th>
+                  <th>Motivo</th>
+                  <th class="num">Inventario</th>
+                  <th class="num">Ventas periodo</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyManuales"></tbody>
+            </table>
+          </div>
+          <div id="emptyManuales" class="empty">Todavía no agregas productos manuales.</div>
+        </div>
+      </div>
 
       <div class="tables">
         <div class="subcard">
@@ -314,8 +457,10 @@
                   <th>Código</th>
                   <th>Descripción</th>
                   <th>Tipo</th>
+                  <th>Motivo manual</th>
                   <th class="num">Inventario</th>
                   <th class="num">Ventas periodo</th>
+                  <th>Origen</th>
                 </tr>
               </thead>
               <tbody id="tbodySeleccion"></tbody>
@@ -351,7 +496,7 @@
         <div class="field">
           <label>Observaciones</label>
           <input id="observaciones" placeholder="Opcional">
-          <div class="muted">La solicitud se guarda como PENDIENTE. La app de respuesta después la podrá contestar.</div>
+          <div class="muted">La solicitud se guarda como PENDIENTE. Los manuales se guardan con su motivo y la configuración usada.</div>
         </div>
       </div>
     </div>
@@ -403,12 +548,17 @@
     const $ = (id) => document.getElementById(id);
     const tbodySeleccion = $("tbodySeleccion");
     const tbodyDemanda = $("tbodyDemanda");
+    const tbodyManuales = $("tbodyManuales");
     const emptySeleccion = $("emptySeleccion");
     const emptyDemanda = $("emptyDemanda");
+    const emptyManuales = $("emptyManuales");
 
     let seleccionActual = [];
     let demandaEvaluada = [];
     let resumenCalculo = null;
+    let productosCalculadosGlobal = [];
+    let mapaCalculadosGlobal = new Map();
+    let manualesActuales = [];
 
     function setStatus(msg, type = "") {
       const el = $("status");
@@ -612,19 +762,80 @@
       return Array.from(mapa.values());
     }
 
-    function construirSolicitud(productosCalculados) {
+    function obtenerConfigGeneracion() {
+      return {
+        incluirFijos: true,
+        incluirAlta: $("chkAlta").checked,
+        incluirBaja: $("chkBaja").checked,
+        incluirManuales: $("chkManuales").checked,
+        cantidadAlta: Math.max(0, Number($("cantidadAlta").value || 0)),
+        cantidadBaja: Math.max(0, Number($("cantidadBaja").value || 0))
+      };
+    }
+
+    function crearItemBase({ codigo, descripcion, tipo, inventarioCalculado = 0, ventasPeriodo = 0, motivoManual = "", origen = [] }) {
+      return {
+        codigo: String(codigo || "").trim(),
+        codigoKey: normalizarCodigo(codigo),
+        descripcion: String(descripcion || "").trim(),
+        tipo,
+        inventarioCalculado: Number(inventarioCalculado || 0),
+        ventasPeriodo: Number(ventasPeriodo || 0),
+        motivoManual: String(motivoManual || "").trim(),
+        origen: Array.isArray(origen) ? [...origen] : []
+      };
+    }
+
+    function fusionarListasSinDuplicados(listas) {
+      const mapa = new Map();
+
+      for (const lista of listas) {
+        for (const item of lista) {
+          const key = normalizarCodigo(item.codigo);
+          if (!key) continue;
+
+          if (!mapa.has(key)) {
+            mapa.set(key, {
+              ...item,
+              codigoKey: key,
+              origen: Array.isArray(item.origen) ? [...item.origen] : [],
+              motivoManual: item.motivoManual || ""
+            });
+            continue;
+          }
+
+          const actual = mapa.get(key);
+          if (!actual.descripcion && item.descripcion) actual.descripcion = item.descripcion;
+          if (!actual.motivoManual && item.motivoManual) actual.motivoManual = item.motivoManual;
+          actual.inventarioCalculado = Number(item.inventarioCalculado ?? actual.inventarioCalculado ?? 0);
+          actual.ventasPeriodo = Number(item.ventasPeriodo ?? actual.ventasPeriodo ?? 0);
+
+          const orActual = new Set(actual.origen || []);
+          (item.origen || []).forEach(x => orActual.add(x));
+          actual.origen = Array.from(orActual);
+
+          if (actual.tipo !== "FIJO" && item.tipo === "FIJO") actual.tipo = "FIJO";
+          else if (actual.tipo !== "MANUAL" && item.tipo === "MANUAL" && actual.tipo !== "FIJO") actual.tipo = "MANUAL";
+        }
+      }
+
+      return Array.from(mapa.values());
+    }
+
+    function construirSolicitud(productosCalculados, config, manuales = []) {
       const fijosKeys = new Set(PRODUCTOS_FIJOS.map(x => normalizarCodigo(x.codigo)));
       const mapaCalculados = new Map(productosCalculados.map(x => [x.codigoKey, x]));
 
       const fijos = PRODUCTOS_FIJOS.map((prod) => {
         const calc = mapaCalculados.get(normalizarCodigo(prod.codigo));
-        return {
+        return crearItemBase({
           codigo: prod.codigo,
           descripcion: calc?.descripcion || prod.descripcion,
           tipo: "FIJO",
           inventarioCalculado: Number(calc?.inventarioCalculado || 0),
-          ventasPeriodo: Number(calc?.ventas || 0)
-        };
+          ventasPeriodo: Number(calc?.ventas || 0),
+          origen: ["FIJO"]
+        });
       });
 
       const candidatos = productosCalculados
@@ -636,39 +847,72 @@
           return String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" });
         });
 
-      const alta = candidatos.slice(0, 5).map(x => ({
-        codigo: x.codigo,
-        descripcion: x.descripcion,
-        tipo: "ALTA",
-        inventarioCalculado: Number(x.inventarioCalculado || 0),
-        ventasPeriodo: Number(x.ventas || 0)
-      }));
+      const alta = config.incluirAlta
+        ? candidatos.slice(0, config.cantidadAlta).map(x => crearItemBase({
+            codigo: x.codigo,
+            descripcion: x.descripcion,
+            tipo: "ALTA",
+            inventarioCalculado: Number(x.inventarioCalculado || 0),
+            ventasPeriodo: Number(x.ventas || 0),
+            origen: ["ALTA"]
+          }))
+        : [];
 
-      const usadosAlta = new Set(alta.map(x => normalizarCodigo(x.codigo)));
+      const usadosAlta = new Set(alta.map(x => x.codigoKey));
 
-      const baja = candidatos
-        .filter(x => !usadosAlta.has(x.codigoKey))
-        .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
-        .sort((a, b) => {
-          const ventasDiff = Number(a.ventas || 0) - Number(b.ventas || 0);
-          if (ventasDiff !== 0) return ventasDiff;
-          return String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" });
-        })
-        .slice(0, 5)
-        .map(x => ({
-          codigo: x.codigo,
-          descripcion: x.descripcion,
-          tipo: "BAJA",
-          inventarioCalculado: Number(x.inventarioCalculado || 0),
-          ventasPeriodo: Number(x.ventas || 0)
-        }));
+      const baja = config.incluirBaja
+        ? candidatos
+            .filter(x => !usadosAlta.has(x.codigoKey))
+            .sort((a, b) => {
+              const ventasDiff = Number(a.ventas || 0) - Number(b.ventas || 0);
+              if (ventasDiff !== 0) return ventasDiff;
+              return String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" });
+            })
+            .slice(0, config.cantidadBaja)
+            .map(x => crearItemBase({
+              codigo: x.codigo,
+              descripcion: x.descripcion,
+              tipo: "BAJA",
+              inventarioCalculado: Number(x.inventarioCalculado || 0),
+              ventasPeriodo: Number(x.ventas || 0),
+              origen: ["BAJA"]
+            }))
+        : [];
 
-      return {
-        fijos,
-        alta,
-        baja,
-        seleccion: [...fijos, ...alta, ...baja]
-      };
+      const manualesPreparados = config.incluirManuales
+        ? manuales.map(item => {
+            const calc = mapaCalculados.get(normalizarCodigo(item.codigo));
+            return crearItemBase({
+              codigo: item.codigo,
+              descripcion: calc?.descripcion || item.descripcion,
+              tipo: "MANUAL",
+              inventarioCalculado: Number(calc?.inventarioCalculado || 0),
+              ventasPeriodo: Number(calc?.ventas || 0),
+              motivoManual: item.motivoManual || "",
+              origen: ["MANUAL"]
+            });
+          })
+        : [];
+
+      const seleccion = fusionarListasSinDuplicados([fijos, alta, baja, manualesPreparados]);
+
+      return { fijos, alta, baja, manuales: manualesPreparados, seleccion };
+    }
+
+    function obtenerClaseTag(tipo) {
+      if (tipo === "FIJO") return "tag-fijo";
+      if (tipo === "ALTA") return "tag-alta";
+      if (tipo === "BAJA") return "tag-baja";
+      return "tag-manual";
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     function pintarSeleccion(lista) {
@@ -678,14 +922,15 @@
 
       lista.forEach((item, idx) => {
         const tr = document.createElement("tr");
-        const claseTag = item.tipo === "FIJO" ? "tag-fijo" : item.tipo === "ALTA" ? "tag-alta" : "tag-baja";
         tr.innerHTML = `
           <td>${idx + 1}</td>
           <td>${escapeHtml(item.codigo)}</td>
           <td>${escapeHtml(item.descripcion || "")}</td>
-          <td><span class="tag ${claseTag}">${item.tipo}</span></td>
+          <td><span class="tag ${obtenerClaseTag(item.tipo)}">${escapeHtml(item.tipo)}</span></td>
+          <td>${escapeHtml(item.motivoManual || "")}</td>
           <td class="num">${fmtNum(item.inventarioCalculado)}</td>
           <td class="num">${fmtNum(item.ventasPeriodo)}</td>
+          <td>${escapeHtml((item.origen || []).join(", "))}</td>
         `;
         tbodySeleccion.appendChild(tr);
       });
@@ -708,11 +953,36 @@
       });
     }
 
+    function pintarManuales() {
+      tbodyManuales.innerHTML = "";
+      emptyManuales.style.display = manualesActuales.length ? "none" : "block";
+      if (!manualesActuales.length) return;
+
+      manualesActuales.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${escapeHtml(item.codigo)}</td>
+          <td>${escapeHtml(item.descripcion || "")}</td>
+          <td>${escapeHtml(item.motivoManual || "")}</td>
+          <td class="num">${fmtNum(item.inventarioCalculado || 0)}</td>
+          <td class="num">${fmtNum(item.ventasPeriodo || 0)}</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn-red btn-mini" onclick="eliminarManual('${escapeHtml(item.codigoKey)}')">Quitar</button>
+            </div>
+          </td>
+        `;
+        tbodyManuales.appendChild(tr);
+      });
+    }
+
     function pintarResumen(resumen) {
       $("summary").innerHTML = `
         <div class="pill">Fijos: ${fmtNum(resumen.totalFijos)}</div>
         <div class="pill">Alta demanda: ${fmtNum(resumen.totalAlta)}</div>
         <div class="pill">Baja demanda: ${fmtNum(resumen.totalBaja)}</div>
+        <div class="pill">Manuales: ${fmtNum(resumen.totalManuales)}</div>
         <div class="pill">Total solicitud: ${fmtNum(resumen.totalSeleccion)}</div>
         <div class="pill">Inventarios leídos: ${fmtNum(resumen.totalInventarios)}</div>
         <div class="pill">Transferencias leídas: ${fmtNum(resumen.totalTransferencias)}</div>
@@ -721,16 +991,121 @@
       `;
     }
 
-    function escapeHtml(text) {
-      return String(text ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    function buscarProductoCalculadoPorCodigo(codigo) {
+      return mapaCalculadosGlobal.get(normalizarCodigo(codigo)) || null;
     }
 
-    async function analizar() {
+    function refrescarSolicitudDesdeEstado() {
+      if (!productosCalculadosGlobal.length) {
+        seleccionActual = [];
+        demandaEvaluada = [];
+        resumenCalculo = null;
+        pintarSeleccion(seleccionActual);
+        pintarDemanda(demandaEvaluada);
+        $("summary").innerHTML = "";
+        return;
+      }
+
+      const config = obtenerConfigGeneracion();
+      const armado = construirSolicitud(productosCalculadosGlobal, config, manualesActuales);
+
+      seleccionActual = armado.seleccion;
+      demandaEvaluada = productosCalculadosGlobal
+        .filter(x => !PRODUCTOS_FIJOS.some(f => normalizarCodigo(f.codigo) === x.codigoKey))
+        .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
+        .sort((a, b) => Number(b.ventas || 0) - Number(a.ventas || 0))
+        .slice(0, 100);
+
+      resumenCalculo = {
+        totalFijos: armado.fijos.length,
+        totalAlta: armado.alta.length,
+        totalBaja: armado.baja.length,
+        totalManuales: armado.manuales.length,
+        totalSeleccion: armado.seleccion.length,
+        totalInventarios: 0,
+        totalTransferencias: 0,
+        totalVentas: 0,
+        totalCalculados: productosCalculadosGlobal.length
+      };
+
+      pintarSeleccion(seleccionActual);
+      pintarDemanda(demandaEvaluada);
+      pintarResumen({
+        ...resumenCalculo,
+        totalInventarios: resumenCalculo.totalInventarios,
+        totalTransferencias: resumenCalculo.totalTransferencias,
+        totalVentas: resumenCalculo.totalVentas
+      });
+    }
+
+    function limpiarCapturaManual() {
+      $("manualCodigo").value = "";
+      $("manualDescripcion").value = "";
+      $("manualMotivo").value = "";
+    }
+
+    function llenarDescripcionManualSiExiste() {
+      const codigo = $("manualCodigo").value.trim();
+      if (!codigo) return;
+      const calc = buscarProductoCalculadoPorCodigo(codigo);
+      if (calc && !$("manualDescripcion").value.trim()) {
+        $("manualDescripcion").value = calc.descripcion || "";
+      }
+    }
+
+    function agregarManual() {
+      const codigo = $("manualCodigo").value.trim();
+      const motivoManual = $("manualMotivo").value.trim();
+      let descripcion = $("manualDescripcion").value.trim();
+
+      if (!codigo) {
+        alert("Falta el código manual.");
+        return;
+      }
+
+      const codigoKey = normalizarCodigo(codigo);
+      if (!codigoKey) {
+        alert("Código manual inválido.");
+        return;
+      }
+
+      const existente = manualesActuales.find(x => x.codigoKey === codigoKey);
+      if (existente) {
+        alert("Ese código manual ya está agregado.");
+        return;
+      }
+
+      const calc = buscarProductoCalculadoPorCodigo(codigo);
+      if (!descripcion && calc) descripcion = calc.descripcion || "";
+      if (!descripcion) descripcion = "MANUAL SIN DESCRIPCIÓN";
+
+      manualesActuales.push({
+        codigo,
+        codigoKey,
+        descripcion,
+        motivoManual,
+        inventarioCalculado: Number(calc?.inventarioCalculado || 0),
+        ventasPeriodo: Number(calc?.ventas || 0)
+      });
+
+      manualesActuales.sort((a, b) => String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" }));
+      pintarManuales();
+      limpiarCapturaManual();
+
+      if (productosCalculadosGlobal.length) {
+        analizar(false);
+      } else {
+        setStatus("Producto manual agregado. Queda listo para entrar cuando actives 'Incluir manuales'.", "ok");
+      }
+    }
+
+    window.eliminarManual = function(codigoKey) {
+      manualesActuales = manualesActuales.filter(x => x.codigoKey !== codigoKey);
+      pintarManuales();
+      if (productosCalculadosGlobal.length) analizar(false);
+    };
+
+    async function analizar(mostrarStatus = true) {
       try {
         const diasAnalisis = Number($("diasAnalisis").value || 30);
         if (diasAnalisis <= 0) {
@@ -738,7 +1113,7 @@
           return;
         }
 
-        setStatus("Analizando inventarios, transferencias y ventas...", "warn");
+        if (mostrarStatus) setStatus("Analizando inventarios, transferencias y ventas...", "warn");
         $("folio").value = "";
 
         const [inventarios, transferencias, ventas] = await Promise.all([
@@ -747,11 +1122,24 @@
           cargarVentas(diasAnalisis)
         ]);
 
-        const productosCalculados = construirInventarioCalculado(inventarios, transferencias, ventas);
-        const armado = construirSolicitud(productosCalculados);
+        productosCalculadosGlobal = construirInventarioCalculado(inventarios, transferencias, ventas);
+        mapaCalculadosGlobal = new Map(productosCalculadosGlobal.map(x => [x.codigoKey, x]));
+
+        manualesActuales = manualesActuales.map(item => {
+          const calc = mapaCalculadosGlobal.get(item.codigoKey);
+          return {
+            ...item,
+            descripcion: item.descripcion || calc?.descripcion || "",
+            inventarioCalculado: Number(calc?.inventarioCalculado || 0),
+            ventasPeriodo: Number(calc?.ventas || 0)
+          };
+        });
+
+        const config = obtenerConfigGeneracion();
+        const armado = construirSolicitud(productosCalculadosGlobal, config, manualesActuales);
 
         seleccionActual = armado.seleccion;
-        demandaEvaluada = productosCalculados
+        demandaEvaluada = productosCalculadosGlobal
           .filter(x => !PRODUCTOS_FIJOS.some(f => normalizarCodigo(f.codigo) === x.codigoKey))
           .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
           .sort((a, b) => Number(b.ventas || 0) - Number(a.ventas || 0))
@@ -761,18 +1149,20 @@
           totalFijos: armado.fijos.length,
           totalAlta: armado.alta.length,
           totalBaja: armado.baja.length,
+          totalManuales: armado.manuales.length,
           totalSeleccion: armado.seleccion.length,
           totalInventarios: inventarios.length,
           totalTransferencias: transferencias.length,
           totalVentas: ventas.length,
-          totalCalculados: productosCalculados.length
+          totalCalculados: productosCalculadosGlobal.length
         };
 
+        pintarManuales();
         pintarSeleccion(seleccionActual);
         pintarDemanda(demandaEvaluada);
         pintarResumen(resumenCalculo);
 
-        setStatus(`Solicitud armada correctamente. Fijos: ${armado.fijos.length}, alta: ${armado.alta.length}, baja: ${armado.baja.length}.`, "ok");
+        setStatus(`Solicitud armada correctamente. Fijos: ${armado.fijos.length}, alta: ${armado.alta.length}, baja: ${armado.baja.length}, manuales: ${armado.manuales.length}.`, "ok");
       } catch (err) {
         console.error(err);
         setStatus("Error al analizar: " + err.message, "error");
@@ -816,6 +1206,7 @@
 
         setStatus("Guardando solicitud...", "warn");
 
+        const config = obtenerConfigGeneracion();
         const folio = await generarFolio();
         $("folio").value = folio;
 
@@ -828,11 +1219,30 @@
           observaciones: $("observaciones").value.trim(),
           dias_analisis: Number($("diasAnalisis").value || 30),
           creado_en: firebase.firestore.FieldValue.serverTimestamp(),
+          config_generacion: {
+            incluir_fijos: true,
+            incluir_alta: config.incluirAlta,
+            incluir_baja: config.incluirBaja,
+            incluir_manuales: config.incluirManuales,
+            cantidad_alta: config.cantidadAlta,
+            cantidad_baja: config.cantidadBaja,
+            manuales_capturados: manualesActuales.length
+          },
           productos: seleccionActual.map((item, idx) => ({
             orden: idx + 1,
             codigo: item.codigo,
             descripcion: item.descripcion,
             tipo: item.tipo,
+            motivo_manual: item.motivoManual || "",
+            origen: item.origen || [],
+            inventario_calculado: Number(item.inventarioCalculado || 0),
+            ventas_periodo: Number(item.ventasPeriodo || 0)
+          })),
+          manuales_capturados: manualesActuales.map((item, idx) => ({
+            orden: idx + 1,
+            codigo: item.codigo,
+            descripcion: item.descripcion,
+            motivo_manual: item.motivoManual || "",
             inventario_calculado: Number(item.inventarioCalculado || 0),
             ventas_periodo: Number(item.ventasPeriodo || 0)
           }))
@@ -850,12 +1260,19 @@
       seleccionActual = [];
       demandaEvaluada = [];
       resumenCalculo = null;
+      productosCalculadosGlobal = [];
+      mapaCalculadosGlobal = new Map();
+      manualesActuales = [];
+
       tbodySeleccion.innerHTML = "";
       tbodyDemanda.innerHTML = "";
+      tbodyManuales.innerHTML = "";
       emptySeleccion.style.display = "block";
       emptyDemanda.style.display = "block";
+      emptyManuales.style.display = "block";
       $("summary").innerHTML = "";
       $("folio").value = "";
+      limpiarCapturaManual();
       setStatus("Vista limpiada.");
     }
 
@@ -863,13 +1280,22 @@
       $("fechaSolicitud").value = new Date().toISOString().slice(0, 10);
     }
 
-    $("btnAnalizar").addEventListener("click", analizar);
-    $("btnRecargar").addEventListener("click", analizar);
+    $("btnAnalizar").addEventListener("click", () => analizar(true));
+    $("btnRecargar").addEventListener("click", () => analizar(true));
     $("btnGuardar").addEventListener("click", guardarSolicitud);
     $("btnLimpiar").addEventListener("click", limpiarVista);
+    $("btnAgregarManual").addEventListener("click", agregarManual);
+    $("manualCodigo").addEventListener("blur", llenarDescripcionManualSiExiste);
+
+    ["chkAlta", "chkBaja", "chkManuales", "cantidadAlta", "cantidadBaja"].forEach(id => {
+      $(id).addEventListener("change", () => {
+        if (productosCalculadosGlobal.length) analizar(false);
+      });
+    });
 
     window.addEventListener("load", () => {
       ponerFechaHoy();
+      pintarManuales();
       setStatus("Lista la app de solicitud. Pulsa 'Analizar y armar solicitud'.");
     });
   </script>
