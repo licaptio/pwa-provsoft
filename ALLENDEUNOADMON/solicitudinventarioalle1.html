@@ -205,7 +205,7 @@
 
     .manual-grid {
       display: grid;
-      grid-template-columns: 1.1fr 2fr 1.5fr auto;
+      grid-template-columns: 1.2fr 1.8fr 1.3fr auto;
       gap: 12px;
       align-items: end;
     }
@@ -216,6 +216,53 @@
       border-radius: 16px;
       overflow: hidden;
       background: white;
+    }
+
+    .sugerencias-wrap {
+      position: relative;
+    }
+
+    .sugerencias {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      box-shadow: 0 18px 35px rgba(0,0,0,.14);
+      max-height: 320px;
+      overflow: auto;
+      z-index: 50;
+    }
+
+    .sugerencia-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sugerencia-item:last-child {
+      border-bottom: none;
+    }
+
+    .sugerencia-item:hover,
+    .sugerencia-item.active {
+      background: #eff6ff;
+    }
+
+    .sugerencia-titulo {
+      font-size: 13px;
+      font-weight: bold;
+      color: #0f172a;
+    }
+
+    .sugerencia-sub {
+      font-size: 12px;
+      color: #64748b;
     }
 
     .tables {
@@ -355,7 +402,7 @@
         </div>
         <div class="field">
           <label>Generado por</label>
-          <input id="generadoPor" placeholder="Ej. Gerardo">
+          <input id="generadoPor" value="AUDITORIA PDD" readonly>
         </div>
       </div>
 
@@ -407,19 +454,20 @@
 
       <div class="manual-box">
         <h3>Productos manuales</h3>
+
         <div class="manual-grid">
-          <div class="field">
-            <label>Código manual</label>
-            <input id="manualCodigo" placeholder="Ej. 75068776">
+          <div class="field sugerencias-wrap">
+            <label>Código o palabra</label>
+            <input id="manualCodigo" placeholder="Ej. 75068776, 855, MARIEL, MARIEL 855" autocomplete="off">
+            <div id="manualSugerencias" class="sugerencias" style="display:none;"></div>
           </div>
+
           <div class="field">
             <label>Descripción manual</label>
-            <input id="manualDescripcion" placeholder="Se autocompleta si existe en inventarios/ventas/transferencias">
+            <input id="manualDescripcion" placeholder="Se llena desde la sugerencia o manual">
           </div>
-          <div class="field">
-            <label>Motivo manual</label>
-            <input id="manualMotivo" placeholder="Ej. revisar diferencia en reporte">
-          </div>
+
+
           <div class="field">
             <button class="btn-purple" id="btnAgregarManual">Agregar manual</button>
           </div>
@@ -433,7 +481,6 @@
                   <th>#</th>
                   <th>Código</th>
                   <th>Descripción</th>
-                  <th>Motivo</th>
                   <th class="num">Inventario</th>
                   <th class="num">Ventas periodo</th>
                   <th>Acciones</th>
@@ -457,7 +504,6 @@
                   <th>Código</th>
                   <th>Descripción</th>
                   <th>Tipo</th>
-                  <th>Motivo manual</th>
                   <th class="num">Inventario</th>
                   <th class="num">Ventas periodo</th>
                   <th>Origen</th>
@@ -552,6 +598,7 @@
     const emptySeleccion = $("emptySeleccion");
     const emptyDemanda = $("emptyDemanda");
     const emptyManuales = $("emptyManuales");
+    const manualSugerencias = $("manualSugerencias");
 
     let seleccionActual = [];
     let demandaEvaluada = [];
@@ -559,6 +606,9 @@
     let productosCalculadosGlobal = [];
     let mapaCalculadosGlobal = new Map();
     let manualesActuales = [];
+    let sugerenciasActuales = [];
+    let sugerenciaIndex = -1;
+
 
     function setStatus(msg, type = "") {
       const el = $("status");
@@ -578,29 +628,20 @@
       return soloDigitos.replace(/^0+/, "") || "0";
     }
 
-    function normalizarFecha(valor) {
-      if (!valor) return "";
+    function escapeHtml(text) {
+      return String(text ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
 
-      if (typeof valor === "string") {
-        const v = valor.trim();
-        const m1 = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-        if (m1) return `${m1[3]}-${m1[2]}-${m1[1]}`;
-
-        const m2 = v.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (m2) return `${m2[1]}-${m2[2]}-${m2[3]}`;
-
-        return v;
-      }
-
-      if (valor && typeof valor.toDate === "function") {
-        return valor.toDate().toISOString().slice(0, 10);
-      }
-
-      if (valor && typeof valor.seconds === "number") {
-        return new Date(valor.seconds * 1000).toISOString().slice(0, 10);
-      }
-
-      return String(valor).trim();
+    function obtenerFechaHaceNDias(dias) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - Number(dias || 0));
+      return d.toISOString().slice(0, 10);
     }
 
     function obtenerCampo(data, nombres = []) {
@@ -611,167 +652,212 @@
     }
 
     function obtenerCodigoVenta(data) {
-      return String(obtenerCampo(data, ["Codigo", "codigo", "Código", "CODIGO"]) || "").trim();
+      return String(obtenerCampo(data, ["Codigo","codigo","Código","CODIGO"]) || "").trim();
     }
 
     function obtenerDescripcionVenta(data) {
-      return String(obtenerCampo(data, ["descripcion", "Descripción", "Descripcion", "producto", "Producto"]) || "").trim();
+      return String(obtenerCampo(data, ["descripcion","Descripción","Descripcion","producto","Producto"]) || "").trim();
     }
 
     function obtenerCantidadVenta(data) {
-      return Number(obtenerCampo(data, ["Cantidad vendida", "cantidad vendida", "Cantidad", "cantidad", "cant", "unidades", "totalCantidad", "total"]) || 0);
+      return Number(obtenerCampo(data, ["Cantidad vendida","cantidad vendida","Cantidad","cantidad","cant","unidades"]) || 0);
     }
 
     function obtenerFechaVenta(data) {
-      return normalizarFecha(obtenerCampo(data, ["Fecha", "fecha", "FECHA"]));
-    }
-
-    function obtenerFechaHaceNDias(dias) {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      d.setDate(d.getDate() - Number(dias || 0));
-      return d.toISOString().slice(0, 10);
+      const v = obtenerCampo(data, ["Fecha","fecha","FECHA"]);
+      if (!v) return "";
+      if (typeof v === "string") return v.slice(0,10);
+      if (v?.toDate) return v.toDate().toISOString().slice(0,10);
+      return "";
     }
 
     async function cargarInventarios() {
-      const foliosSnap = await INVENTARIOS_REF.orderBy(firebase.firestore.FieldPath.documentId(), "asc").get();
+      const snap = await INVENTARIOS_REF.get();
       const docs = [];
 
-      for (const folioDoc of foliosSnap.docs) {
-        const itemsSnap = await folioDoc.ref.collection("items").get();
-
-        itemsSnap.forEach(itemDoc => {
-          const data = itemDoc.data() || {};
-          const codigoOriginal = String(data.codigo ?? data.Codigo ?? "").trim();
-          const descripcion = String(data.descripcion ?? data.Descripcion ?? "").trim();
-          const cantidad = Number(data.cantidad ?? data.Cantidad ?? 0);
-
-          if (!codigoOriginal || !Number.isFinite(cantidad)) return;
+      for (const doc of snap.docs) {
+        const items = await doc.ref.collection("items").get();
+        items.forEach(i => {
+          const d = i.data();
+          const codigo = String(d.codigo || d.Codigo || "").trim();
+          const descripcion = String(d.descripcion || "").trim();
+          const cantidad = Number(d.cantidad || 0);
+          if (!codigo) return;
 
           docs.push({
-            codigo: codigoOriginal,
-            codigoKey: normalizarCodigo(codigoOriginal),
+            codigo,
+            codigoKey: normalizarCodigo(codigo),
             descripcion,
             cantidad
           });
         });
       }
+      return docs;
+    }
+
+    async function cargarVentas(dias) {
+      const min = obtenerFechaHaceNDias(dias);
+      const snap = await VENTAS_REF.get();
+      const docs = [];
+
+      snap.forEach(doc => {
+        const d = doc.data();
+        const fecha = obtenerFechaVenta(d);
+        if (!fecha || fecha < min) return;
+
+        const codigo = obtenerCodigoVenta(d);
+        const descripcion = obtenerDescripcionVenta(d);
+        const cantidad = obtenerCantidadVenta(d);
+
+        if (!codigo) return;
+
+        docs.push({
+          codigo,
+          codigoKey: normalizarCodigo(codigo),
+          descripcion,
+          cantidad
+        });
+      });
 
       return docs;
     }
 
     async function cargarTransferencias() {
-      const transferSnap = await TRANSFERENCIAS_REF.get();
+      const snap = await TRANSFERENCIAS_REF.get();
       const docs = [];
 
-      for (const doc of transferSnap.docs) {
-        const data = doc.data() || {};
-        const detalle = Array.isArray(data.detalle) ? data.detalle : [];
+      snap.forEach(doc => {
+        const d = doc.data();
+        const detalle = d.detalle || [];
 
-        detalle.forEach(item => {
-          const codigoOriginal = String(item.codigo || "").trim();
-          const cantidad = Number(item.cantidad_surtida ?? item.cantidad_solicitada ?? 0);
-          const descripcion = String(item.nombre || "").trim();
+        detalle.forEach(x => {
+          const codigo = String(x.codigo || "").trim();
+          const cantidad = Number(x.cantidad_surtida || 0);
+          const descripcion = String(x.nombre || "").trim();
 
-          if (!codigoOriginal || !Number.isFinite(cantidad) || cantidad <= 0) return;
+          if (!codigo) return;
 
           docs.push({
-            codigo: codigoOriginal,
-            codigoKey: normalizarCodigo(codigoOriginal),
+            codigo,
+            codigoKey: normalizarCodigo(codigo),
             descripcion,
             cantidad
           });
         });
-      }
-
-      return docs;
-    }
-
-    async function cargarVentas(diasAnalisis) {
-      const fechaMin = obtenerFechaHaceNDias(diasAnalisis);
-      const ventasSnap = await VENTAS_REF.get();
-      const docs = [];
-
-      ventasSnap.forEach(doc => {
-        const data = doc.data() || {};
-        const fecha = obtenerFechaVenta(data);
-        if (!fecha || fecha < fechaMin) return;
-
-        const codigoOriginal = obtenerCodigoVenta(data);
-        const cantidad = obtenerCantidadVenta(data);
-        const descripcion = obtenerDescripcionVenta(data);
-
-        if (!codigoOriginal || !Number.isFinite(cantidad) || cantidad <= 0) return;
-
-        docs.push({
-          codigo: codigoOriginal,
-          codigoKey: normalizarCodigo(codigoOriginal),
-          descripcion,
-          cantidad,
-          fecha
-        });
       });
 
       return docs;
     }
 
-    function construirInventarioCalculado(inventarios, transferencias, ventas) {
-      const mapa = new Map();
+    function construirInventarioCalculado(inv, trans, ventas) {
+      const map = new Map();
 
-      function asegurar(codigo, descripcion = "") {
+      function get(codigo, desc="") {
         const key = normalizarCodigo(codigo);
-        if (!key) return null;
-        if (!mapa.has(key)) {
-          mapa.set(key, {
-            codigo: String(codigo || "").trim(),
+        if (!map.has(key)) {
+          map.set(key, {
+            codigo,
             codigoKey: key,
-            descripcion: String(descripcion || "").trim(),
-            inventarioBase: 0,
-            transferencias: 0,
-            ventas: 0,
-            inventarioCalculado: 0
+            descripcion: desc,
+            inv: 0,
+            trans: 0,
+            ventas: 0
           });
         }
-        const row = mapa.get(key);
-        if (!row.codigo && codigo) row.codigo = String(codigo).trim();
-        if (!row.descripcion && descripcion) row.descripcion = String(descripcion).trim();
-        return row;
+        return map.get(key);
       }
 
-      inventarios.forEach(item => {
-        const row = asegurar(item.codigo, item.descripcion);
-        if (!row) return;
-        row.inventarioBase += Number(item.cantidad || 0);
-        row.inventarioCalculado = row.inventarioBase + row.transferencias - row.ventas;
-      });
+      inv.forEach(x => get(x.codigo,x.descripcion).inv += x.cantidad);
+      trans.forEach(x => get(x.codigo,x.descripcion).trans += x.cantidad);
+      ventas.forEach(x => get(x.codigo,x.descripcion).ventas += x.cantidad);
 
-      transferencias.forEach(item => {
-        const row = asegurar(item.codigo, item.descripcion);
-        if (!row) return;
-        row.transferencias += Number(item.cantidad || 0);
-        row.inventarioCalculado = row.inventarioBase + row.transferencias - row.ventas;
-      });
-
-      ventas.forEach(item => {
-        const row = asegurar(item.codigo, item.descripcion);
-        if (!row) return;
-        row.ventas += Number(item.cantidad || 0);
-        row.inventarioCalculado = row.inventarioBase + row.transferencias - row.ventas;
-      });
-
-      return Array.from(mapa.values());
+      return Array.from(map.values()).map(x => ({
+        ...x,
+        inventarioCalculado: x.inv + x.trans - x.ventas
+      }));
     }
 
-    function obtenerConfigGeneracion() {
-      return {
-        incluirFijos: true,
-        incluirAlta: $("chkAlta").checked,
-        incluirBaja: $("chkBaja").checked,
-        incluirManuales: $("chkManuales").checked,
-        cantidadAlta: Math.max(0, Number($("cantidadAlta").value || 0)),
-        cantidadBaja: Math.max(0, Number($("cantidadBaja").value || 0))
-      };
+    /* =======================
+       BUSCADOR INTELIGENTE
+    ======================= */
+
+    function buscarSugerencias(texto) {
+      const t = texto.toLowerCase();
+
+      return productosCalculadosGlobal
+        .filter(p =>
+          p.codigo.toLowerCase().includes(t) ||
+          (p.descripcion || "").toLowerCase().includes(t)
+        )
+        .slice(0, 15);
     }
+
+    function pintarSugerencias(lista) {
+      manualSugerencias.innerHTML = "";
+      if (!lista.length) {
+        manualSugerencias.style.display = "none";
+        return;
+      }
+
+      lista.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "sugerencia-item" + (i === sugerenciaIndex ? " active" : "");
+
+        div.innerHTML = `
+          <div class="sugerencia-titulo">${item.codigo}</div>
+          <div class="sugerencia-sub">${item.descripcion || ""}</div>
+        `;
+
+        div.onclick = () => seleccionarSugerencia(item);
+        manualSugerencias.appendChild(div);
+      });
+
+      manualSugerencias.style.display = "block";
+    }
+
+    function seleccionarSugerencia(item) {
+      $("manualCodigo").value = item.codigo;
+      $("manualDescripcion").value = item.descripcion || "";
+      manualSugerencias.style.display = "none";
+      sugerenciaIndex = -1;
+    }
+
+    $("manualCodigo").addEventListener("input", (e) => {
+      const val = e.target.value.trim();
+      if (!val) {
+        manualSugerencias.style.display = "none";
+        return;
+      }
+
+      sugerenciasActuales = buscarSugerencias(val);
+      sugerenciaIndex = -1;
+      pintarSugerencias(sugerenciasActuales);
+    });
+
+    $("manualCodigo").addEventListener("keydown", (e) => {
+      if (!sugerenciasActuales.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        sugerenciaIndex = (sugerenciaIndex + 1) % sugerenciasActuales.length;
+        pintarSugerencias(sugerenciasActuales);
+      }
+
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        sugerenciaIndex = (sugerenciaIndex - 1 + sugerenciasActuales.length) % sugerenciasActuales.length;
+        pintarSugerencias(sugerenciasActuales);
+      }
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (sugerenciaIndex >= 0) {
+          seleccionarSugerencia(sugerenciasActuales[sugerenciaIndex]);
+        } else {
+          $("manualDescripcion").focus();
+        }
+      }
+    });
 
     function crearItemBase({ codigo, descripcion, tipo, inventarioCalculado = 0, ventasPeriodo = 0, motivoManual = "", origen = [] }) {
       return {
@@ -805,8 +891,10 @@
           }
 
           const actual = mapa.get(key);
+
           if (!actual.descripcion && item.descripcion) actual.descripcion = item.descripcion;
           if (!actual.motivoManual && item.motivoManual) actual.motivoManual = item.motivoManual;
+
           actual.inventarioCalculado = Number(item.inventarioCalculado ?? actual.inventarioCalculado ?? 0);
           actual.ventasPeriodo = Number(item.ventasPeriodo ?? actual.ventasPeriodo ?? 0);
 
@@ -820,6 +908,24 @@
       }
 
       return Array.from(mapa.values());
+    }
+
+    function obtenerClaseTag(tipo) {
+      if (tipo === "FIJO") return "tag-fijo";
+      if (tipo === "ALTA") return "tag-alta";
+      if (tipo === "BAJA") return "tag-baja";
+      return "tag-manual";
+    }
+
+    function obtenerConfigGeneracion() {
+      return {
+        incluirFijos: true,
+        incluirAlta: $("chkAlta").checked,
+        incluirBaja: $("chkBaja").checked,
+        incluirManuales: $("chkManuales").checked,
+        cantidadAlta: Math.max(0, Number($("cantidadAlta").value || 0)),
+        cantidadBaja: Math.max(0, Number($("cantidadBaja").value || 0))
+      };
     }
 
     function construirSolicitud(productosCalculados, config, manuales = []) {
@@ -899,22 +1005,6 @@
       return { fijos, alta, baja, manuales: manualesPreparados, seleccion };
     }
 
-    function obtenerClaseTag(tipo) {
-      if (tipo === "FIJO") return "tag-fijo";
-      if (tipo === "ALTA") return "tag-alta";
-      if (tipo === "BAJA") return "tag-baja";
-      return "tag-manual";
-    }
-
-    function escapeHtml(text) {
-      return String(text ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
     function pintarSeleccion(lista) {
       tbodySeleccion.innerHTML = "";
       emptySeleccion.style.display = lista.length ? "none" : "block";
@@ -927,7 +1017,6 @@
           <td>${escapeHtml(item.codigo)}</td>
           <td>${escapeHtml(item.descripcion || "")}</td>
           <td><span class="tag ${obtenerClaseTag(item.tipo)}">${escapeHtml(item.tipo)}</span></td>
-          <td>${escapeHtml(item.motivoManual || "")}</td>
           <td class="num">${fmtNum(item.inventarioCalculado)}</td>
           <td class="num">${fmtNum(item.ventasPeriodo)}</td>
           <td>${escapeHtml((item.origen || []).join(", "))}</td>
@@ -964,12 +1053,11 @@
           <td>${idx + 1}</td>
           <td>${escapeHtml(item.codigo)}</td>
           <td>${escapeHtml(item.descripcion || "")}</td>
-          <td>${escapeHtml(item.motivoManual || "")}</td>
           <td class="num">${fmtNum(item.inventarioCalculado || 0)}</td>
           <td class="num">${fmtNum(item.ventasPeriodo || 0)}</td>
           <td>
             <div class="row-actions">
-              <button class="btn-red btn-mini" onclick="eliminarManual('${escapeHtml(item.codigoKey)}')">Quitar</button>
+              <button class="btn-red btn-mini" onclick="eliminarManual('${item.codigoKey}')">Quitar</button>
             </div>
           </td>
         `;
@@ -991,111 +1079,73 @@
       `;
     }
 
-    function buscarProductoCalculadoPorCodigo(codigo) {
-      return mapaCalculadosGlobal.get(normalizarCodigo(codigo)) || null;
-    }
-
-    function refrescarSolicitudDesdeEstado() {
-      if (!productosCalculadosGlobal.length) {
-        seleccionActual = [];
-        demandaEvaluada = [];
-        resumenCalculo = null;
-        pintarSeleccion(seleccionActual);
-        pintarDemanda(demandaEvaluada);
-        $("summary").innerHTML = "";
-        return;
-      }
-
-      const config = obtenerConfigGeneracion();
-      const armado = construirSolicitud(productosCalculadosGlobal, config, manualesActuales);
-
-      seleccionActual = armado.seleccion;
-      demandaEvaluada = productosCalculadosGlobal
-        .filter(x => !PRODUCTOS_FIJOS.some(f => normalizarCodigo(f.codigo) === x.codigoKey))
-        .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
-        .sort((a, b) => Number(b.ventas || 0) - Number(a.ventas || 0))
-        .slice(0, 100);
-
-      resumenCalculo = {
-        totalFijos: armado.fijos.length,
-        totalAlta: armado.alta.length,
-        totalBaja: armado.baja.length,
-        totalManuales: armado.manuales.length,
-        totalSeleccion: armado.seleccion.length,
-        totalInventarios: 0,
-        totalTransferencias: 0,
-        totalVentas: 0,
-        totalCalculados: productosCalculadosGlobal.length
-      };
-
-      pintarSeleccion(seleccionActual);
-      pintarDemanda(demandaEvaluada);
-      pintarResumen({
-        ...resumenCalculo,
-        totalInventarios: resumenCalculo.totalInventarios,
-        totalTransferencias: resumenCalculo.totalTransferencias,
-        totalVentas: resumenCalculo.totalVentas
-      });
-    }
-
     function limpiarCapturaManual() {
       $("manualCodigo").value = "";
       $("manualDescripcion").value = "";
       $("manualMotivo").value = "";
-    }
-
-    function llenarDescripcionManualSiExiste() {
-      const codigo = $("manualCodigo").value.trim();
-      if (!codigo) return;
-      const calc = buscarProductoCalculadoPorCodigo(codigo);
-      if (calc && !$("manualDescripcion").value.trim()) {
-        $("manualDescripcion").value = calc.descripcion || "";
-      }
+      manualSugerencias.style.display = "none";
+      sugerenciasActuales = [];
+      sugerenciaIndex = -1;
     }
 
     function agregarManual() {
       const codigo = $("manualCodigo").value.trim();
-      const motivoManual = $("manualMotivo").value.trim();
+      const motivoManual = "";
       let descripcion = $("manualDescripcion").value.trim();
 
       if (!codigo) {
-        alert("Falta el código manual.");
+        alert("Falta código o palabra.");
         return;
       }
 
-      const codigoKey = normalizarCodigo(codigo);
+      let productoElegido = null;
+
+      const key = normalizarCodigo(codigo);
+      if (key && mapaCalculadosGlobal.has(key)) {
+        productoElegido = mapaCalculadosGlobal.get(key);
+      } else {
+        const posibles = buscarSugerencias(codigo);
+        if (posibles.length === 1) productoElegido = posibles[0];
+      }
+
+      const codigoFinal = productoElegido?.codigo || codigo;
+      const codigoKey = normalizarCodigo(codigoFinal);
+
       if (!codigoKey) {
-        alert("Código manual inválido.");
+        alert("No se pudo interpretar el código.");
         return;
       }
 
       const existente = manualesActuales.find(x => x.codigoKey === codigoKey);
       if (existente) {
-        alert("Ese código manual ya está agregado.");
+        alert("Ese producto manual ya está agregado.");
         return;
       }
 
-      const calc = buscarProductoCalculadoPorCodigo(codigo);
-      if (!descripcion && calc) descripcion = calc.descripcion || "";
-      if (!descripcion) descripcion = "MANUAL SIN DESCRIPCIÓN";
+      if (!descripcion) {
+        descripcion = productoElegido?.descripcion || "";
+      }
 
       manualesActuales.push({
-        codigo,
+        codigo: codigoFinal,
         codigoKey,
-        descripcion,
+        descripcion: descripcion || "MANUAL SIN DESCRIPCIÓN",
         motivoManual,
-        inventarioCalculado: Number(calc?.inventarioCalculado || 0),
-        ventasPeriodo: Number(calc?.ventas || 0)
+        inventarioCalculado: Number(productoElegido?.inventarioCalculado || 0),
+        ventasPeriodo: Number(productoElegido?.ventas || 0)
       });
 
-      manualesActuales.sort((a, b) => String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" }));
+      manualesActuales.sort((a, b) =>
+        String(a.descripcion || "").localeCompare(String(b.descripcion || ""), "es", { sensitivity: "base" })
+      );
+
       pintarManuales();
       limpiarCapturaManual();
 
       if (productosCalculadosGlobal.length) {
         analizar(false);
       } else {
-        setStatus("Producto manual agregado. Queda listo para entrar cuando actives 'Incluir manuales'.", "ok");
+        setStatus("Producto manual agregado.", "ok");
       }
     }
 
@@ -1113,7 +1163,7 @@
           return;
         }
 
-        if (mostrarStatus) setStatus("Analizando inventarios, transferencias y ventas...", "warn");
+        if (mostrarStatus) setStatus("Analizando inventarios, ventas y transferencias...", "warn");
         $("folio").value = "";
 
         const [inventarios, transferencias, ventas] = await Promise.all([
@@ -1139,6 +1189,7 @@
         const armado = construirSolicitud(productosCalculadosGlobal, config, manualesActuales);
 
         seleccionActual = armado.seleccion;
+
         demandaEvaluada = productosCalculadosGlobal
           .filter(x => !PRODUCTOS_FIJOS.some(f => normalizarCodigo(f.codigo) === x.codigoKey))
           .filter(x => Number(x.inventarioCalculado || 0) > 0 || Number(x.ventas || 0) > 0)
@@ -1162,7 +1213,10 @@
         pintarDemanda(demandaEvaluada);
         pintarResumen(resumenCalculo);
 
-        setStatus(`Solicitud armada correctamente. Fijos: ${armado.fijos.length}, alta: ${armado.alta.length}, baja: ${armado.baja.length}, manuales: ${armado.manuales.length}.`, "ok");
+        setStatus(
+          `Solicitud armada correctamente. Fijos: ${armado.fijos.length}, alta: ${armado.alta.length}, baja: ${armado.baja.length}, manuales: ${armado.manuales.length}.`,
+          "ok"
+        );
       } catch (err) {
         console.error(err);
         setStatus("Error al analizar: " + err.message, "error");
@@ -1170,17 +1224,9 @@
     }
 
     async function generarFolio() {
-      const fecha = $("fechaSolicitud").value;
-      const fechaParte = (fecha || new Date().toISOString().slice(0, 10)).replace(/-/g, "");
-
-      const inicio = `${fecha || new Date().toISOString().slice(0, 10)}T00:00:00`;
-      const fin = `${fecha || new Date().toISOString().slice(0, 10)}T23:59:59`;
-
-      const snap = await SOLICITUDES_REF
-        .where("fecha", ">=", inicio.slice(0, 10))
-        .where("fecha", "<=", fin.slice(0, 10))
-        .get();
-
+      const fecha = $("fechaSolicitud").value || new Date().toISOString().slice(0, 10);
+      const fechaParte = fecha.replace(/-/g, "");
+      const snap = await SOLICITUDES_REF.where("fecha", "==", fecha).get();
       const consecutivo = String((snap.size || 0) + 1).padStart(3, "0");
       return `CIC-${fechaParte}-${consecutivo}`;
     }
@@ -1198,15 +1244,10 @@
           return;
         }
 
-        const generadoPor = $("generadoPor").value.trim();
-        if (!generadoPor) {
-          alert("Falta quién genera la solicitud.");
-          return;
-        }
-
         setStatus("Guardando solicitud...", "warn");
 
         const config = obtenerConfigGeneracion();
+        const generadoPor = "AUDITORIA PDD";
         const folio = await generarFolio();
         $("folio").value = folio;
 
@@ -1263,6 +1304,8 @@
       productosCalculadosGlobal = [];
       mapaCalculadosGlobal = new Map();
       manualesActuales = [];
+      sugerenciasActuales = [];
+      sugerenciaIndex = -1;
 
       tbodySeleccion.innerHTML = "";
       tbodyDemanda.innerHTML = "";
@@ -1278,6 +1321,7 @@
 
     function ponerFechaHoy() {
       $("fechaSolicitud").value = new Date().toISOString().slice(0, 10);
+      $("generadoPor").value = "AUDITORIA PDD";
     }
 
     $("btnAnalizar").addEventListener("click", () => analizar(true));
@@ -1285,12 +1329,19 @@
     $("btnGuardar").addEventListener("click", guardarSolicitud);
     $("btnLimpiar").addEventListener("click", limpiarVista);
     $("btnAgregarManual").addEventListener("click", agregarManual);
-    $("manualCodigo").addEventListener("blur", llenarDescripcionManualSiExiste);
+
+
 
     ["chkAlta", "chkBaja", "chkManuales", "cantidadAlta", "cantidadBaja"].forEach(id => {
       $(id).addEventListener("change", () => {
         if (productosCalculadosGlobal.length) analizar(false);
       });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".sugerencias-wrap")) {
+        manualSugerencias.style.display = "none";
+      }
     });
 
     window.addEventListener("load", () => {
