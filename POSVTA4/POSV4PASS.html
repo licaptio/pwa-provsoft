@@ -367,8 +367,11 @@ let procesandoAddProducto = false;
 const money = n => '$' + (Number(n) || 0).toFixed(2);
 const codeIndex = new Map();
 const catalogoById = new Map();
-  
 
+// 🔐 Verifica si hay sesión activa
+function haySesionActiva() {
+  return document.body.classList.contains("sesion-activa");
+}
 
 /* ===========================================================
    🔔 UTILIDAD GLOBAL: BEEP
@@ -1453,11 +1456,6 @@ let descuentoAutorizado = 0;
 let descuentoMontoActual = 0; // 🔥 ESTE FALTABA
 let descuentoVisible = false;
 
-  // 🔐 Verifica si hay sesión activa (FIX CRÍTICO)
-function haySesionActiva() {
-  return document.body.classList.contains("sesion-activa");
-}
-
 function abrirCobro() {
   if (carrito.length === 0) {
     alert("Agrega productos antes de cobrar.");
@@ -1531,7 +1529,11 @@ actualizarCobroVisual();
 /* ===========================================================
    ✅ SECCIÓN 11.1: CONFIRMAR VENTA (VERSIÓN CORREGIDA)
    =========================================================== */
-$("#btnConfirmarCobro").onclick = async () => {
+let ventaEnProceso = false;
+let ultimoIntentoVenta = 0;
+const ENFRIAMIENTO_VENTA_MS = 2500;
+  
+  $("#btnConfirmarCobro").onclick = async () => {
   try {
     // 🚧 Bloqueo visual temporal
     const overlay = document.createElement("div");
@@ -1575,23 +1577,23 @@ $("#btnConfirmarCobro").onclick = async () => {
     // 🔒 Deshabilitar botones para evitar doble clic
     document.querySelectorAll("button").forEach(b => b.disabled = true);
 
-    // 🚧 VALIDACIONES
-    if (carrito.length === 0) {
-      alert("No hay productos en el carrito.");
-      return;
-    }  
-    if (!rutaId || !USUARIO_LOGUEADO) {
-      alert("⚠️ Usuario o ruta no detectados. Vuelve a iniciar sesión.");
-      return;
-    }
+if (carrito.length === 0) {
+  alert("No hay productos en el carrito.");
+  throw new Error("validacion");
+}
+    
+if (!rutaId || !USUARIO_LOGUEADO) {
+  alert("⚠️ Usuario o ruta no detectados.");
+  throw new Error("validacion");
+}
 
     const tot = calcularTotales(descuentoAutorizado);
     const pago = parseFloat($("#montoRecibido").value) || 0;
     const cambio = pago - tot.total;
-    if (cambio < 0) {
-      alert("⚠️ El monto recibido es menor al total a pagar.");
-      return;
-    }
+if (cambio < 0) {
+  alert("⚠️ El monto recibido es menor al total");
+  throw new Error("validacion");
+}
 
     // 🧮 Folio incremental por usuario y fecha
     let folio = "";
