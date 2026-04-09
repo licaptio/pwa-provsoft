@@ -509,22 +509,53 @@ function limpiarFirma() {
           return;
         }
 
-        solicitudActual = { id: doc.id, ...doc.data() };
-        const productos = Array.isArray(solicitudActual.productos) ? solicitudActual.productos : [];
+solicitudActual = { id: doc.id, ...doc.data() };
 
-        productosActuales = productos
-          .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
-          .map(p => ({
-            orden: Number(p.orden || 0),
-            codigo: String(p.codigo || ""),
-            descripcion: String(p.descripcion || ""),
-            tipo: String(p.tipo || ""),
-            inventario_calculado: Number(p.inventario_calculado || 0),
-            ventas_periodo: Number(p.ventas_periodo || 0),
-            conteo_fisico: "",
-            observacion: "",
-            hora_registro: ""
-          }));
+const productos = Array.isArray(solicitudActual.productos) ? solicitudActual.productos : [];
+const manualesCapturados = Array.isArray(solicitudActual.manuales_capturados) ? solicitudActual.manuales_capturados : [];
+
+const mapa = new Map();
+
+// Primero carga productos normales
+productos.forEach((p, idx) => {
+  const codigo = String(p.codigo || "").trim();
+  if (!codigo) return;
+
+  mapa.set(codigo, {
+    orden: Number(p.orden || (idx + 1)),
+    codigo,
+    descripcion: String(p.descripcion || ""),
+    tipo: String(p.tipo || ""),
+    inventario_calculado: Number(p.inventario_calculado || 0),
+    ventas_periodo: Number(p.ventas_periodo || 0),
+    conteo_fisico: "",
+    observacion: "",
+    hora_registro: ""
+  });
+});
+
+// Luego agrega manuales capturados solo si no existen ya
+manualesCapturados.forEach((m, idx) => {
+  const codigo = String(m.codigo || "").trim();
+  if (!codigo) return;
+
+  if (!mapa.has(codigo)) {
+    mapa.set(codigo, {
+      orden: 10000 + idx,
+      codigo,
+      descripcion: String(m.descripcion || ""),
+      tipo: "MANUAL",
+      inventario_calculado: Number(m.inventario_calculado || 0),
+      ventas_periodo: Number(m.ventas_periodo || 0),
+      conteo_fisico: "",
+      observacion: "",
+      hora_registro: ""
+    });
+  }
+});
+
+productosActuales = Array.from(mapa.values())
+  .sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0));
 
         pintarTabla();
         setStatus(`Solicitud ${folio} cargada correctamente.`, "ok");
