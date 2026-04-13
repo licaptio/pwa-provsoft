@@ -219,7 +219,60 @@ if (iepsRate > 0 && ivaRate > 0) {
 // ✅ Deja estas SOLO una vez (arriba del todo, como ya las tienes)
 const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+function validarTicketsContraFecha(ventas, fechaSeleccionada) {
+  if (!fechaSeleccionada) {
+    return {
+      ok: false,
+      fueraDeDia: [{ motivo: "No hay fecha seleccionada" }],
+      fueraDeMes: []
+    };
+  }
 
+  const [anioSel, mesSel, diaSel] = fechaSeleccionada.split("-");
+  const fechaEsperada = `${anioSel}${mesSel}${diaSel}`;   // ej: 20260402
+  const mesEsperado = `${anioSel}${mesSel}`;              // ej: 202604
+
+  const fueraDeDia = [];
+  const fueraDeMes = [];
+
+  ventas.forEach(v => {
+    const folio = String(v.folio || "");
+
+    // Busca una fecha tipo 20260402 dentro del folio
+    const match = folio.match(/(\d{8})/);
+
+    if (!match) {
+      fueraDeDia.push({
+        folio,
+        motivo: "Folio sin fecha reconocible"
+      });
+      return;
+    }
+
+    const fechaTicket = match[1];      // 20260402
+    const mesTicket = fechaTicket.slice(0, 6); // 202604
+
+    if (mesTicket !== mesEsperado) {
+      fueraDeMes.push({
+        folio,
+        fechaTicket
+      });
+    }
+
+    if (fechaTicket !== fechaEsperada) {
+      fueraDeDia.push({
+        folio,
+        fechaTicket
+      });
+    }
+  });
+
+  return {
+    ok: fueraDeDia.length === 0 && fueraDeMes.length === 0,
+    fueraDeDia,
+    fueraDeMes
+  };
+}
 /* ======================================================
    GENERAR TXT GLOBAL
    ====================================================== */
@@ -229,32 +282,52 @@ async function generarTXT() {
 
   if (!ventasCache.length)
     return alert("No hay ventas cargadas");
+
+  const fechaSeleccionada = document.getElementById("fecha").value;
+  if (!fechaSeleccionada) return alert("Selecciona fecha");
+
+  const [anioPeriodo, mesPeriodo, diaPeriodo] = fechaSeleccionada.split("-");
+
+  const revisionFechas = validarTicketsContraFecha(ventasCache, fechaSeleccionada);
+
+  if (revisionFechas.fueraDeMes.length > 0) {
+    console.error("Tickets fuera de mes:", revisionFechas.fueraDeMes);
+    return alert("Hay tickets fuera del mes seleccionado. Revisa consola para detalle.");
+  }
+
+  if (revisionFechas.fueraDeDia.length > 0) {
+    console.error("Tickets fuera del día:", revisionFechas.fueraDeDia);
+    return alert("Hay tickets fuera del día seleccionado. Revisa consola para detalle.");
+  }
+
   const ventasParaFactura = ventasCache;
 
-  const grupos = [];            // 03 por ticket
-  const impuestosGlobales = {}; // 04 global
+  const grupos = [];
+  const impuestosGlobales = {};
 
-  let subtotalGlobal = 0; // 6 dec
+  let subtotalGlobal = 0;
   let impuestosGlobal = 0;
 
   function acumularImpuestoGlobal(impuesto, tasa, base) {
     const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
-    if (!impuestosGlobales[key]) impuestosGlobales[key] = { impuesto, tasa: Number(tasa), base: 0 };
+    if (!impuestosGlobales[key]) {
+      impuestosGlobales[key] = {
+        impuesto,
+        tasa: Number(tasa),
+        base: 0
+      };
+    }
     impuestosGlobales[key].base += Number(base) || 0;
   }
 
   if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
 
-  // ===============================
-  // RECORRER VENTAS (03 por ticket)
-  // ===============================
   ventasParaFactura.forEach(v => {
     const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
 
     const baseTotalVenta = r6(base16 + base0 + baseIEPS);
     if (baseTotalVenta <= 0) return;
 
-    // acumula subtotal con precisión
     subtotalGlobal = r6(subtotalGlobal + baseTotalVenta);
 
     const grupo = {
@@ -281,27 +354,19 @@ async function generarTXT() {
     grupos.push(grupo);
   });
 
-  // ===============================
-  // IMPUESTOS GLOBALES (01 y 04)
-  // ===============================
   impuestosGlobal = 0;
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
     if (ig.tasa > 0) impuestosGlobal = r2(impuestosGlobal + (ig.base * ig.tasa));
   }
 
-  // 01 requiere 2 dec, SOLO al final
   const subtotal01  = r2(subtotalGlobal);
   const impuestos01 = r2(impuestosGlobal);
   const total01     = r2(subtotal01 + impuestos01);
 
-  // ===============================
-  // FOLIO + LINEAS
-  // ===============================
   const folio = await obtenerFolioSeguro(CONFIG.serie);
   const lineas = [];
 
-  // 01 principal
   lineas.push([
     "01","FA","4.0",
     CONFIG.serie, folio, "01",
@@ -335,29 +400,17 @@ async function generarTXT() {
     "N"
   ].join("|"));
 
-  // 01 CFDI40
-// 01 CFDI40
-const fechaSeleccionada = document.getElementById("fecha").value;
-const fechaObj = new Date(fechaSeleccionada);
+  lineas.push([
+    "01","CFDI40","01","INFO_GLOBAL",
+    "01",
+    mesPeriodo,
+    anioPeriodo,
+    "EMISOR","",
+    "RECEPTOR","67700","616"
+  ].join("|"));
 
-const anioPeriodo = fechaObj.getFullYear();
-const mesPeriodo  = String(fechaObj.getMonth() + 1).padStart(2, "0");
-
-lineas.push([
-  "01","CFDI40","01","INFO_GLOBAL",
-  "01",
-  mesPeriodo,
-  anioPeriodo,
-  "EMISOR","",
-  "RECEPTOR","67700","616"
-].join("|"));
-  
-  // ===============================
-  // 03 y 03-IMP
-  // ===============================
   let n = 1;
   grupos.forEach(g => {
-
     lineas.push([
       "03", n, "1.000", "ACT", "", "01010101",
       g.refFolio || (folio + "-" + n),
@@ -384,9 +437,6 @@ lineas.push([
     n++;
   });
 
-  // ===============================
-  // 04
-  // ===============================
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
     const imp2 = (ig.tasa === 0) ? 0 : r2(ig.base * ig.tasa);
@@ -401,15 +451,12 @@ lineas.push([
     ].join("|"));
   }
 
-  // ===============================
-  // DESCARGAR + MARCAR
-  // ===============================
   descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
-
   await marcarVentasComoFacturadas(ventasParaFactura, CONFIG.serie, folio);
 
   alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 }
+
 
 /* ======================================================
    👉 AQUÍ PEGA obtenerFolioSeguro()
@@ -465,6 +512,5 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
-
 
 
