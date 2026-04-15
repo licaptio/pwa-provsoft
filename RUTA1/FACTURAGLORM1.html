@@ -54,7 +54,7 @@ button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
 
 <script>
 /* ======================================================
-   CONFIGURACIÓN FIREBASE (AJUSTA AQUÍ)
+   CONFIGURACIÓN FIREBASE
    ====================================================== */
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -65,10 +65,7 @@ const firebaseConfig = {
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
 
-// 🔥 ESTA LÍNEA ES OBLIGATORIA
 firebase.initializeApp(firebaseConfig);
-
-// 🔥 AHORA SÍ EXISTE EL APP [DEFAULT]
 const db = firebase.firestore();
 
 /* ======================================================
@@ -88,15 +85,57 @@ const FISCAL_EMISOR = {
   direccion: "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO"
 };
 
-
 let ventasCache = [];
- 
+
+/* ======================================================
+   UTILIDADES GENERALES
+   ====================================================== */
+const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+
+function tieneTexto(v) {
+  return typeof v === "string" && v.trim() !== "";
+}
+
+function estaYaFacturado(v) {
+  return (
+    v.facturada_global === true ||
+    !!v.facturada_at ||
+    tieneTexto(v.folio_fiscal) ||
+    tieneTexto(v.factura)
+  );
+}
+
+function obtenerFechaVenta(v) {
+  if (v.fecha && typeof v.fecha.toDate === "function") {
+    const d = v.fecha.toDate();
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  if (v.fecha instanceof Date && !isNaN(v.fecha.getTime())) {
+    return v.fecha;
+  }
+
+  if (typeof v.fecha === "string" && v.fecha.trim()) {
+    const d = new Date(v.fecha);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  if (typeof v.fecha_txt === "string" && v.fecha_txt.trim()) {
+    const d = new Date(v.fecha_txt);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  return null;
+}
+
 /* ======================================================
    FECHA
    ====================================================== */
 function rangoDia() {
   const f = document.getElementById("fecha").value;
   if (!f) return null;
+
   return {
     inicio: new Date(f + "T00:00:00"),
     fin: new Date(f + "T23:59:59")
@@ -107,84 +146,91 @@ function rangoDia() {
    CARGAR VENTAS
    ====================================================== */
 async function cargarVentas() {
-
   const rango = rangoDia();
   if (!rango) return alert("Selecciona fecha");
 
-const Timestamp = firebase.firestore.Timestamp;
-const snap = await db.collection("ventas_rutav2")
-  .where("rutaId", "==", CONFIG.rutaId)
-  .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
-  .where("fecha", "<=", Timestamp.fromDate(rango.fin))
-  .get();
+  const Timestamp = firebase.firestore.Timestamp;
 
-ventasCache = [];
-snap.forEach(d => {
-  const v = { id: d.id, ...d.data() };
-  if (v.facturada_global !== true) {
-    ventasCache.push(v);
-  }
-});
+  const snap = await db.collection("ventas_rutav2")
+    .where("rutaId", "==", CONFIG.rutaId)
+    .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
+    .where("fecha", "<=", Timestamp.fromDate(rango.fin))
+    .get();
+
+  ventasCache = [];
+
+  snap.forEach(d => {
+    const v = { id: d.id, ...d.data() };
+
+    // Solo tickets NO facturados
+    if (!estaYaFacturado(v)) {
+      ventasCache.push(v);
+    }
+  });
 
   pintarVentas(ventasCache);
 
   document.getElementById("cnt").innerText = ventasCache.length;
   document.getElementById("total").innerText =
-    ventasCache.reduce((s,v)=>s+Number(v.resumen_financiero?.total||0),0).toFixed(2);
+    ventasCache.reduce((s, v) => s + Number(v.resumen_financiero?.total || 0), 0).toFixed(2);
 }
 
 /* ======================================================
    PINTAR TABLA
    ====================================================== */
 function pintarVentas(ventas) {
-
   const tbody = document.getElementById("ventas");
   tbody.innerHTML = "";
 
   ventas.forEach(v => {
+    const fecha = obtenerFechaVenta(v);
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${v.fecha.toDate().toLocaleTimeString()}</td>
-      <td>${v.cliente || "-"}</td>
-      <td>$${Number(v.resumen_financiero.total).toFixed(2)}</td>
+      <td>${fecha ? fecha.toLocaleTimeString() : "-"}</td>
+      <td>${v.cliente || "PUBLICO EN GENERAL"}</td>
+      <td>$${Number(v.resumen_financiero?.total || 0).toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
   });
 }
-function normRate(raw){
+
+/* ======================================================
+   IMPUESTOS
+   ====================================================== */
+function normRate(raw) {
   raw = Number(raw || 0);
-  // acepta 0.08, 8, 800 (tu caso)
   if (raw >= 100) return raw / 10000; // 800 -> 0.08
   if (raw >= 1)   return raw / 100;   // 8   -> 0.08
   return raw;                         // 0.08
 }
 
-function extraerBasesYImpuestos(venta){
+function extraerBasesYImpuestos(venta) {
   const det = Array.isArray(venta.detalle) ? venta.detalle : [];
 
   let base16 = 0, iva16 = 0, base0 = 0, baseIEPS = 0, ieps = 0;
 
   det.forEach(it => {
-    const gross = Number(it.importe || 0);   // 👈 el precio FINAL
+    const gross = Number(it.importe || 0);
     if (gross <= 0) return;
 
-    const ivaRate  = Number(it.ivaTasa || 0);                 // 0.16 o 0
-    const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);   // 0.08 si aplica
+    const ivaRate  = Number(it.ivaTasa || 0);
+    const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);
 
-    // IEPS + IVA juntos (CASO CRÍTICO)
-if (iepsRate > 0 && ivaRate > 0) {
-  const base = gross / (1 + iepsRate + ivaRate * (1 + iepsRate));
-  const iepsCalc = base * iepsRate;
-  const ivaCalc  = (base + iepsCalc) * ivaRate;
+    // IEPS + IVA juntos
+    if (iepsRate > 0 && ivaRate > 0) {
+      const base = gross / (1 + iepsRate + ivaRate * (1 + iepsRate));
+      const iepsCalc = base * iepsRate;
+      const ivaCalc  = (base + iepsCalc) * ivaRate;
 
-  baseIEPS += base;
-  ieps     += iepsCalc;
-  base16   += (base + iepsCalc);
-  iva16    += ivaCalc;
-  return;
-}
+      baseIEPS += base;
+      ieps     += iepsCalc;
+      base16   += (base + iepsCalc);
+      iva16    += ivaCalc;
+      return;
+    }
 
-    // IVA 16 (solo)
+    // IVA 16 solo
     if (ivaRate > 0 && iepsRate <= 0) {
       const base = gross / (1 + ivaRate);
       base16 += base;
@@ -192,7 +238,7 @@ if (iepsRate > 0 && ivaRate > 0) {
       return;
     }
 
-    // IEPS (solo)
+    // IEPS solo
     if (iepsRate > 0 && ivaRate <= 0) {
       const base = gross / (1 + iepsRate);
       baseIEPS += base;
@@ -207,18 +253,22 @@ if (iepsRate > 0 && ivaRate > 0) {
   return { base16, iva16, base0, baseIEPS, ieps };
 }
 
-  function addImp(impMap, impuesto, tasa, base) {
+function addImp(impMap, impuesto, tasa, base) {
   const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
-  if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
+  if (!impMap[key]) {
+    impMap[key] = {
+      impuesto,
+      tasa: Number(tasa),
+      base: 0,
+      importe: 0
+    };
+  }
   impMap[key].base += Number(base) || 0;
 }
 
 /* ======================================================
-   UTILIDADES (YA LAS TIENES ARRIBA, NO LAS DUPLIQUES)
+   VALIDAR FECHAS CONTRA CAMPO REAL
    ====================================================== */
-// ✅ Deja estas SOLO una vez (arriba del todo, como ya las tienes)
-const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
-const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
 function validarTicketsContraFecha(ventas, fechaSeleccionada) {
   if (!fechaSeleccionada) {
     return {
@@ -229,39 +279,46 @@ function validarTicketsContraFecha(ventas, fechaSeleccionada) {
   }
 
   const [anioSel, mesSel, diaSel] = fechaSeleccionada.split("-");
-  const fechaEsperada = `${anioSel}${mesSel}${diaSel}`;   // ej: 20260402
-  const mesEsperado = `${anioSel}${mesSel}`;              // ej: 202604
+  const fechaEsperada = `${anioSel}${mesSel}${diaSel}`;
+  const mesEsperado = `${anioSel}${mesSel}`;
 
   const fueraDeDia = [];
   const fueraDeMes = [];
 
   ventas.forEach(v => {
-    const folio = String(v.folio || "");
+    // Doble seguridad: ignorar cualquier ya facturado
+    if (estaYaFacturado(v)) return;
 
-    // Busca una fecha tipo 20260402 dentro del folio
-    const match = folio.match(/(\d{8})/);
+    const d = obtenerFechaVenta(v);
 
-    if (!match) {
+    if (!d) {
       fueraDeDia.push({
-        folio,
-        motivo: "Folio sin fecha reconocible"
+        id: v.id || "",
+        folio: String(v.folio || ""),
+        motivo: "Ticket sin fecha válida"
       });
       return;
     }
 
-    const fechaTicket = match[1];      // 20260402
-    const mesTicket = fechaTicket.slice(0, 6); // 202604
+    const anio = String(d.getFullYear());
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+
+    const fechaTicket = `${anio}${mes}${dia}`;
+    const mesTicket = `${anio}${mes}`;
 
     if (mesTicket !== mesEsperado) {
       fueraDeMes.push({
-        folio,
+        id: v.id || "",
+        folio: String(v.folio || ""),
         fechaTicket
       });
     }
 
     if (fechaTicket !== fechaEsperada) {
       fueraDeDia.push({
-        folio,
+        id: v.id || "",
+        folio: String(v.folio || ""),
         fechaTicket
       });
     }
@@ -273,22 +330,31 @@ function validarTicketsContraFecha(ventas, fechaSeleccionada) {
     fueraDeMes
   };
 }
+
 /* ======================================================
    GENERAR TXT GLOBAL
    ====================================================== */
 async function generarTXT() {
-  if (!document.getElementById("confirmo").checked)
+  if (!document.getElementById("confirmo").checked) {
     return alert("Confirma cierre fiscal");
+  }
 
-  if (!ventasCache.length)
+  if (!ventasCache.length) {
     return alert("No hay ventas cargadas");
+  }
 
   const fechaSeleccionada = document.getElementById("fecha").value;
   if (!fechaSeleccionada) return alert("Selecciona fecha");
 
-  const [anioPeriodo, mesPeriodo, diaPeriodo] = fechaSeleccionada.split("-");
+  const [anioPeriodo, mesPeriodo] = fechaSeleccionada.split("-");
 
-  const revisionFechas = validarTicketsContraFecha(ventasCache, fechaSeleccionada);
+  const ventasParaFactura = ventasCache.filter(v => !estaYaFacturado(v));
+
+  if (ventasParaFactura.length === 0) {
+    return alert("No hay ventas no facturadas para procesar");
+  }
+
+  const revisionFechas = validarTicketsContraFecha(ventasParaFactura, fechaSeleccionada);
 
   if (revisionFechas.fueraDeMes.length > 0) {
     console.error("Tickets fuera de mes:", revisionFechas.fueraDeMes);
@@ -299,8 +365,6 @@ async function generarTXT() {
     console.error("Tickets fuera del día:", revisionFechas.fueraDeDia);
     return alert("Hay tickets fuera del día seleccionado. Revisa consola para detalle.");
   }
-
-  const ventasParaFactura = ventasCache;
 
   const grupos = [];
   const impuestosGlobales = {};
@@ -319,8 +383,6 @@ async function generarTXT() {
     }
     impuestosGlobales[key].base += Number(base) || 0;
   }
-
-  if (ventasParaFactura.length === 0) return alert("No hay ventas para procesar");
 
   ventasParaFactura.forEach(v => {
     const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
@@ -354,10 +416,16 @@ async function generarTXT() {
     grupos.push(grupo);
   });
 
+  if (grupos.length === 0) {
+    return alert("No hay conceptos válidos para generar la factura global");
+  }
+
   impuestosGlobal = 0;
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
-    if (ig.tasa > 0) impuestosGlobal = r2(impuestosGlobal + (ig.base * ig.tasa));
+    if (ig.tasa > 0) {
+      impuestosGlobal = r2(impuestosGlobal + (ig.base * ig.tasa));
+    }
   }
 
   const subtotal01  = r2(subtotalGlobal);
@@ -457,9 +525,8 @@ async function generarTXT() {
   alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 }
 
-
 /* ======================================================
-   👉 AQUÍ PEGA obtenerFolioSeguro()
+   FOLIO FISCAL
    ====================================================== */
 async function obtenerFolioSeguro(serie) {
   const ref = db.collection("series_fiscales").doc(serie);
@@ -479,6 +546,7 @@ async function obtenerFolioSeguro(serie) {
     return siguiente;
   });
 }
+
 async function marcarVentasComoFacturadas(ventas, serie, folio) {
   const batch = db.batch();
   const ahora = firebase.firestore.FieldValue.serverTimestamp();
@@ -512,5 +580,3 @@ function descargar(contenido, nombreArchivo) {
 </script>
 </body>
 </html>
-
-
