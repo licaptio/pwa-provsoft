@@ -827,7 +827,9 @@ body {
 
     function renderDetalle() {
       const tbody = $('tbodyDetalle');
-      const detalleFiltrado = getDetalleFiltrado();
+      const detalleFiltrado = getDetalleFiltrado().sort((a, b) => {
+      return a.item.nombre.localeCompare(b.item.nombre, 'es', { sensitivity: 'base' });
+     });
 
       if (!detalle.length) {
         tbody.innerHTML = '<tr><td colspan="10" class="muted">No hay detalle cargado.</td></tr>';
@@ -1091,6 +1093,7 @@ body {
               : [];
 
           detalle = itemsSolicitud.map(crearLineaDesdeSolicitud);
+          detalle.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
         }
 
         recalcularTodo();
