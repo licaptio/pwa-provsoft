@@ -200,10 +200,10 @@
       <div class="group-title">Configuración</div>
       <div class="config-box">
         <label>Tienda local</label>
-        <input id="tiendaLocal" placeholder="Ej. ALLENDE 1" />
+        <input id="tiendaLocal" disabled />
 
         <label>Usuario</label>
-        <input id="usuarioActual" placeholder="Ej. GERARDO" />
+        <input id="usuarioActual" disabled />
 
         <label>Tienda contraparte</label>
         <input id="tiendaDestinoDefault" placeholder="Ej. MONTEMORELOS" />
@@ -459,14 +459,14 @@
     // =============================
     // FIREBASE CONFIG
     // =============================
-    const firebaseConfig = {
-      apiKey: "PEGA_AQUI",
-      authDomain: "PEGA_AQUI",
-      projectId: "PEGA_AQUI",
-      storageBucket: "PEGA_AQUI",
-      messagingSenderId: "PEGA_AQUI",
-      appId: "PEGA_AQUI"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
@@ -474,12 +474,13 @@
     // =============================
     // ESTADO
     // =============================
+    
     let productosSolicitud = [];
-    let configLocal = {
-      tiendaLocal: localStorage.getItem('prov_intercambios_tienda') || '',
-      usuarioActual: localStorage.getItem('prov_intercambios_usuario') || '',
-      tiendaDestinoDefault: localStorage.getItem('prov_intercambios_destino') || ''
-    };
+let configLocal = {
+  tiendaLocal: 'ALLENDE 1',
+  usuarioActual: 'YAHAIRA SANTOS',
+  tiendaDestinoDefault: localStorage.getItem('prov_intercambios_destino') || 'ALLENDE 2'
+};
 
     // =============================
     // UI BASE
@@ -502,18 +503,14 @@
       document.getElementById('estadoApp').textContent = msg;
     }
 
-    function guardarConfig() {
-      configLocal.tiendaLocal = document.getElementById('tiendaLocal').value.trim();
-      configLocal.usuarioActual = document.getElementById('usuarioActual').value.trim();
-      configLocal.tiendaDestinoDefault = document.getElementById('tiendaDestinoDefault').value.trim();
+function guardarConfig() {
+  configLocal.tiendaDestinoDefault = document.getElementById('tiendaDestinoDefault').value.trim();
 
-      localStorage.setItem('prov_intercambios_tienda', configLocal.tiendaLocal);
-      localStorage.setItem('prov_intercambios_usuario', configLocal.usuarioActual);
-      localStorage.setItem('prov_intercambios_destino', configLocal.tiendaDestinoDefault);
+  localStorage.setItem('prov_intercambios_destino', configLocal.tiendaDestinoDefault);
 
-      cargarConfigUI();
-      alert('Configuración guardada.');
-    }
+  cargarConfigUI();
+  alert('Configuración guardada.');
+}
 
     function cargarConfigUI() {
       document.getElementById('tiendaLocal').value = configLocal.tiendaLocal;
@@ -559,53 +556,73 @@
     // =============================
     // PRODUCTOS
     // =============================
-    async function buscarProductos() {
-      const q = document.getElementById('busquedaProducto').value.trim().toUpperCase();
-      const box = document.getElementById('resultadosProducto');
-      box.innerHTML = '';
+let timeoutBusqueda;
 
-      if (!q) {
-        box.classList.add('hidden');
-        return;
-      }
+function buscarProductos() {
+  clearTimeout(timeoutBusqueda);
 
-      setEstado('Buscando productos...');
+  timeoutBusqueda = setTimeout(() => {
+    const q = document.getElementById('busquedaProducto').value.trim().toUpperCase();
+    const box = document.getElementById('resultadosProducto');
 
-      const snap = await db.collection('productos').limit(250).get();
-      const encontrados = [];
+    box.innerHTML = '';
 
-      snap.forEach(doc => {
-        const p = doc.data();
-        const texto = [
-          p.codigoBarra || '',
-          ...(Array.isArray(p.codigosEquivalentes) ? p.codigosEquivalentes : []),
-          p.concepto || '',
-          p.departamento || '',
-          p.marca || ''
-        ].join(' | ').toUpperCase();
-
-        if ((p.activo === true) && texto.includes(q)) {
-          encontrados.push({ id: doc.id, ...p });
-        }
-      });
-
-      encontrados.slice(0, 30).forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'search-item';
-        div.innerHTML = `<b>${p.codigoBarra || p.id}</b> - ${p.concepto || 'SIN NOMBRE'}<br><span class="muted">$${Number(p.precioPublico || 0).toFixed(2)} | ${p.departamento || ''}</span>`;
-        div.onclick = () => agregarProductoSolicitud(p);
-        box.appendChild(div);
-      });
-
-      box.classList.toggle('hidden', encontrados.length === 0);
-      if (encontrados.length === 0) {
-        box.classList.remove('hidden');
-        box.innerHTML = `<div class="search-item muted">No se encontraron productos activos.</div>`;
-      }
-
-      setEstado(`Productos encontrados: ${encontrados.length}`);
+    if (!q) {
+      box.classList.add('hidden');
+      return;
     }
 
+    setEstado('Buscando...');
+
+    const resultados = productosCache.filter(p => {
+      const texto = (
+        (p.codigoBarra || '') + ' ' +
+        (p.concepto || '') + ' ' +
+        (p.marca || '') + ' ' +
+        (p.departamento || '')
+      ).toUpperCase();
+
+      return texto.includes(q);
+    });
+
+    resultados.slice(0, 50).forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'search-item';
+
+      div.innerHTML = `
+        <b>${p.codigoBarra || p.id}</b> - 
+        ${p.concepto || 'SIN NOMBRE'}
+      `;
+
+      div.onclick = () => agregarProductoSolicitud(p);
+      box.appendChild(div);
+    });
+
+    box.classList.remove('hidden');
+
+    if (!resultados.length) {
+      box.innerHTML = `<div class="search-item muted">Sin resultados</div>`;
+    }
+
+    setEstado(`Encontrados: ${resultados.length}`);
+
+  }, 200);
+}
+
+let productosCache = [];
+
+async function cargarProductos() {
+  setEstado("Cargando productos...");
+
+  const snap = await db.collection('productos').get();
+
+  productosCache = [];
+  snap.forEach(doc => {
+    productosCache.push({ id: doc.id, ...doc.data() });
+  });
+
+  setEstado(`Productos cargados: ${productosCache.length}`);
+}
     function agregarProductoSolicitud(p) {
       const cantidad = Math.max(1, Number(document.getElementById('cantidadAgregar').value || 1));
       const codigo = p.codigoBarra || p.id;
@@ -1002,8 +1019,9 @@
     // =============================
     // INIT
     // =============================
-    cargarConfigUI();
-    renderSolicitud();
+cargarConfigUI();
+renderSolicitud();
+cargarProductos(); // 🔥 AQUÍ
   </script>
 </body>
 </html>
