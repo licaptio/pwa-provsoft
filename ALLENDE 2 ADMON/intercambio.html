@@ -474,14 +474,138 @@ const firebaseConfig = {
     // =============================
     // ESTADO
     // =============================
-    
+    let solicitudActual = null;
     let productosSolicitud = [];
 let configLocal = {
-  tiendaLocal: 'ALLENDE 1',
-  usuarioActual: 'YAHAIRA SANTOS',
-  tiendaDestinoDefault: localStorage.getItem('prov_intercambios_destino') || 'ALLENDE 2'
+  tiendaLocal: 'ALLENDE 2',
+  usuarioActual: 'ANTONIO HERNANDEZ',
+  tiendaDestinoDefault: localStorage.getItem('prov_intercambios_destino') || 'ALLENDE 1'
 };
 
+function editarItem(index, valor) {
+  solicitudActual.items[index].cantidad_solicitada = Number(valor);
+  solicitudActual.items[index].cantidad_autorizada = Number(valor);
+}
+
+function eliminarItem(index) {
+  solicitudActual.items.splice(index, 1);
+  verDetalleSolicitud(solicitudActual); // refresca
+}
+
+function cerrarModal() {
+  document.getElementById('modalDetalle').style.display = 'none';
+}
+
+function verDetalleSolicitud(data) {
+  solicitudActual = data;
+
+  const info = document.getElementById('infoSolicitud');
+
+info.innerHTML = `
+  <b>Folio:</b> ${data.folio}<br>
+  <b>Solicita:</b> ${data.tienda_solicitante}<br>
+  <b>Surte:</b> ${data.tienda_surtidora}<br>
+  <b>Estatus:</b> ${data.estatus}<br>
+  <b>Fecha solicitud:</b> ${formatearFecha(data.fecha_solicitud)}<br>
+  <b>Fecha autorización:</b> ${formatearFecha(data.fecha_autorizacion)}<br>
+  <b>Fecha surtido:</b> ${formatearFecha(data.fecha_surtido)}<br>
+  <b>Fecha recepción:</b> ${formatearFecha(data.fecha_recepcion)}
+`;
+
+  document.getElementById('tituloDetalle').innerText =
+    `Solicitud: ${data.folio}`;
+
+  const tbody = document.getElementById('detalleItems');
+  tbody.innerHTML = '';
+
+  (data.items || []).forEach((item, i) => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>${item.codigoBarra}</td>
+      <td>${item.concepto}</td>
+      <td>
+        <input type="number" value="${item.cantidad_solicitada}" 
+          style="width:80px"
+          onchange="editarItem(${i}, this.value)">
+      </td>
+      <td>
+        <button class="btn btn-danger" onclick="eliminarItem(${i})">X</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('modalDetalle').style.display = 'flex';
+}
+
+async function autorizarDesdeModal() {
+  if (!confirm("¿Autorizar solicitud?")) return;
+
+  const ahora = firebase.firestore.FieldValue.serverTimestamp();
+  const usuario = configLocal.usuarioActual;
+
+  const lote = db.batch();
+
+  const a = db.collection('TIENDAS')
+    .doc(solicitudActual.tienda_solicitante)
+    .collection('intercambios')
+    .doc(solicitudActual.folio);
+
+  const b = db.collection('TIENDAS')
+    .doc(solicitudActual.tienda_surtidora)
+    .collection('intercambios')
+    .doc(solicitudActual.folio);
+
+  const updateData = {
+    estatus: 'AUTORIZADO',
+    fecha_autorizacion: ahora,
+    autorizado_por: usuario,
+    items: solicitudActual.items,
+    updatedAt: ahora
+  };
+
+  lote.update(a, updateData);
+  lote.update(b, updateData);
+
+  await lote.commit();
+
+  cerrarModal();
+  cargarAutorizar();
+}
+
+function imprimirSolicitud() {
+  let html = `
+    <h2>Solicitud ${solicitudActual.folio}</h2>
+    <p>Solicita: ${solicitudActual.tienda_solicitante}</p>
+    <p>Surte: ${solicitudActual.tienda_surtidora}</p>
+    <hr>
+    <table border="1" width="100%" cellspacing="0">
+      <tr>
+        <th>Código</th>
+        <th>Producto</th>
+        <th>Cantidad</th>
+      </tr>
+  `;
+
+  solicitudActual.items.forEach(i => {
+    html += `
+      <tr>
+        <td>${i.codigoBarra}</td>
+        <td>${i.concepto}</td>
+        <td>${i.cantidad_solicitada}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  const w = window.open('', '', 'width=800,height=600');
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
     // =============================
     // UI BASE
     // =============================
@@ -748,44 +872,78 @@ async function cargarProductos() {
     // =============================
     // CONSULTAS
     // =============================
-    async function cargarAutorizar() {
-      const tienda = configLocal.tiendaLocal.trim();
-      if (!tienda) return;
+async function cargarAutorizar() {
+  const tienda = configLocal.tiendaLocal.trim();
+  if (!tienda) return;
 
-      const tbody = document.getElementById('tbodyAutorizar');
-      tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
+  console.log("Buscando en tienda:", tienda);
 
-      const snap = await db.collection('TIENDAS').doc(tienda).collection('intercambios')
-        .where('rol_local', '==', 'SURTE')
-        .where('estatus', '==', 'PENDIENTE_AUTORIZACION')
-        .get();
+  const tbody = document.getElementById('tbodyAutorizar');
+  tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
 
-      tbody.innerHTML = '';
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6">Sin solicitudes pendientes.</td></tr>';
-        return;
-      }
+const snap = await db.collection('TIENDAS')
+  .doc(tienda)
+  .collection('intercambios')
+  .where('rol_local', '==', 'SURTE')
+  .where('estatus', '==', 'PENDIENTE_AUTORIZACION')
+  .get();
 
-      snap.forEach(doc => {
-        const d = doc.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${d.folio}</td>
-          <td>${d.tienda_solicitante}</td>
-          <td>${d.motivo || ''}</td>
-          <td><span class="status ${getStatusClass(d.estatus)}">${d.estatus}</span></td>
-          <td>${formatearFecha(d.fecha_solicitud)}</td>
-          <td>
-            <div class="actions">
-              <button class="btn btn-ok" onclick="autorizarSolicitud('${d.folio}', '${d.tienda_solicitante}', '${d.tienda_surtidora}')">Autorizar</button>
-              <button class="btn btn-danger" onclick="rechazarSolicitud('${d.folio}', '${d.tienda_solicitante}', '${d.tienda_surtidora}')">Rechazar</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
+  tbody.innerHTML = '';
 
+  if (snap.empty) {
+    tbody.innerHTML = '<tr><td colspan="6">NO HAY DOCUMENTOS</td></tr>';
+    return;
+  }
+
+  snap.forEach(doc => {
+    const d = doc.data();
+
+    console.log("DOC:", d);
+
+      const tr = document.createElement('tr');
+
+tr.style.cursor = "pointer";
+
+tr.onclick = (e) => {
+  // Evita doble disparo si se presiona el botón
+  if (e.target.tagName === "BUTTON") return;
+
+  verDetalleSolicitudDesdeID(doc.id);
+};
+
+      tr.innerHTML = `
+        <td>${d.folio}</td>
+        <td>${d.tienda_solicitante}</td>
+        <td>${d.motivo || ''}</td>
+        <td><span class="status ${getStatusClass(d.estatus)}">${d.estatus}</span></td>
+        <td>${formatearFecha(d.fecha_solicitud)}</td>
+        <td>
+          <button class="btn btn-ok" onclick="verDetalleSolicitudDesdeID('${doc.id}')">
+            Autorizar
+          </button>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+  });
+}
+async function verDetalleSolicitudDesdeID(id) {
+  const tienda = configLocal.tiendaLocal;
+
+  const docSnap = await db.collection('TIENDAS')
+    .doc(tienda)
+    .collection('intercambios')
+    .doc(id)
+    .get();
+
+  if (!docSnap.exists) {
+    alert("No se encontró la solicitud");
+    return;
+  }
+
+  const data = { id: docSnap.id, ...docSnap.data() };
+  verDetalleSolicitud(data);
+}
     async function cargarSurtir() {
       const tienda = configLocal.tiendaLocal.trim();
       if (!tienda) return;
@@ -793,10 +951,11 @@ async function cargarProductos() {
       const tbody = document.getElementById('tbodySurtir');
       tbody.innerHTML = '<tr><td colspan="6">Cargando...</td></tr>';
 
-      const snap = await db.collection('TIENDAS').doc(tienda).collection('intercambios')
-        .where('rol_local', '==', 'SURTE')
-        .where('estatus', '==', 'AUTORIZADO')
-        .get();
+const snap = await db.collection('TIENDAS')
+  .doc(tienda)
+  .collection('intercambios')
+  .where('estatus', '==', 'PENDIENTE_AUTORIZACION')
+  .get();
 
       tbody.innerHTML = '';
       if (snap.empty) {
@@ -1023,5 +1182,38 @@ cargarConfigUI();
 renderSolicitud();
 cargarProductos(); // 🔥 AQUÍ
   </script>
+<!-- MODAL DETALLE -->
+<div id="modalDetalle" style="
+position:fixed; inset:0; background:rgba(0,0,0,.6);
+display:none; justify-content:center; align-items:center; z-index:9999;
+">
+  <div style="background:white; width:90%; max-width:900px; border-radius:16px; padding:20px;">
+
+    <h3 id="tituloDetalle">Detalle solicitud</h3>
+
+    <div id="infoSolicitud" style="margin-bottom:15px; font-size:14px;"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Cant.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="detalleItems"></tbody>
+      </table>
+    </div>
+
+    <div class="actions" style="margin-top:15px;">
+      <button class="btn btn-ok" onclick="autorizarDesdeModal()">Autorizar</button>
+      <button class="btn btn-secondary" onclick="imprimirSolicitud()">Imprimir</button>
+      <button class="btn btn-danger" onclick="cerrarModal()">Cerrar</button>
+    </div>
+
+  </div>
+</div>
 </body>
 </html>
