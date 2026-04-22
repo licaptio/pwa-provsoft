@@ -1276,6 +1276,17 @@ input:focus{
     return isNaN(num) ? 0 : num;
   }
 
+
+  function formatearMoneda(v) {
+    const n = toNumberSeguro(v);
+    return `$${n.toFixed(2)}`;
+  }
+
+  function formatearPorcentaje(v) {
+    const n = toNumberSeguro(v);
+    return `${(n * 100).toFixed(2)}%`;
+  }
+
   function tomarPrimerValor(obj, keys = []) {
     for (const key of keys) {
       const value = obj?.[key];
@@ -1773,29 +1784,82 @@ input:focus{
       "precio_publico"
     ]);
 
+    const costoSinImpuestoRaw = tomarPrimerValor(data, [
+      "costoSinImpuesto",
+      "costo",
+      "costo_sin_impuesto"
+    ]);
+
+    const ivaTasaRaw = tomarPrimerValor(data, ["ivaTasa", "iva", "iva_tasa"]);
+    const iepsTasaRaw = tomarPrimerValor(data, ["iepsTasa", "ieps", "ieps_tasa"]);
+    const medioMayoreoRaw = tomarPrimerValor(data, ["medioMayoreo", "medio_mayoreo"]);
+    const mayoreoRaw = tomarPrimerValor(data, ["mayoreo"]);
+
     const precioPublico = toNumberSeguro(precioPublicoRaw);
+    const costoSinImpuesto = toNumberSeguro(costoSinImpuestoRaw);
+    const ivaTasa = toNumberSeguro(ivaTasaRaw);
+    const iepsTasa = toNumberSeguro(iepsTasaRaw);
+    const impuestoTotal = ivaTasa + iepsTasa;
+    const costoConImpuestos = costoSinImpuesto * (1 + impuestoTotal);
+    const medioMayoreo = toNumberSeguro(medioMayoreoRaw);
+    const mayoreo = toNumberSeguro(mayoreoRaw);
+
+    const margenPrecioPublico = costoConImpuestos > 0
+      ? ((precioPublico - costoConImpuestos) / costoConImpuestos)
+      : 0;
+
+    const margenMedioMayoreo = costoConImpuestos > 0
+      ? ((medioMayoreo - costoConImpuestos) / costoConImpuestos)
+      : 0;
+
+    const margenMayoreo = costoConImpuestos > 0
+      ? ((mayoreo - costoConImpuestos) / costoConImpuestos)
+      : 0;
 
     conceptoValor.textContent = concepto;
     codigoTexto.textContent = `Código: ${codigo}`;
     precioPublicoValor.textContent = precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00";
 
     const camposSecundarios = [
-      ["Código de barras", codigo],
-      ["Clave SAT", tomarPrimerValor(data, ["claveSat", "claveSAT", "sat", "clave_sat"])],
-      ["Unidad SAT", tomarPrimerValor(data, ["unidadMedidaSat", "unidadSAT", "unidadSat", "unidad_medida_sat"])],
-      ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"])],
-      ["Marca", tomarPrimerValor(data, ["marca", "brand"])],
-      ["Activo", tomarPrimerValor(data, ["activo"])],
-      ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at"])],
-      ["Creado", tomarPrimerValor(data, ["createdAt", "fechaCreacion", "created_at"])]
+      ["Código de barras", codigo, "texto"],
+      ["Clave SAT", tomarPrimerValor(data, ["claveSat", "claveSAT", "sat", "clave_sat"]), "texto"],
+      ["Unidad SAT", tomarPrimerValor(data, ["unidadMedidaSat", "unidadSAT", "unidadSat", "unidad_medida_sat"]), "texto"],
+      ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"]), "texto"],
+      ["Marca", tomarPrimerValor(data, ["marca", "brand"]), "texto"],
+      ["Costo sin impuestos", costoSinImpuesto, "moneda"],
+      ["Impuesto", impuestoTotal, "porcentaje"],
+      ["Costo con impuestos", costoConImpuestos, "moneda"],
+      ["Precio público", precioPublico, "moneda"],
+      ["Margen público", margenPrecioPublico, "porcentaje"],
+      ["Medio mayoreo", medioMayoreo, "moneda"],
+      ["Margen medio mayoreo", margenMedioMayoreo, "porcentaje"],
+      ["Mayoreo", mayoreo, "moneda"],
+      ["Margen mayoreo", margenMayoreo, "porcentaje"],
+      ["Activo", tomarPrimerValor(data, ["activo"]), "texto"],
+      ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at"]), "fecha"],
+      ["Creado", tomarPrimerValor(data, ["createdAt", "fechaCreacion", "created_at"]), "fecha"]
     ];
 
-    infoGrid.innerHTML = camposSecundarios.map(([label, valor]) => `
-      <div class="info-item">
-        <div class="info-item-label">${label}</div>
-        <div class="info-item-value">${valorLegible(valor)}</div>
-      </div>
-    `).join("");
+    infoGrid.innerHTML = camposSecundarios.map(([label, valor, tipo]) => {
+      let valorFinal = "--";
+
+      if (tipo === "moneda") {
+        valorFinal = formatearMoneda(valor);
+      } else if (tipo === "porcentaje") {
+        valorFinal = formatearPorcentaje(valor);
+      } else if (tipo === "fecha") {
+        valorFinal = valorLegible(valor);
+      } else {
+        valorFinal = valorLegible(valor);
+      }
+
+      return `
+        <div class="info-item">
+          <div class="info-item-label">${label}</div>
+          <div class="info-item-value">${valorFinal}</div>
+        </div>
+      `;
+    }).join("");
 
     renderPreciosVolumen(data);
 
