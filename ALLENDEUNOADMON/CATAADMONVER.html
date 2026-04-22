@@ -392,37 +392,6 @@
     text-transform:uppercase;
   }
 
-  .producto-meta-grid{
-    display:grid;
-    grid-template-columns:repeat(3, minmax(0,1fr));
-    gap:10px;
-  }
-
-  .meta-chip{
-    background:#f8fafc;
-    border:1px solid #e2e8f0;
-    border-radius:14px;
-    padding:10px 12px;
-    min-height:62px;
-  }
-
-  .meta-chip-label{
-    font-size:9px;
-    font-weight:900;
-    text-transform:uppercase;
-    color:#64748b;
-    margin-bottom:4px;
-    letter-spacing:.04em;
-  }
-
-  .meta-chip-value{
-    font-size:12px;
-    font-weight:800;
-    color:#0f172a;
-    word-break:break-word;
-    line-height:1.25;
-  }
-
   .precio-publico-card{
     padding:16px;
     min-height:132px;
@@ -594,6 +563,156 @@
     flex:0 0 auto;
   }
 
+  .btn-camara{
+    background:#eefcf3;
+    color:#0f6b36;
+    border-color:#bbf7d0;
+  }
+
+  .btn-camara:hover{
+    background:#dcfce7;
+  }
+
+  .scanner-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.72);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:2500;
+    padding:16px;
+  }
+
+  .scanner-overlay.hidden{
+    display:none;
+  }
+
+  .scanner-box{
+    width:min(560px, 100%);
+    background:#fff;
+    border-radius:22px;
+    overflow:hidden;
+    border:1px solid #dbe2ea;
+    box-shadow:0 20px 60px rgba(0,0,0,.32);
+  }
+
+  .scanner-head{
+    padding:14px 16px;
+    background:linear-gradient(135deg,var(--azul3),var(--azul));
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .scanner-head h3{
+    margin:0;
+    font-size:16px;
+  }
+
+  .scanner-head p{
+    margin:3px 0 0;
+    font-size:11px;
+    color:#dbeafe;
+    font-weight:600;
+  }
+
+  .scanner-close{
+    border:none;
+    width:34px;
+    height:34px;
+    border-radius:999px;
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    cursor:pointer;
+    font-size:18px;
+    font-weight:900;
+  }
+
+  .scanner-body{
+    padding:14px;
+  }
+
+  .scanner-video-wrap{
+    position:relative;
+    border-radius:18px;
+    overflow:hidden;
+    background:#0f172a;
+    aspect-ratio:3/4;
+    max-height:70vh;
+  }
+
+  .scanner-video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  .scanner-target{
+    position:absolute;
+    inset:50% auto auto 50%;
+    width:min(78%, 360px);
+    height:120px;
+    transform:translate(-50%, -50%);
+    border:3px solid rgba(34,197,94,.95);
+    border-radius:18px;
+    box-shadow:0 0 0 200vmax rgba(0,0,0,.18);
+    pointer-events:none;
+  }
+
+  .scanner-target::before,
+  .scanner-target::after{
+    content:"";
+    position:absolute;
+    width:28px;
+    height:28px;
+    border:4px solid #fff;
+  }
+
+  .scanner-target::before{
+    top:-4px;
+    left:-4px;
+    border-right:none;
+    border-bottom:none;
+    border-radius:14px 0 0 0;
+  }
+
+  .scanner-target::after{
+    right:-4px;
+    bottom:-4px;
+    border-left:none;
+    border-top:none;
+    border-radius:0 0 14px 0;
+  }
+
+  .scanner-status{
+    margin-top:12px;
+    border-radius:12px;
+    padding:10px 12px;
+    background:#eff6ff;
+    border:1px solid #dbeafe;
+    color:#1d4ed8;
+    font-size:12px;
+    font-weight:700;
+  }
+
+  .scanner-actions{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    flex-wrap:wrap;
+  }
+
+  .scanner-note{
+    margin-top:8px;
+    font-size:11px;
+    color:#64748b;
+    line-height:1.35;
+  }
+
   .overlay-carga{
     position:fixed;
     inset:0;
@@ -671,271 +790,111 @@
       grid-template-columns:1fr;
     }
 
-    .producto-meta-grid{
-      grid-template-columns:repeat(3, minmax(0,1fr));
+    .precio-publico-card{
+      padding:14px 12px;
     }
 
-    .main{
-      overflow:visible;
+    .precio-big{
+      font-size:34px;
+      margin:6px 0;
+    }
+
+    .precio-sub,
+    .precio-sub2{
+      font-size:10px;
+    }
+
+    .detalle-grid{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .detalle-grid .panel-card:first-child{
+      order:2;
+    }
+
+    .detalle-grid .panel-card:last-child{
+      order:1;
     }
 
     .panel-card{
-      min-height:auto;
+      padding:12px;
+    }
+
+    .panel-title{
+      font-size:12px;
+      margin-bottom:10px;
     }
 
     .info-grid{
-      grid-template-columns:repeat(auto-fill, minmax(210px,1fr));
-      overflow:visible;
+      grid-template-columns:1fr;
+      gap:8px;
+    }
+
+    .info-item{
+      padding:9px 10px;
+      border-radius:12px;
+    }
+
+    .info-item-label{
+      font-size:8px;
+    }
+
+    .info-item-value{
+      font-size:12px;
     }
 
     .metric-list{
-      overflow:visible;
+      gap:8px;
+    }
+
+    .metric-row{
+      flex-direction:column;
+      align-items:flex-start;
+      padding:9px 10px;
+      gap:6px;
+      border-radius:12px;
+    }
+
+    .metric-left{
+      font-size:12px;
+    }
+
+    .metric-right{
+      text-align:left;
+      font-size:14px;
+      padding-left:18px;
+    }
+
+    .metric-pct{
+      margin-left:6px;
+      font-size:11px;
+    }
+
+    .margen-footer{
+      margin-top:10px;
+      font-size:10px;
+      padding:9px 10px;
+    }
+
+    .sugerencias{
+      max-height:260px;
+      border-radius:12px;
+    }
+
+    .sugerencia-item{
+      padding:9px 10px;
+    }
+
+    .sugerencia-title{
+      font-size:13px;
+    }
+
+    .sugerencia-meta{
+      font-size:10px;
     }
   }
-
-@media (max-width: 768px){
-  html, body{
-    overflow:auto;
-    height:auto;
-  }
-
-  body{
-    padding:8px;
-    height:auto;
-  }
-
-  .app{
-    height:auto;
-    min-height:100vh;
-    overflow:visible;
-  }
-
-  .card{
-    height:auto;
-    min-height:calc(100vh - 16px);
-    border-radius:18px;
-  }
-
-  .head{
-    padding:10px 12px;
-    flex-direction:column;
-    align-items:stretch;
-    gap:10px;
-  }
-
-  .head-left{
-    gap:8px;
-  }
-
-  .head-icon{
-    width:30px;
-    height:30px;
-    font-size:16px;
-  }
-
-  .head h1{
-    font-size:17px;
-    line-height:1.15;
-  }
-
-  .head p{
-    font-size:10px;
-    line-height:1.35;
-  }
-
-  .head-badge{
-    min-width:unset;
-    width:100%;
-    padding:8px 10px;
-  }
-
-  .panel{
-    padding:10px 10px 12px;
-  }
-
-  .panel-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .acciones{
-    justify-content:stretch;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-
-  .btn-sec{
-    width:100%;
-    text-align:center;
-    font-size:12px;
-    padding:10px 10px;
-    min-height:40px;
-  }
-
-  .status-row{
-    align-items:flex-start;
-    flex-direction:column;
-    gap:6px;
-  }
-
-  .mini-legend{
-    font-size:10px;
-    width:100%;
-  }
-
-  .main{
-    padding:10px;
-    gap:10px;
-  }
-
-  .resumen-top{
-    grid-template-columns:1fr;
-    gap:10px;
-  }
-
-  .producto-card,
-  .precio-publico-card,
-  .panel-card{
-    border-radius:16px;
-  }
-
-  .producto-card{
-    padding:12px;
-  }
-
-  .producto-nombre{
-    font-size:16px;
-    margin-bottom:10px;
-    line-height:1.12;
-  }
-
-  .producto-meta-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .meta-chip{
-    padding:9px 10px;
-    border-radius:12px;
-  }
-
-  .meta-chip-label{
-    font-size:8px;
-  }
-
-  .meta-chip-value{
-    font-size:12px;
-  }
-
-  .precio-publico-card{
-    padding:14px 12px;
-  }
-
-  .precio-big{
-    font-size:34px;
-    margin:6px 0;
-  }
-
-  .precio-sub,
-  .precio-sub2{
-    font-size:10px;
-  }
-
-  /* 🔥 AQUÍ ESTÁ LA MAGIA: CAMBIO DE ORDEN */
-  .detalle-grid{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-
-  /* FICHA TÉCNICA → ABAJO */
-  .detalle-grid .panel-card:first-child{
-    order:2;
-  }
-
-  /* COSTOS Y MÁRGENES → ARRIBA */
-  .detalle-grid .panel-card:last-child{
-    order:1;
-  }
-
-  .panel-card{
-    padding:12px;
-  }
-
-  .panel-title{
-    font-size:12px;
-    margin-bottom:10px;
-  }
-
-  .info-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .info-item{
-    padding:9px 10px;
-    border-radius:12px;
-  }
-
-  .info-item-label{
-    font-size:8px;
-  }
-
-  .info-item-value{
-    font-size:12px;
-  }
-
-  .metric-list{
-    gap:8px;
-  }
-
-  .metric-row{
-    flex-direction:column;
-    align-items:flex-start;
-    padding:9px 10px;
-    gap:6px;
-    border-radius:12px;
-  }
-
-  .metric-left{
-    font-size:12px;
-  }
-
-  .metric-right{
-    text-align:left;
-    font-size:14px;
-    padding-left:18px;
-  }
-
-  .metric-pct{
-    margin-left:6px;
-    font-size:11px;
-  }
-
-  .margen-footer{
-    margin-top:10px;
-    font-size:10px;
-    padding:9px 10px;
-  }
-
-  .sugerencias{
-    max-height:260px;
-    border-radius:12px;
-  }
-
-  .sugerencia-item{
-    padding:9px 10px;
-  }
-
-  .sugerencia-title{
-    font-size:13px;
-  }
-
-  .sugerencia-meta{
-    font-size:10px;
-  }
-}
 
   @media (max-width: 480px){
     body{
@@ -1048,6 +1007,30 @@
 </style>
 </head>
 <body>
+  <div class="scanner-overlay hidden" id="scannerOverlay">
+    <div class="scanner-box">
+      <div class="scanner-head">
+        <div>
+          <h3>Escanear código</h3>
+          <p>Apunta la cámara al código de barras para buscar automáticamente.</p>
+        </div>
+        <button type="button" class="scanner-close" id="btnCerrarCamara">✕</button>
+      </div>
+      <div class="scanner-body">
+        <div class="scanner-video-wrap">
+          <video id="scannerVideo" class="scanner-video" playsinline autoplay muted></video>
+          <div class="scanner-target"></div>
+        </div>
+        <div class="scanner-status" id="scannerStatus">Preparando cámara...</div>
+        <div class="scanner-actions">
+          <button type="button" class="btn-sec" id="btnReintentarCamara">🔄 Reintentar</button>
+          <button type="button" class="btn-sec" id="btnUsarManual">⌨️ Escribir manual</button>
+        </div>
+        <div class="scanner-note">Funciona mejor con buena luz y acercando el código dentro del recuadro verde.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay-carga" id="overlayCarga">
     <div class="caja-carga">
       <h2>Cargando catálogo</h2>
@@ -1094,7 +1077,7 @@
 
           <div class="acciones">
             <button class="btn-sec" id="btnLimpiar">🧹 Limpiar búsqueda</button>
-            <button class="btn-sec" id="btnExportar">📄 Exportar datos</button>
+            <button class="btn-sec btn-camara" id="btnAbrirCamara">📷 Tomar cámara</button>
           </div>
         </div>
 
@@ -1109,23 +1092,6 @@
           <div class="producto-card">
             <div class="mini-title">PRODUCTO</div>
             <div class="producto-nombre" id="conceptoValor">Sin consultar</div>
-
-            <div class="producto-meta-grid">
-              <div class="meta-chip">
-                <div class="meta-chip-label">Código de barras</div>
-                <div class="meta-chip-value" id="codigoBarraMini">--</div>
-              </div>
-
-              <div class="meta-chip">
-                <div class="meta-chip-label">Clave SAT</div>
-                <div class="meta-chip-value" id="claveSatMini">--</div>
-              </div>
-
-              <div class="meta-chip">
-                <div class="meta-chip-label">Unidad SAT</div>
-                <div class="meta-chip-value" id="unidadSatMini">--</div>
-              </div>
-            </div>
           </div>
 
           <div class="precio-publico-card">
@@ -1157,7 +1123,7 @@
               <div class="metric-row">
                 <div class="metric-left">
                   <span class="metric-dot morado"></span>
-                  <span>Impuesto IVA (16.00%)</span>
+                  <span id="impuestoLabel">Impuestos</span>
                 </div>
                 <div class="metric-right" id="ivaCostoValor">$0.00</div>
               </div>
@@ -1175,13 +1141,16 @@
                   <span class="metric-dot azul2"></span>
                   <span>Precio público</span>
                 </div>
-                <div class="metric-right" id="precioPublicoResumenValor">$0.00</div>
+                <div class="metric-right">
+                  <span id="precioPublicoResumenValor">$0.00</span>
+                  <small id="margenPublicoPct" class="metric-pct">0%</small>
+                </div>
               </div>
 
               <div class="metric-row">
                 <div class="metric-left">
                   <span class="metric-dot naranja"></span>
-                  <span>Margen mayoreo</span>
+                  <span>Medio mayoreo</span>
                 </div>
                 <div class="metric-right">
                   <span id="precioMayoreoValor">$0.00</span>
@@ -1202,7 +1171,7 @@
             </div>
 
             <div class="margen-footer">
-              Margen calculado sobre costo total con impuestos (IVA 16)
+              Margen calculado sobre costo total con impuestos aplicables, incluyendo precio público, medio mayoreo y mayoreo
             </div>
           </section>
         </div>
@@ -1239,14 +1208,12 @@
     const precioPublicoValor = document.getElementById("precioPublicoValor");
     const infoGrid = document.getElementById("infoGrid");
 
-    const codigoBarraMini = document.getElementById("codigoBarraMini");
-    const claveSatMini = document.getElementById("claveSatMini");
-    const unidadSatMini = document.getElementById("unidadSatMini");
-
     const costoSinImpuestosValor = document.getElementById("costoSinImpuestosValor");
     const ivaCostoValor = document.getElementById("ivaCostoValor");
+    const impuestoLabel = document.getElementById("impuestoLabel");
     const costoConImpuestosValor = document.getElementById("costoConImpuestosValor");
     const precioPublicoResumenValor = document.getElementById("precioPublicoResumenValor");
+    const margenPublicoPct = document.getElementById("margenPublicoPct");
     const precioMayoreoValor = document.getElementById("precioMayoreoValor");
     const margenMayoreoPct = document.getElementById("margenMayoreoPct");
     const precioMayoreo2Valor = document.getElementById("precioMayoreo2Valor");
@@ -1257,13 +1224,25 @@
     const cargaTexto = document.getElementById("cargaTexto");
 
     const btnLimpiar = document.getElementById("btnLimpiar");
-    const btnExportar = document.getElementById("btnExportar");
+    const btnAbrirCamara = document.getElementById("btnAbrirCamara");
     const btnClearMini = document.getElementById("btnClearMini");
+    const scannerOverlay = document.getElementById("scannerOverlay");
+    const scannerVideo = document.getElementById("scannerVideo");
+    const scannerStatus = document.getElementById("scannerStatus");
+    const btnCerrarCamara = document.getElementById("btnCerrarCamara");
+    const btnReintentarCamara = document.getElementById("btnReintentarCamara");
+    const btnUsarManual = document.getElementById("btnUsarManual");
 
     let catalogoProductos = [];
     let sugerenciasActuales = [];
     let indiceActivo = -1;
     let productoActual = null;
+    let scannerStream = null;
+    let barcodeDetector = null;
+    let scannerActivo = false;
+    let scannerFrameId = null;
+    let ultimoCodigoDetectado = "";
+    let ultimoScanAt = 0;
 
     function mostrarStatus(msg, tipo = "ok") {
       statusBox.className = `status ${tipo}`;
@@ -1280,16 +1259,14 @@
       conceptoValor.textContent = "Sin datos";
       precioPublicoValor.textContent = "$---";
 
-      codigoBarraMini.textContent = "--";
-      claveSatMini.textContent = "--";
-      unidadSatMini.textContent = "--";
-
       infoGrid.innerHTML = "";
 
       costoSinImpuestosValor.textContent = "$0.00";
       ivaCostoValor.textContent = "$0.00";
+      if (impuestoLabel) impuestoLabel.textContent = "Impuestos";
       costoConImpuestosValor.textContent = "$0.00";
       precioPublicoResumenValor.textContent = "$0.00";
+      if (margenPublicoPct) margenPublicoPct.textContent = "0%";
       precioMayoreoValor.textContent = "$0.00";
       margenMayoreoPct.textContent = "0%";
       precioMayoreo2Valor.textContent = "$0.00";
@@ -1354,6 +1331,12 @@
       const limpio = String(v).replace(/[^0-9.-]/g, "");
       const num = Number(limpio);
       return isNaN(num) ? 0 : num;
+    }
+
+    function normalizarTasa(valor) {
+      const n = toNumberSeguro(valor);
+      if (!isFinite(n) || n <= 0) return 0;
+      return n > 1 ? n / 100 : n;
     }
 
     function tomarPrimerValor(obj, keys = []) {
@@ -1504,6 +1487,7 @@
       ]);
 
       const costoRaw = tomarPrimerValor(data, [
+        "costoSinImpuesto",
         "costo",
         "costoCompra",
         "costoUnitario",
@@ -1525,35 +1509,60 @@
 
       const precioPublico = toNumberSeguro(precioPublicoRaw);
       const costoSinImp = toNumberSeguro(costoRaw);
-      const ivaCosto = costoSinImp * 0.16;
-      const costoConImp = costoSinImp + ivaCosto;
 
-      const mayoreo1 = listaMayoreo[0]
+      const ivaTasa = normalizarTasa(tomarPrimerValor(data, [
+        "ivaTasa",
+        "iva",
+        "tasaIva"
+      ]));
+
+      const iepsTasa = normalizarTasa(tomarPrimerValor(data, [
+        "iepsTasa",
+        "ieps",
+        "tasaIeps"
+      ]));
+
+      const ivaImporte = costoSinImp * ivaTasa;
+      const iepsImporte = costoSinImp * iepsTasa;
+      const impuestoTotal = ivaImporte + iepsImporte;
+      const costoConImp = costoSinImp + impuestoTotal;
+
+      const medioMayoreo = listaMayoreo[0]
         ? toNumberSeguro(listaMayoreo[0].precioUnitario ?? listaMayoreo[0].precio ?? listaMayoreo[0].unitario ?? 0)
-        : 0;
+        : toNumberSeguro(tomarPrimerValor(data, ["medioMayoreo", "precioMedioMayoreo"]));
 
-      const mayoreo2 = listaMayoreo[1]
+      const mayoreo = listaMayoreo[1]
         ? toNumberSeguro(listaMayoreo[1].precioUnitario ?? listaMayoreo[1].precio ?? listaMayoreo[1].unitario ?? 0)
-        : 0;
+        : toNumberSeguro(tomarPrimerValor(data, ["mayoreo", "precioMayoreo"]));
 
-      const margen1 = costoConImp > 0 ? ((mayoreo1 - costoConImp) / costoConImp) * 100 : 0;
-      const margen2 = costoConImp > 0 ? ((mayoreo2 - costoConImp) / costoConImp) * 100 : 0;
+      const margenPublico = costoConImp > 0 ? ((precioPublico - costoConImp) / costoConImp) * 100 : 0;
+      const margenMedio = costoConImp > 0 ? ((medioMayoreo - costoConImp) / costoConImp) * 100 : 0;
+      const margenMayoreo = costoConImp > 0 ? ((mayoreo - costoConImp) / costoConImp) * 100 : 0;
+
+      let partesImpuesto = [];
+      if (ivaTasa > 0) partesImpuesto.push(`IVA ${(ivaTasa * 100).toFixed(2)}%`);
+      if (iepsTasa > 0) partesImpuesto.push(`IEPS ${(iepsTasa * 100).toFixed(2)}%`);
+      if (impuestoLabel) {
+        impuestoLabel.textContent = partesImpuesto.length
+          ? `Impuestos (${partesImpuesto.join(" + ")})`
+          : "Impuestos";
+      }
 
       conceptoValor.textContent = concepto;
       precioPublicoValor.textContent = precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00";
 
-      codigoBarraMini.textContent = codigo;
-      claveSatMini.textContent = valorLegible(claveSat);
-      unidadSatMini.textContent = valorLegible(unidadSat);
-
       costoSinImpuestosValor.textContent = `$${costoSinImp.toFixed(2)}`;
-      ivaCostoValor.textContent = `$${ivaCosto.toFixed(2)}`;
+      ivaCostoValor.textContent = `$${impuestoTotal.toFixed(2)}`;
       costoConImpuestosValor.textContent = `$${costoConImp.toFixed(2)}`;
+
       precioPublicoResumenValor.textContent = `$${precioPublico.toFixed(2)}`;
-      precioMayoreoValor.textContent = `$${mayoreo1.toFixed(2)}`;
-      margenMayoreoPct.textContent = `${margen1.toFixed(2)}%`;
-      precioMayoreo2Valor.textContent = `$${mayoreo2.toFixed(2)}`;
-      margenMayoreo2Pct.textContent = `${margen2.toFixed(2)}%`;
+      if (margenPublicoPct) margenPublicoPct.textContent = `${margenPublico.toFixed(2)}%`;
+
+      precioMayoreoValor.textContent = `$${medioMayoreo.toFixed(2)}`;
+      margenMayoreoPct.textContent = `${margenMedio.toFixed(2)}%`;
+
+      precioMayoreo2Valor.textContent = `$${mayoreo.toFixed(2)}`;
+      margenMayoreo2Pct.textContent = `${margenMayoreo.toFixed(2)}%`;
 
       const camposSecundarios = [
         ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"])],
@@ -1565,7 +1574,7 @@
         ["Unidad de medida SAT", unidadSat],
         ["Precio público", precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00"],
         ["Creado", tomarPrimerValor(data, ["createdAt", "fechaCreacion", "created_at"])],
-        ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at"])]
+        ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at", "actualizadoEn"])]
       ];
 
       infoGrid.innerHTML = camposSecundarios.map(([label, valor]) => `
@@ -1765,34 +1774,112 @@
       }
     }
 
-    function exportarProductoActual() {
-      if (!productoActual) {
-        mostrarStatus("No hay producto seleccionado para exportar.", "error");
+    function scannerDisponible() {
+      return typeof window !== "undefined" && "BarcodeDetector" in window;
+    }
+
+    async function iniciarScanner() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        scannerStatus.textContent = "Este dispositivo no permite abrir la cámara desde el navegador.";
+        mostrarStatus("La cámara no está disponible en este navegador.", "error");
         return;
       }
 
+      scannerOverlay.classList.remove("hidden");
+      scannerStatus.textContent = "Abriendo cámara...";
+
       try {
-        const data = productoActual.data || {};
-        const blob = new Blob(
-          [JSON.stringify(data, null, 2)],
-          { type: "application/json;charset=utf-8" }
-        );
+        if (scannerDisponible()) {
+          try {
+            barcodeDetector = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39", "itf"] });
+          } catch {
+            barcodeDetector = new BarcodeDetector();
+          }
+        } else {
+          barcodeDetector = null;
+        }
 
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const nombre = (data.codigoBarra || data.codigo || productoActual.id || "producto").toString().replace(/[^\w\-]+/g, "_");
+        scannerStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false
+        });
 
-        a.href = url;
-        a.download = `producto_${nombre}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        scannerVideo.srcObject = scannerStream;
+        await scannerVideo.play();
+        scannerActivo = true;
+        ultimoCodigoDetectado = "";
+        ultimoScanAt = 0;
 
-        mostrarStatus("Datos del producto exportados.", "ok");
+        if (barcodeDetector) {
+          scannerStatus.textContent = "Cámara lista. Busca el código automáticamente...";
+          escanearFrame();
+        } else {
+          scannerStatus.textContent = "La cámara ya está abierta, pero este navegador no soporta lectura automática. Escribe el código manualmente.";
+        }
       } catch (error) {
-        console.error(error);
-        mostrarStatus("No se pudo exportar el producto.", "error");
+        console.error("Error al abrir la cámara:", error);
+        scannerStatus.textContent = "No se pudo abrir la cámara. Revisa permisos o usa captura manual.";
+        mostrarStatus("No se pudo abrir la cámara.", "error");
+      }
+    }
+
+    async function escanearFrame() {
+      if (!scannerActivo || !barcodeDetector) return;
+
+      try {
+        const codigos = await barcodeDetector.detect(scannerVideo);
+        if (codigos?.length) {
+          const valor = String(codigos[0].rawValue || "").trim();
+          const ahora = Date.now();
+          if (valor && (valor !== ultimoCodigoDetectado || ahora - ultimoScanAt > 1500)) {
+            ultimoCodigoDetectado = valor;
+            ultimoScanAt = ahora;
+            scannerStatus.textContent = `Código detectado: ${valor}`;
+            usarCodigoEscaneado(valor);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Error al detectar código:", error);
+      }
+
+      scannerFrameId = requestAnimationFrame(escanearFrame);
+    }
+
+    function detenerScanner() {
+      scannerActivo = false;
+      if (scannerFrameId) {
+        cancelAnimationFrame(scannerFrameId);
+        scannerFrameId = null;
+      }
+
+      if (scannerVideo) {
+        scannerVideo.pause();
+        scannerVideo.srcObject = null;
+      }
+
+      if (scannerStream) {
+        scannerStream.getTracks().forEach(track => track.stop());
+        scannerStream = null;
+      }
+    }
+
+    function cerrarScanner() {
+      detenerScanner();
+      scannerOverlay.classList.add("hidden");
+    }
+
+    function usarCodigoEscaneado(valor) {
+      busquedaInput.value = valor;
+      actualizarBotonClear();
+      cerrarScanner();
+      manejarInput();
+
+      const encontrados = buscarLocal(valor);
+      if (encontrados[0]) {
+        seleccionarProducto(encontrados[0]);
+      } else {
+        mostrarStatus(`No se encontró el código ${valor}.`, "error");
       }
     }
 
@@ -1831,6 +1918,12 @@
       }
     });
 
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !scannerOverlay.classList.contains("hidden")) {
+        cerrarScanner();
+      }
+    });
+
     btnLimpiar.addEventListener("click", () => {
       busquedaInput.value = "";
       actualizarBotonClear();
@@ -1848,7 +1941,25 @@
       busquedaInput.focus();
     });
 
-    btnExportar.addEventListener("click", exportarProductoActual);
+    btnAbrirCamara.addEventListener("click", iniciarScanner);
+
+    btnCerrarCamara.addEventListener("click", cerrarScanner);
+    btnReintentarCamara.addEventListener("click", async () => {
+      detenerScanner();
+      await iniciarScanner();
+    });
+
+    btnUsarManual.addEventListener("click", () => {
+      cerrarScanner();
+      busquedaInput.focus();
+      mostrarStatus("Escribe o pega el código manualmente en el buscador.", "info");
+    });
+
+    scannerOverlay.addEventListener("click", (e) => {
+      if (e.target === scannerOverlay) cerrarScanner();
+    });
+
+    window.addEventListener("beforeunload", detenerScanner);
 
     iniciarCatalogo();
     actualizarBotonClear();
