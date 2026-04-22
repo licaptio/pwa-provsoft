@@ -1,1857 +1,212 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
-  <title>Consulta de Productos - PROVSOFT</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consulta Productos PROVSOFT</title>
 
 <style>
-  :root{
-    --azul:#173f7a;
-    --azul2:#2563eb;
-    --azul3:#0f2f5f;
-    --gris:#e5e7eb;
-    --gris2:#f8fafc;
-    --gris3:#cbd5e1;
-    --texto:#1f2937;
-    --texto2:#475569;
-    --verde:#16a34a;
-    --verde2:#15803d;
-    --rojo:#dc2626;
-    --naranja:#f59e0b;
-    --morado:#7c3aed;
-    --blanco:#ffffff;
-    --shadow:0 10px 28px rgba(0,0,0,.10);
-    --shadow2:0 16px 40px rgba(15,23,42,.10);
-    --radius:18px;
-  }
-
-  *{ box-sizing:border-box; }
-
-  html, body{
-    margin:0;
-    padding:0;
-    width:100%;
-    height:100%;
-    font-family:Arial, Helvetica, sans-serif;
-    background:linear-gradient(135deg,#eef4f9,#f8fbff);
-    color:var(--texto);
-    overflow:hidden;
-  }
-
-  body{
-    padding:12px;
-    height:100vh;
-  }
-
-  .app{
-    width:100%;
-    max-width:1550px;
-    height:100%;
-    margin:auto;
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-  }
-
-  .card{
-    background:#fff;
-    border-radius:22px;
-    box-shadow:var(--shadow2);
-    overflow:hidden;
-    flex:1;
-    min-height:0;
-    display:flex;
-    flex-direction:column;
-    height:100%;
-    border:1px solid #e6edf5;
-  }
-
-  .head{
-    background:linear-gradient(135deg,var(--azul3),var(--azul));
-    color:#fff;
-    padding:12px 16px;
-    flex:0 0 auto;
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap:12px;
-  }
-
-  .head-left{
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    min-width:0;
-  }
-
-  .head-icon{
-    width:34px;
-    height:34px;
-    border-radius:8px;
-    background:rgba(255,255,255,.14);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:18px;
-    border:1px solid rgba(255,255,255,.12);
-    flex:0 0 auto;
-  }
-
-  .head h1{
-    margin:0;
-    font-size:20px;
-    line-height:1.1;
-    font-weight:900;
-  }
-
-  .head p{
-    margin:4px 0 0;
-    opacity:.95;
-    font-size:11px;
-    color:#dbeafe;
-    font-weight:600;
-  }
-
-  .head-badge{
-    background:rgba(255,255,255,.10);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:10px;
-    padding:8px 10px;
-    min-width:120px;
-    text-align:left;
-    flex:0 0 auto;
-  }
-
-  .head-badge .dot{
-    display:inline-block;
-    width:7px;
-    height:7px;
-    border-radius:50%;
-    background:#22c55e;
-    margin-right:6px;
-    vertical-align:middle;
-  }
-
-  .head-badge .t1{
-    font-size:10px;
-    color:#c7e1ff;
-    font-weight:700;
-  }
-
-  .head-badge .t2{
-    font-size:11px;
-    color:#fff;
-    font-weight:900;
-    margin-top:2px;
-  }
-
-  .panel{
-    padding:10px 14px;
-    border-bottom:1px solid #e5e7eb;
-    background:#fcfdff;
-    flex:0 0 auto;
-  }
-
-  .panel-grid{
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto;
-    gap:10px;
-    align-items:center;
-  }
-
-  .buscador-wrap{
-    position:relative;
-    min-width:0;
-  }
-
-  .input-icon-wrap{
-    position:relative;
-  }
-
-  .input-icon{
-    position:absolute;
-    left:12px;
-    top:50%;
-    transform:translateY(-50%);
-    color:#64748b;
-    font-size:14px;
-    pointer-events:none;
-  }
-
-  input{
-    width:100%;
-    height:42px;
-    padding:10px 38px 10px 34px;
-    border-radius:10px;
-    border:1px solid #d1d5db;
-    font-size:14px;
-    background:#fff;
-  }
-
-  input:focus{
-    outline:none;
-    border-color:var(--azul2);
-    box-shadow:0 0 0 3px rgba(37,99,235,.10);
-  }
-
-  .clear-mini{
-    position:absolute;
-    right:10px;
-    top:50%;
-    transform:translateY(-50%);
-    width:20px;
-    height:20px;
-    border-radius:999px;
-    border:none;
-    background:#e2e8f0;
-    color:#475569;
-    font-size:12px;
-    font-weight:900;
-    cursor:pointer;
-    display:none;
-    align-items:center;
-    justify-content:center;
-  }
-
-  .clear-mini.show{
-    display:flex;
-  }
-
-  .acciones{
-    display:flex;
-    gap:8px;
-    flex-wrap:wrap;
-    justify-content:flex-end;
-  }
-
-  .btn-sec{
-    width:auto;
-    padding:9px 14px;
-    border:none;
-    border-radius:10px;
-    background:#eef6ff;
-    color:#0f3b73;
-    font-weight:800;
-    cursor:pointer;
-    white-space:nowrap;
-    transition:.18s ease;
-    font-size:12px;
-    border:1px solid #dbeafe;
-  }
-
-  .btn-sec:hover{
-    background:#dbeafe;
-    transform:translateY(-1px);
-  }
-
-  .status{
-    margin-top:8px;
-    padding:8px 12px;
-    border-radius:10px;
-    font-size:12px;
-    display:none;
-    font-weight:700;
-  }
-
-  .status.ok{
-    display:block;
-    background:#ecfdf3;
-    color:var(--verde2);
-    border:1px solid #bbf7d0;
-  }
-
-  .status.error{
-    display:block;
-    background:#fef2f2;
-    color:#b91c1c;
-    border:1px solid #fecaca;
-  }
-
-  .status.info{
-    display:block;
-    background:#eff6ff;
-    color:#1d4ed8;
-    border:1px solid #bfdbfe;
-  }
-
-  .status-row{
-    display:flex;
-    justify-content:space-between;
-    gap:12px;
-    align-items:center;
-    flex-wrap:wrap;
-  }
-
-  .mini-legend{
-    font-size:10px;
-    color:#64748b;
-    font-weight:700;
-  }
-
-  .sugerencias{
-    position:absolute;
-    top:calc(100% + 6px);
-    left:0;
-    right:0;
-    background:#fff;
-    border:1px solid #dbe2ea;
-    border-radius:14px;
-    box-shadow:0 18px 40px rgba(0,0,0,.14);
-    display:none;
-    z-index:50;
-    max-height:280px;
-    overflow:auto;
-  }
-
-  .sugerencias.show{ display:block; }
-
-  .sugerencia-item{
-    padding:10px 12px;
-    border-bottom:1px solid #eef2f7;
-    cursor:pointer;
-    transition:.15s;
-  }
-
-  .sugerencia-item:last-child{ border-bottom:none; }
-
-  .sugerencia-item:hover,
-  .sugerencia-item.active{
-    background:#f0f7ff;
-  }
-
-  .sugerencia-title{
-    font-size:14px;
-    font-weight:900;
-    color:#111827;
-    margin-bottom:2px;
-  }
-
-  .sugerencia-meta{
-    font-size:11px;
-    color:#475569;
-    line-height:1.3;
-  }
-
-  .main{
-    flex:1;
-    min-height:0;
-    padding:12px 14px 14px;
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-    overflow:auto;
-    background:#f8fafc;
-  }
-
-  .resumen-top{
-    display:grid;
-    grid-template-columns:2.1fr 1fr;
-    gap:12px;
-    min-height:132px;
-  }
-
-  .producto-card,
-  .precio-publico-card,
-  .panel-card{
-    background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
-    border:1px solid #e5e7eb;
-    border-radius:18px;
-    box-shadow:0 6px 18px rgba(15,23,42,.06);
-  }
-
-  .producto-card{
-    padding:14px 16px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    min-height:132px;
-  }
-
-  .mini-title{
-    font-size:10px;
-    font-weight:900;
-    letter-spacing:.08em;
-    color:#64748b;
-    margin-bottom:8px;
-    text-transform:uppercase;
-  }
-
-  .mini-title.right{
-    text-align:center;
-    color:#2563eb;
-  }
-
-  .producto-nombre{
-    font-size:19px;
-    font-weight:900;
-    line-height:1.08;
-    color:#1e3a8a;
-    margin-bottom:12px;
-    word-break:break-word;
-    text-transform:uppercase;
-  }
-
-  .producto-meta-grid{
-    display:grid;
-    grid-template-columns:repeat(3, minmax(0,1fr));
-    gap:10px;
-  }
-
-  .meta-chip{
-    background:#f8fafc;
-    border:1px solid #e2e8f0;
-    border-radius:14px;
-    padding:10px 12px;
-    min-height:62px;
-  }
-
-  .meta-chip-label{
-    font-size:9px;
-    font-weight:900;
-    text-transform:uppercase;
-    color:#64748b;
-    margin-bottom:4px;
-    letter-spacing:.04em;
-  }
-
-  .meta-chip-value{
-    font-size:12px;
-    font-weight:800;
-    color:#0f172a;
-    word-break:break-word;
-    line-height:1.25;
-  }
-
-  .precio-publico-card{
-    padding:16px;
-    min-height:132px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-  }
-
-  .precio-big{
-    font-size:44px;
-    line-height:1;
-    font-weight:900;
-    color:#2563eb;
-    margin:8px 0 8px;
-    letter-spacing:-.03em;
-    word-break:break-word;
-  }
+body{
+  font-family:Arial;
+  background:#eef2f7;
+  margin:0;
+  padding:10px;
+}
+
+.container{
+  max-width:600px;
+  margin:auto;
+}
+
+.card{
+  background:white;
+  border-radius:16px;
+  padding:12px;
+  margin-bottom:10px;
+  box-shadow:0 6px 18px rgba(0,0,0,.1);
+}
+
+h1{
+  font-size:18px;
+  margin:0 0 5px;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  margin-bottom:10px;
+  font-size:16px;
+}
+
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  margin-bottom:8px;
+  font-weight:bold;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.btn-scan{ background:#0c6cbd; color:white; }
+.btn-clear{ background:#e5e7eb; }
+
+.precio{
+  font-size:36px;
+  color:#0c6cbd;
+  font-weight:bold;
+  text-align:center;
+}
+
+.video-box{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:black;
+  z-index:999;
+}
+
+video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h1>Consulta Productos</h1>
+
+    <input id="input" placeholder="Escanea o escribe código">
+
+    <button class="btn btn-scan" id="scanBtn">📷 Escanear</button>
+    <button class="btn btn-clear" id="clearBtn">🧹 Limpiar búsqueda</button>
+
+  </div>
+
+  <div class="card">
+    <strong>PRODUCTO</strong>
+    <div id="producto">SIN DATOS</div>
+  </div>
+
+  <div class="card">
+    <strong>PRECIO PÚBLICO</strong>
+    <div class="precio" id="precio">$---</div>
+  </div>
+
+  <div class="card">
+    <strong>COSTOS Y MÁRGENES</strong>
+    <div id="costos"></div>
+  </div>
+
+</div>
 
-  .precio-sub{
-    font-size:11px;
-    color:#64748b;
-    font-weight:700;
-  }
-
-  .precio-sub2{
-    margin-top:8px;
-    font-size:11px;
-    color:#334155;
-    font-weight:800;
-  }
-
-  .detalle-grid{
-    display:grid;
-    grid-template-columns:1.35fr 1fr;
-    gap:12px;
-    min-height:0;
-    flex:1;
-  }
-
-  .panel-card{
-    padding:14px;
-    display:flex;
-    flex-direction:column;
-    min-height:0;
-    overflow:hidden;
-  }
-
-  .panel-title{
-    margin:0 0 12px;
-    font-size:13px;
-    font-weight:900;
-    color:#1e3a8a;
-    flex:0 0 auto;
-  }
-
-  .panel-title.green{
-    color:#15803d;
-  }
-
-  .info-grid{
-    display:grid;
-    grid-template-columns:repeat(2, minmax(0,1fr));
-    gap:8px;
-    min-height:0;
-    overflow:auto;
-    padding-right:2px;
-    flex:1;
-  }
-
-  .info-item{
-    background:#f8fafc;
-    border-radius:14px;
-    padding:10px;
-    border:1px solid #eef2ff;
-  }
-
-  .info-item-label{
-    font-size:9px;
-    text-transform:uppercase;
-    letter-spacing:.8px;
-    color:#64748b;
-    margin-bottom:5px;
-    font-weight:900;
-  }
+<div class="video-box" id="videoBox">
+  <video id="video" autoplay playsinline></video>
+</div>
 
-  .info-item-value{
-    font-size:12px;
-    font-weight:800;
-    color:#1e293b;
-    word-break:break-word;
-    line-height:1.35;
-  }
-
-  .metric-list{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    overflow:auto;
-    padding-right:2px;
-  }
-
-  .metric-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:12px;
-    padding:10px 12px;
-    border:1px solid #e5e7eb;
-    border-radius:14px;
-    background:#fff;
-  }
-
-  .metric-left{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-size:13px;
-    font-weight:700;
-    color:#334155;
-    min-width:0;
-  }
+<script>
+let catalogo = [
+  {codigo:"7501234567890", nombre:"COCA COLA 600ML", precio:18, costo:12},
+  {codigo:"7500000000001", nombre:"SABRITAS", precio:20, costo:13}
+];
 
-  .metric-left span:last-child{
-    word-break:break-word;
-  }
+const input = document.getElementById("input");
+const producto = document.getElementById("producto");
+const precio = document.getElementById("precio");
+const costos = document.getElementById("costos");
 
-  .metric-right{
-    font-size:15px;
-    font-weight:900;
-    color:#0f172a;
-    text-align:right;
-    flex:0 0 auto;
-  }
+const videoBox = document.getElementById("videoBox");
+const video = document.getElementById("video");
 
-  .metric-pct{
-    display:inline-block;
-    margin-left:8px;
-    color:#16a34a;
-    font-weight:900;
-    font-size:12px;
-  }
+let detector;
 
-  .metric-dot{
-    width:10px;
-    height:10px;
-    border-radius:50%;
-    display:inline-block;
-    flex:0 0 auto;
+async function initScanner(){
+  if(!("BarcodeDetector" in window)){
+    alert("No soporta escáner. Usa Chrome Android.");
+    return;
   }
 
-  .metric-dot.azul{ background:#2563eb; }
-  .metric-dot.morado{ background:#7c3aed; }
-  .metric-dot.verde{ background:#16a34a; }
-  .metric-dot.azul2{ background:#0ea5e9; }
-  .metric-dot.naranja{ background:#f59e0b; }
-  .metric-dot.rojo{ background:#ef4444; }
-
-  .margen-footer{
-    margin-top:12px;
-    background:#ecfdf5;
-    border:1px solid #bbf7d0;
-    color:#15803d;
-    padding:10px 12px;
-    border-radius:12px;
-    font-size:11px;
-    font-weight:800;
-    flex:0 0 auto;
-  }
+  detector = new BarcodeDetector({formats:["ean_13","code_128"]});
 
-  .overlay-carga{
-    position:fixed;
-    inset:0;
-    background:rgba(255,255,255,.86);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:2000;
-    backdrop-filter:blur(3px);
-  }
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video:{facingMode:"environment"}
+  });
 
-  .overlay-carga.hidden{ display:none; }
-
-  .caja-carga{
-    width:min(480px, calc(100% - 40px));
-    background:#fff;
-    border:1px solid #dbe2ea;
-    border-radius:22px;
-    box-shadow:0 18px 48px rgba(0,0,0,.18);
-    padding:20px;
-    text-align:center;
-  }
+  video.srcObject = stream;
+  videoBox.style.display = "block";
 
-  .caja-carga h2{
-    margin:0 0 8px;
-    font-size:20px;
-    color:#00416A;
-  }
+  scanLoop();
+}
 
-  .barra{
-    height:10px;
-    background:#e5e7eb;
-    border-radius:999px;
-    overflow:hidden;
-    margin-top:16px;
-  }
+async function scanLoop(){
+  if(!detector) return;
 
-  .barra-fill{
-    height:100%;
-    width:0%;
-    background:linear-gradient(135deg,#00416A,#0c6cbd);
-    transition:width .2s ease;
-  }
+  try{
+    const codes = await detector.detect(video);
 
-  .carga-texto{
-    margin-top:10px;
-    font-size:13px;
-    color:#4b5563;
-  }
+    if(codes.length){
+      const code = codes[0].rawValue;
+      stopScanner();
 
-  @media (max-width: 1100px){
-    html, body{
-      overflow:auto;
-      height:auto;
+      input.value = code;
+      buscar(code);
+      return;
     }
+  }catch(e){}
 
-    body{
-      height:auto;
-      overflow:auto;
-      padding:10px;
-    }
+  requestAnimationFrame(scanLoop);
+}
 
-    .app{
-      height:auto;
-      min-height:100vh;
-    }
-
-    .card{
-      height:auto;
-      min-height:100vh;
-    }
-
-    .resumen-top,
-    .detalle-grid{
-      grid-template-columns:1fr;
-    }
-
-    .producto-meta-grid{
-      grid-template-columns:repeat(3, minmax(0,1fr));
-    }
-
-    .main{
-      overflow:visible;
-    }
-
-    .panel-card{
-      min-height:auto;
-    }
-
-    .info-grid{
-      grid-template-columns:repeat(auto-fill, minmax(210px,1fr));
-      overflow:visible;
-    }
-
-    .metric-list{
-      overflow:visible;
-    }
-  }
-
-@media (max-width: 768px){
-  html, body{
-    overflow:auto;
-    height:auto;
-  }
-
-  body{
-    padding:8px;
-    height:auto;
-  }
-
-  .app{
-    height:auto;
-    min-height:100vh;
-    overflow:visible;
-  }
-
-  .card{
-    height:auto;
-    min-height:calc(100vh - 16px);
-    border-radius:18px;
-  }
-
-  .head{
-    padding:10px 12px;
-    flex-direction:column;
-    align-items:stretch;
-    gap:10px;
-  }
-
-  .head-left{
-    gap:8px;
-  }
-
-  .head-icon{
-    width:30px;
-    height:30px;
-    font-size:16px;
-  }
-
-  .head h1{
-    font-size:17px;
-    line-height:1.15;
-  }
-
-  .head p{
-    font-size:10px;
-    line-height:1.35;
-  }
-
-  .head-badge{
-    min-width:unset;
-    width:100%;
-    padding:8px 10px;
-  }
-
-  .panel{
-    padding:10px 10px 12px;
-  }
-
-  .panel-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .acciones{
-    justify-content:stretch;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-  }
-
-  .btn-sec{
-    width:100%;
-    text-align:center;
-    font-size:12px;
-    padding:10px 10px;
-    min-height:40px;
-  }
-
-  .status-row{
-    align-items:flex-start;
-    flex-direction:column;
-    gap:6px;
-  }
-
-  .mini-legend{
-    font-size:10px;
-    width:100%;
-  }
-
-  .main{
-    padding:10px;
-    gap:10px;
-  }
-
-  .resumen-top{
-    grid-template-columns:1fr;
-    gap:10px;
-  }
-
-  .producto-card,
-  .precio-publico-card,
-  .panel-card{
-    border-radius:16px;
-  }
-
-  .producto-card{
-    padding:12px;
-  }
-
-  .producto-nombre{
-    font-size:16px;
-    margin-bottom:10px;
-    line-height:1.12;
-  }
-
-  .producto-meta-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .meta-chip{
-    padding:9px 10px;
-    border-radius:12px;
-  }
-
-  .meta-chip-label{
-    font-size:8px;
-  }
-
-  .meta-chip-value{
-    font-size:12px;
-  }
-
-  .precio-publico-card{
-    padding:14px 12px;
-  }
-
-  .precio-big{
-    font-size:34px;
-    margin:6px 0;
-  }
-
-  .precio-sub,
-  .precio-sub2{
-    font-size:10px;
-  }
-
-  /* 🔥 AQUÍ ESTÁ LA MAGIA: CAMBIO DE ORDEN */
-  .detalle-grid{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
-
-  /* FICHA TÉCNICA → ABAJO */
-  .detalle-grid .panel-card:first-child{
-    order:2;
-  }
-
-  /* COSTOS Y MÁRGENES → ARRIBA */
-  .detalle-grid .panel-card:last-child{
-    order:1;
-  }
-
-  .panel-card{
-    padding:12px;
-  }
-
-  .panel-title{
-    font-size:12px;
-    margin-bottom:10px;
-  }
-
-  .info-grid{
-    grid-template-columns:1fr;
-    gap:8px;
-  }
-
-  .info-item{
-    padding:9px 10px;
-    border-radius:12px;
-  }
-
-  .info-item-label{
-    font-size:8px;
-  }
-
-  .info-item-value{
-    font-size:12px;
-  }
-
-  .metric-list{
-    gap:8px;
-  }
-
-  .metric-row{
-    flex-direction:column;
-    align-items:flex-start;
-    padding:9px 10px;
-    gap:6px;
-    border-radius:12px;
-  }
-
-  .metric-left{
-    font-size:12px;
-  }
-
-  .metric-right{
-    text-align:left;
-    font-size:14px;
-    padding-left:18px;
-  }
-
-  .metric-pct{
-    margin-left:6px;
-    font-size:11px;
-  }
-
-  .margen-footer{
-    margin-top:10px;
-    font-size:10px;
-    padding:9px 10px;
-  }
-
-  .sugerencias{
-    max-height:260px;
-    border-radius:12px;
-  }
-
-  .sugerencia-item{
-    padding:9px 10px;
-  }
-
-  .sugerencia-title{
-    font-size:13px;
-  }
-
-  .sugerencia-meta{
-    font-size:10px;
+function stopScanner(){
+  videoBox.style.display = "none";
+  let stream = video.srcObject;
+  if(stream){
+    stream.getTracks().forEach(t=>t.stop());
   }
 }
 
-  @media (max-width: 480px){
-    body{
-      padding:6px;
-    }
+function buscar(codigo){
+  let p = catalogo.find(x => x.codigo == codigo);
 
-    .card{
-      min-height:calc(100vh - 12px);
-      border-radius:16px;
-    }
-
-    .head{
-      padding:9px 10px;
-    }
-
-    .head h1{
-      font-size:15px;
-    }
-
-    .head p{
-      font-size:9px;
-    }
-
-    .panel{
-      padding:8px;
-    }
-
-    input{
-      height:40px;
-      font-size:13px;
-      padding:9px 34px 9px 32px;
-    }
-
-    .input-icon{
-      left:11px;
-      font-size:13px;
-    }
-
-    .clear-mini{
-      width:18px;
-      height:18px;
-      font-size:11px;
-      right:9px;
-    }
-
-    .acciones{
-      grid-template-columns:1fr;
-    }
-
-    .btn-sec{
-      font-size:11px;
-      min-height:38px;
-      padding:9px 10px;
-    }
-
-    .main{
-      padding:8px;
-      gap:8px;
-    }
-
-    .producto-card,
-    .precio-publico-card,
-    .panel-card{
-      border-radius:14px;
-    }
-
-    .producto-card,
-    .precio-publico-card,
-    .panel-card{
-      padding-left:10px;
-      padding-right:10px;
-    }
-
-    .producto-nombre{
-      font-size:14px;
-    }
-
-    .precio-big{
-      font-size:28px;
-    }
-
-    .mini-title,
-    .panel-title{
-      letter-spacing:.04em;
-    }
-
-    .metric-left{
-      font-size:11px;
-    }
-
-    .metric-right{
-      font-size:13px;
-    }
-
-    .metric-pct{
-      display:block;
-      margin-left:0;
-      margin-top:4px;
-    }
-
-    .status{
-      font-size:11px;
-      width:100%;
-    }
-
-    .mini-legend{
-      font-size:9px;
-    }
+  if(!p){
+    producto.innerText = "NO ENCONTRADO";
+    precio.innerText = "$0.00";
+    costos.innerHTML = "";
+    return;
   }
-</style>
-</head>
-<body>
-  <div class="overlay-carga" id="overlayCarga">
-    <div class="caja-carga">
-      <h2>Cargando catálogo</h2>
-      <div>Preparando catálogo local...</div>
-      <div class="barra">
-        <div class="barra-fill" id="barraFill"></div>
-      </div>
-      <div class="carga-texto" id="cargaTexto">Iniciando...</div>
-    </div>
-  </div>
 
-  <div class="app">
-    <div class="card">
-      <div class="head">
-        <div class="head-left">
-          <div class="head-icon">🛒</div>
-          <div>
-            <h1>Consulta de Productos - PROVSOFT</h1>
-            <p>Busca y consulta la información detallada de tus productos</p>
-          </div>
-        </div>
+  producto.innerText = p.nombre;
+  precio.innerText = "$" + p.precio.toFixed(2);
 
-        <div class="head-badge">
-          <div class="t1"><span class="dot"></span>Conectado</div>
-          <div class="t2">Firebase</div>
-        </div>
-      </div>
+  let margen = ((p.precio - p.costo)/p.costo)*100;
 
-      <div class="panel">
-        <div class="panel-grid">
-          <div class="buscador-wrap">
-            <div class="input-icon-wrap">
-              <span class="input-icon">🔍</span>
-              <input
-                type="text"
-                id="busquedaInput"
-                placeholder="Buscar por nombre o código de barras..."
-                autocomplete="off"
-              />
-              <button type="button" class="clear-mini" id="btnClearMini">✕</button>
-            </div>
-            <div class="sugerencias" id="sugerenciasBox"></div>
-          </div>
+  costos.innerHTML = `
+    Costo: $${p.costo}<br>
+    Margen: ${margen.toFixed(2)}%
+  `;
+}
 
-          <div class="acciones">
-            <button class="btn-sec" id="btnLimpiar">🧹 Limpiar búsqueda</button>
-            <button class="btn-sec" id="btnExportar">📄 Exportar datos</button>
-          </div>
-        </div>
+document.getElementById("scanBtn").onclick = initScanner;
 
-        <div class="status-row">
-          <div id="status" class="status"></div>
-          <div class="mini-legend" id="ultimaSyncTexto"></div>
-        </div>
-      </div>
+document.getElementById("clearBtn").onclick = () => {
+  input.value = "";
+  producto.innerText = "SIN DATOS";
+  precio.innerText = "$---";
+  costos.innerHTML = "";
+};
 
-      <div class="main">
-        <div class="resumen-top">
-          <div class="producto-card">
-            <div class="mini-title">PRODUCTO</div>
-            <div class="producto-nombre" id="conceptoValor">Sin consultar</div>
+input.addEventListener("input", () => {
+  buscar(input.value.trim());
+});
+</script>
 
-            <div class="producto-meta-grid">
-              <div class="meta-chip">
-                <div class="meta-chip-label">Código de barras</div>
-                <div class="meta-chip-value" id="codigoBarraMini">--</div>
-              </div>
-
-              <div class="meta-chip">
-                <div class="meta-chip-label">Clave SAT</div>
-                <div class="meta-chip-value" id="claveSatMini">--</div>
-              </div>
-
-              <div class="meta-chip">
-                <div class="meta-chip-label">Unidad SAT</div>
-                <div class="meta-chip-value" id="unidadSatMini">--</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="precio-publico-card">
-            <div class="mini-title right">PRECIO PÚBLICO</div>
-            <div class="precio-big" id="precioPublicoValor">$---</div>
-            <div class="precio-sub">Precio de venta a público</div>
-            <div class="precio-sub2">Por pieza</div>
-          </div>
-        </div>
-
-        <div class="detalle-grid">
-          <section class="panel-card">
-            <div class="panel-title">📋 FICHA TÉCNICA</div>
-            <div class="info-grid" id="infoGrid"></div>
-          </section>
-
-          <section class="panel-card">
-            <div class="panel-title green">💲 CÁLCULO DE COSTOS Y MÁRGENES</div>
-
-            <div class="metric-list">
-              <div class="metric-row">
-                <div class="metric-left">
-                  <span class="metric-dot azul"></span>
-                  <span>Costo sin impuestos</span>
-                </div>
-                <div class="metric-right" id="costoSinImpuestosValor">$0.00</div>
-              </div>
-
-              <div class="metric-row">
-                <div class="metric-left">
-                  <span class="metric-dot morado"></span>
-                  <span>Impuesto IVA (16.00%)</span>
-                </div>
-                <div class="metric-right" id="ivaCostoValor">$0.00</div>
-              </div>
-
-              <div class="metric-row">
-                <div class="metric-left">
-                  <span class="metric-dot verde"></span>
-                  <span>Costo con impuestos</span>
-                </div>
-                <div class="metric-right" id="costoConImpuestosValor">$0.00</div>
-              </div>
-
-              <div class="metric-row">
-                <div class="metric-left">
-                  <span class="metric-dot azul2"></span>
-                  <span>Precio público</span>
-                </div>
-                <div class="metric-right" id="precioPublicoResumenValor">$0.00</div>
-              </div>
-
-              <div class="metric-row">
-                <div class="metric-left">
-                  <span class="metric-dot naranja"></span>
-                  <span>Margen mayoreo</span>
-                </div>
-                <div class="metric-right">
-                  <span id="precioMayoreoValor">$0.00</span>
-                  <small id="margenMayoreoPct" class="metric-pct">0%</small>
-                </div>
-              </div>
-
-              <div class="metric-row">
-                <div class="metric-left">
-                  <span class="metric-dot rojo"></span>
-                  <span>Mayoreo</span>
-                </div>
-                <div class="metric-right">
-                  <span id="precioMayoreo2Valor">$0.00</span>
-                  <small id="margenMayoreo2Pct" class="metric-pct">0%</small>
-                </div>
-              </div>
-            </div>
-
-            <div class="margen-footer">
-              Margen calculado sobre costo total con impuestos (IVA 16)
-            </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import { firebaseConfig } from "./config.js";
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs,
-      Timestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const COLECCION = "productos";
-
-    const DB_NAME = "provsoft_local_db";
-    const STORE_NAME = "catalogo_productos";
-    const META_STORE = "meta_store";
-    const CATALOGO_KEY = "productos";
-    const AUTO_SYNC_HOURS = 24;
-
-    const busquedaInput = document.getElementById("busquedaInput");
-    const sugerenciasBox = document.getElementById("sugerenciasBox");
-    const statusBox = document.getElementById("status");
-    const ultimaSyncTexto = document.getElementById("ultimaSyncTexto");
-
-    const conceptoValor = document.getElementById("conceptoValor");
-    const precioPublicoValor = document.getElementById("precioPublicoValor");
-    const infoGrid = document.getElementById("infoGrid");
-
-    const codigoBarraMini = document.getElementById("codigoBarraMini");
-    const claveSatMini = document.getElementById("claveSatMini");
-    const unidadSatMini = document.getElementById("unidadSatMini");
-
-    const costoSinImpuestosValor = document.getElementById("costoSinImpuestosValor");
-    const ivaCostoValor = document.getElementById("ivaCostoValor");
-    const costoConImpuestosValor = document.getElementById("costoConImpuestosValor");
-    const precioPublicoResumenValor = document.getElementById("precioPublicoResumenValor");
-    const precioMayoreoValor = document.getElementById("precioMayoreoValor");
-    const margenMayoreoPct = document.getElementById("margenMayoreoPct");
-    const precioMayoreo2Valor = document.getElementById("precioMayoreo2Valor");
-    const margenMayoreo2Pct = document.getElementById("margenMayoreo2Pct");
-
-    const overlayCarga = document.getElementById("overlayCarga");
-    const barraFill = document.getElementById("barraFill");
-    const cargaTexto = document.getElementById("cargaTexto");
-
-    const btnLimpiar = document.getElementById("btnLimpiar");
-    const btnExportar = document.getElementById("btnExportar");
-    const btnClearMini = document.getElementById("btnClearMini");
-
-    let catalogoProductos = [];
-    let sugerenciasActuales = [];
-    let indiceActivo = -1;
-    let productoActual = null;
-
-    function mostrarStatus(msg, tipo = "ok") {
-      statusBox.className = `status ${tipo}`;
-      statusBox.textContent = msg;
-    }
-
-    function actualizarBotonClear() {
-      if (busquedaInput.value.trim()) btnClearMini.classList.add("show");
-      else btnClearMini.classList.remove("show");
-    }
-
-    function limpiarVista() {
-      productoActual = null;
-      conceptoValor.textContent = "Sin datos";
-      precioPublicoValor.textContent = "$---";
-
-      codigoBarraMini.textContent = "--";
-      claveSatMini.textContent = "--";
-      unidadSatMini.textContent = "--";
-
-      infoGrid.innerHTML = "";
-
-      costoSinImpuestosValor.textContent = "$0.00";
-      ivaCostoValor.textContent = "$0.00";
-      costoConImpuestosValor.textContent = "$0.00";
-      precioPublicoResumenValor.textContent = "$0.00";
-      precioMayoreoValor.textContent = "$0.00";
-      margenMayoreoPct.textContent = "0%";
-      precioMayoreo2Valor.textContent = "$0.00";
-      margenMayoreo2Pct.textContent = "0%";
-    }
-
-    function formatearFecha(valor) {
-      try {
-        if (!valor) return "--";
-
-        let fecha = null;
-
-        if (valor instanceof Timestamp) {
-          fecha = valor.toDate();
-        } else if (valor?.seconds !== undefined) {
-          fecha = new Date(valor.seconds * 1000);
-        } else if (valor instanceof Date) {
-          fecha = valor;
-        } else {
-          fecha = new Date(valor);
-        }
-
-        if (isNaN(fecha.getTime())) return "--";
-
-        return new Intl.DateTimeFormat("es-MX", {
-          dateStyle: "medium",
-          timeStyle: "short"
-        }).format(fecha);
-      } catch {
-        return "--";
-      }
-    }
-
-    function normalizarTexto(txt) {
-      return String(txt || "")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase()
-        .trim();
-    }
-
-    function tokenizarTexto(txt) {
-      return normalizarTexto(txt)
-        .split(/\s+/)
-        .map(x => x.trim())
-        .filter(Boolean);
-    }
-
-    function valorLegible(v) {
-      if (v === null || v === undefined || v === "") return "--";
-      if (v instanceof Timestamp) return formatearFecha(v);
-      if (typeof v === "boolean") return v ? "Sí" : "No";
-      if (Array.isArray(v)) return v.length ? v.join(", ") : "--";
-      if (typeof v === "object") return JSON.stringify(v);
-      return String(v);
-    }
-
-    function toNumberSeguro(v) {
-      if (v === null || v === undefined || v === "") return 0;
-      if (typeof v === "number") return isFinite(v) ? v : 0;
-
-      const limpio = String(v).replace(/[^0-9.-]/g, "");
-      const num = Number(limpio);
-      return isNaN(num) ? 0 : num;
-    }
-
-    function tomarPrimerValor(obj, keys = []) {
-      for (const key of keys) {
-        const value = obj?.[key];
-        if (value !== undefined && value !== null && value !== "") {
-          return value;
-        }
-      }
-      return null;
-    }
-
-    function abrirDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-
-        request.onupgradeneeded = (event) => {
-          const dbLocal = event.target.result;
-
-          if (!dbLocal.objectStoreNames.contains(STORE_NAME)) {
-            dbLocal.createObjectStore(STORE_NAME, { keyPath: "key" });
-          }
-
-          if (!dbLocal.objectStoreNames.contains(META_STORE)) {
-            dbLocal.createObjectStore(META_STORE, { keyPath: "key" });
-          }
-        };
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    function ocultarSugerencias() {
-      sugerenciasBox.classList.remove("show");
-      sugerenciasBox.innerHTML = "";
-      sugerenciasActuales = [];
-      indiceActivo = -1;
-    }
-
-    function renderSugerencias(lista) {
-      sugerenciasBox.innerHTML = "";
-      sugerenciasActuales = lista;
-      indiceActivo = -1;
-
-      if (!lista.length) {
-        ocultarSugerencias();
-        return;
-      }
-
-      lista.forEach((producto, i) => {
-        const data = producto.data || {};
-        const codigo = data.codigoBarra || data.codigo || producto.id || "--";
-        const concepto = data.concepto || data.descripcion || data.nombre || "Sin concepto";
-        const marca = data.marca || "--";
-        const precio = tomarPrimerValor(data, ["precioPublico", "precio", "precio_mostrador", "precioLista"]);
-
-        const div = document.createElement("div");
-        div.className = "sugerencia-item";
-        div.dataset.index = i;
-        div.innerHTML = `
-          <div class="sugerencia-title">${concepto}</div>
-          <div class="sugerencia-meta">
-            <strong>Código:</strong> ${codigo}
-            &nbsp; | &nbsp;
-            <strong>Marca:</strong> ${marca}
-            &nbsp; | &nbsp;
-            <strong>Precio:</strong> ${precio !== null && precio !== undefined ? precio : "--"}
-          </div>
-        `;
-
-        div.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          seleccionarProducto(producto);
-        });
-
-        sugerenciasBox.appendChild(div);
-      });
-
-      sugerenciasBox.classList.add("show");
-    }
-
-    function actualizarItemActivo() {
-      const items = sugerenciasBox.querySelectorAll(".sugerencia-item");
-      items.forEach((item, idx) => item.classList.toggle("active", idx === indiceActivo));
-
-      if (indiceActivo >= 0 && items[indiceActivo]) {
-        items[indiceActivo].scrollIntoView({ block: "nearest" });
-      }
-    }
-
-    function buscarLocal(texto) {
-      const t = normalizarTexto(texto);
-      if (!t) return [];
-
-      const tokens = tokenizarTexto(texto);
-      const esNumerico = /^[0-9]+$/.test(t);
-
-      return catalogoProductos
-        .map(p => {
-          const codigo = p.busquedaCodigo;
-          const concepto = p.busquedaConcepto;
-          const equivalentes = p.busquedaEquivalentes;
-          const textoGeneral = p.busquedaGeneral;
-
-          let score = 9999;
-
-          if (codigo === t) score = 1;
-          else if (equivalentes.includes(t)) score = 2;
-          else if (codigo.startsWith(t)) score = 3;
-          else if (concepto.startsWith(t)) score = 4;
-          else if (concepto.includes(t)) score = 5;
-          else if (!esNumerico && equivalentes.some(eq => eq.includes(t))) score = 6;
-          else if (codigo.includes(t)) score = 7;
-          else if (tokens.length && tokens.every(tok => textoGeneral.includes(tok))) score = 8;
-          else if (tokens.length && tokens.some(tok => textoGeneral.includes(tok))) score = 9;
-
-          return { ...p, score };
-        })
-        .filter(x => x.score < 9999)
-        .sort((a, b) => {
-          if (a.score !== b.score) return a.score - b.score;
-          return String(a.data.concepto || a.data.descripcion || "").localeCompare(
-            String(b.data.concepto || b.data.descripcion || ""),
-            "es"
-          );
-        })
-        .slice(0, 12);
-    }
-
-    function renderProducto(producto) {
-      productoActual = producto;
-      const data = producto?.data || {};
-
-      const codigo = tomarPrimerValor(data, ["codigoBarra", "codigo", "barcode"]) || producto.id || "--";
-      const concepto = tomarPrimerValor(data, ["concepto", "descripcion", "nombre", "producto"]) || "Sin concepto";
-
-      const claveSat = tomarPrimerValor(data, ["claveSat", "claveSAT", "sat", "clave_sat"]) || "--";
-      const unidadSat = tomarPrimerValor(data, ["unidadMedidaSat", "unidadSAT", "unidadSat", "unidad_medida_sat"]) || "--";
-
-      const precioPublicoRaw = tomarPrimerValor(data, [
-        "precioPublico",
-        "precio",
-        "precio_mostrador",
-        "precioLista",
-        "precio_publico"
-      ]);
-
-      const costoRaw = tomarPrimerValor(data, [
-        "costo",
-        "costoCompra",
-        "costoUnitario",
-        "ultimoCosto",
-        "costoPromedio",
-        "costo_base"
-      ]);
-
-      let listaMayoreo =
-        tomarPrimerValor(data, ["preciosPorCantidad", "preciosVolumen", "precioEspecial", "precios_especiales"]) || [];
-
-      if (!Array.isArray(listaMayoreo)) listaMayoreo = [];
-
-      listaMayoreo = [...listaMayoreo].sort((a, b) => {
-        const ca = toNumberSeguro(a.cantidadMinima ?? a.cantidad ?? a.desde ?? 0);
-        const cb = toNumberSeguro(b.cantidadMinima ?? b.cantidad ?? b.desde ?? 0);
-        return ca - cb;
-      });
-
-      const precioPublico = toNumberSeguro(precioPublicoRaw);
-      const costoSinImp = toNumberSeguro(costoRaw);
-      const ivaCosto = costoSinImp * 0.16;
-      const costoConImp = costoSinImp + ivaCosto;
-
-      const mayoreo1 = listaMayoreo[0]
-        ? toNumberSeguro(listaMayoreo[0].precioUnitario ?? listaMayoreo[0].precio ?? listaMayoreo[0].unitario ?? 0)
-        : 0;
-
-      const mayoreo2 = listaMayoreo[1]
-        ? toNumberSeguro(listaMayoreo[1].precioUnitario ?? listaMayoreo[1].precio ?? listaMayoreo[1].unitario ?? 0)
-        : 0;
-
-      const margen1 = costoConImp > 0 ? ((mayoreo1 - costoConImp) / costoConImp) * 100 : 0;
-      const margen2 = costoConImp > 0 ? ((mayoreo2 - costoConImp) / costoConImp) * 100 : 0;
-
-      conceptoValor.textContent = concepto;
-      precioPublicoValor.textContent = precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00";
-
-      codigoBarraMini.textContent = codigo;
-      claveSatMini.textContent = valorLegible(claveSat);
-      unidadSatMini.textContent = valorLegible(unidadSat);
-
-      costoSinImpuestosValor.textContent = `$${costoSinImp.toFixed(2)}`;
-      ivaCostoValor.textContent = `$${ivaCosto.toFixed(2)}`;
-      costoConImpuestosValor.textContent = `$${costoConImp.toFixed(2)}`;
-      precioPublicoResumenValor.textContent = `$${precioPublico.toFixed(2)}`;
-      precioMayoreoValor.textContent = `$${mayoreo1.toFixed(2)}`;
-      margenMayoreoPct.textContent = `${margen1.toFixed(2)}%`;
-      precioMayoreo2Valor.textContent = `$${mayoreo2.toFixed(2)}`;
-      margenMayoreo2Pct.textContent = `${margen2.toFixed(2)}%`;
-
-      const camposSecundarios = [
-        ["Departamento", tomarPrimerValor(data, ["departamento", "depto", "categoria"])],
-        ["Marca", tomarPrimerValor(data, ["marca", "brand"])],
-        ["Activo", tomarPrimerValor(data, ["activo"])],
-        ["Código de barras", codigo],
-        ["Concepto", concepto],
-        ["Código SAT", claveSat],
-        ["Unidad de medida SAT", unidadSat],
-        ["Precio público", precioPublico > 0 ? `$${precioPublico.toFixed(2)}` : "$0.00"],
-        ["Creado", tomarPrimerValor(data, ["createdAt", "fechaCreacion", "created_at"])],
-        ["Última actualización", tomarPrimerValor(data, ["updatedAt", "fechaActualizacion", "updated_at"])]
-      ];
-
-      infoGrid.innerHTML = camposSecundarios.map(([label, valor]) => `
-        <div class="info-item">
-          <div class="info-item-label">${label}</div>
-          <div class="info-item-value">${valorLegible(valor)}</div>
-        </div>
-      `).join("");
-    }
-
-    function seleccionarProducto(producto) {
-      const data = producto.data || {};
-      busquedaInput.value = data.codigoBarra || data.codigo || data.concepto || data.descripcion || producto.id || "";
-      actualizarBotonClear();
-      renderProducto(producto);
-      ocultarSugerencias();
-      mostrarStatus(`Producto encontrado: ${data.concepto || data.descripcion || producto.id}`, "ok");
-    }
-
-    function manejarInput() {
-      actualizarBotonClear();
-
-      const texto = busquedaInput.value.trim();
-      if (!texto) {
-        ocultarSugerencias();
-        return;
-      }
-
-      const resultados = buscarLocal(texto);
-      renderSugerencias(resultados);
-    }
-
-    async function guardarCatalogoIndexedDB(lista) {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction([STORE_NAME, META_STORE], "readwrite");
-
-        tx.objectStore(STORE_NAME).put({
-          key: CATALOGO_KEY,
-          items: lista
-        });
-
-        tx.objectStore(META_STORE).put({
-          key: "ultima_sync",
-          fecha: new Date().toISOString(),
-          total: lista.length
-        });
-
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    async function leerCatalogoIndexedDB() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(STORE_NAME, "readonly");
-        const request = tx.objectStore(STORE_NAME).get(CATALOGO_KEY);
-
-        request.onsuccess = () => resolve(request.result ? request.result.items : null);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    async function leerMetaIndexedDB() {
-      const dbLocal = await abrirDB();
-
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(META_STORE, "readonly");
-        const request = tx.objectStore(META_STORE).get("ultima_sync");
-
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
-    function prepararCatalogo(lista) {
-      catalogoProductos = (Array.isArray(lista) ? lista : []).map(item => {
-        const data = item.data || {};
-        const equivalentesRaw = tomarPrimerValor(data, ["codigosEquivalentes", "equivalentes", "codigos_alt"]);
-        const equivalentes = Array.isArray(equivalentesRaw) ? equivalentesRaw : [];
-
-        const codigo = normalizarTexto(data.codigoBarra || data.codigo || item.id);
-        const concepto = normalizarTexto(data.concepto || data.descripcion || data.nombre);
-        const marca = normalizarTexto(data.marca || "");
-        const depto = normalizarTexto(data.departamento || data.depto || data.categoria || "");
-
-        return {
-          id: item.id,
-          data,
-          busquedaCodigo: codigo,
-          busquedaConcepto: concepto,
-          busquedaEquivalentes: equivalentes.map(x => normalizarTexto(x)),
-          busquedaGeneral: [codigo, concepto, marca, depto, ...equivalentes.map(x => normalizarTexto(x))].join(" ")
-        };
-      });
-    }
-
-    async function descargarCatalogoDesdeFirebase() {
-      cargaTexto.textContent = "Consultando productos...";
-      barraFill.style.width = "15%";
-
-      const snap = await getDocs(collection(db, COLECCION));
-      const total = snap.size || 1;
-      let procesados = 0;
-      const lista = [];
-
-      snap.forEach(docSnap => {
-        procesados++;
-        lista.push({
-          id: docSnap.id,
-          data: docSnap.data()
-        });
-
-        const porcentaje = 15 + Math.round((procesados / total) * 85);
-        barraFill.style.width = `${porcentaje}%`;
-        cargaTexto.textContent = `Bajando catálogo... ${procesados} / ${total}`;
-      });
-
-      return lista;
-    }
-
-    function necesitaAutoSync(meta) {
-      if (!meta?.fecha) return true;
-
-      const ultima = new Date(meta.fecha).getTime();
-      if (isNaN(ultima)) return true;
-
-      const ahora = Date.now();
-      const diffHoras = (ahora - ultima) / (1000 * 60 * 60);
-      return diffHoras >= AUTO_SYNC_HOURS;
-    }
-
-    async function sincronizarCatalogoSilencioso() {
-      try {
-        mostrarStatus("Actualizando catálogo en segundo plano...", "info");
-        const lista = await descargarCatalogoDesdeFirebase();
-        prepararCatalogo(lista);
-        await guardarCatalogoIndexedDB(lista);
-        mostrarStatus(`Catálogo actualizado automáticamente (${catalogoProductos.length} productos).`, "ok");
-      } catch (error) {
-        console.error("Error en sync silenciosa:", error);
-        mostrarStatus("Se mantuvo el catálogo local actual. No se pudo actualizar en segundo plano.", "info");
-      }
-    }
-
-    async function iniciarCatalogo() {
-      try {
-        limpiarVista();
-        mostrarStatus("Revisando catálogo local...", "info");
-
-        const local = await leerCatalogoIndexedDB();
-        const meta = await leerMetaIndexedDB();
-
-        if (meta?.fecha) {
-          ultimaSyncTexto.textContent = `Consulta realizada: ${new Date(meta.fecha).toLocaleString("es-MX")}`;
-        } else {
-          ultimaSyncTexto.textContent = "";
-        }
-
-        if (local && local.length) {
-          prepararCatalogo(local);
-          overlayCarga.classList.add("hidden");
-
-          mostrarStatus(
-            `Catálogo local listo (${catalogoProductos.length} productos)` +
-            (meta?.fecha ? ` | última sync: ${new Date(meta.fecha).toLocaleString("es-MX")}` : ""),
-            "ok"
-          );
-
-          if (necesitaAutoSync(meta)) {
-            sincronizarCatalogoSilencioso();
-          }
-          return;
-        }
-
-        mostrarStatus("No existe catálogo local. Descargando desde Firebase...", "info");
-        overlayCarga.classList.remove("hidden");
-        barraFill.style.width = "10%";
-        cargaTexto.textContent = "Descargando catálogo inicial...";
-
-        const lista = await descargarCatalogoDesdeFirebase();
-        prepararCatalogo(lista);
-        await guardarCatalogoIndexedDB(lista);
-
-        barraFill.style.width = "100%";
-        cargaTexto.textContent = `Catálogo descargado: ${catalogoProductos.length} productos`;
-        overlayCarga.classList.add("hidden");
-        ultimaSyncTexto.textContent = `Consulta realizada: ${new Date().toLocaleString("es-MX")}`;
-        mostrarStatus(`Catálogo listo (${catalogoProductos.length} productos).`, "ok");
-      } catch (error) {
-        console.error(error);
-        overlayCarga.classList.add("hidden");
-        mostrarStatus("Error cargando catálogo: " + error.message, "error");
-      }
-    }
-
-    function exportarProductoActual() {
-      if (!productoActual) {
-        mostrarStatus("No hay producto seleccionado para exportar.", "error");
-        return;
-      }
-
-      try {
-        const data = productoActual.data || {};
-        const blob = new Blob(
-          [JSON.stringify(data, null, 2)],
-          { type: "application/json;charset=utf-8" }
-        );
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        const nombre = (data.codigoBarra || data.codigo || productoActual.id || "producto").toString().replace(/[^\w\-]+/g, "_");
-
-        a.href = url;
-        a.download = `producto_${nombre}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-
-        mostrarStatus("Datos del producto exportados.", "ok");
-      } catch (error) {
-        console.error(error);
-        mostrarStatus("No se pudo exportar el producto.", "error");
-      }
-    }
-
-    busquedaInput.addEventListener("input", manejarInput);
-
-    busquedaInput.addEventListener("keydown", (e) => {
-      if (!sugerenciasActuales.length) return;
-
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        indiceActivo = Math.min(indiceActivo + 1, sugerenciasActuales.length - 1);
-        actualizarItemActivo();
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        indiceActivo = Math.max(indiceActivo - 1, 0);
-        actualizarItemActivo();
-      } else if (e.key === "Enter") {
-        e.preventDefault();
-        if (indiceActivo >= 0 && sugerenciasActuales[indiceActivo]) {
-          seleccionarProducto(sugerenciasActuales[indiceActivo]);
-        } else if (sugerenciasActuales[0]) {
-          seleccionarProducto(sugerenciasActuales[0]);
-        }
-      } else if (e.key === "Escape") {
-        ocultarSugerencias();
-      }
-    });
-
-    busquedaInput.addEventListener("focus", () => {
-      if (busquedaInput.value.trim()) manejarInput();
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".buscador-wrap")) {
-        ocultarSugerencias();
-      }
-    });
-
-    btnLimpiar.addEventListener("click", () => {
-      busquedaInput.value = "";
-      actualizarBotonClear();
-      ocultarSugerencias();
-      limpiarVista();
-      mostrarStatus("Búsqueda limpiada.", "info");
-      busquedaInput.focus();
-    });
-
-    btnClearMini.addEventListener("click", () => {
-      busquedaInput.value = "";
-      actualizarBotonClear();
-      ocultarSugerencias();
-      limpiarVista();
-      busquedaInput.focus();
-    });
-
-    btnExportar.addEventListener("click", exportarProductoActual);
-
-    iniciarCatalogo();
-    actualizarBotonClear();
-  </script>
 </body>
 </html>
