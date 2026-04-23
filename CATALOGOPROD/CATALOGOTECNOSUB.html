@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
@@ -46,6 +46,38 @@ td{border-bottom:1px solid #edf2f7;padding:9px 10px;vertical-align:top}tr:hover{
 .mono{font-family:Consolas,monospace;white-space:nowrap}.old{display:block;color:var(--muted);font-size:12px}.new{display:block;font-weight:700;font-size:12px}.diff{color:var(--danger)}
 .note{font-size:12px;color:var(--muted);line-height:1.5}
 @media(max-width:1200px){.app{grid-template-columns:1fr}.grid-7{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.grid-7,.grid-3,.grid-2{grid-template-columns:1fr}}
+
+/* ===== FIX VISUAL ARRAYS LARGOS ===== */
+.array-box{
+  max-width:520px;
+  max-height:72px;
+  overflow:auto;
+  white-space:normal;
+  word-break:break-word;
+  background:#f8fafc;
+  border:1px solid #dbe4ee;
+  border-radius:10px;
+  padding:8px;
+  font-family:Consolas,monospace;
+  font-size:12px;
+}
+.array-count{
+  display:inline-block;
+  margin-bottom:6px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:#edf4fb;
+  color:#00416a;
+  font-weight:700;
+  font-size:12px;
+}
+.array-diff{
+  border-color:#f3b7b7;
+  background:#fff5f5;
+}
+table{ table-layout:fixed; }
+td, th{ max-width:520px; }
+
 </style>
 </head>
 <body>
@@ -255,22 +287,33 @@ async function descargarCatalogo(){
   const snap=await getDocs(collection(db,colName));
   let i=0;
 
-snap.forEach(ds=>{
-  const d={id:ds.id, ref:ds.ref, ...ds.data()};
-  firebaseDocs.push(d);
+  snap.forEach(ds=>{
+    const d={id:ds.id, ref:ds.ref, ...ds.data()};
+    firebaseDocs.push(d);
 
-  const docId = String(ds.id || "").trim();
-  if (docId) firebaseMap.set(docId, d);
+    // Índice por ID del documento
+    const docId = String(ds.id || "").trim();
+    if (docId) firebaseMap.set(docId, d);
 
-  const codigoBarra = String(d.codigoBarra || "").trim();
-  if (codigoBarra) firebaseMap.set(codigoBarra, d);
+    // Índice por campo codigoBarra
+    const codigoBarra = String(d.codigoBarra || "").trim();
+    if (codigoBarra) firebaseMap.set(codigoBarra, d);
 
-  i++;
+    i++;
+  });
+
+  setProgress("pCatalogo","pCatalogoTxt",100);
+  $("nCatalogo").textContent=i; $("kFirebase").textContent=i;
+  log(`Catálogo descargado: ${i} documentos. Índice creado por ID y por codigoBarra.`, "ok");
+  setTag("Catálogo listo","ok");
+  $("btnLeerProductos").disabled=false;
+  $("btnLeerPrecios").disabled=false;
+  $("btnLeerEquiv").disabled=false;
 });
 
   setProgress("pCatalogo","pCatalogoTxt",100);
   $("nCatalogo").textContent=i; $("kFirebase").textContent=i;
-  log(`Catálogo descargado: ${i} documentos. Índice creado por ID y por campo codigoBarra.`, "ok");
+  log(`Catálogo descargado: ${i} documentos.`, "ok");
   setTag("Catálogo listo","ok");
   $("btnLeerProductos").disabled=false;
   $("btnLeerPrecios").disabled=false;
@@ -499,61 +542,51 @@ function arraysEquivIguales(a,b){
 }
 
 function compararEquiv(){
-  if(!firebaseDocs.length){
-    alert("Descarga catálogo primero.");
-    return;
-  }
-  if(!equivTXTMap.size){
-    alert("Lee equivalentes primero.");
-    return;
-  }
+  if(!firebaseDocs.length){alert("Descarga catálogo primero.");return;}
+  if(!equivTXTMap.size){alert("Lee equivalentes primero.");return;}
 
-  resultadosEquiv = [];
-  let cambios = 0;
-  let noexiste = 0;
-  let sin = 0;
+  resultadosEquiv=[];
+  let cambios=0, noexiste=0, sin=0;
 
-  for(const [codigo, nuevoArrRaw] of equivTXTMap.entries()){
-    const actual = firebaseMap.get(codigo);
+  for(const [codigo,nuevoArrRaw] of equivTXTMap.entries()){
+    const actual=firebaseMap.get(codigo);
 
-    const nuevoArr = normalizarEquiv(nuevoArrRaw)
-      .filter(x => x !== codigo);
+    const nuevoArr=normalizarEquiv(nuevoArrRaw).filter(x=>x!==codigo);
 
-    const row = {
-      codigoBarra: codigo,
-      actual: actual || null,
-      nuevo: nuevoArr,
-      estado: "NO_EXISTE",
-      payload: null,
-      motivo: "No existe en Firebase"
+    const row={
+      codigoBarra:codigo,
+      actual:actual||null,
+      nuevo:nuevoArr,
+      estado:"NO_EXISTE",
+      payload:null,
+      motivo:"No existe en Firebase"
     };
 
     if(!actual){
       noexiste++;
-    } else {
-      const actualArr = normalizarEquiv(actual.codigosEquivalentes || [])
-        .filter(x => x !== codigo);
+    }else{
+      const actualArr=normalizarEquiv(actual.codigosEquivalentes||[]).filter(x=>x!==codigo);
 
       // Regla correcta:
-      // conservar lo que ya tiene Firebase + sumar lo nuevo del TXT, sin duplicados.
-      const mezclado = normalizarEquiv([
+      // conservar los equivalentes actuales y sumar los nuevos del TXT.
+      const mezclado=normalizarEquiv([
         ...actualArr,
         ...nuevoArr
-      ]).filter(x => x !== codigo);
+      ]).filter(x=>x!==codigo);
 
       if(arraysEquivIguales(actualArr, mezclado)){
-        row.estado = "SIN_CAMBIOS";
-        row.motivo = "codigosEquivalentes igual";
-        row.nuevo = mezclado;
+        row.estado="SIN_CAMBIOS";
+        row.motivo="codigosEquivalentes igual";
+        row.nuevo=mezclado;
         sin++;
-      } else {
-        row.estado = "CAMBIO";
-        row.motivo = "Se agregarán equivalentes sin borrar existentes";
-        row.nuevo = mezclado;
-        row.payload = {
-          codigosEquivalentes: mezclado,
-          actualizadoEn: nowIso(),
-          updatedAt: "__SERVER_TIMESTAMP__"
+      }else{
+        row.estado="CAMBIO";
+        row.motivo="Se agregarán equivalentes sin borrar los existentes";
+        row.nuevo=mezclado;
+        row.payload={
+          codigosEquivalentes:mezclado,
+          actualizadoEn:nowIso(),
+          updatedAt:"__SERVER_TIMESTAMP__"
         };
         cambios++;
       }
@@ -562,11 +595,11 @@ function compararEquiv(){
     resultadosEquiv.push(row);
   }
 
-  $("kEquivCambios").textContent = cambios;
+  $("kEquivCambios").textContent=cambios;
   renderEquiv();
   log(`Comparación equivalentes: cambios ${cambios}, no existen ${noexiste}, sin cambios ${sin}.`, "ok");
   setTag("Equivalentes comparados","warn");
-  $("btnActualizarEquiv").disabled = cambios === 0;
+  $("btnActualizarEquiv").disabled=cambios===0;
 }
 
 function cell(actual,nuevo,changed){
@@ -595,30 +628,60 @@ function renderProductos(){
 }
 function formatArr(arr){return JSON.stringify(normalizarPrecios(arr),null,0);}
 function renderPrecios(){
-  const tb=$("bodyPrecios"); tb.innerHTML="";
+  const tb=$("bodyPrecios");
+  tb.innerHTML="";
+
   resultadosPrecios.forEach((r,i)=>{
     const tag=r.estado==="CAMBIO"?"ok":r.estado==="SIN_CAMBIOS"?"warn":r.estado==="ACTUALIZADO"?"ok":"danger";
-    const actualArr=r.actual?.preciosPorCantidad||[];
+
+    const actualArr=normalizarPrecios(r.actual?.preciosPorCantidad||[]);
+    const nuevoArr=normalizarPrecios(r.nuevo||[]);
+
     const tr=document.createElement("tr");
     tr.innerHTML=`
-      <td>${i+1}</td><td class="mono">${esc(r.codigoBarra)}</td><td><span class="tag ${tag}">${r.estado}</span></td>
-      <td class="mono">${esc(formatArr(actualArr))}</td>
-      <td class="mono ${r.estado==="CAMBIO"?"diff":""}">${esc(formatArr(r.nuevo))}</td>
+      <td>${i+1}</td>
+      <td class="mono">${esc(r.codigoBarra)}</td>
+      <td><span class="tag ${tag}">${r.estado}</span></td>
+      <td>
+        <span class="array-count">${actualArr.length} actuales</span>
+        <div class="array-box">${esc(JSON.stringify(actualArr))}</div>
+      </td>
+      <td>
+        <span class="array-count">${nuevoArr.length} nuevos/finales</span>
+        <div class="array-box ${r.estado==="CAMBIO"?"array-diff":""}">
+          ${esc(JSON.stringify(nuevoArr))}
+        </div>
+      </td>
       <td>${esc(r.motivo)}</td>`;
     tb.appendChild(tr);
   });
 }
 function formatEquiv(arr){return JSON.stringify(normalizarEquiv(arr),null,0);}
 function renderEquiv(){
-  const tb=$("bodyEquiv"); tb.innerHTML="";
+  const tb=$("bodyEquiv");
+  tb.innerHTML="";
+
   resultadosEquiv.forEach((r,i)=>{
     const tag=r.estado==="CAMBIO"?"ok":r.estado==="SIN_CAMBIOS"?"warn":r.estado==="ACTUALIZADO"?"ok":"danger";
-    const actualArr=r.actual?.codigosEquivalentes||[];
+
+    const actualArr=normalizarEquiv(r.actual?.codigosEquivalentes||[]);
+    const nuevoArr=normalizarEquiv(r.nuevo||[]);
+
     const tr=document.createElement("tr");
     tr.innerHTML=`
-      <td>${i+1}</td><td class="mono">${esc(r.codigoBarra)}</td><td><span class="tag ${tag}">${r.estado}</span></td>
-      <td class="mono">${esc(formatEquiv(actualArr))}</td>
-      <td class="mono ${r.estado==="CAMBIO"?"diff":""}">${esc(formatEquiv(r.nuevo))}</td>
+      <td>${i+1}</td>
+      <td class="mono">${esc(r.codigoBarra)}</td>
+      <td><span class="tag ${tag}">${r.estado}</span></td>
+      <td>
+        <span class="array-count">${actualArr.length} actuales</span>
+        <div class="array-box">${esc(actualArr.join(", "))}</div>
+      </td>
+      <td>
+        <span class="array-count">${nuevoArr.length} nuevos/finales</span>
+        <div class="array-box ${r.estado==="CAMBIO"?"array-diff":""}">
+          ${esc(nuevoArr.join(", "))}
+        </div>
+      </td>
       <td>${esc(r.motivo)}</td>`;
     tb.appendChild(tr);
   });
