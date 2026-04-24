@@ -265,14 +265,15 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    getDocs,
-    query,
-    orderBy,
-    limit
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSy...",
@@ -297,6 +298,14 @@
   const btnActualizar = document.getElementById("btnActualizar");
 
   function refSolicitudes() {
+    function refAjustes() {
+  return collection(
+    db,
+    "TIENDAS",
+    sucursal.value,
+    "ajustes_inventario"
+  );
+}
     return collection(
       db,
       "TIENDAS",
@@ -443,51 +452,51 @@
 
       <h3>Productos capturados</h3>
 
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Código</th>
-            <th>Descripción</th>
-            <th>Tipo</th>
-            <th>Inv. calculado</th>
-            <th>Conteo físico</th>
-            <th>Diferencia</th>
-            <th>Ventas periodo</th>
-            <th>Hora registro</th>
-            <th>Observación</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${productos.map((p, i) => {
-            const fisico = Number(p.conteo_fisico || 0);
-            const calc = Number(p.inventario_calculado || 0);
-            const diff = fisico - calc;
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Código</th>
+      <th>Descripción</th>
+      <th>Tipo</th>
+      <th>Conteo físico</th>
+      <th>Fecha</th>
+      <th>Ajuste</th>
+      <th>Fecha ajuste</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${productos.map((p, i) => {
 
-            let cls = "diff-ok";
-            if (diff > 0) cls = "diff-warn";
-            if (diff < 0) cls = "diff-bad";
+      const fisico = Number(p.conteo_fisico || 0);
+      const tipo = p.tipo || "";
+      const badgeClass = tipo === "MANUAL" ? "badge-manual" : "badge-fijo";
 
-            const tipo = p.tipo || "";
-            const badgeClass = tipo === "MANUAL" ? "badge-manual" : "badge-fijo";
+      return `
+        <tr>
+          <td>${p.orden ?? i + 1}</td>
+          <td>${escapeHtml(p.codigo || "")}</td>
+          <td>${escapeHtml(p.descripcion || "")}</td>
+          <td><span class="badge ${badgeClass}">${escapeHtml(tipo)}</span></td>
+          <td>${redondear(fisico)}</td>
+          <td>${formatearHora(p.hora_registro)}</td>
 
-            return `
-              <tr>
-                <td>${p.orden ?? i + 1}</td>
-                <td>${escapeHtml(p.codigo || "")}</td>
-                <td>${escapeHtml(p.descripcion || "")}</td>
-                <td><span class="badge ${badgeClass}">${escapeHtml(tipo)}</span></td>
-                <td>${redondear(calc)}</td>
-                <td>${redondear(fisico)}</td>
-                <td class="${cls}">${redondear(diff)}</td>
-                <td>${redondear(p.ventas_periodo ?? 0)}</td>
-                <td>${formatearHora(p.hora_registro)}</td>
-                <td>${escapeHtml(p.observacion || "")}</td>
-              </tr>
-            `;
-          }).join("")}
-        </tbody>
-      </table>
+          <td>
+            <input 
+              type="number" 
+              step="any"
+              class="input-ajuste"
+              data-index="${i}"
+              placeholder="0"
+            />
+          </td>
+
+          <td id="fecha-${i}">-</td>
+        </tr>
+      `;
+    }).join("")}
+  </tbody>
+</table>
 
       ${s.firma ? `
         <div class="firma">
@@ -496,6 +505,48 @@
         </div>
       ` : ""}
     `;
+    setTimeout(() => {
+  document.querySelectorAll(".input-ajuste").forEach(input => {
+
+    input.addEventListener("change", async (e) => {
+      const index = e.target.dataset.index;
+      const valor = Number(e.target.value || 0);
+      const producto = productos[index];
+
+      const fisico = Number(producto.conteo_fisico || 0);
+      const diferencia = fisico - valor;
+
+      const ahora = new Date();
+
+      // pintar fecha
+      document.getElementById(`fecha-${index}`).innerText =
+        ahora.toLocaleString("es-MX");
+
+      try {
+
+        await addDoc(refAjustes(), {
+          codigo: producto.codigo || "",
+          descripcion: producto.descripcion || "",
+          tipo: producto.tipo || "",
+          conteo_fisico: fisico,
+          captura_usuario: valor,
+          ajuste: diferencia,
+          fecha_ajuste: ahora,
+          sucursal: sucursal.value,
+          usuario: "sistema"
+        });
+
+        console.log("Ajuste guardado");
+
+      } catch (err) {
+        console.error(err);
+        alert("Error al guardar");
+      }
+
+    });
+
+  });
+}, 200);
   }
 
   function redondear(n) {
