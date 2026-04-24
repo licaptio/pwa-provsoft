@@ -440,7 +440,7 @@
           <button class="icon-btn" id="btnAbrirConfig" title="Configuración">⚙</button>
           <h1>Inventario vs Ventas por Fecha - <span id="tituloTienda">ALLENDE 1</span></h1>
           <p>
-            Reporte operativo con equivalencias configurables por tienda.
+            Reporte operativo con alias de códigos equivalentes del catálogo.
           </p>
         </div>
 
@@ -617,7 +617,9 @@
 
     let ultimaPivot = null;
     let equivalenciasActuales = [];
-    let equivalenciasMap = {};
+    let equivalenciasMap = {}; // Reglas antiguas de factor: se conservan solo para configuración manual
+    let equivalentesCatalogoMap = {}; // Alias reales desde productos.codigosEquivalentes
+    let totalAliasAplicadosUltimaCarga = 0;
     let reglaEditandoId = null;
     let opcionesCodigos = [];
 
@@ -633,7 +635,8 @@
         INVENTARIOS_REF: db.collection("TIENDAS").doc(TIENDA).collection("inventario1"),
         VENTAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("ventas"),
         TRANSFERENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("SURTIDOTRANS"),
-        EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias")
+        EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias"),
+        PRODUCTOS_REF: db.collection("productos")
       };
     }
 
@@ -737,8 +740,7 @@
         "cantidad",
         "cant",
         "unidades",
-        "totalCantidad",
-        "total"
+        "totalCantidad"
       ]);
       return Number(valor || 0);
     }
@@ -1000,6 +1002,103 @@
       }
     }
 
+
+    async function cargarEquivalentesCatalogo() {
+      const { PRODUCTOS_REF } = getRefsPorTienda();
+
+      const snap = await PRODUCTOS_REF
+        .where("activo", "==", true)
+        .get();
+
+      const mapa = {};
+      const catalogo = new Map();
+
+      snap.forEach(doc => {
+        const p = doc.data() || {};
+
+        const codigoOriginal = String(
+          p.codigoBarra ??
+          p.codigo ??
+          p.Codigo ??
+          doc.id ??
+          ""
+        ).trim();
+
+        if (!codigoOriginal) return;
+
+        const codigoOriginalKey = normalizarCodigo(codigoOriginal);
+
+        const descripcionOriginal = String(
+          p.concepto ??
+          p.descripcion ??
+          p.Descripcion ??
+          ""
+        ).trim();
+
+        catalogo.set(codigoOriginal, descripcionOriginal);
+
+        const equivalentes = Array.isArray(p.codigosEquivalentes)
+          ? p.codigosEquivalentes
+          : [];
+
+        equivalentes.forEach(eq => {
+          const codigoEquivalente = String(eq ?? "").trim();
+          if (!codigoEquivalente) return;
+
+          const codigoEquivalenteKey = normalizarCodigo(codigoEquivalente);
+          if (!codigoEquivalenteKey) return;
+
+          mapa[codigoEquivalenteKey] = {
+            codigoOriginal,
+            codigoOriginalKey,
+            descripcionOriginal,
+            codigoEquivalente
+          };
+
+          if (!catalogo.has(codigoEquivalente)) {
+            catalogo.set(
+              codigoEquivalente,
+              `${descripcionOriginal} (alias de ${codigoOriginal})`
+            );
+          }
+        });
+      });
+
+      equivalentesCatalogoMap = mapa;
+
+      return {
+        totalProductos: snap.size,
+        totalAliases: Object.keys(mapa).length,
+        catalogo
+      };
+    }
+
+    function resolverVentaPorCodigoEquivalente(codigo, descripcion) {
+      const codigoVenta = String(codigo || "").trim();
+      const codigoVentaKey = normalizarCodigo(codigoVenta);
+
+      const alias = equivalentesCatalogoMap[codigoVentaKey];
+
+      if (!alias) {
+        return {
+          codigo: codigoVenta,
+          codigoKey: codigoVentaKey,
+          descripcion,
+          fueAlias: false,
+          codigoVendidoOriginal: codigoVenta
+        };
+      }
+
+      return {
+        codigo: alias.codigoOriginal,
+        codigoKey: alias.codigoOriginalKey,
+        descripcion: alias.descripcionOriginal || descripcion,
+        fueAlias: true,
+        codigoVendidoOriginal: codigoVenta,
+        codigoEquivalente: alias.codigoEquivalente
+      };
+    }
+
     async function cargarInventarios() {
       const { INVENTARIOS_REF } = getRefsPorTienda();
 
@@ -1074,31 +1173,42 @@
       ventasSnap.forEach(doc => {
         const data = doc.data() || {};
 
-        const codigo = obtenerCodigoVenta(data);
-        const descripcion = obtenerDescripcionVenta(data);
+        const codigoLeido = obtenerCodigoVenta(data);
+        const descripcionLeida = obtenerDescripcionVenta(data);
+        const resuelto = resolverVentaPorCodigoEquivalente(codigoLeido, descripcionLeida);
 
         const venta = {
           origen: "VTA",
           id: doc.id,
-          codigo,
-          codigoKey: normalizarCodigo(codigo),
-          descripcion,
+          codigo: resuelto.codigo,
+          codigoKey: resuelto.codigoKey,
+          descripcion: resuelto.descripcion,
           fecha: obtenerFechaVenta(data),
-          cantidad: obtenerCantidadVenta(data)
+          cantidad: obtenerCantidadVenta(data),
+          aliasAplicado: resuelto.fueAlias,
+          codigoVendidoOriginal: resuelto.codigoVendidoOriginal
         };
 
         if (venta.codigoKey && venta.fecha) {
           docs.push(venta);
         }
 
-        if (codigo && !catalogo.has(codigo)) {
-          catalogo.set(codigo, descripcion);
+        if (resuelto.codigo && !catalogo.has(resuelto.codigo)) {
+          catalogo.set(resuelto.codigo, resuelto.descripcion);
+        }
+
+        if (resuelto.fueAlias && resuelto.codigoVendidoOriginal && !catalogo.has(resuelto.codigoVendidoOriginal)) {
+          catalogo.set(
+            resuelto.codigoVendidoOriginal,
+            `${resuelto.descripcion} (alias de ${resuelto.codigo})`
+          );
         }
       });
 
       return {
         docs,
         totalVentasDocs: ventasSnap.size,
+        totalAliasAplicados: docs.filter(x => x.aliasAplicado).length,
         catalogo
       };
     }
@@ -1246,9 +1356,10 @@
       try {
         actualizarTitulosTienda();
         limpiarTabla();
-        setStatus("Consultando inventarios, transferencias, ventas y equivalencias...");
+        setStatus("Consultando inventarios, transferencias, ventas y alias equivalentes...");
 
-        await cargarEquivalencias();
+        await cargarEquivalencias(); // Se conserva para no romper el módulo viejo, pero el inventario usa codigosEquivalentes del catálogo.
+        const equivalentesCatalogoData = await cargarEquivalentesCatalogo();
 
         const filtroCodigo = $("filtroCodigo").value.trim().toLowerCase();
         const filtroDescripcion = $("filtroDescripcion").value.trim().toLowerCase();
@@ -1259,9 +1370,11 @@
           cargarTransferencias()
         ]);
 
+        totalAliasAplicadosUltimaCarga = ventasData.totalAliasAplicados || 0;
+
         const catalogo = new Map();
 
-        [inventariosData.catalogo, ventasData.catalogo, transferenciasData.catalogo].forEach(mapita => {
+        [equivalentesCatalogoData.catalogo, inventariosData.catalogo, ventasData.catalogo, transferenciasData.catalogo].forEach(mapita => {
           mapita.forEach((descripcion, codigo) => {
             if (codigo && !catalogo.has(codigo)) {
               catalogo.set(codigo, descripcion || "");
@@ -1281,8 +1394,13 @@
           ...transferenciasData.docs
         ];
 
-        const equivalenciasData = aplicarEquivalenciasEmpaque(registros);
-        registros = equivalenciasData.registros;
+        const equivalenciasData = {
+          totalVirtuales: 0,
+          totalVirtualesInv: 0,
+          totalVirtualesVta: 0,
+          totalAliasesCatalogo: equivalentesCatalogoData.totalAliases || 0,
+          totalAliasAplicados: ventasData.totalAliasAplicados || 0
+        };
 
         registros = registros.filter(item => {
           const codigoVisible = String(item.codigo || "").toLowerCase();
@@ -1325,7 +1443,7 @@
         pintarTabla(pivot);
 
         setStatus(
-          `Listo. Inventarios: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Ventas: ${ventasData.docs.length} | Virtuales: ${equivalenciasData.totalVirtuales} | Equivalencias activas: ${Object.keys(equivalenciasMap).length} | Filtrados: ${registros.length}`,
+          `Listo. Inventarios: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Ventas: ${ventasData.docs.length} | Alias catálogo: ${equivalenciasData.totalAliasesCatalogo} | Ventas reasignadas por alias: ${equivalenciasData.totalAliasAplicados} | Filtrados: ${registros.length}`,
           "ok"
         );
       } catch (err) {
@@ -1371,6 +1489,8 @@
             totalTrans: 0,
             totalInv: 0,
             totalVta: 0,
+            totalVtaAlias: 0,
+            aliasCodigos: new Set(),
             neto: 0
           });
         }
@@ -1395,6 +1515,10 @@
         } else if (origen === "VTA") {
           row.vtaPorFecha[fecha] = (row.vtaPorFecha[fecha] || 0) + cantidad;
           row.totalVta += cantidad;
+          if (item.aliasAplicado) {
+            row.totalVtaAlias += cantidad;
+            if (item.codigoVendidoOriginal) row.aliasCodigos.add(String(item.codigoVendidoOriginal));
+          }
           totalVtaPorFecha[fecha] = (totalVtaPorFecha[fecha] || 0) + cantidad;
           totalVtaGeneral += cantidad;
         }
@@ -1412,7 +1536,10 @@
         if (totalVtaPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "VTA" });
       }
 
-      const rows = Array.from(mapa.values()).sort((a, b) => {
+      const rows = Array.from(mapa.values()).map(row => ({
+        ...row,
+        aliasCodigos: Array.from(row.aliasCodigos || [])
+      })).sort((a, b) => {
         const da = String(a.descripcion || "").trim();
         const db = String(b.descripcion || "").trim();
         if (!da && !db) return 0;
@@ -1446,9 +1573,9 @@
         <div class="pill">Registros inventario: ${fmtNum(totalInvRegs)}</div>
         <div class="pill">Registros transferencias: ${fmtNum(totalTransRegs)}</div>
         <div class="pill">Registros ventas: ${fmtNum(totalVtaRegs)}</div>
-        <div class="pill">Virtuales INV: ${fmtNum(equivalenciasData.totalVirtualesInv || 0)}</div>
-        <div class="pill">Virtuales VTA: ${fmtNum(equivalenciasData.totalVirtualesVta || 0)}</div>
-        <div class="pill">Equivalencias activas: ${fmtNum(Object.keys(equivalenciasMap).length)}</div>
+        <div class="pill">Alias catálogo: ${fmtNum(equivalenciasData.totalAliasesCatalogo || 0)}</div>
+        <div class="pill">Ventas por alias: ${fmtNum(equivalenciasData.totalAliasAplicados || 0)}</div>
+        <div class="pill">Reglas factor antiguas: ${fmtNum(Object.keys(equivalenciasMap).length)}</div>
         <div class="pill">Códigos únicos: ${fmtNum(pivot.totalCodigos)}</div>
         <div class="pill">Fechas: ${fmtNum(pivot.fechas.length)}</div>
         <div class="pill">Inventario base: ${fmtNum(pivot.totalInvGeneralBase)}</div>
@@ -1497,7 +1624,14 @@
 
         let html = `
           <td class="left sticky1">${escapeHtml(row.codigo)}</td>
-          <td class="left sticky2">${escapeHtml(row.descripcion || "")}</td>
+          <td class="left sticky2">
+            ${escapeHtml(row.descripcion || "")}
+            ${
+              row.totalVtaAlias > 0
+                ? `<span class="tag ok" title="Venta capturada con código equivalente: ${escapeHtml((row.aliasCodigos || []).join(", "))}">Alias VTA</span>`
+                : ""
+            }
+          </td>
         `;
 
         for (const col of columnas) {
@@ -1656,7 +1790,7 @@
           ]);
 
           const catalogo = new Map();
-          [inventariosData.catalogo, ventasData.catalogo, transferenciasData.catalogo].forEach(mapita => {
+          [equivalentesCatalogoData.catalogo, inventariosData.catalogo, ventasData.catalogo, transferenciasData.catalogo].forEach(mapita => {
             mapita.forEach((descripcion, codigo) => {
               if (codigo && !catalogo.has(codigo)) {
                 catalogo.set(codigo, descripcion || "");
