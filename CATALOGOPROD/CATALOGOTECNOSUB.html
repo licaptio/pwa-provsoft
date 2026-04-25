@@ -3,788 +3,575 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Migrador PROVSOFT FULL</title>
+<title>Migrador Automático PROVSOFT</title>
 <style>
 :root{
-  --bg:#f4f7fb;--panel:#fff;--line:#dbe4ee;--text:#1f2937;--muted:#6b7280;
-  --brand:#0c6cbd;--brand-dark:#00416a;--ok:#0f9d58;--warn:#d97706;--danger:#dc2626;
-  --shadow:0 10px 30px rgba(0,0,0,.08);--radius:18px;
+  --bg:#f4f7fb;
+  --panel:#ffffff;
+  --line:#dbe4ee;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --brand:#0c6cbd;
+  --brand-dark:#00416a;
+  --ok:#0f9d58;
+  --warn:#d97706;
+  --danger:#dc2626;
+  --shadow:0 10px 30px rgba(0,0,0,.08);
+  --radius:18px;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
-.app{display:grid;grid-template-columns:390px 1fr;gap:18px;padding:18px;min-height:100vh}
-.sidebar,.main{display:flex;flex-direction:column;gap:18px;min-width:0}
-.hero{background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:white;border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
-.hero h1{margin:0 0 8px;font-size:27px}.hero p{margin:0;font-size:14px;line-height:1.45}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
-.panel-head{padding:14px 18px;border-bottom:1px solid var(--line);background:#f8fbff;font-weight:700;display:flex;justify-content:space-between;gap:12px;align-items:center}
-.panel-body{padding:16px 18px}
-.stack{display:grid;gap:12px}.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.grid-7{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
-label.lbl{display:block;font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
-input[type=file],input[type=text]{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 12px;font-size:14px;background:white}
-.checks{display:grid;gap:8px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fbfdff}
-.check{display:flex;gap:9px;align-items:center;font-size:14px}
-button{border:0;border-radius:12px;padding:12px 14px;font-weight:700;cursor:pointer;transition:.15s}
-button:hover{transform:translateY(-1px)}button:disabled{opacity:.5;cursor:not-allowed;transform:none}
-.btn-primary{background:var(--brand);color:#fff}.btn-secondary{background:#edf4fb;color:var(--brand-dark)}
-.btn-success{background:var(--ok);color:#fff}.btn-danger{background:var(--danger);color:#fff}.btn-warn{background:var(--warn);color:white}
-.kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}
-.kpi .label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:7px}
-.kpi .value{font-size:25px;font-weight:800}.kpi .sub{font-size:12px;color:var(--muted);margin-top:5px}
-.status-bar{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fbfdff;display:grid;gap:8px}
-.status-top{display:flex;justify-content:space-between;font-size:13px}.status-label{font-weight:700}.status-value{font-family:Consolas,monospace;color:var(--muted)}
-.progress{height:14px;background:#e8eef5;border-radius:999px;overflow:hidden}.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--brand-dark),var(--brand));transition:.18s}
-.okbar{background:linear-gradient(90deg,#0b7a43,var(--ok))}.warnbar{background:linear-gradient(90deg,#a85a06,var(--warn))}.dangerbar{background:linear-gradient(90deg,#a51d1d,var(--danger))}
-.log{height:250px;overflow:auto;background:#0f1720;color:#dbe7f3;border-radius:16px;padding:14px;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap;line-height:1.45}
-.tag{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#edf4fb;color:var(--brand-dark);border:1px solid #d9e7f5}
-.tag.ok{background:#edf9f1;color:#0c6a39;border-color:#cdeed7}.tag.warn{background:#fff7eb;color:#a45b0b;border-color:#f4dfba}.tag.danger{background:#fff0f0;color:#b42318;border-color:#f5c8c8}
-.tabs{display:flex;gap:8px;flex-wrap:wrap}.tab{background:#edf4fb;color:var(--brand-dark)}.tab.active{background:var(--brand);color:#fff}
-.table-wrap{overflow:auto;max-height:62vh;border-top:1px solid var(--line)}
-table{width:100%;border-collapse:collapse;min-width:1700px;font-size:13px;background:#fff}
-th{position:sticky;top:0;background:#f6f9fc;border-bottom:1px solid var(--line);padding:10px;text-align:left;white-space:nowrap;z-index:2}
-td{border-bottom:1px solid #edf2f7;padding:9px 10px;vertical-align:top}tr:hover{background:#fafcff}
-.mono{font-family:Consolas,monospace;white-space:nowrap}.old{display:block;color:var(--muted);font-size:12px}.new{display:block;font-weight:700;font-size:12px}.diff{color:var(--danger)}
-.note{font-size:12px;color:var(--muted);line-height:1.5}
-@media(max-width:1200px){.app{grid-template-columns:1fr}.grid-7{grid-template-columns:repeat(3,1fr)}}@media(max-width:760px){.grid-7,.grid-3,.grid-2{grid-template-columns:1fr}}
-
-/* ===== FIX VISUAL ARRAYS LARGOS ===== */
-.array-box{
-  max-width:520px;
-  max-height:72px;
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.app{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:420px 1fr;
+  gap:18px;
+  padding:18px;
+}
+.sidebar,.main{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-width:0;
+}
+.hero{
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand));
+  color:#fff;
+  border-radius:var(--radius);
+  padding:24px;
+  box-shadow:var(--shadow);
+}
+.hero h1{margin:0 0 8px;font-size:28px}
+.hero p{margin:0;font-size:14px;line-height:1.5;opacity:.95}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.panel-head{
+  padding:15px 18px;
+  border-bottom:1px solid var(--line);
+  background:#f8fbff;
+  font-weight:800;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.panel-body{padding:18px}
+.stack{display:grid;gap:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+.kpi .label{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:800;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.kpi .value{font-size:28px;font-weight:900}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:5px}
+button{
+  border:0;
+  border-radius:14px;
+  padding:14px 16px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.15s;
+  font-size:14px;
+}
+button:hover{transform:translateY(-1px)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--brand);color:white}
+.btn-success{background:var(--ok);color:white}
+.btn-danger{background:var(--danger);color:white}
+.btn-secondary{background:#edf4fb;color:var(--brand-dark)}
+.big-button{
+  width:100%;
+  padding:22px;
+  font-size:18px;
+  letter-spacing:.03em;
+}
+.tag{
+  display:inline-flex;
+  padding:7px 11px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  background:#edf4fb;
+  color:var(--brand-dark);
+  border:1px solid #d9e7f5;
+  white-space:nowrap;
+}
+.tag.ok{background:#edf9f1;color:#0c6a39;border-color:#cdeed7}
+.tag.warn{background:#fff7eb;color:#a45b0b;border-color:#f4dfba}
+.tag.danger{background:#fff0f0;color:#b42318;border-color:#f5c8c8}
+.status-bar{
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:14px;
+  background:#fbfdff;
+  display:grid;
+  gap:9px;
+}
+.status-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+}
+.status-label{font-weight:800}
+.status-value{font-family:Consolas,monospace;color:var(--muted)}
+.progress{
+  height:16px;
+  background:#e8eef5;
+  border-radius:999px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--brand-dark),var(--brand));
+  transition:.2s;
+}
+.log{
+  height:360px;
   overflow:auto;
-  white-space:normal;
-  word-break:break-word;
-  background:#f8fafc;
-  border:1px solid #dbe4ee;
-  border-radius:10px;
-  padding:8px;
+  background:#0f1720;
+  color:#dbe7f3;
+  border-radius:16px;
+  padding:15px;
   font-family:Consolas,monospace;
   font-size:12px;
+  white-space:pre-wrap;
+  line-height:1.45;
 }
-.array-count{
-  display:inline-block;
-  margin-bottom:6px;
-  padding:4px 8px;
-  border-radius:999px;
-  background:#edf4fb;
-  color:#00416a;
-  font-weight:700;
-  font-size:12px;
+.info-box{
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:14px;
+  background:#fbfdff;
+  font-size:13px;
+  line-height:1.55;
+  color:var(--muted);
 }
-.array-diff{
-  border-color:#f3b7b7;
-  background:#fff5f5;
+.info-box b{color:var(--text)}
+.table-wrap{
+  overflow:auto;
+  max-height:56vh;
+  border-top:1px solid var(--line);
 }
-table{ table-layout:fixed; }
-td, th{ max-width:520px; }
-
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+  background:#fff;
+  font-size:13px;
+}
+th{
+  position:sticky;
+  top:0;
+  background:#f6f9fc;
+  border-bottom:1px solid var(--line);
+  padding:11px;
+  text-align:left;
+  white-space:nowrap;
+  z-index:2;
+}
+td{
+  border-bottom:1px solid #edf2f7;
+  padding:10px 11px;
+  vertical-align:top;
+}
+tr:hover{background:#fafcff}
+.mono{font-family:Consolas,monospace;white-space:nowrap}
+.hidden{display:none!important}
+@media(max-width:1100px){
+  .app{grid-template-columns:1fr}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+  .grid-4,.grid-2{grid-template-columns:1fr}
+  .app{padding:10px}
+}
 </style>
 </head>
 <body>
 <div class="app">
-<aside class="sidebar">
-  <div class="hero">
-    <h1>Migrador PROVSOFT FULL</h1>
-    <p>Productos base + precios por cantidad + códigos equivalentes. Descarga Firebase una vez, compara local y actualiza solo cambios confirmados.</p>
-  </div>
+  <aside class="sidebar">
+    <div class="hero">
+      <h1>Migrador Automático PROVSOFT</h1>
+      <p>Proceso único: lee archivos fijos, actualiza Firebase y resetea TXT a 0 bytes al finalizar correctamente.</p>
+    </div>
 
-  <section class="panel">
-    <div class="panel-head">Configuración</div>
-    <div class="panel-body stack">
-      <div>
-        <label class="lbl">Colección Firestore</label>
-        <input id="collectionName" type="text" value="productos">
+    <section class="panel">
+      <div class="panel-head">
+        <span>Proceso</span>
+        <span id="statusTag" class="tag">En espera</span>
       </div>
+      <div class="panel-body stack">
+        <button id="btnProcesar" class="btn-primary big-button">PROCESAR TODO</button>
 
-      <div>
-        <label class="lbl">TXT productos base</label>
-        <input id="txtProductos" type="file" accept=".txt,.csv,text/plain">
-      </div>
+        <div class="grid-2">
+          <button id="btnPDF" class="btn-secondary" disabled>Descargar PDF resumen</button>
+          <button id="btnLimpiar" class="btn-danger">Limpiar pantalla</button>
+        </div>
 
-      <div>
-        <label class="lbl">TXT precios por cantidad</label>
-        <input id="txtPrecios" type="file" accept=".txt,.csv,text/plain">
-      </div>
-
-      <div>
-        <label class="lbl">TXT códigos equivalentes</label>
-        <input id="txtEquiv" type="file" accept=".txt,.csv,text/plain">
-      </div>
-
-      <div>
-        <label class="lbl">Campos productos base</label>
-        <div class="checks">
-          <label class="check"><input type="checkbox" data-field="concepto" checked> concepto</label>
-          <label class="check"><input type="checkbox" data-field="costoSinImpuesto" checked> costoSinImpuesto</label>
-          <label class="check"><input type="checkbox" data-field="precioPublico" checked> precioPublico</label>
-          <label class="check"><input type="checkbox" data-field="medioMayoreo" checked> medioMayoreo</label>
-          <label class="check"><input type="checkbox" data-field="mayoreo" checked> mayoreo</label>
-          <label class="check"><input type="checkbox" data-field="claveSat" checked> claveSat</label>
-          <label class="check"><input type="checkbox" data-field="unidadMedidaSat" checked> unidadMedidaSat</label>
-          <label class="check"><input type="checkbox" data-field="activo" checked> activo</label>
-          <label class="check"><input type="checkbox" data-field="departamento_id" checked> departamento_id</label>
+        <div class="info-box">
+          <b>Ruta esperada por Node:</b><br>
+          C:/python/SucAll/SucAll<br><br>
+<b>Archivos:</b><br>
+articulos.txt<br>
+precant.txt<br>
+equiv.txt<br><br>
+          Al terminar bien, Node debe dejarlos completamente vacíos.
         </div>
       </div>
+    </section>
 
-      <div class="grid-2">
-        <button class="btn-primary" id="btnCatalogo">1) Descargar catálogo</button>
-        <button class="btn-secondary" id="btnLeerProductos" disabled>2) Leer productos</button>
+    <section class="panel">
+      <div class="panel-head">Avance general</div>
+      <div class="panel-body stack">
+        <div class="status-bar">
+          <div class="status-top">
+            <span class="status-label">Proceso completo</span>
+            <span id="pGeneralTxt" class="status-value">0%</span>
+          </div>
+          <div class="progress"><div id="pGeneral" class="progress-fill"></div></div>
+        </div>
+
+        <div class="status-bar">
+          <div class="status-top">
+            <span class="status-label">Etapa actual</span>
+            <span id="etapaActual" class="status-value">Sin iniciar</span>
+          </div>
+        </div>
       </div>
+    </section>
 
-      <div class="grid-2">
-        <button class="btn-secondary" id="btnCompararProductos" disabled>3) Comparar productos</button>
-        <button class="btn-success" id="btnActualizarProductos" disabled>4) Actualizar productos</button>
+    <section class="panel">
+      <div class="panel-head">Bitácora visual</div>
+      <div class="panel-body">
+        <div id="log" class="log">App lista. Presiona PROCESAR TODO.</div>
       </div>
+    </section>
+  </aside>
 
-      <div class="grid-2">
-        <button class="btn-secondary" id="btnLeerPrecios" disabled>5) Leer precios</button>
-        <button class="btn-secondary" id="btnCompararPrecios" disabled>6) Comparar precios</button>
+  <main class="main">
+    <section class="panel">
+      <div class="panel-head">Resumen</div>
+      <div class="panel-body grid-4">
+        <div class="kpi"><div class="label">Productos leídos</div><div id="kProductos" class="value">0</div><div class="sub">TXT</div></div>
+        <div class="kpi"><div class="label">Precios leídos</div><div id="kPrecios" class="value">0</div><div class="sub">TXT</div></div>
+        <div class="kpi"><div class="label">Equivalentes leídos</div><div id="kEquiv" class="value">0</div><div class="sub">TXT</div></div>
+        <div class="kpi"><div class="label">Actualizados</div><div id="kActualizados" class="value">0</div><div class="sub">Firebase</div></div>
       </div>
+    </section>
 
-      <div class="grid-2">
-        <button class="btn-warn" id="btnActualizarPrecios" disabled>7) Actualizar precios</button>
-        <button class="btn-secondary" id="btnLeerEquiv" disabled>8) Leer equivalentes</button>
+    <section class="panel">
+      <div class="panel-head">Resultado final</div>
+      <div class="panel-body grid-4">
+        <div class="kpi"><div class="label">Productos cambios</div><div id="kProdCambios" class="value">0</div><div class="sub">base</div></div>
+        <div class="kpi"><div class="label">Precios cambios</div><div id="kPrecCambios" class="value">0</div><div class="sub">por cantidad</div></div>
+        <div class="kpi"><div class="label">Equiv cambios</div><div id="kEquivCambios" class="value">0</div><div class="sub">códigos</div></div>
+        <div class="kpi"><div class="label">Archivos reset</div><div id="kReset" class="value">NO</div><div class="sub">0 bytes</div></div>
       </div>
+    </section>
 
-      <div class="grid-2">
-        <button class="btn-secondary" id="btnCompararEquiv" disabled>9) Comparar equivalentes</button>
-        <button class="btn-warn" id="btnActualizarEquiv" disabled>10) Actualizar equivalentes</button>
+    <section class="panel">
+      <div class="panel-head">Detalle del proceso</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Etapa</th>
+              <th>Estado</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="bodyDetalle">
+            <tr><td>1</td><td>En espera</td><td><span class="tag">Pendiente</span></td><td>Sin proceso ejecutado.</td></tr>
+          </tbody>
+        </table>
       </div>
-
-      <div class="grid-2">
-        <button class="btn-secondary" id="btnExportar">Exportar preview</button>
-        <button class="btn-danger" id="btnLimpiar">Limpiar</button>
-      </div>
-
-      <div class="note">
-        No toca <b>linea_id</b> ni <b>cantidadPorCaja</b>.  
-        Precios actualiza <b>preciosPorCantidad</b>.  
-        Equivalentes actualiza <b>codigosEquivalentes</b>.  
-        Todo update marca <b>actualizadoEn</b> y <b>updatedAt</b>.
-      </div>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">Progreso</div>
-    <div class="panel-body stack">
-      <div class="status-bar"><div class="status-top"><span class="status-label">Catálogo Firebase</span><span id="pCatalogoTxt" class="status-value">0%</span></div><div class="progress"><div id="pCatalogo" class="progress-fill okbar"></div></div><div>Docs: <b id="nCatalogo">0</b></div></div>
-      <div class="status-bar"><div class="status-top"><span class="status-label">Productos base</span><span id="pProdTxt" class="status-value">0%</span></div><div class="progress"><div id="pProd" class="progress-fill"></div></div><div>Artículos: <b id="nProd">0</b></div></div>
-      <div class="status-bar"><div class="status-top"><span class="status-label">Precios cantidad</span><span id="pPrecTxt" class="status-value">0%</span></div><div class="progress"><div id="pPrec" class="progress-fill warnbar"></div></div><div>Productos con precios: <b id="nPrec">0</b></div></div>
-      <div class="status-bar"><div class="status-top"><span class="status-label">Equivalentes</span><span id="pEquivTxt" class="status-value">0%</span></div><div class="progress"><div id="pEquiv" class="progress-fill"></div></div><div>Productos con equivalentes: <b id="nEquiv">0</b></div></div>
-      <div class="status-bar"><div class="status-top"><span class="status-label">Actualización</span><span id="pUpdTxt" class="status-value">0%</span></div><div class="progress"><div id="pUpd" class="progress-fill dangerbar"></div></div><div>Actualizados: <b id="nUpd">0</b></div></div>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head"><span>Bitácora</span><span id="statusTag" class="tag">En espera</span></div>
-    <div class="panel-body"><div id="log" class="log"></div></div>
-  </section>
-</aside>
-
-<main class="main">
-  <section class="panel">
-    <div class="panel-head">Resumen</div>
-    <div class="panel-body grid-7">
-      <div class="kpi"><div class="label">Firebase</div><div id="kFirebase" class="value">0</div><div class="sub">catálogo</div></div>
-      <div class="kpi"><div class="label">Productos TXT</div><div id="kProdTxt" class="value">0</div><div class="sub">válidos</div></div>
-      <div class="kpi"><div class="label">Prod cambios</div><div id="kProdCambios" class="value">0</div><div class="sub">base</div></div>
-      <div class="kpi"><div class="label">Precios TXT</div><div id="kPrecTxt" class="value">0</div><div class="sub">con precios</div></div>
-      <div class="kpi"><div class="label">Precios cambios</div><div id="kPrecCambios" class="value">0</div><div class="sub">arrays</div></div>
-      <div class="kpi"><div class="label">Equiv cambios</div><div id="kEquivCambios" class="value">0</div><div class="sub">equivalentes</div></div>
-      <div class="kpi"><div class="label">Actualizados</div><div id="kActualizados" class="value">0</div><div class="sub">final</div></div>
-    </div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head">
-      <span>Matriz de resultados</span>
-      <div class="tabs">
-        <button id="tabProductos" class="tab active">Productos</button>
-        <button id="tabPrecios" class="tab">Precios cantidad</button>
-        <button id="tabEquiv" class="tab">Equivalentes</button>
-      </div>
-    </div>
-    <div class="table-wrap">
-      <table id="tablaProductos">
-        <thead>
-          <tr>
-            <th>#</th><th>Código</th><th>Estado</th><th>concepto</th><th>costo</th><th>público</th><th>medioMayoreo</th><th>mayoreo</th><th>claveSat</th><th>unidad</th><th>activo</th><th>depto_id</th><th>Motivo</th>
-          </tr>
-        </thead>
-        <tbody id="bodyProductos"></tbody>
-      </table>
-
-      <table id="tablaPrecios" style="display:none">
-        <thead>
-          <tr>
-            <th>#</th><th>Código</th><th>Estado</th><th>Actual Firebase</th><th>Nuevo TXT</th><th>Motivo</th>
-          </tr>
-        </thead>
-        <tbody id="bodyPrecios"></tbody>
-      </table>
-
-      <table id="tablaEquiv" style="display:none">
-        <thead>
-          <tr>
-            <th>#</th><th>Código</th><th>Estado</th><th>Actual Firebase</th><th>Nuevo TXT</th><th>Motivo</th>
-          </tr>
-        </thead>
-        <tbody id="bodyEquiv"></tbody>
-      </table>
-    </div>
-  </section>
-</main>
+    </section>
+  </main>
 </div>
 
-<script type="module">
-import { db } from "./config.js";
-import { collection, getDocs, writeBatch, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
+/*
+  IMPORTANTE:
+  Este HTML debe abrirse desde tu servidor local Node, por ejemplo:
 
-let firebaseDocs = [];
-let firebaseMap = new Map();
+  http://localhost:3000
 
-let productosTXT = [];
-let preciosTXTMap = new Map();
-let equivTXTMap = new Map();
+  Tu procesador.js debe exponer un endpoint:
 
-let resultadosProductos = [];
-let resultadosPrecios = [];
-let resultadosEquiv = [];
+  POST /procesar
+
+  y debe responder JSON parecido a esto:
+
+  {
+    "ok": true,
+    "mensaje": "Proceso completado",
+    "resumen": {
+      "productosLeidos": 1000,
+      "preciosLeidos": 800,
+      "equivalentesLeidos": 200,
+      "productosCambios": 50,
+      "preciosCambios": 30,
+      "equivCambios": 10,
+      "actualizados": 90,
+      "archivosReset": true
+    },
+    "detalle": [
+      { "etapa": "Descargar catálogo", "estado": "OK", "detalle": "10000 docs" },
+      { "etapa": "Leer productos", "estado": "OK", "detalle": "1000 productos" }
+    ]
+  }
+*/
+
+const API_PROCESAR = "/procesar";
+
+let ultimoResultado = null;
 
 const $ = id => document.getElementById(id);
 
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-function nowIso(){return new Date().toISOString();}
-function setProgress(bar, txt, n){n=Math.max(0,Math.min(100,n));$(bar).style.width=n+"%";$(txt).textContent=n.toFixed(0)+"%";}
-function setTag(t,c=""){$("statusTag").textContent=t;$("statusTag").className="tag"+(c?` ${c}`:"");}
-function log(m,type="info"){
-  const d=new Date(); const h=String(d.getHours()).padStart(2,"0"), mi=String(d.getMinutes()).padStart(2,"0"), s=String(d.getSeconds()).padStart(2,"0");
-  const p=type==="ok"?"[OK]":type==="warn"?"[WARN]":type==="error"?"[ERROR]":"[INFO]";
-  $("log").textContent += `${h}:${mi}:${s} ${p} ${m}\n`;
-  $("log").scrollTop=$("log").scrollHeight;
-}
-function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");}
-function tokenizarLinea(linea){
-  const out=[]; const re=/"([^"]*)"|(\S+)/g; let m;
-  while((m=re.exec(linea))!==null) out.push(m[1]!==undefined?m[1]:m[2]);
-  return out;
-}
-function toNumber(v){if(v===undefined||v===null||v===""||v==="?")return null; const n=Number(v); return Number.isFinite(n)?n:null;}
-function toBoolYesNo(v){if(v==="yes")return true;if(v==="no")return false;return null;}
-function redondear(n){return Math.round(n*100)/100;}
-function valid(v){if(v===null||v===undefined)return false;if(typeof v==="string"&&v.trim()==="")return false;return true;}
-function equal(a,b){if(typeof a==="number"&&typeof b==="number")return Math.abs(a-b)<0.000001;return String(a??"")===String(b??"");}
-function camposSeleccionados(){return [...document.querySelectorAll("[data-field]")].filter(x=>x.checked).map(x=>x.dataset.field);}
-function normalizarCodigo(x){return String(x??"").trim();}
-
-async function descargarCatalogo(){
-  const colName=$("collectionName").value.trim()||"productos";
-  setTag("Descargando catálogo"); log(`Descargando colección ${colName}...`);
-  setProgress("pCatalogo","pCatalogoTxt",0); $("nCatalogo").textContent="0";
-  firebaseDocs=[]; firebaseMap=new Map();
-
-  const snap=await getDocs(collection(db,colName));
-  let i=0;
-
-  snap.forEach(ds=>{
-    const d={id:ds.id, ref:ds.ref, ...ds.data()};
-    firebaseDocs.push(d);
-
-    // Índice por ID del documento
-    const docId = String(ds.id || "").trim();
-    if (docId) firebaseMap.set(docId, d);
-
-    // Índice por campo codigoBarra
-    const codigoBarra = String(d.codigoBarra || "").trim();
-    if (codigoBarra) firebaseMap.set(codigoBarra, d);
-
-    i++;
-  });
-
-  setProgress("pCatalogo","pCatalogoTxt",100);
-  $("nCatalogo").textContent=i; $("kFirebase").textContent=i;
-  log(`Catálogo descargado: ${i} documentos. Índice creado por ID y por codigoBarra.`, "ok");
-  setTag("Catálogo listo","ok");
-  $("btnLeerProductos").disabled=false;
-  $("btnLeerPrecios").disabled=false;
-  $("btnLeerEquiv").disabled=false;
-});
-
-  setProgress("pCatalogo","pCatalogoTxt",100);
-  $("nCatalogo").textContent=i; $("kFirebase").textContent=i;
-  log(`Catálogo descargado: ${i} documentos.`, "ok");
-  setTag("Catálogo listo","ok");
-  $("btnLeerProductos").disabled=false;
-  $("btnLeerPrecios").disabled=false;
-  $("btnLeerEquiv").disabled=false;
+function setTag(texto, tipo=""){
+  $("statusTag").textContent = texto;
+  $("statusTag").className = "tag" + (tipo ? " " + tipo : "");
 }
 
-function extraerProducto(cols){
-  return {
-    codigoBarra:normalizarCodigo(cols[0]),
-    concepto:String(cols[1]||"").trim(),
-    costoSinImpuesto:toNumber(cols[2]),
-    precioPublico:toNumber(cols[8]),
-    medioMayoreo:toNumber(cols[4]),
-    mayoreo:toNumber(cols[26]),
-    activo:toBoolYesNo(cols[20]),
-    departamento_id:cols[9]!=null?String(cols[9]).trim():"",
-    claveSat:String(cols[34]||"").trim(),
-    unidadMedidaSat:String(cols[35]||"").trim()
-  };
+function setProgress(n){
+  n = Math.max(0, Math.min(100, Number(n)||0));
+  $("pGeneral").style.width = n + "%";
+  $("pGeneralTxt").textContent = Math.round(n) + "%";
 }
 
-async function leerProductos(){
-  const file=$("txtProductos").files[0];
-  if(!file){alert("Selecciona TXT productos base.");return;}
-  setTag("Leyendo productos"); log("Leyendo TXT productos base...");
-  setProgress("pProd","pProdTxt",0); $("nProd").textContent="0";
-
-  const text=await file.text();
-  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  const map=new Map();
-
-  for(let i=0;i<lines.length;i++){
-    const cols=tokenizarLinea(lines[i]);
-    if(cols.length>=36){
-      const p=extraerProducto(cols);
-      if(p.codigoBarra) map.set(p.codigoBarra,p);
-    }
-    if(i%300===0||i===lines.length-1){
-      setProgress("pProd","pProdTxt",((i+1)/lines.length)*100);
-      $("nProd").textContent=map.size;
-      await sleep(0);
-    }
-  }
-  productosTXT=[...map.values()];
-  $("kProdTxt").textContent=productosTXT.length;
-  log(`Productos TXT listos: ${productosTXT.length}.`, "ok");
-  setTag("Productos TXT listo","ok");
-  $("btnCompararProductos").disabled=false;
+function log(msg, tipo="INFO"){
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  const s = String(d.getSeconds()).padStart(2,"0");
+  $("log").textContent += `\n${h}:${m}:${s} [${tipo}] ${msg}`;
+  $("log").scrollTop = $("log").scrollHeight;
 }
 
-function compararProductos(){
-  if(!firebaseDocs.length){alert("Descarga catálogo primero.");return;}
-  if(!productosTXT.length){alert("Lee productos primero.");return;}
-
-  const fields=camposSeleccionados();
-  resultadosProductos=[];
-  let cambios=0, encontrados=0, noexiste=0, sin=0;
-
-  for(const viejo of productosTXT){
-    const actual=firebaseMap.get(viejo.codigoBarra);
-    const row={codigoBarra:viejo.codigoBarra, viejo, actual:actual||null, estado:"NO_EXISTE", cambios:{}, payload:null, motivo:"No existe en Firebase"};
-    if(!actual){noexiste++;}
-    else{
-      encontrados++;
-      const payload={}; let c=0;
-      for(const f of fields){
-        const nuevo=viejo[f], ant=actual[f];
-        row.cambios[f]={actual:ant,nuevo,changed:false};
-        if(!valid(nuevo)) continue;
-        if(!equal(ant,nuevo)){row.cambios[f].changed=true;payload[f]=nuevo;c++;}
-      }
-      if(c>0){
-        payload.actualizadoEn=nowIso();
-        payload.updatedAt="__SERVER_TIMESTAMP__";
-        row.payload=payload; row.estado="CAMBIO"; row.motivo=`${c} campo(s) con cambio`; cambios++;
-      }else{row.estado="SIN_CAMBIOS"; row.motivo="Sin diferencias"; sin++;}
-    }
-    resultadosProductos.push(row);
-  }
-  $("kProdCambios").textContent=cambios;
-  renderProductos();
-  log(`Comparación productos: encontrados ${encontrados}, no existen ${noexiste}, cambios ${cambios}, sin cambios ${sin}.`, "ok");
-  setTag("Productos comparados","warn");
-  $("btnActualizarProductos").disabled=cambios===0;
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
-function precioArrayDesdeCols(cols){
-  const codigo=normalizarCodigo(cols[0]);
-  const c1=toNumber(cols[1]);
-  const t1=toNumber(cols[5]);
-  const c2=toNumber(cols[7]);
-  const t2=toNumber(cols[8]);
-  const arr=[];
-
-  if(c1 && t1){
-    arr.push({cantidadMinima:c1, precioUnitario:redondear(t1/c1), precioTotal:t1});
-  }
-  if(c2 && t2){
-    arr.push({cantidadMinima:c2, precioUnitario:redondear(t2/c2), precioTotal:t2});
-  }
-  return {codigo, arr};
+function estadoTag(estado){
+  const e = String(estado||"").toUpperCase();
+  if(e === "OK" || e === "COMPLETADO") return `<span class="tag ok">${esc(estado)}</span>`;
+  if(e === "ERROR") return `<span class="tag danger">${esc(estado)}</span>`;
+  if(e === "ADVERTENCIA" || e === "WARN") return `<span class="tag warn">${esc(estado)}</span>`;
+  return `<span class="tag">${esc(estado || "Pendiente")}</span>`;
 }
 
-async function leerPrecios(){
-  const file=$("txtPrecios").files[0];
-  if(!file){alert("Selecciona TXT precios por cantidad.");return;}
-  setTag("Leyendo precios"); log("Leyendo TXT precios por cantidad...");
-  setProgress("pPrec","pPrecTxt",0); $("nPrec").textContent="0";
+function pintarResumen(resumen={}){
+  $("kProductos").textContent = resumen.productosLeidos ?? 0;
+  $("kPrecios").textContent = resumen.preciosLeidos ?? 0;
+  $("kEquiv").textContent = resumen.equivalentesLeidos ?? 0;
+  $("kActualizados").textContent = resumen.actualizados ?? 0;
 
-  const text=await file.text();
-  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  preciosTXTMap=new Map();
-
-  for(let i=0;i<lines.length;i++){
-    const cols=tokenizarLinea(lines[i]);
-    if(cols.length>=9){
-      const {codigo,arr}=precioArrayDesdeCols(cols);
-      if(codigo && arr.length){
-        preciosTXTMap.set(codigo, arr.sort((a,b)=>a.cantidadMinima-b.cantidadMinima));
-      }
-    }
-    if(i%300===0||i===lines.length-1){
-      setProgress("pPrec","pPrecTxt",((i+1)/lines.length)*100);
-      $("nPrec").textContent=preciosTXTMap.size;
-      await sleep(0);
-    }
-  }
-  $("kPrecTxt").textContent=preciosTXTMap.size;
-  log(`Precios por cantidad listos: ${preciosTXTMap.size} productos con precio.`, "ok");
-  setTag("Precios TXT listo","ok");
-  $("btnCompararPrecios").disabled=false;
+  $("kProdCambios").textContent = resumen.productosCambios ?? 0;
+  $("kPrecCambios").textContent = resumen.preciosCambios ?? 0;
+  $("kEquivCambios").textContent = resumen.equivCambios ?? 0;
+  $("kReset").textContent = resumen.archivosReset ? "SÍ" : "NO";
 }
 
-function normalizarPrecios(arr=[]){
-  if(!Array.isArray(arr)) return [];
-  return arr
-    .map(x=>({
-      cantidadMinima:Number(x.cantidadMinima),
-      precioUnitario:redondear(Number(x.precioUnitario)),
-      precioTotal:redondear(Number(x.precioTotal))
-    }))
-    .filter(x=>Number.isFinite(x.cantidadMinima)&&Number.isFinite(x.precioUnitario)&&Number.isFinite(x.precioTotal))
-    .sort((a,b)=>a.cantidadMinima-b.cantidadMinima);
-}
-function arraysPreciosIguales(a,b){
-  return JSON.stringify(normalizarPrecios(a))===JSON.stringify(normalizarPrecios(b));
-}
+function pintarDetalle(detalle=[]){
+  const tb = $("bodyDetalle");
+  tb.innerHTML = "";
 
-function compararPrecios(){
-  if(!firebaseDocs.length){alert("Descarga catálogo primero.");return;}
-  if(!preciosTXTMap.size){alert("Lee precios primero.");return;}
-
-  resultadosPrecios=[];
-  let cambios=0, noexiste=0, sin=0;
-
-  for(const [codigo,nuevoArr] of preciosTXTMap.entries()){
-    const actual=firebaseMap.get(codigo);
-    const row={codigoBarra:codigo, actual:actual||null, nuevo:nuevoArr, estado:"NO_EXISTE", payload:null, motivo:"No existe en Firebase"};
-
-    if(!actual){noexiste++;}
-    else{
-      const actualArr=normalizarPrecios(actual.preciosPorCantidad||[]);
-      if(arraysPreciosIguales(actualArr,nuevoArr)){
-        row.estado="SIN_CAMBIOS"; row.motivo="preciosPorCantidad igual"; sin++;
-      }else{
-        row.estado="CAMBIO";
-        row.motivo="preciosPorCantidad diferente";
-        row.payload={preciosPorCantidad:nuevoArr, actualizadoEn:nowIso(), updatedAt:"__SERVER_TIMESTAMP__"};
-        cambios++;
-      }
-    }
-    resultadosPrecios.push(row);
+  if(!Array.isArray(detalle) || detalle.length === 0){
+    tb.innerHTML = `<tr><td>1</td><td>Proceso</td><td>${estadoTag("Sin detalle")}</td><td>No se recibió detalle desde Node.</td></tr>`;
+    return;
   }
 
-  $("kPrecCambios").textContent=cambios;
-  renderPrecios();
-  log(`Comparación precios: cambios ${cambios}, no existen ${noexiste}, sin cambios ${sin}.`, "ok");
-  setTag("Precios comparados","warn");
-  $("btnActualizarPrecios").disabled=cambios===0;
-}
-
-async function leerEquiv(){
-  const file=$("txtEquiv").files[0];
-  if(!file){alert("Selecciona TXT de equivalentes.");return;}
-  setTag("Leyendo equivalentes"); log("Leyendo TXT códigos equivalentes...");
-  setProgress("pEquiv","pEquivTxt",0); $("nEquiv").textContent="0";
-
-  const text=await file.text();
-  const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  const mapSets=new Map();
-
-  for(let i=0;i<lines.length;i++){
-    const cols=tokenizarLinea(lines[i]);
-    if(cols.length>=2){
-      const principal=normalizarCodigo(cols[0]);
-      const equiv=normalizarCodigo(cols[1]);
-      if(principal && equiv && principal !== equiv){
-        if(!mapSets.has(principal)) mapSets.set(principal,new Set());
-        mapSets.get(principal).add(equiv);
-      }
-    }
-    if(i%500===0||i===lines.length-1){
-      setProgress("pEquiv","pEquivTxt",((i+1)/lines.length)*100);
-      $("nEquiv").textContent=mapSets.size;
-      await sleep(0);
-    }
-  }
-
-  equivTXTMap=new Map();
-  for(const [codigo,set] of mapSets.entries()){
-    equivTXTMap.set(codigo,[...set].sort());
-  }
-
-  $("nEquiv").textContent=equivTXTMap.size;
-  log(`Equivalentes listos: ${equivTXTMap.size} productos con equivalentes.`, "ok");
-  setTag("Equivalentes TXT listo","ok");
-  $("btnCompararEquiv").disabled=false;
-}
-
-function normalizarEquiv(arr=[]){
-  if(!Array.isArray(arr)) return [];
-  return [...new Set(arr.map(x=>normalizarCodigo(x)).filter(Boolean))].sort();
-}
-function arraysEquivIguales(a,b){
-  return JSON.stringify(normalizarEquiv(a))===JSON.stringify(normalizarEquiv(b));
-}
-
-function compararEquiv(){
-  if(!firebaseDocs.length){alert("Descarga catálogo primero.");return;}
-  if(!equivTXTMap.size){alert("Lee equivalentes primero.");return;}
-
-  resultadosEquiv=[];
-  let cambios=0, noexiste=0, sin=0;
-
-  for(const [codigo,nuevoArrRaw] of equivTXTMap.entries()){
-    const actual=firebaseMap.get(codigo);
-
-    const nuevoArr=normalizarEquiv(nuevoArrRaw).filter(x=>x!==codigo);
-
-    const row={
-      codigoBarra:codigo,
-      actual:actual||null,
-      nuevo:nuevoArr,
-      estado:"NO_EXISTE",
-      payload:null,
-      motivo:"No existe en Firebase"
-    };
-
-    if(!actual){
-      noexiste++;
-    }else{
-      const actualArr=normalizarEquiv(actual.codigosEquivalentes||[]).filter(x=>x!==codigo);
-
-      // Regla correcta:
-      // conservar los equivalentes actuales y sumar los nuevos del TXT.
-      const mezclado=normalizarEquiv([
-        ...actualArr,
-        ...nuevoArr
-      ]).filter(x=>x!==codigo);
-
-      if(arraysEquivIguales(actualArr, mezclado)){
-        row.estado="SIN_CAMBIOS";
-        row.motivo="codigosEquivalentes igual";
-        row.nuevo=mezclado;
-        sin++;
-      }else{
-        row.estado="CAMBIO";
-        row.motivo="Se agregarán equivalentes sin borrar los existentes";
-        row.nuevo=mezclado;
-        row.payload={
-          codigosEquivalentes:mezclado,
-          actualizadoEn:nowIso(),
-          updatedAt:"__SERVER_TIMESTAMP__"
-        };
-        cambios++;
-      }
-    }
-
-    resultadosEquiv.push(row);
-  }
-
-  $("kEquivCambios").textContent=cambios;
-  renderEquiv();
-  log(`Comparación equivalentes: cambios ${cambios}, no existen ${noexiste}, sin cambios ${sin}.`, "ok");
-  setTag("Equivalentes comparados","warn");
-  $("btnActualizarEquiv").disabled=cambios===0;
-}
-
-function cell(actual,nuevo,changed){
-  return `<span class="old">Actual: ${esc(actual)}</span><span class="new ${changed?"diff":""}">Nuevo: ${esc(nuevo)}</span>`;
-}
-function renderProductos(){
-  const tb=$("bodyProductos"); tb.innerHTML="";
-  resultadosProductos.forEach((r,i)=>{
-    const tag=r.estado==="CAMBIO"?"ok":r.estado==="SIN_CAMBIOS"?"warn":r.estado==="ACTUALIZADO"?"ok":"danger";
-    const c=r.cambios;
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${i+1}</td><td class="mono">${esc(r.codigoBarra)}</td><td><span class="tag ${tag}">${r.estado}</span></td>
-      <td>${cell(c.concepto?.actual,c.concepto?.nuevo,c.concepto?.changed)}</td>
-      <td>${cell(c.costoSinImpuesto?.actual,c.costoSinImpuesto?.nuevo,c.costoSinImpuesto?.changed)}</td>
-      <td>${cell(c.precioPublico?.actual,c.precioPublico?.nuevo,c.precioPublico?.changed)}</td>
-      <td>${cell(c.medioMayoreo?.actual,c.medioMayoreo?.nuevo,c.medioMayoreo?.changed)}</td>
-      <td>${cell(c.mayoreo?.actual,c.mayoreo?.nuevo,c.mayoreo?.changed)}</td>
-      <td>${cell(c.claveSat?.actual,c.claveSat?.nuevo,c.claveSat?.changed)}</td>
-      <td>${cell(c.unidadMedidaSat?.actual,c.unidadMedidaSat?.nuevo,c.unidadMedidaSat?.changed)}</td>
-      <td>${cell(c.activo?.actual,c.activo?.nuevo,c.activo?.changed)}</td>
-      <td>${cell(c.departamento_id?.actual,c.departamento_id?.nuevo,c.departamento_id?.changed)}</td>
-      <td>${esc(r.motivo)}</td>`;
-    tb.appendChild(tr);
-  });
-}
-function formatArr(arr){return JSON.stringify(normalizarPrecios(arr),null,0);}
-function renderPrecios(){
-  const tb=$("bodyPrecios");
-  tb.innerHTML="";
-
-  resultadosPrecios.forEach((r,i)=>{
-    const tag=r.estado==="CAMBIO"?"ok":r.estado==="SIN_CAMBIOS"?"warn":r.estado==="ACTUALIZADO"?"ok":"danger";
-
-    const actualArr=normalizarPrecios(r.actual?.preciosPorCantidad||[]);
-    const nuevoArr=normalizarPrecios(r.nuevo||[]);
-
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
+  detalle.forEach((r,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
       <td>${i+1}</td>
-      <td class="mono">${esc(r.codigoBarra)}</td>
-      <td><span class="tag ${tag}">${r.estado}</span></td>
-      <td>
-        <span class="array-count">${actualArr.length} actuales</span>
-        <div class="array-box">${esc(JSON.stringify(actualArr))}</div>
-      </td>
-      <td>
-        <span class="array-count">${nuevoArr.length} nuevos/finales</span>
-        <div class="array-box ${r.estado==="CAMBIO"?"array-diff":""}">
-          ${esc(JSON.stringify(nuevoArr))}
-        </div>
-      </td>
-      <td>${esc(r.motivo)}</td>`;
-    tb.appendChild(tr);
-  });
-}
-function formatEquiv(arr){return JSON.stringify(normalizarEquiv(arr),null,0);}
-function renderEquiv(){
-  const tb=$("bodyEquiv");
-  tb.innerHTML="";
-
-  resultadosEquiv.forEach((r,i)=>{
-    const tag=r.estado==="CAMBIO"?"ok":r.estado==="SIN_CAMBIOS"?"warn":r.estado==="ACTUALIZADO"?"ok":"danger";
-
-    const actualArr=normalizarEquiv(r.actual?.codigosEquivalentes||[]);
-    const nuevoArr=normalizarEquiv(r.nuevo||[]);
-
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-      <td>${i+1}</td>
-      <td class="mono">${esc(r.codigoBarra)}</td>
-      <td><span class="tag ${tag}">${r.estado}</span></td>
-      <td>
-        <span class="array-count">${actualArr.length} actuales</span>
-        <div class="array-box">${esc(actualArr.join(", "))}</div>
-      </td>
-      <td>
-        <span class="array-count">${nuevoArr.length} nuevos/finales</span>
-        <div class="array-box ${r.estado==="CAMBIO"?"array-diff":""}">
-          ${esc(nuevoArr.join(", "))}
-        </div>
-      </td>
-      <td>${esc(r.motivo)}</td>`;
+      <td>${esc(r.etapa)}</td>
+      <td>${estadoTag(r.estado)}</td>
+      <td>${esc(r.detalle)}</td>
+    `;
     tb.appendChild(tr);
   });
 }
 
-async function actualizarResultados(tipo){
-  const rows =
-    tipo==="productos" ? resultadosProductos.filter(r=>r.estado==="CAMBIO"&&r.actual&&r.payload) :
-    tipo==="precios" ? resultadosPrecios.filter(r=>r.estado==="CAMBIO"&&r.actual&&r.payload) :
-    resultadosEquiv.filter(r=>r.estado==="CAMBIO"&&r.actual&&r.payload);
+function confirmarProceso(){
+  return confirm(
+    "Este proceso actualizará Firebase y, si termina correctamente, reseteará los 3 archivos TXT a 0 bytes.\n\n" +
+    "Este proceso no se debe interrumpir.\n\n" +
+    "¿Deseas continuar?"
+  );
+}
 
-  if(!rows.length){alert("No hay cambios para actualizar.");return;}
-  if(!confirm(`Se actualizarán ${rows.length} documentos (${tipo}). ¿Continuar?`)) return;
+async function procesarTodo(){
+  if(!confirmarProceso()) return;
 
-  setTag(`Actualizando ${tipo}`,"danger");
-  log(`Actualizando ${rows.length} documentos (${tipo})...`, "warn");
-  setProgress("pUpd","pUpdTxt",0); $("nUpd").textContent="0";
+  $("btnProcesar").disabled = true;
+  $("btnPDF").disabled = true;
+  setProgress(5);
+  setTag("Procesando", "warn");
+  $("etapaActual").textContent = "Enviando orden a Node";
+  log("Orden enviada a procesador Node.");
 
-  let done=0;
-  for(let i=0;i<rows.length;i+=400){
-    const slice=rows.slice(i,i+400);
-    const batch=writeBatch(db);
-    for(const r of slice){
-      const payload={...r.payload};
-      if(payload.updatedAt==="__SERVER_TIMESTAMP__") payload.updatedAt=serverTimestamp();
-      batch.update(r.actual.ref,payload);
+  try{
+    setProgress(15);
+
+    const resp = await fetch(API_PROCESAR, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ confirmar:true })
+    });
+
+    setProgress(55);
+    $("etapaActual").textContent = "Esperando resultado";
+
+    let data;
+    try{
+      data = await resp.json();
+    }catch(e){
+      throw new Error("Node respondió, pero no regresó JSON válido.");
     }
-    await batch.commit();
-    done+=slice.length;
-    setProgress("pUpd","pUpdTxt",(done/rows.length)*100);
-    $("nUpd").textContent=done;
-    $("kActualizados").textContent=Number($("kActualizados").textContent||0)+slice.length;
-    slice.forEach(r=>log(`Actualizado ${r.codigoBarra} (${tipo})`, "ok"));
-    await sleep(30);
+
+    if(!resp.ok || !data.ok){
+      throw new Error(data.mensaje || data.error || "Proceso rechazado por Node.");
+    }
+
+    ultimoResultado = data;
+    pintarResumen(data.resumen || {});
+    pintarDetalle(data.detalle || []);
+
+    setProgress(100);
+    setTag("Completado", "ok");
+    $("etapaActual").textContent = "Proceso completado";
+    $("btnPDF").disabled = false;
+    log(data.mensaje || "Proceso completado.", "OK");
+
+    alert("PROCESO COMPLETADO. Archivos reseteados a 0 bytes.");
+  }catch(err){
+    console.error(err);
+    setTag("Error", "danger");
+    $("etapaActual").textContent = "Error";
+    log(err.message || err, "ERROR");
+    alert("Error en el proceso: " + (err.message || err));
+  }finally{
+    $("btnProcesar").disabled = false;
+  }
+}
+
+function limpiarPantalla(){
+  ultimoResultado = null;
+  setProgress(0);
+  setTag("En espera");
+  $("etapaActual").textContent = "Sin iniciar";
+  $("log").textContent = "App lista. Presiona PROCESAR TODO.";
+  pintarResumen({});
+  pintarDetalle([]);
+  $("btnPDF").disabled = true;
+}
+
+function descargarPDFResumen(){
+  if(!ultimoResultado){
+    alert("No hay resultado para exportar.");
+    return;
   }
 
-  if(tipo==="productos"){
-    resultadosProductos=resultadosProductos.map(r=>r.estado==="CAMBIO"?{...r,estado:"ACTUALIZADO",motivo:"Actualizado"}:r);
-    renderProductos();
-  }else if(tipo==="precios"){
-    resultadosPrecios=resultadosPrecios.map(r=>r.estado==="CAMBIO"?{...r,estado:"ACTUALIZADO",motivo:"Actualizado"}:r);
-    renderPrecios();
-  }else{
-    resultadosEquiv=resultadosEquiv.map(r=>r.estado==="CAMBIO"?{...r,estado:"ACTUALIZADO",motivo:"Actualizado"}:r);
-    renderEquiv();
-  }
-  setTag("Actualización completa","ok");
-  log(`Actualización terminada (${tipo}).`, "ok");
+  const r = ultimoResultado.resumen || {};
+  const detalle = Array.isArray(ultimoResultado.detalle) ? ultimoResultado.detalle : [];
+  const fecha = new Date().toLocaleString("es-MX");
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Resumen Migrador PROVSOFT</title>
+      <style>
+        body{font-family:Arial,Helvetica,sans-serif;margin:32px;color:#1f2937}
+        h1{color:#00416a;margin-bottom:4px}
+        .sub{color:#6b7280;margin-bottom:22px}
+        .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+        .box{border:1px solid #dbe4ee;border-radius:12px;padding:12px}
+        .lbl{font-size:11px;text-transform:uppercase;color:#6b7280;font-weight:bold}
+        .val{font-size:24px;font-weight:bold;margin-top:6px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #dbe4ee;padding:8px;text-align:left;vertical-align:top}
+        th{background:#f6f9fc}
+      </style>
+    </head>
+    <body>
+      <h1>Resumen Migrador PROVSOFT</h1>
+      <div class="sub">Generado: ${esc(fecha)}</div>
+
+      <div class="grid">
+        <div class="box"><div class="lbl">Productos leídos</div><div class="val">${esc(r.productosLeidos ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Precios leídos</div><div class="val">${esc(r.preciosLeidos ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Equiv leídos</div><div class="val">${esc(r.equivalentesLeidos ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Actualizados</div><div class="val">${esc(r.actualizados ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Productos cambios</div><div class="val">${esc(r.productosCambios ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Precios cambios</div><div class="val">${esc(r.preciosCambios ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Equiv cambios</div><div class="val">${esc(r.equivCambios ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Archivos reset</div><div class="val">${r.archivosReset ? "SÍ" : "NO"}</div></div>
+      </div>
+
+      <h2>Detalle</h2>
+      <table>
+        <thead><tr><th>#</th><th>Etapa</th><th>Estado</th><th>Detalle</th></tr></thead>
+        <tbody>
+          ${detalle.map((x,i)=>`
+            <tr>
+              <td>${i+1}</td>
+              <td>${esc(x.etapa)}</td>
+              <td>${esc(x.estado)}</td>
+              <td>${esc(x.detalle)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const w = window.open("", "_blank");
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(), 300);
 }
 
-function mostrarVista(v){
-  $("tablaProductos").style.display=v==="productos"?"table":"none";
-  $("tablaPrecios").style.display=v==="precios"?"table":"none";
-  $("tablaEquiv").style.display=v==="equiv"?"table":"none";
-  $("tabProductos").classList.toggle("active",v==="productos");
-  $("tabPrecios").classList.toggle("active",v==="precios");
-  $("tabEquiv").classList.toggle("active",v==="equiv");
-}
+$("btnProcesar").addEventListener("click", procesarTodo);
+$("btnLimpiar").addEventListener("click", limpiarPantalla);
+$("btnPDF").addEventListener("click", descargarPDFResumen);
 
-function exportarPreview(){
-  const data={
-    productos:resultadosProductos.map(r=>({codigoBarra:r.codigoBarra,estado:r.estado,motivo:r.motivo,payload:r.payload})),
-    precios:resultadosPrecios.map(r=>({codigoBarra:r.codigoBarra,estado:r.estado,motivo:r.motivo,payload:r.payload})),
-    equivalentes:resultadosEquiv.map(r=>({codigoBarra:r.codigoBarra,estado:r.estado,motivo:r.motivo,payload:r.payload}))
-  };
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url;
-  a.download="preview_migrador_provsoft_full.json";
-  a.click();
-  URL.revokeObjectURL(url);
-  log("Preview exportado.", "ok");
-}
-
-function limpiar(){
-  firebaseDocs=[]; firebaseMap=new Map(); productosTXT=[]; preciosTXTMap=new Map(); equivTXTMap=new Map();
-  resultadosProductos=[]; resultadosPrecios=[]; resultadosEquiv=[];
-  $("bodyProductos").innerHTML=""; $("bodyPrecios").innerHTML=""; $("bodyEquiv").innerHTML=""; $("log").textContent="";
-  [["pCatalogo","pCatalogoTxt"],["pProd","pProdTxt"],["pPrec","pPrecTxt"],["pEquiv","pEquivTxt"],["pUpd","pUpdTxt"]].forEach(x=>setProgress(x[0],x[1],0));
-  ["nCatalogo","nProd","nPrec","nEquiv","nUpd","kFirebase","kProdTxt","kProdCambios","kPrecTxt","kPrecCambios","kEquivCambios","kActualizados"].forEach(id=>$(id).textContent="0");
-  ["btnLeerProductos","btnLeerPrecios","btnLeerEquiv","btnCompararProductos","btnCompararPrecios","btnCompararEquiv","btnActualizarProductos","btnActualizarPrecios","btnActualizarEquiv"].forEach(id=>$(id).disabled=true);
-  setTag("En espera"); log("Estado reiniciado.");
-}
-
-$("btnCatalogo").addEventListener("click", async()=>{try{await descargarCatalogo()}catch(e){console.error(e);log(e.message,"error");alert("Error catálogo")}} );
-$("btnLeerProductos").addEventListener("click", async()=>{try{await leerProductos()}catch(e){console.error(e);log(e.message,"error");alert("Error productos")}} );
-$("btnCompararProductos").addEventListener("click", compararProductos);
-$("btnActualizarProductos").addEventListener("click", ()=>actualizarResultados("productos"));
-$("btnLeerPrecios").addEventListener("click", async()=>{try{await leerPrecios()}catch(e){console.error(e);log(e.message,"error");alert("Error precios")}} );
-$("btnCompararPrecios").addEventListener("click", compararPrecios);
-$("btnActualizarPrecios").addEventListener("click", ()=>actualizarResultados("precios"));
-$("btnLeerEquiv").addEventListener("click", async()=>{try{await leerEquiv()}catch(e){console.error(e);log(e.message,"error");alert("Error equivalentes")}} );
-$("btnCompararEquiv").addEventListener("click", compararEquiv);
-$("btnActualizarEquiv").addEventListener("click", ()=>actualizarResultados("equivalentes"));
-$("btnExportar").addEventListener("click", exportarPreview);
-$("btnLimpiar").addEventListener("click", limpiar);
-$("tabProductos").addEventListener("click", ()=>mostrarVista("productos"));
-$("tabPrecios").addEventListener("click", ()=>mostrarVista("precios"));
-$("tabEquiv").addEventListener("click", ()=>mostrarVista("equiv"));
-
+setProgress(0);
 setTag("En espera");
-log("App lista. Paso 1: descargar catálogo.");
 </script>
 </body>
 </html>
