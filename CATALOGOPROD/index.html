@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Migrador Automático PROVSOFT</title>
+<style>
+:root{
+  --bg:#f4f7fb;
+  --panel:#ffffff;
+  --line:#dbe4ee;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --brand:#0c6cbd;
+  --brand-dark:#00416a;
+  --ok:#0f9d58;
+  --warn:#d97706;
+  --danger:#dc2626;
+  --shadow:0 10px 30px rgba(0,0,0,.08);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.app{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:420px 1fr;
+  gap:18px;
+  padding:18px;
+}
+.sidebar,.main{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  min-width:0;
+}
+.hero{
+  background:linear-gradient(135deg,var(--brand-dark),var(--brand));
+  color:#fff;
+  border-radius:var(--radius);
+  padding:24px;
+  box-shadow:var(--shadow);
+}
+.hero h1{margin:0 0 8px;font-size:28px}
+.hero p{margin:0;font-size:14px;line-height:1.5;opacity:.95}
+.panel{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.panel-head{
+  padding:15px 18px;
+  border-bottom:1px solid var(--line);
+  background:#f8fbff;
+  font-weight:800;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.panel-body{padding:18px}
+.stack{display:grid;gap:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px;
+  box-shadow:var(--shadow);
+}
+.kpi .label{
+  font-size:11px;
+  color:var(--muted);
+  font-weight:800;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.kpi .value{font-size:28px;font-weight:900}
+.kpi .sub{font-size:12px;color:var(--muted);margin-top:5px}
+button{
+  border:0;
+  border-radius:14px;
+  padding:14px 16px;
+  font-weight:800;
+  cursor:pointer;
+  transition:.15s;
+  font-size:14px;
+}
+button:hover{transform:translateY(-1px)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--brand);color:white}
+.btn-success{background:var(--ok);color:white}
+.btn-danger{background:var(--danger);color:white}
+.btn-secondary{background:#edf4fb;color:var(--brand-dark)}
+.big-button{
+  width:100%;
+  padding:22px;
+  font-size:18px;
+  letter-spacing:.03em;
+}
+.tag{
+  display:inline-flex;
+  padding:7px 11px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+  background:#edf4fb;
+  color:var(--brand-dark);
+  border:1px solid #d9e7f5;
+  white-space:nowrap;
+}
+.tag.ok{background:#edf9f1;color:#0c6a39;border-color:#cdeed7}
+.tag.warn{background:#fff7eb;color:#a45b0b;border-color:#f4dfba}
+.tag.danger{background:#fff0f0;color:#b42318;border-color:#f5c8c8}
+.status-bar{
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:14px;
+  background:#fbfdff;
+  display:grid;
+  gap:9px;
+}
+.status-top{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  font-size:13px;
+}
+.status-label{font-weight:800}
+.status-value{font-family:Consolas,monospace;color:var(--muted)}
+.progress{
+  height:16px;
+  background:#e8eef5;
+  border-radius:999px;
+  overflow:hidden;
+}
+.progress-fill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(90deg,var(--brand-dark),var(--brand));
+  transition:.2s;
+}
+.log{
+  height:360px;
+  overflow:auto;
+  background:#0f1720;
+  color:#dbe7f3;
+  border-radius:16px;
+  padding:15px;
+  font-family:Consolas,monospace;
+  font-size:12px;
+  white-space:pre-wrap;
+  line-height:1.45;
+}
+.info-box{
+  border:1px solid var(--line);
+  border-radius:15px;
+  padding:14px;
+  background:#fbfdff;
+  font-size:13px;
+  line-height:1.55;
+  color:var(--muted);
+}
+.info-box b{color:var(--text)}
+.table-wrap{
+  overflow:auto;
+  max-height:56vh;
+  border-top:1px solid var(--line);
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+  background:#fff;
+  font-size:13px;
+}
+th{
+  position:sticky;
+  top:0;
+  background:#f6f9fc;
+  border-bottom:1px solid var(--line);
+  padding:11px;
+  text-align:left;
+  white-space:nowrap;
+  z-index:2;
+}
+td{
+  border-bottom:1px solid #edf2f7;
+  padding:10px 11px;
+  vertical-align:top;
+}
+tr:hover{background:#fafcff}
+.mono{font-family:Consolas,monospace;white-space:nowrap}
+.hidden{display:none!important}
+@media(max-width:1100px){
+  .app{grid-template-columns:1fr}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:650px){
+  .grid-4,.grid-2{grid-template-columns:1fr}
+  .app{padding:10px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="hero">
+      <h1>Migrador Automático PROVSOFT</h1>
+      <p>Proceso único: lee archivos fijos, actualiza Firebase y resetea TXT a 0 bytes al finalizar correctamente.</p>
+    </div>
+
+    <section class="panel">
+      <div class="panel-head">
+        <span>Proceso</span>
+        <span id="statusTag" class="tag">En espera</span>
+      </div>
+      <div class="panel-body stack">
+        <button id="btnProcesar" class="btn-primary big-button">PROCESAR TODO</button>
+
+        <div class="grid-2">
+          <button id="btnPDF" class="btn-secondary" disabled>Descargar PDF resumen</button>
+          <button id="btnLimpiar" class="btn-danger">Limpiar pantalla</button>
+        </div>
+
+        <div class="info-box">
+          <b>Ruta esperada por Node:</b><br>
+          C:/python/SucAll/SucAll<br><br>
+<b>Archivos:</b><br>
+articulos.txt<br>
+precant.txt<br>
+equiv.txt<br><br>
+          Al terminar bien, Node debe dejarlos completamente vacíos.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">Avance general</div>
+      <div class="panel-body stack">
+        <div class="status-bar">
+          <div class="status-top">
+            <span class="status-label">Proceso completo</span>
+            <span id="pGeneralTxt" class="status-value">0%</span>
+          </div>
+          <div class="progress"><div id="pGeneral" class="progress-fill"></div></div>
+        </div>
+
+        <div class="status-bar">
+          <div class="status-top">
+            <span class="status-label">Etapa actual</span>
+            <span id="etapaActual" class="status-value">Sin iniciar</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">Bitácora visual</div>
+      <div class="panel-body">
+        <div id="log" class="log">App lista. Presiona PROCESAR TODO.</div>
+      </div>
+    </section>
+  </aside>
+
+  <main class="main">
+    <section class="panel">
+      <div class="panel-head">Resumen</div>
+      <div class="panel-body grid-4">
+        <div class="kpi"><div class="label">Productos leídos</div><div id="kProductos" class="value">0</div><div class="sub">TXT</div></div>
+        <div class="kpi"><div class="label">Precios leídos</div><div id="kPrecios" class="value">0</div><div class="sub">TXT</div></div>
+        <div class="kpi"><div class="label">Equivalentes leídos</div><div id="kEquiv" class="value">0</div><div class="sub">TXT</div></div>
+        <div class="kpi"><div class="label">Actualizados</div><div id="kActualizados" class="value">0</div><div class="sub">Firebase</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">Resultado final</div>
+      <div class="panel-body grid-4">
+        <div class="kpi"><div class="label">Productos cambios</div><div id="kProdCambios" class="value">0</div><div class="sub">base</div></div>
+        <div class="kpi"><div class="label">Precios cambios</div><div id="kPrecCambios" class="value">0</div><div class="sub">por cantidad</div></div>
+        <div class="kpi"><div class="label">Equiv cambios</div><div id="kEquivCambios" class="value">0</div><div class="sub">códigos</div></div>
+        <div class="kpi"><div class="label">Archivos reset</div><div id="kReset" class="value">NO</div><div class="sub">0 bytes</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">Detalle del proceso</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Etapa</th>
+              <th>Estado</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="bodyDetalle">
+            <tr><td>1</td><td>En espera</td><td><span class="tag">Pendiente</span></td><td>Sin proceso ejecutado.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/*
+  IMPORTANTE:
+  Este HTML debe abrirse desde tu servidor local Node, por ejemplo:
+
+  http://localhost:3000
+
+  Tu procesador.js debe exponer un endpoint:
+
+  POST /procesar
+
+  y debe responder JSON parecido a esto:
+
+  {
+    "ok": true,
+    "mensaje": "Proceso completado",
+    "resumen": {
+      "productosLeidos": 1000,
+      "preciosLeidos": 800,
+      "equivalentesLeidos": 200,
+      "productosCambios": 50,
+      "preciosCambios": 30,
+      "equivCambios": 10,
+      "actualizados": 90,
+      "archivosReset": true
+    },
+    "detalle": [
+      { "etapa": "Descargar catálogo", "estado": "OK", "detalle": "10000 docs" },
+      { "etapa": "Leer productos", "estado": "OK", "detalle": "1000 productos" }
+    ]
+  }
+*/
+
+const API_PROCESAR = "/procesar";
+
+let ultimoResultado = null;
+
+const $ = id => document.getElementById(id);
+
+function setTag(texto, tipo=""){
+  $("statusTag").textContent = texto;
+  $("statusTag").className = "tag" + (tipo ? " " + tipo : "");
+}
+
+function setProgress(n){
+  n = Math.max(0, Math.min(100, Number(n)||0));
+  $("pGeneral").style.width = n + "%";
+  $("pGeneralTxt").textContent = Math.round(n) + "%";
+}
+
+function log(msg, tipo="INFO"){
+  const d = new Date();
+  const h = String(d.getHours()).padStart(2,"0");
+  const m = String(d.getMinutes()).padStart(2,"0");
+  const s = String(d.getSeconds()).padStart(2,"0");
+  $("log").textContent += `\n${h}:${m}:${s} [${tipo}] ${msg}`;
+  $("log").scrollTop = $("log").scrollHeight;
+}
+
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function estadoTag(estado){
+  const e = String(estado||"").toUpperCase();
+  if(e === "OK" || e === "COMPLETADO") return `<span class="tag ok">${esc(estado)}</span>`;
+  if(e === "ERROR") return `<span class="tag danger">${esc(estado)}</span>`;
+  if(e === "ADVERTENCIA" || e === "WARN") return `<span class="tag warn">${esc(estado)}</span>`;
+  return `<span class="tag">${esc(estado || "Pendiente")}</span>`;
+}
+
+function pintarResumen(resumen={}){
+  $("kProductos").textContent = resumen.productosLeidos ?? 0;
+  $("kPrecios").textContent = resumen.preciosLeidos ?? 0;
+  $("kEquiv").textContent = resumen.equivalentesLeidos ?? 0;
+  $("kActualizados").textContent = resumen.actualizados ?? 0;
+
+  $("kProdCambios").textContent = resumen.productosCambios ?? 0;
+  $("kPrecCambios").textContent = resumen.preciosCambios ?? 0;
+  $("kEquivCambios").textContent = resumen.equivCambios ?? 0;
+  $("kReset").textContent = resumen.archivosReset ? "SÍ" : "NO";
+}
+
+function pintarDetalle(detalle=[]){
+  const tb = $("bodyDetalle");
+  tb.innerHTML = "";
+
+  if(!Array.isArray(detalle) || detalle.length === 0){
+    tb.innerHTML = `<tr><td>1</td><td>Proceso</td><td>${estadoTag("Sin detalle")}</td><td>No se recibió detalle desde Node.</td></tr>`;
+    return;
+  }
+
+  detalle.forEach((r,i)=>{
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${i+1}</td>
+      <td>${esc(r.etapa)}</td>
+      <td>${estadoTag(r.estado)}</td>
+      <td>${esc(r.detalle)}</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+
+function confirmarProceso(){
+  return confirm(
+    "Este proceso actualizará Firebase y, si termina correctamente, reseteará los 3 archivos TXT a 0 bytes.\n\n" +
+    "Este proceso no se debe interrumpir.\n\n" +
+    "¿Deseas continuar?"
+  );
+}
+
+async function procesarTodo(){
+  if(!confirmarProceso()) return;
+
+  $("btnProcesar").disabled = true;
+  $("btnPDF").disabled = true;
+  setProgress(5);
+  setTag("Procesando", "warn");
+  $("etapaActual").textContent = "Enviando orden a Node";
+  log("Orden enviada a procesador Node.");
+
+  try{
+    setProgress(15);
+
+    const resp = await fetch(API_PROCESAR, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ confirmar:true })
+    });
+
+    setProgress(55);
+    $("etapaActual").textContent = "Esperando resultado";
+
+    let data;
+    try{
+      data = await resp.json();
+    }catch(e){
+      throw new Error("Node respondió, pero no regresó JSON válido.");
+    }
+
+    if(!resp.ok || !data.ok){
+      throw new Error(data.mensaje || data.error || "Proceso rechazado por Node.");
+    }
+
+    ultimoResultado = data;
+    pintarResumen(data.resumen || {});
+    pintarDetalle(data.detalle || []);
+
+    setProgress(100);
+    setTag("Completado", "ok");
+    $("etapaActual").textContent = "Proceso completado";
+    $("btnPDF").disabled = false;
+    log(data.mensaje || "Proceso completado.", "OK");
+
+    alert("PROCESO COMPLETADO. Archivos reseteados a 0 bytes.");
+  }catch(err){
+    console.error(err);
+    setTag("Error", "danger");
+    $("etapaActual").textContent = "Error";
+    log(err.message || err, "ERROR");
+    alert("Error en el proceso: " + (err.message || err));
+  }finally{
+    $("btnProcesar").disabled = false;
+  }
+}
+
+function limpiarPantalla(){
+  ultimoResultado = null;
+  setProgress(0);
+  setTag("En espera");
+  $("etapaActual").textContent = "Sin iniciar";
+  $("log").textContent = "App lista. Presiona PROCESAR TODO.";
+  pintarResumen({});
+  pintarDetalle([]);
+  $("btnPDF").disabled = true;
+}
+
+function descargarPDFResumen(){
+  if(!ultimoResultado){
+    alert("No hay resultado para exportar.");
+    return;
+  }
+
+  const r = ultimoResultado.resumen || {};
+  const detalle = Array.isArray(ultimoResultado.detalle) ? ultimoResultado.detalle : [];
+  const fecha = new Date().toLocaleString("es-MX");
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Resumen Migrador PROVSOFT</title>
+      <style>
+        body{font-family:Arial,Helvetica,sans-serif;margin:32px;color:#1f2937}
+        h1{color:#00416a;margin-bottom:4px}
+        .sub{color:#6b7280;margin-bottom:22px}
+        .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+        .box{border:1px solid #dbe4ee;border-radius:12px;padding:12px}
+        .lbl{font-size:11px;text-transform:uppercase;color:#6b7280;font-weight:bold}
+        .val{font-size:24px;font-weight:bold;margin-top:6px}
+        table{width:100%;border-collapse:collapse;font-size:12px}
+        th,td{border:1px solid #dbe4ee;padding:8px;text-align:left;vertical-align:top}
+        th{background:#f6f9fc}
+      </style>
+    </head>
+    <body>
+      <h1>Resumen Migrador PROVSOFT</h1>
+      <div class="sub">Generado: ${esc(fecha)}</div>
+
+      <div class="grid">
+        <div class="box"><div class="lbl">Productos leídos</div><div class="val">${esc(r.productosLeidos ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Precios leídos</div><div class="val">${esc(r.preciosLeidos ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Equiv leídos</div><div class="val">${esc(r.equivalentesLeidos ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Actualizados</div><div class="val">${esc(r.actualizados ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Productos cambios</div><div class="val">${esc(r.productosCambios ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Precios cambios</div><div class="val">${esc(r.preciosCambios ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Equiv cambios</div><div class="val">${esc(r.equivCambios ?? 0)}</div></div>
+        <div class="box"><div class="lbl">Archivos reset</div><div class="val">${r.archivosReset ? "SÍ" : "NO"}</div></div>
+      </div>
+
+      <h2>Detalle</h2>
+      <table>
+        <thead><tr><th>#</th><th>Etapa</th><th>Estado</th><th>Detalle</th></tr></thead>
+        <tbody>
+          ${detalle.map((x,i)=>`
+            <tr>
+              <td>${i+1}</td>
+              <td>${esc(x.etapa)}</td>
+              <td>${esc(x.estado)}</td>
+              <td>${esc(x.detalle)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </body>
+    </html>
+  `;
+
+  const w = window.open("", "_blank");
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(()=>w.print(), 300);
+}
+
+$("btnProcesar").addEventListener("click", procesarTodo);
+$("btnLimpiar").addEventListener("click", limpiarPantalla);
+$("btnPDF").addEventListener("click", descargarPDFResumen);
+
+setProgress(0);
+setTag("En espera");
+</script>
+</body>
+</html>
