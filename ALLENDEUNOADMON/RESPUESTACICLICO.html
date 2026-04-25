@@ -272,7 +272,8 @@ import {
   query,
   orderBy,
   limit,
-  addDoc
+  addDoc,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -297,8 +298,16 @@ import {
   const sucursal = document.getElementById("sucursal");
   const btnActualizar = document.getElementById("btnActualizar");
 
-  function refSolicitudes() {
-    function refAjustes() {
+function refSolicitudes() {
+  return collection(
+    db,
+    "TIENDAS",
+    sucursal.value,
+    "ciclicos_respuesta"
+  );
+}
+
+function refAjustes() {
   return collection(
     db,
     "TIENDAS",
@@ -306,14 +315,23 @@ import {
     "ajustes_inventario"
   );
 }
-    return collection(
-      db,
-      "TIENDAS",
-      sucursal.value,
-      "ciclicos_respuesta"
-    );
-  }
+async function obtenerAjustes(solicitudId) {
 
+  const q = query(
+    refAjustes(),
+    where("solicitud_id", "==", solicitudId)
+  );
+
+  const snap = await getDocs(q);
+
+  let ajustes = [];
+
+  snap.forEach(doc => {
+    ajustes.push(doc.data());
+  });
+
+  return ajustes;
+}
   async function cargarSolicitudes() {
     lista.innerHTML = `<div class="empty">Cargando solicitudes...</div>`;
     detalle.innerHTML = `<div class="empty">Selecciona una solicitud</div>`;
@@ -395,7 +413,7 @@ import {
     });
   }
 
-  function abrirSolicitud(id) {
+  async function abrirSolicitud(id) {
     solicitudActivaId = id;
     renderLista();
 
@@ -403,6 +421,7 @@ import {
     if (!s) return;
 
     const productos = Array.isArray(s.productos) ? s.productos : [];
+    const ajustes = await obtenerAjustes(id);
 
     let totalProductos = productos.length;
     let iguales = 0;
@@ -467,6 +486,9 @@ import {
   </thead>
   <tbody>
     ${productos.map((p, i) => {
+      const ajusteGuardado = ajustes.find(a =>
+  String(a.codigo) === String(p.codigo)
+);
 
       const fisico = Number(p.conteo_fisico || 0);
       const tipo = p.tipo || "";
@@ -482,16 +504,18 @@ import {
           <td>${formatearHora(p.hora_registro)}</td>
 
           <td>
-            <input 
-              type="number" 
-              step="any"
-              class="input-ajuste"
-              data-index="${i}"
-              placeholder="0"
-            />
+<input 
+  type="number" 
+  step="any"
+  class="input-ajuste"
+  data-index="${i}"
+  value="${ajusteGuardado ? ajusteGuardado.captura_usuario : ''}"
+/>
           </td>
 
-          <td id="fecha-${i}">-</td>
+          <td id="fecha-${i}">
+  ${ajusteGuardado ? formatearHora(ajusteGuardado.fecha_ajuste) : "-"}
+</td>
         </tr>
       `;
     }).join("")}
@@ -524,18 +548,23 @@ import {
 
       try {
 
-        await addDoc(refAjustes(), {
-          codigo: producto.codigo || "",
-          descripcion: producto.descripcion || "",
-          tipo: producto.tipo || "",
-          conteo_fisico: fisico,
-          captura_usuario: valor,
-          ajuste: diferencia,
-          fecha_ajuste: ahora,
-          sucursal: sucursal.value,
-          usuario: "sistema"
-        });
+await addDoc(refAjustes(), {
+  solicitud_id: solicitudActivaId,
+  codigo: producto.codigo || "",
+  descripcion: producto.descripcion || "",
+  tipo: producto.tipo || "",
 
+  conteo_fisico: fisico,
+  captura_usuario: valor,
+
+  ajuste: diferencia, // 👈 ESTE ES EL MOVIMIENTO REAL
+
+  tipo_movimiento: "AJUSTE", // 🔥 NUEVO
+
+  fecha_ajuste: ahora,
+  sucursal: sucursal.value,
+  usuario: "sistema"
+});
         console.log("Ajuste guardado");
 
       } catch (err) {
@@ -548,7 +577,28 @@ import {
   });
 }, 200);
   }
+async function cargarAjustes() {
+  const snap = await db
+    .collection("TIENDAS")
+    .doc(SUCURSAL)
+    .collection("ajustes_inventario")
+    .get();
 
+  const docs = [];
+
+  snap.forEach(doc => {
+    const d = doc.data();
+
+    docs.push({
+      codigo: String(d.codigo || ""),
+      codigoKey: normalizarCodigo(d.codigo),
+      descripcion: d.descripcion || "",
+      cantidad: Number(d.ajuste || 0) // 👈 CLAVE
+    });
+  });
+
+  return docs;
+}
   function redondear(n) {
     const num = Number(n || 0);
     return Number.isInteger(num) ? num : num.toFixed(2);
