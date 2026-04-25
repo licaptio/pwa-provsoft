@@ -749,7 +749,7 @@
       return docs;
     }
 
-    function construirInventarioCalculado(inv, trans, ventas) {
+    function construirInventarioCalculado(inv, trans, ventas, ajustes)
       const map = new Map();
 
       function get(codigo, desc="") {
@@ -761,7 +761,8 @@
             descripcion: desc,
             inv: 0,
             trans: 0,
-            ventas: 0
+            ventas: 0,
+            ajustes: 0 // 👈 NUEVO
           });
         }
         return map.get(key);
@@ -770,13 +771,35 @@
       inv.forEach(x => get(x.codigo,x.descripcion).inv += x.cantidad);
       trans.forEach(x => get(x.codigo,x.descripcion).trans += x.cantidad);
       ventas.forEach(x => get(x.codigo,x.descripcion).ventas += x.cantidad);
+      ajustes.forEach(x => get(x.codigo,x.descripcion).ajustes += x.cantidad);
 
       return Array.from(map.values()).map(x => ({
         ...x,
-        inventarioCalculado: x.inv + x.trans - x.ventas
+        inventarioCalculado: x.inv + x.trans - x.ventas + x.ajustes
       }));
     }
+async function cargarAjustes() {
+  const snap = await db
+    .collection("TIENDAS")
+    .doc(SUCURSAL)
+    .collection("ajustes_inventario")
+    .get();
 
+  const docs = [];
+
+  snap.forEach(doc => {
+    const d = doc.data();
+
+    docs.push({
+      codigo: String(d.codigo || ""),
+      codigoKey: normalizarCodigo(d.codigo),
+      descripcion: d.descripcion || "",
+      cantidad: Number(d.ajuste || 0) // 👈 CLAVE
+    });
+  });
+
+  return docs;
+}
     /* =======================
        BUSCADOR INTELIGENTE
     ======================= */
@@ -1166,11 +1189,12 @@
         if (mostrarStatus) setStatus("Analizando inventarios, ventas y transferencias...", "warn");
         $("folio").value = "";
 
-        const [inventarios, transferencias, ventas] = await Promise.all([
-          cargarInventarios(),
-          cargarTransferencias(),
-          cargarVentas(diasAnalisis)
-        ]);
+  const [inventarios, transferencias, ventas, ajustes] = await Promise.all([
+  cargarInventarios(),
+  cargarTransferencias(),
+  cargarVentas(diasAnalisis),
+  cargarAjustes()
+]);
 
         productosCalculadosGlobal = construirInventarioCalculado(inventarios, transferencias, ventas);
         mapaCalculadosGlobal = new Map(productosCalculadosGlobal.map(x => [x.codigoKey, x]));
