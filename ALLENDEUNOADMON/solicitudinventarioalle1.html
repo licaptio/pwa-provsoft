@@ -749,8 +749,8 @@
       return docs;
     }
 
-    function construirInventarioCalculado(inv, trans, ventas, ajustes)
-      const map = new Map();
+function construirInventarioCalculado(inv, trans, ventas, ajustes) {
+  const map = new Map();
 
       function get(codigo, desc="") {
         const key = normalizarCodigo(codigo);
@@ -1196,7 +1196,12 @@ async function cargarAjustes() {
   cargarAjustes()
 ]);
 
-        productosCalculadosGlobal = construirInventarioCalculado(inventarios, transferencias, ventas);
+        productosCalculadosGlobal = construirInventarioCalculado(
+  inventarios,
+  transferencias,
+  ventas,
+  ajustes
+);
         mapaCalculadosGlobal = new Map(productosCalculadosGlobal.map(x => [x.codigoKey, x]));
 
         manualesActuales = manualesActuales.map(item => {
