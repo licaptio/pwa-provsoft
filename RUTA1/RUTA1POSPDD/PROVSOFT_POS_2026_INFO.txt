@@ -1,0 +1,439 @@
+PROVSOFT POS 2026
+PROVEEDORA DE DULCES Y DESECHABLES
+
+========================================
+DESCRIPCIÓN GENERAL
+===================
+
+Sistema de Punto de Venta (POS) desarrollado para operación rápida en campo, enfocado en:
+
+* Velocidad de escaneo
+* Operación offline parcial
+* Persistencia automática
+* Emisión inmediata de ticket
+* Registro en segundo plano
+
+Diseñado para vendedores en ruta y operación diaria intensiva.
+
+========================================
+ARQUITECTURA
+============
+
+Estructura modular:
+
+* index.html      → Interfaz
+* styles.css      → Diseño visual
+* config.js       → Conexión Firebase
+* pos-utils.js    → Funciones auxiliares
+* pos-core.js     → Lógica principal
+
+Separación clara entre UI, lógica y servicios.
+
+========================================
+FUNCIONALIDADES PRINCIPALES
+===========================
+
+1. LOGIN DE USUARIO
+
+* Validación contra Firebase (usuarios_ruta)
+* Persistencia de sesión en localStorage
+* Recuperación automática al reiniciar
+
+2. CARGA DE CATÁLOGO
+
+* Obtiene productos activos desde Firebase
+* Construye índices por código y equivalentes
+* Permite búsqueda rápida local
+
+3. ESCANEO ULTRA RÁPIDO
+
+* Resolución directa por código (sin render intermedio)
+* Anti doble escaneo (300 ms)
+* Soporte para códigos equivalentes
+
+4. SOPORTE BALANZA
+
+* Detecta códigos que inician con “2”
+* Extrae peso automáticamente
+* Convierte gramos a kilogramos
+
+5. BÚSQUEDA INTELIGENTE
+
+* Por código exacto
+* Por coincidencia en nombre
+* Muestra resultados si hay múltiples coincidencias
+
+6. CARRITO DE VENTA
+
+* Agrega productos automáticamente
+* Suma cantidades si ya existe
+* Maneja cantidades decimales (balanza)
+* Actualización manual permitida
+
+7. PERSISTENCIA LOCAL
+
+* Guarda carrito en localStorage
+* Recupera venta al reiniciar app
+* Evita pérdida de venta en campo
+
+8. CÁLCULO FISCAL
+
+* Desglose automático de:
+
+  * Subtotal
+  * IVA
+  * IEPS
+* Ajuste proporcional por descuento
+
+9. DESCUENTOS CONTROLADOS
+
+* Porcentaje configurable
+* Requiere contraseña de autorización
+* Exclusión de productos de mayoreo
+
+10. COBRO
+
+* Cálculo de cambio en tiempo real
+* Validación de monto recibido
+* Flujo rápido sin bloquear operación
+
+11. GENERACIÓN DE TICKET
+
+* Formato RAW (texto plano)
+* Compatible con impresoras térmicas ESC/POS
+* No depende de navegador
+
+12. IMPRESIÓN
+
+* Envío directo mediante:
+
+  * AndroidPrinter (recomendado)
+  * NativePrinter
+* Fallback a consola si no hay conexión
+
+13. GUARDADO EN SEGUNDO PLANO
+
+* Inserta venta en Firebase (ventas_rutav2)
+* No bloquea flujo de venta
+* Maneja errores y guarda en cola local
+
+14. RECUPERACIÓN DE FALLAS
+
+* Si falla guardado:
+
+  * Se almacena en localStorage (ventas_pendientes)
+* Permite reintentos posteriores
+
+15. MENÚ DE OPCIONES
+
+* Prueba de impresora
+* Corte (pendiente)
+* Resumen (pendiente)
+* Cierre de sesión
+
+16. FEEDBACK AL USUARIO
+
+* Toast flotante (éxito/error)
+* Sonido (beep) en escaneo
+* Mensajes visibles sin interferencia del carrito
+
+========================================
+VENTAJAS DEL SISTEMA
+====================
+
+* Operación rápida tipo OXXO
+* Funciona en celular y PC
+* Minimiza errores humanos
+* Resistente a fallas de red
+* Escalable dentro de PROVSOFT
+* Arquitectura limpia y mantenible
+
+========================================
+LIMITACIONES ACTUALES
+=====================
+
+* Web Bluetooth aún no implementado
+* Impresión depende de bridge (Android recomendado)
+* No hay sincronización automática de ventas pendientes
+* No incluye dashboard analítico aún
+
+========================================
+SIGUIENTE EVOLUCIÓN
+===================
+
+* Cola offline robusta con reintentos automáticos
+* Dashboard de ventas en tiempo real
+* Integración completa con PROVSOFT backend
+* Impresión ESC/POS avanzada (logo, QR, corte)
+* Modo ultra rápido sin teclado
+
+========================================
+FILOSOFÍA DEL SISTEMA
+=====================
+
+"El operador no debe esperar al sistema.
+El sistema trabaja en segundo plano."
+
+Velocidad > estética
+Robustez > complejidad
+Operación real > teoría
+
+========================================
+ESTADO
+======
+
+Sistema funcional listo para pruebas en campo.
+
+========================================
+
+
+
+PROVSOFT POS 2026
+LISTADO DE FUNCIONES DEL SISTEMA
+
+========================================
+FUNCIONES PRINCIPALES
+=====================
+
+🔐 LOGIN Y SESIÓN
+
+loginUsuario()
+
+* Valida usuario contra Firebase
+* Verifica usuario y contraseña
+* Restringe acceso a usuarios permitidos (JUAN, LIZANDRO, GERARDO)
+* Inicia sesión
+
+activarApp()
+
+* Cambia pantalla de login a POS
+* Muestra interfaz principal
+
+recuperarSesion()
+
+* Recupera sesión desde localStorage
+* Restaura estado del sistema
+
+========================================
+CATÁLOGO DE PRODUCTOS
+=====================
+
+cargarCatalogo()
+
+* Descarga productos activos desde Firebase
+* Prepara catálogo en memoria
+
+reconstruirIndices()
+
+* Crea índices por código y equivalentes
+* Optimiza velocidad de búsqueda
+
+resolverProductoPorCodigo(codigo)
+
+* Busca producto directamente por código
+
+========================================
+BALANZA
+=======
+
+decodificarBalanza(codigo)
+
+* Detecta códigos de báscula (inician con 2)
+* Extrae peso en kg
+* Devuelve código base + peso
+
+========================================
+BÚSQUEDA Y ESCANEO
+==================
+
+buscarLocal(texto)
+
+* Búsqueda por nombre o coincidencia
+
+ejecutarBusqueda(texto)
+
+* Motor principal de escaneo
+* Detecta:
+
+  * código exacto
+  * balanza
+  * búsqueda manual
+
+mostrarResultados(resultados)
+
+* Muestra lista si hay múltiples coincidencias
+
+resetScanner()
+
+* Limpia input de búsqueda
+* Regresa foco al escáner
+
+========================================
+CARRITO DE VENTA
+================
+
+addProduct(prod, cant)
+
+* Agrega producto al carrito
+* Suma cantidades si ya existe
+* Maneja productos de balanza
+
+delItem(id)
+
+* Elimina producto del carrito
+
+actualizarCantidad(id, valor)
+
+* Cambia cantidad manualmente
+
+========================================
+CÁLCULO DE TOTALES
+==================
+
+calcularTotales(descPorc)
+
+* Calcula:
+
+  * Subtotal
+  * IVA
+  * IEPS
+  * Descuento
+  * Total final
+
+render()
+
+* Redibuja carrito en pantalla
+* Actualiza totales
+
+acortarNombre(nombre)
+
+* Ajusta nombres largos para UI
+
+========================================
+COBRO
+=====
+
+abrirCobro()
+
+* Abre modal de cobro
+
+cerrarCobro()
+
+* Cierra modal
+
+actualizarCobroVisual()
+
+* Calcula cambio en tiempo real
+
+confirmarCobro()
+
+* Ejecuta venta completa:
+
+  * valida pago
+  * genera ticket
+  * limpia carrito
+  * guarda venta
+
+========================================
+VENTA Y GUARDADO
+================
+
+construirVenta()
+
+* Genera objeto completo de venta
+* Incluye:
+
+  * folio
+  * usuario
+  * totales
+  * detalle de productos
+
+guardarVentaEnSegundoPlano()
+
+* Guarda venta en Firebase
+* Maneja errores
+* Guarda en local si falla
+
+========================================
+TICKET E IMPRESIÓN
+==================
+
+imprimirTicketVenta()
+
+* Genera ticket en formato texto (RAW)
+* Llama a impresión
+
+enviarAImpresora()
+
+* Envía ticket a RawBT mediante intent
+* Maneja errores de impresión
+
+imprimirTestPrinter()
+
+* Genera ticket de prueba
+
+reenviarUltimoTicket()
+
+* Reintenta imprimir último ticket guardado
+
+========================================
+UTILIDADES
+==========
+
+toast()
+
+* Muestra mensajes flotantes
+
+beep()
+
+* Sonido de confirmación
+
+guardarCarritoLocal()
+
+* Guarda carrito en localStorage
+
+cargarCarritoLocal()
+
+* Recupera carrito
+
+limpiarCarritoLocal()
+
+* Limpia carrito guardado
+
+bloquearDuplicadoFactory()
+
+* Evita doble escaneo rápido
+
+========================================
+INTERFAZ Y EVENTOS
+==================
+
+abrirOpciones()
+
+* Abre menú de opciones
+
+cerrarOpciones()
+
+* Cierra menú
+
+cerrarSesionLocal()
+
+* Cierra sesión y limpia datos
+
+========================================
+RESUMEN
+=======
+
+El sistema POS incluye:
+
+* Autenticación controlada
+* Escaneo ultra rápido
+* Manejo de balanza
+* Carrito persistente
+* Cálculo fiscal automático
+* Cobro eficiente
+* Impresión RAW con RawBT
+* Guardado en Firebase
+* Recuperación ante fallas
+
+Sistema listo para operación real en campo.
