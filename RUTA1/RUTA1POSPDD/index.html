@@ -9,6 +9,9 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00416A">
+  
 </head>
 
 <body>
@@ -177,6 +180,13 @@
 
   <!-- APP -->
   <script type="module" src="./pos-core.js"></script>
-
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js")
+    .then(() => console.log("SW registrado"))
+    .catch(err => console.log("SW error", err));
+}
+</script>
 </body>
+  
 </html>
