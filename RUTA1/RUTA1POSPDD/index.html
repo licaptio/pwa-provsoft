@@ -47,22 +47,27 @@
 
     <div class="main-content">
       <section id="pantallaVenta" class="controls">
-        <div class="field searchbox">
-          <label>Buscar</label>
+<div class="field searchbox">
+  <label>Buscar</label>
 
-          <input
-            id="buscador"
-            type="text"
-            placeholder="Escanea código…"
-            autocomplete="off"
-            inputmode="none"
-          >
+  <input
+    id="buscador"
+    type="text"
+    placeholder="Escanea código…"
+    autocomplete="off"
+    inputmode="none"
+  >
 
-          <button id="btnBuscarManual" class="cam-btn" type="button">🔍</button>
-          <button id="btnCam" class="cam-btn" type="button">📷</button>
+  <!-- BOTONES ABAJO (NO A LA DERECHA) -->
+  <div class="acciones-busqueda">
+    <button id="btnBuscarManual" type="button">🔍 Buscar</button>
+    <button id="btnCam" type="button">📷 Cámara</button>
+    <button id="btnOpcionesInline" type="button">⚙️ Opciones</button>
+  </div>
 
-          <div id="resultados" class="search-results"></div>
-        </div>
+  <div id="resultados" class="search-results"></div>
+</div>
+        
       </section>
     </div>
 
@@ -104,7 +109,7 @@
   </div>
 
   <!-- BOTÓN OPCIONES -->
-  <button id="btnOpciones" type="button">⚙️</button>
+
 
   <!-- PANTALLA OPCIONES -->
   <div id="pantallaOpciones">
