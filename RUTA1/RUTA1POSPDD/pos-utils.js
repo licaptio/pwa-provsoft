@@ -80,15 +80,20 @@ export function guardarVentaPendiente(venta) {
   try {
     const pendientes = cargarVentasPendientes();
 
-    pendientes.push({
-      id_local: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-      creada_en_local: new Date().toISOString(),
-      intentos: 0,
-      ultimo_error: null,
-      venta
-    });
+pendientes.push({
+  id_local: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+  creada_en_local: new Date().toISOString(),
+  intentos: 0,
+  ultimo_error: null,
+  venta
+});
 
-    localStorage.setItem(VENTAS_PENDIENTES_KEY, JSON.stringify(pendientes));
+if (pendientes.length > 100) {
+  pendientes.shift();
+}
+
+localStorage.setItem(VENTAS_PENDIENTES_KEY, JSON.stringify(pendientes));
+    
   } catch (e) {
     console.error("No se pudo guardar venta pendiente:", e);
   }
