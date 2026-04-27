@@ -132,13 +132,10 @@ if (!usuariosPermitidos.includes(usuarioNormalizado)) {
   return;
 }
 
-
-    const data = snap.docs[0].data();
-
-    USUARIO_LOGUEADO = {
-      id: snap.docs[0].id,
-      ...data
-    };
+USUARIO_LOGUEADO = {
+  id: snap.docs[0].id,
+  ...data
+};
 
     rutaId = data.rutaId || null;
 
@@ -858,11 +855,17 @@ async function sincronizarVentasPendientes() {
           sincronizada_en: new Date().toISOString()
         }
       );
-    } catch (e) {
-      item.intentos = Number(item.intentos || 0) + 1;
-      item.ultimo_error = String(e?.message || e || "Error desconocido");
-      restantes.push(item);
-    }
+} catch (e) {
+  item.intentos = Number(item.intentos || 0) + 1;
+  item.ultimo_error = String(e?.message || e || "Error desconocido");
+
+  if (item.intentos < 5) {
+    restantes.push(item);
+  } else {
+    console.error("Venta descartada tras 5 intentos:", item);
+  }
+}
+
   }
 
   guardarVentasPendientes(restantes);
