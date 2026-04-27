@@ -159,7 +159,7 @@ USUARIO_LOGUEADO = {
 function activarApp() {
   $("#loginScreen").style.display = "none";
   $("#posApp").style.display = "flex";
-  $("#btnOpciones").style.display = "block";
+  $("#btnOpcionesInline").style.display = "block";
 
   document.body.classList.add("sesion-activa");
 
@@ -197,7 +197,28 @@ async function recuperarSesion() {
 =========================================================== */
 
 async function cargarCatalogo() {
-  toast("Cargando catálogo...", "#0c6cbd", 1200);
+  const local = cargarCatalogoLocal();
+
+  if (local && local.length > 0) {
+    catalogo = local;
+    reconstruirIndices();
+    toast(`✅ Catálogo local listo: ${catalogo.length}`, "#1e8e3e", 1500);
+
+    if (!catalogoDebeActualizarse()) {
+      return;
+    }
+  }
+
+  if (!navigator.onLine) {
+    if (catalogo.length > 0) {
+      toast(`📦 Sin internet: usando catálogo local`, "#d97706", 2200);
+    } else {
+      toast("❌ Sin catálogo offline disponible", "#dc2626", 3000);
+    }
+    return;
+  }
+
+  toast("🔄 Actualizando catálogo...", "#0c6cbd", 1200);
 
   try {
     const snap = await getDocs(
@@ -229,23 +250,32 @@ async function cargarCatalogo() {
     });
 
     guardarCatalogoLocal(catalogo);
+    localStorage.setItem("catalogo_ruta1_actualizado_en", Date.now().toString());
+
     reconstruirIndices();
 
-    toast(`✅ Catálogo online listo: ${catalogo.length}`, "#1e8e3e");
+    toast(`✅ Catálogo online actualizado: ${catalogo.length}`, "#1e8e3e", 1800);
 
   } catch (e) {
     console.warn("No se pudo cargar catálogo online:", e);
 
-    catalogo = cargarCatalogoLocal();
-    reconstruirIndices();
-
     if (catalogo.length > 0) {
-      toast(`⚡ Catálogo offline listo: ${catalogo.length}`, "#d97706", 2600);
+      toast(`⚡ Usando catálogo local: ${catalogo.length}`, "#d97706", 2600);
     } else {
-      toast("❌ Sin catálogo offline disponible", "#dc2626", 3000);
+      toast("❌ Sin catálogo disponible", "#dc2626", 3000);
     }
   }
 }
+function catalogoDebeActualizarse() {
+  const ultima = Number(localStorage.getItem("catalogo_ruta1_actualizado_en") || 0);
+
+  if (!ultima) return true;
+
+  const horas = (Date.now() - ultima) / 1000 / 60 / 60;
+
+  return horas >= 12;
+}
+
 
 function reconstruirIndices() {
   codeIndex.clear();
@@ -913,7 +943,7 @@ $("#btnSolicitarDescuento")?.addEventListener("click", () => {
   toast(`Descuento ${porc}% aplicado`, "#0c6cbd");
 });
 
-$("#btnOpciones")?.addEventListener("click", abrirOpciones);
+$("#btnOpcionesInline")?.addEventListener("click", abrirOpciones);
 $("#btnCerrarOpciones")?.addEventListener("click", cerrarOpciones);
 $("#btnLogout")?.addEventListener("click", cerrarSesionLocal);
 
