@@ -19,6 +19,12 @@ import {
   guardarCarritoLocal,
   cargarCarritoLocal,
   limpiarCarritoLocal,
+  guardarCatalogoLocal,
+  cargarCatalogoLocal,
+  guardarVentaPendiente,
+  cargarVentasPendientes,
+  guardarVentasPendientes,
+  contarVentasPendientes,
   abrirOpciones,
   cerrarOpciones,
   cerrarSesionLocal,
@@ -196,37 +202,52 @@ async function recuperarSesion() {
 async function cargarCatalogo() {
   toast("Cargando catálogo...", "#0c6cbd", 1200);
 
-  const snap = await getDocs(
-    query(collection(db, "productos"), where("activo", "==", true))
-  );
+  try {
+    const snap = await getDocs(
+      query(collection(db, "productos"), where("activo", "==", true))
+    );
 
-  catalogo = snap.docs.map(d => {
-    const x = d.data();
+    catalogo = snap.docs.map(d => {
+      const x = d.data();
 
-    return {
-      id: d.id,
-      nombre: x.nombre || x.concepto || "SIN NOMBRE",
-      codigo: String(x.codigo || x.codigoBarra || "").trim(),
-      precioPublico: Number(x.precioPublico || 0),
-      mayoreo: Number(x.mayoreo || 0),
-      medioMayoreo: Number(x.medioMayoreo || 0),
-      ivaTasa: Number(x.ivaTasa || 0),
-      iepsTasa: Number(x.iepsTasa || 0),
-      equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
-      claveSat: x.claveSat || null,
-      unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
-      departamento_id: x.departamento_id || null,
-      departamento: x.departamento || null,
-      costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
-      permite_descuento: x.permite_descuento !== false,
-      comision_tipo: x.comision_tipo || null,
-      comision_valor: Number(x.comision_valor || 0)
-    };
-  });
+      return {
+        id: d.id,
+        nombre: x.nombre || x.concepto || "SIN NOMBRE",
+        codigo: String(x.codigo || x.codigoBarra || "").trim(),
+        precioPublico: Number(x.precioPublico || 0),
+        mayoreo: Number(x.mayoreo || 0),
+        medioMayoreo: Number(x.medioMayoreo || 0),
+        ivaTasa: Number(x.ivaTasa || 0),
+        iepsTasa: Number(x.iepsTasa || 0),
+        equivalentes: Array.isArray(x.equivalentes) ? x.equivalentes : [],
+        claveSat: x.claveSat || null,
+        unidadMedidaSat: x.unidadSat || x.unidadMedidaSat || null,
+        departamento_id: x.departamento_id || null,
+        departamento: x.departamento || null,
+        costoUnit: Number(x.costoUnit || x.costoSinImpuesto || 0),
+        permite_descuento: x.permite_descuento !== false,
+        comision_tipo: x.comision_tipo || null,
+        comision_valor: Number(x.comision_valor || 0)
+      };
+    });
 
-  reconstruirIndices();
+    guardarCatalogoLocal(catalogo);
+    reconstruirIndices();
 
-  toast(`✅ Catálogo listo: ${catalogo.length}`, "#1e8e3e");
+    toast(`✅ Catálogo online listo: ${catalogo.length}`, "#1e8e3e");
+
+  } catch (e) {
+    console.warn("No se pudo cargar catálogo online:", e);
+
+    catalogo = cargarCatalogoLocal();
+    reconstruirIndices();
+
+    if (catalogo.length > 0) {
+      toast(`⚡ Catálogo offline listo: ${catalogo.length}`, "#d97706", 2600);
+    } else {
+      toast("❌ Sin catálogo offline disponible", "#dc2626", 3000);
+    }
+  }
 }
 
 function reconstruirIndices() {
@@ -690,19 +711,19 @@ async function construirVenta(tot, pago) {
 
 async function guardarVentaEnSegundoPlano(venta) {
   try {
-await addDoc(
-  collection(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS),
-  venta
-);
+    await addDoc(
+      collection(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS),
+      venta
+    );
 
     toast("💾 Venta guardada", "#0c6cbd", 1200);
+
   } catch (e) {
     console.error("Error guardando venta:", e);
-    toast("⚠️ Venta pendiente de guardar", "#d97706", 3000);
 
-    const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes") || "[]");
-    pendientes.push(venta);
-    localStorage.setItem("ventas_pendientes", JSON.stringify(pendientes));
+    guardarVentaPendiente(venta);
+
+    toast("⚠️ Venta guardada en cola offline", "#d97706", 3000);
   }
 }
 
@@ -810,6 +831,50 @@ function bloquearPullToRefresh() {
     }
   }, { passive:false });
 }
+let sincronizandoPendientes = false;
+
+async function sincronizarVentasPendientes() {
+  if (sincronizandoPendientes) return;
+  if (!navigator.onLine) return;
+
+  const pendientes = cargarVentasPendientes();
+
+  if (pendientes.length === 0) return;
+
+  sincronizandoPendientes = true;
+
+  const restantes = [];
+
+  toast(`🔄 Sincronizando ${pendientes.length} venta(s)...`, "#0c6cbd", 1800);
+
+  for (const item of pendientes) {
+    try {
+      await addDoc(
+        collection(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS),
+        {
+          ...item.venta,
+          sincronizada_desde_cola: true,
+          id_local: item.id_local,
+          sincronizada_en: new Date().toISOString()
+        }
+      );
+    } catch (e) {
+      item.intentos = Number(item.intentos || 0) + 1;
+      item.ultimo_error = String(e?.message || e || "Error desconocido");
+      restantes.push(item);
+    }
+  }
+
+  guardarVentasPendientes(restantes);
+
+  if (restantes.length === 0) {
+    toast("✅ Ventas pendientes sincronizadas", "#1e8e3e", 2200);
+  } else {
+    toast(`⚠️ Quedan ${restantes.length} venta(s) pendientes`, "#d97706", 3000);
+  }
+
+  sincronizandoPendientes = false;
+}
 
 /* ===========================================================
    EVENTOS
@@ -866,7 +931,14 @@ $("#btnCorteRuta")?.addEventListener("click", () => {
 $("#btnResumen")?.addEventListener("click", () => {
   toast("Resumen pendiente de conectar", "#0c6cbd");
 });
+window.addEventListener("online", () => {
+  toast("🌐 Internet recuperado", "#1e8e3e");
+  sincronizarVentasPendientes();
+});
 
+window.addEventListener("offline", () => {
+  toast("📴 Sin internet: modo offline", "#d97706", 2600);
+});
 $("#buscador")?.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -903,3 +975,7 @@ $("#btnCam")?.addEventListener("click", () => {
 configurarInstalacionPWA();
 bloquearPullToRefresh();
 recuperarSesion();
+
+setTimeout(() => {
+  sincronizarVentasPendientes();
+}, 2500);
