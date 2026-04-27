@@ -745,6 +745,72 @@ GRACIAS POR SU COMPRA
   enviarAImpresora(texto);
 }
 
+function esCelular() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function appYaInstalada() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+         window.navigator.standalone === true;
+}
+
+function configurarInstalacionPWA() {
+  const btn = document.getElementById("btnInstalarApp");
+  if (!btn) return;
+
+  if (!esCelular() || appYaInstalada()) {
+    btn.style.display = "none";
+    return;
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    btn.style.display = "block";
+  });
+
+  btn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) {
+      toast("Instalación no disponible en este navegador", "#d97706");
+      return;
+    }
+
+    deferredInstallPrompt.prompt();
+
+    const result = await deferredInstallPrompt.userChoice;
+
+    if (result.outcome === "accepted") {
+      toast("📲 App instalada", "#1e8e3e");
+      btn.style.display = "none";
+    }
+
+    deferredInstallPrompt = null;
+  });
+
+  window.addEventListener("appinstalled", () => {
+    btn.style.display = "none";
+    deferredInstallPrompt = null;
+    toast("📲 App instalada correctamente", "#1e8e3e");
+  });
+}
+function bloquearPullToRefresh() {
+  let startY = 0;
+
+  document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+  }, { passive:true });
+
+  document.addEventListener("touchmove", (e) => {
+    const y = e.touches[0].clientY;
+    const scrollTop = document.scrollingElement?.scrollTop || document.documentElement.scrollTop;
+
+    if (scrollTop <= 0 && y > startY) {
+      e.preventDefault();
+    }
+  }, { passive:false });
+}
+
 /* ===========================================================
    EVENTOS
 =========================================================== */
@@ -834,4 +900,6 @@ $("#btnCam")?.addEventListener("click", () => {
    INICIO
 =========================================================== */
 
+configurarInstalacionPWA();
+bloquearPullToRefresh();
 recuperarSesion();
