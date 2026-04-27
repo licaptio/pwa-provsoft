@@ -352,3 +352,24 @@ td{
   #ticketArea,#ticketArea *{visibility:visible}
   #ticketArea{display:block}
 }
+
+.install-btn{
+  margin-top:10px;
+  background:linear-gradient(180deg,#1e8e3e,#166534);
+}
+
+html,
+body{
+  overscroll-behavior-y:none;
+  overscroll-behavior-x:none;
+  touch-action:manipulation;
+}
+
+#posApp{
+  overscroll-behavior:none;
+}
+
+#carrito-container,
+.table-wrap{
+  overscroll-behavior:contain;
+}
