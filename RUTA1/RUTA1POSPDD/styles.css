@@ -20,10 +20,12 @@
 html, body{
   width:100%;
   height:100%;
+  overscroll-behavior-y:none;
+  overscroll-behavior-x:none;
+  touch-action:manipulation;
 }
 
 body{
-  height:100vh;
   height:100dvh;
   display:flex;
   flex-direction:column;
@@ -36,7 +38,7 @@ body{
 /* ================= LOGIN ================= */
 
 #loginScreen{
-  height:100vh;
+  height:100dvh;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -47,7 +49,7 @@ body{
 }
 
 #loginLogo{
-  width:260px; /* más grande */
+  width:260px;
   height:260px;
   margin-bottom:18px;
   animation:spinY 10s linear infinite;
@@ -95,18 +97,26 @@ body{
   box-shadow:var(--shadow);
 }
 
+.install-btn{
+  margin-top:10px;
+  background:linear-gradient(180deg,#1e8e3e,#166534);
+}
+
 /* ================= APP ================= */
 
 #posApp{
-  height:100vh;
+  height:100dvh;
   display:none;
   flex-direction:column;
   background:#fff;
+  overflow:hidden;
+  overscroll-behavior:none;
 }
 
 /* ================= HEADER ================= */
 
 .header-pos{
+  flex:0 0 auto;
   background:#fff;
   color:var(--azul);
   min-height:72px;
@@ -126,6 +136,7 @@ body{
 /* ================= USUARIO ================= */
 
 #usuarioBar{
+  flex:0 0 auto;
   background:var(--res);
   color:#fff;
   font-size:13px;
@@ -137,6 +148,7 @@ body{
 /* ================= CONTENIDO ================= */
 
 .main-content{
+  flex:0 0 auto;
   padding:10px;
 }
 
@@ -144,6 +156,7 @@ body{
 
 .field{
   display:flex;
+  flex-direction:column;
   gap:8px;
   background:#f3f6fa;
   padding:9px;
@@ -156,11 +169,27 @@ body{
 }
 
 .field input{
-  flex:1;
+  width:100%;
   padding:14px;
   border:1px solid #d6dce3;
   border-radius:10px;
-  font-size:22px; /* más visible */
+  font-size:22px;
+  font-weight:800;
+}
+
+.acciones-busqueda{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:6px;
+}
+
+.acciones-busqueda button{
+  height:38px;
+  border:none;
+  border-radius:10px;
+  background:var(--azul);
+  color:#fff;
+  font-size:13px;
   font-weight:800;
 }
 
@@ -197,11 +226,17 @@ body{
 
 #carrito-container{
   flex:1;
+  min-height:0;
+  overflow-y:auto;
   background:#fff;
   border-radius:18px 18px 0 0;
   box-shadow:0 -2px 14px rgba(0,0,0,.16);
-  margin:10px 10px 0 10px; /* ajuste clave */
-  overflow:auto;
+  margin:10px 10px 0 10px;
+  overscroll-behavior:contain;
+}
+
+.table-wrap{
+  overscroll-behavior:contain;
 }
 
 table{
@@ -212,19 +247,28 @@ table{
 thead{
   background:var(--azul);
   color:#fff;
+  position:sticky;
+  top:0;
+  z-index:5;
 }
 
-td{
+td, th{
   padding:6px;
   font-size:13px;
   border-bottom:1px solid #eee;
 }
 
+td input{
+  max-width:68px;
+}
+
 /* ================= TOTALES ================= */
 
 .totals{
+  flex:0 0 auto;
   padding:10px;
   border-top:1px solid #eee;
+  background:#fff;
 }
 
 .row{
@@ -238,19 +282,6 @@ td{
 }
 
 /* ================= OPCIONES ================= */
-
-#btnOpciones{
-  position:fixed;
-  right:14px;
-  bottom:14px;
-  width:58px;
-  height:58px;
-  border-radius:50%;
-  background:#111;
-  color:#fff;
-  font-size:26px;
-  z-index:1000;
-}
 
 #pantallaOpciones{
   display:none;
@@ -285,7 +316,7 @@ td{
 
 .toast-flotante{
   position:fixed;
-  top:110px; /* corregido */
+  top:110px;
   left:50%;
   transform:translateX(-50%);
   padding:14px;
@@ -294,6 +325,7 @@ td{
   font-weight:800;
   opacity:0;
   transition:.3s;
+  z-index:3000;
 }
 
 .toast-flotante.show{
@@ -351,25 +383,4 @@ td{
   body *{visibility:hidden}
   #ticketArea,#ticketArea *{visibility:visible}
   #ticketArea{display:block}
-}
-
-.install-btn{
-  margin-top:10px;
-  background:linear-gradient(180deg,#1e8e3e,#166534);
-}
-
-html,
-body{
-  overscroll-behavior-y:none;
-  overscroll-behavior-x:none;
-  touch-action:manipulation;
-}
-
-#posApp{
-  overscroll-behavior:none;
-}
-
-#carrito-container,
-.table-wrap{
-  overscroll-behavior:contain;
 }
