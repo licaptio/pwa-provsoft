@@ -159,7 +159,7 @@ USUARIO_LOGUEADO = {
 function activarApp() {
   $("#loginScreen").style.display = "none";
   $("#posApp").style.display = "flex";
-  $("#btnOpcionesInline").style.display = "block";
+$("#btnOpcionesInline").style.display = "block";
 
   document.body.classList.add("sesion-activa");
 
@@ -266,6 +266,7 @@ async function cargarCatalogo() {
     }
   }
 }
+
 function catalogoDebeActualizarse() {
   const ultima = Number(localStorage.getItem("catalogo_ruta1_actualizado_en") || 0);
 
