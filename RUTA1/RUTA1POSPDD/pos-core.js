@@ -41,6 +41,7 @@ let USUARIO_LOGUEADO = null;
 
 let descuentoAutorizado = 0;
 let ventaEnProceso = false;
+let deferredInstallPrompt = null;
 
 const TIENDA_ID = "RUTA1";
 const COLECCION_VENTAS = "VENTAS";
