@@ -858,27 +858,29 @@
       };
     }
 
-    function construirMapaEquivalencias(items = []) {
-      const mapa = {};
+function construirMapaEquivalencias(items = []) {
+  const mapa = {};
 
-      for (const item of items) {
-        if (!item.activo) continue;
+  for (const item of items) {
+    if (!item.activo) continue;
 
-        const codigoVenta = String(item.codigoVenta || "").trim();
-        if (!codigoVenta) continue;
+    const codigoVenta = String(item.codigoVenta || "").trim();
+    const codigoVentaKey = normalizarCodigo(codigoVenta);
+    if (!codigoVentaKey) continue;
 
-        mapa[codigoVenta] = {
-          origen: String(item.codigoOrigen || "").trim(),
-          factor: Number(item.factor || 0),
-          descripcionOrigen: String(item.descripcionOrigen || "").trim(),
-          descripcionDestino: String(item.descripcionVenta || "").trim(),
-          docId: item.id || ""
-        };
-      }
+    mapa[codigoVentaKey] = {
+      origen: String(item.codigoOrigen || "").trim(),
+      origenKey: normalizarCodigo(item.codigoOrigen || ""),
+      factor: Number(item.factor || 0),
+      descripcionOrigen: String(item.descripcionOrigen || "").trim(),
+      descripcionDestino: String(item.descripcionVenta || "").trim(),
+      docId: item.id || ""
+    };
+  }
 
-      return mapa;
-    }
-
+  return mapa;
+}
+    
     async function cargarEquivalencias() {
       try {
         actualizarTitulosTienda();
@@ -1376,10 +1378,11 @@
       for (const item of registros) {
         if (item.origen !== "VTA") continue;
 
-        const codigoVendido = String(item.codigo || "").trim();
-        const eq = equivalenciasMap[codigoVendido];
-        if (!eq) continue;
-
+const codigoVendido = String(item.codigoVendidoOriginal || item.codigo || "").trim();
+const codigoVendidoKey = normalizarCodigo(codigoVendido);
+const eq = equivalenciasMap[codigoVendidoKey];
+if (!eq) continue;
+        
         const piezasVendidas = Number(item.cantidad || 0);
         if (!Number.isFinite(piezasVendidas) || piezasVendidas <= 0) continue;
 
@@ -1392,8 +1395,8 @@
         virtuales.push({
           origen: "INV",
           id: `EQ_INV_${item.id}`,
-          codigo: codigoVendido,
-          codigoKey: normalizarCodigo(codigoVendido),
+codigo: codigoVendido,
+codigoKey: codigoVendidoKey,
           descripcion: eq.descripcionDestino || item.descripcion || "",
           fecha,
           cantidad: piezasVendidas,
@@ -1466,10 +1469,13 @@
           ...ventasData.docs
         ];
 
+        const empaqueData = aplicarEquivalenciasEmpaque(registros);
+registros = empaqueData.registros;
+        
         const equivalenciasData = {
-          totalVirtuales: 0,
-          totalVirtualesInv: 0,
-          totalVirtualesVta: 0,
+totalVirtuales: empaqueData.totalVirtuales,
+totalVirtualesInv: empaqueData.totalVirtualesInv,
+totalVirtualesVta: empaqueData.totalVirtualesVta,
           totalAliasesCatalogo: equivalentesCatalogoData.totalAliases || 0,
           totalAliasAplicados: ventasData.totalAliasAplicados || 0,
           totalAjustes: ajustesData.docs.length || 0
