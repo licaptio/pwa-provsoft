@@ -827,9 +827,16 @@ body {
 
     function renderDetalle() {
       const tbody = $('tbodyDetalle');
-      const detalleFiltrado = getDetalleFiltrado().sort((a, b) => {
-      return a.item.nombre.localeCompare(b.item.nombre, 'es', { sensitivity: 'base' });
-     });
+const detalleFiltrado = getDetalleFiltrado().sort((a, b) => {
+  return String(a.item.nombre || '').trim().localeCompare(
+    String(b.item.nombre || '').trim(),
+    'es-MX',
+    {
+      sensitivity: 'base',
+      numeric: true
+    }
+  );
+});
 
       if (!detalle.length) {
         tbody.innerHTML = '<tr><td colspan="10" class="muted">No hay detalle cargado.</td></tr>';
@@ -1439,10 +1446,17 @@ function mostrarBotonImprimirSolicitud(mostrar = false) {
       y += 6;
 
     
-const detalleOrdenado = [...(payload.detalle || [])].sort((a, b) =>
-  String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' })
-);
+const detalleOrdenado = [...(payload.detalle || [])].sort((a, b) => {
+  const nombreA = String(a.nombre || '').trim();
+  const nombreB = String(b.nombre || '').trim();
 
+  return nombreA.localeCompare(nombreB, 'es-MX', {
+    sensitivity: 'base',
+    numeric: true
+  });
+});
+
+      
 const bodyRows = detalleOrdenado.map((item, idx) => [
   idx + 1,
   item.codigo || '',
