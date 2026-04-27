@@ -1,6 +1,9 @@
 export const CARRITO_TMP_KEY = "provsoft_carrito_tmp";
 export const DESC_KEY = "desc_porcentaje";
 export const ULTIMO_TICKET_KEY = "provsoft_ultimo_ticket_raw";
+export const CATALOGO_CACHE_KEY = "provsoft_catalogo_cache";
+export const CATALOGO_CACHE_TIME_KEY = "provsoft_catalogo_cache_time";
+export const VENTAS_PENDIENTES_KEY = "provsoft_ventas_pendientes";
 export const money = n => "$" + (Number(n) || 0).toFixed(2);
 
 export function toast(msg, color = "#111827", tiempo = 1800) {
@@ -55,6 +58,57 @@ export function cargarCarritoLocal() {
 
 export function limpiarCarritoLocal() {
   localStorage.removeItem(CARRITO_TMP_KEY);
+}
+export function guardarCatalogoLocal(catalogo) {
+  try {
+    localStorage.setItem(CATALOGO_CACHE_KEY, JSON.stringify(catalogo || []));
+    localStorage.setItem(CATALOGO_CACHE_TIME_KEY, String(Date.now()));
+  } catch (e) {
+    console.warn("No se pudo guardar catálogo local:", e);
+  }
+}
+
+export function cargarCatalogoLocal() {
+  try {
+    const data = JSON.parse(localStorage.getItem(CATALOGO_CACHE_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+export function guardarVentaPendiente(venta) {
+  try {
+    const pendientes = cargarVentasPendientes();
+
+    pendientes.push({
+      id_local: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+      creada_en_local: new Date().toISOString(),
+      intentos: 0,
+      ultimo_error: null,
+      venta
+    });
+
+    localStorage.setItem(VENTAS_PENDIENTES_KEY, JSON.stringify(pendientes));
+  } catch (e) {
+    console.error("No se pudo guardar venta pendiente:", e);
+  }
+}
+
+export function cargarVentasPendientes() {
+  try {
+    const data = JSON.parse(localStorage.getItem(VENTAS_PENDIENTES_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
+export function guardarVentasPendientes(lista) {
+  localStorage.setItem(VENTAS_PENDIENTES_KEY, JSON.stringify(lista || []));
+}
+
+export function contarVentasPendientes() {
+  return cargarVentasPendientes().length;
 }
 
 export function abrirOpciones() {
