@@ -604,21 +604,32 @@ async function cargarAjustes() {
     return Number.isInteger(num) ? num : num.toFixed(2);
   }
 
-  function formatearHora(valor) {
-    if (!valor) return "-";
+function formatearHora(valor) {
+  if (!valor) return "-";
 
-    try {
-      const d = new Date(valor);
-      if (isNaN(d.getTime())) return escapeHtml(valor);
+  try {
+    let fecha;
 
-      return d.toLocaleString("es-MX", {
-        dateStyle: "short",
-        timeStyle: "short"
-      });
-    } catch {
-      return escapeHtml(valor);
+    // 🔥 SI ES TIMESTAMP DE FIREBASE
+    if (valor.seconds !== undefined) {
+      fecha = new Date(valor.seconds * 1000);
+    } else if (typeof valor.toDate === "function") {
+      fecha = valor.toDate();
+    } else {
+      fecha = new Date(valor);
     }
+
+    if (isNaN(fecha.getTime())) return "-";
+
+    return fecha.toLocaleString("es-MX", {
+      dateStyle: "short",
+      timeStyle: "short"
+    });
+
+  } catch {
+    return "-";
   }
+}
 
   function escapeHtml(text) {
     return String(text ?? "")
