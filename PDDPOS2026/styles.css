@@ -1,0 +1,354 @@
+:root{
+  --azul:#00416A;
+  --res:#0c6cbd;
+  --ok:#1e8e3e;
+  --danger:#dc2626;
+  --warn:#d97706;
+  --muted:rgba(0,0,0,.55);
+  --line:#dfe6ee;
+  --shadow:0 8px 24px rgba(0,0,0,.18);
+  --r:16px;
+  --rs:12px;
+}
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+
+html, body{
+  width:100%;
+  height:100%;
+}
+
+body{
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  font-family:'Poppins',sans-serif;
+  background:#fff;
+  color:#111;
+  overflow:hidden;
+}
+
+/* ================= LOGIN ================= */
+
+#loginScreen{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:#fff;
+  color:var(--azul);
+  text-align:center;
+}
+
+#loginLogo{
+  width:260px; /* más grande */
+  height:260px;
+  margin-bottom:18px;
+  animation:spinY 10s linear infinite;
+}
+
+@keyframes spinY{
+  0%{transform:rotateY(0)}
+  100%{transform:rotateY(360deg)}
+}
+
+#loginScreen h2{
+  font-size:22px;
+  font-weight:800;
+}
+
+#loginScreen h3{
+  font-size:20px;
+  font-weight:800;
+  margin-bottom:20px;
+  color:var(--res);
+}
+
+#loginScreen input{
+  width:90%;
+  max-width:360px;
+  padding:14px;
+  border-radius:12px;
+  margin:6px 0;
+  border:1px solid var(--line);
+  font-size:17px;
+  text-align:center;
+}
+
+/* ================= BOTONES ================= */
+
+.btn{
+  width:100%;
+  padding:15px;
+  border:none;
+  border-radius:14px;
+  font-size:18px;
+  font-weight:800;
+  color:#fff;
+  background:linear-gradient(180deg,var(--res),#094d85);
+  box-shadow:var(--shadow);
+}
+
+/* ================= APP ================= */
+
+#posApp{
+  height:100vh;
+  display:none;
+  flex-direction:column;
+  background:#fff;
+}
+
+/* ================= HEADER ================= */
+
+.header-pos{
+  background:#fff;
+  color:var(--azul);
+  min-height:72px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:10px;
+  font-weight:800;
+  font-size:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.12);
+}
+
+.header-pos img{
+  height:55px;
+}
+
+/* ================= USUARIO ================= */
+
+#usuarioBar{
+  background:var(--res);
+  color:#fff;
+  font-size:13px;
+  padding:6px;
+  text-align:center;
+  font-weight:700;
+}
+
+/* ================= CONTENIDO ================= */
+
+.main-content{
+  padding:10px;
+}
+
+/* ================= BUSCADOR ================= */
+
+.field{
+  display:flex;
+  gap:8px;
+  background:#f3f6fa;
+  padding:9px;
+  border-radius:var(--rs);
+  border:1px solid #dce3ea;
+}
+
+.field label{
+  font-weight:700;
+}
+
+.field input{
+  flex:1;
+  padding:14px;
+  border:1px solid #d6dce3;
+  border-radius:10px;
+  font-size:22px; /* más visible */
+  font-weight:800;
+}
+
+/* ================= RESULTADOS ================= */
+
+.search-results{
+  position:fixed;
+  top:150px;
+  left:50%;
+  transform:translateX(-50%);
+  width:92%;
+  max-width:420px;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  max-height:250px;
+  overflow:auto;
+  display:none;
+  z-index:9999;
+}
+
+.result-item{
+  padding:12px;
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px solid #eee;
+}
+
+.result-item:hover{
+  background:#f0f6ff;
+}
+
+/* ================= CARRITO ================= */
+
+#carrito-container{
+  flex:1;
+  background:#fff;
+  border-radius:18px 18px 0 0;
+  box-shadow:0 -2px 14px rgba(0,0,0,.16);
+  margin:10px 10px 0 10px; /* ajuste clave */
+  overflow:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+thead{
+  background:var(--azul);
+  color:#fff;
+}
+
+td{
+  padding:6px;
+  font-size:13px;
+  border-bottom:1px solid #eee;
+}
+
+/* ================= TOTALES ================= */
+
+.totals{
+  padding:10px;
+  border-top:1px solid #eee;
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+}
+
+.row.big{
+  font-weight:800;
+  font-size:20px;
+}
+
+/* ================= OPCIONES ================= */
+
+#btnOpciones{
+  position:fixed;
+  right:14px;
+  bottom:14px;
+  width:58px;
+  height:58px;
+  border-radius:50%;
+  background:#111;
+  color:#fff;
+  font-size:26px;
+  z-index:1000;
+}
+
+#pantallaOpciones{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:#fff;
+  z-index:2000;
+  padding:18px;
+}
+
+.opcion-btn{
+  width:100%;
+  padding:18px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:16px;
+  font-size:18px;
+  font-weight:800;
+  color:#fff;
+  background:linear-gradient(180deg,var(--res),#094d85);
+}
+
+.opcion-btn.rojo{
+  background:#dc2626;
+}
+
+.opcion-btn.gris{
+  background:#6b7280;
+}
+
+/* ================= TOAST ================= */
+
+.toast-flotante{
+  position:fixed;
+  top:110px; /* corregido */
+  left:50%;
+  transform:translateX(-50%);
+  padding:14px;
+  border-radius:14px;
+  color:#fff;
+  font-weight:800;
+  opacity:0;
+  transition:.3s;
+}
+
+.toast-flotante.show{
+  opacity:1;
+}
+
+/* ================= MODAL COBRO ================= */
+
+#modalCobro{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  z-index:2000;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-card{
+  width:90%;
+  max-width:400px;
+  background:#fff;
+  border-radius:16px;
+  overflow:hidden;
+}
+
+.modal-header{
+  background:var(--res);
+  color:#fff;
+  padding:14px;
+  text-align:center;
+  font-weight:800;
+}
+
+.modal-body{
+  padding:16px;
+}
+
+.modal-body input{
+  width:100%;
+  padding:16px;
+  font-size:22px;
+  text-align:center;
+}
+
+.modal-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+/* ================= IMPRESIÓN ================= */
+
+@media print{
+  body *{visibility:hidden}
+  #ticketArea,#ticketArea *{visibility:visible}
+  #ticketArea{display:block}
+}
