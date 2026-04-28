@@ -642,7 +642,7 @@ let nextFocus = null; // 'codigo' | 'cantidad' | null
     }
 
     async function modificarCantidad(docId, delta){
-      const ref = doc(db,"inventarios", selectSucursal.value, "usuarios", selectUsuario.value, "escaneos", docId);
+      const ref = doc(db, "TIENDAS", "RUTA1", "INVENTARIOS", docId);
       const snap = await getDoc(ref);
       if(!snap.exists()) return;
       let nueva = roundTo(Number(snap.data().cantidad||0) + delta, DEC_CANTIDAD);
