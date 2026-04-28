@@ -3,7 +3,7 @@
    Autor: Gerardo Ríos Quesada
    =========================================================== */
 
-const VERSION = "provsoft-cache-v2-xmas";
+const VERSION = "provsoft-cache-v3";
 const CACHE = VERSION;
 
 // Cache estático fundamental
