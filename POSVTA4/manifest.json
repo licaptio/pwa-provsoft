@@ -1,6 +1,6 @@
 {
-  "name": "PROVSOFT POS 🎄",
-  "short_name": "POS Ruta🎄PDD",
+  "name": "PROVEEDORA POS ABR26 ",
+  "short_name": "POS Ruta PDD 26",
   "description": "Sistema de ventas offline para rutas de La Proveedora",
   "start_url": "./POSV4PASS.html",
   "scope": "./",
