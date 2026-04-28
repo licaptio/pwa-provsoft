@@ -3,7 +3,7 @@
 <head>
   <!-- 🧱 BLOQUE 1: CABECERA Y CONFIGURACIÓN GLOBAL -->
   <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0c6cbd">calcularTotales
+  <meta name="theme-color" content="#0c6cbd">
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>POS – Ruta de Venta con Descuento</title>
@@ -1728,6 +1728,7 @@ const venta = {
           return tot.total > 0 ? ((utilidad / tot.total) * 100).toFixed(2) : 0;
         })()
       },
+      fecha_local_iso: new Date().toISOString(),
       fecha: serverTimestamp(),
       fecha_txt: new Date().toLocaleString("es-MX", { hour12: true }),
       usuarioId: USUARIO_LOGUEADO.id,
