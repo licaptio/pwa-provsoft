@@ -461,7 +461,7 @@
         descripcion: item.descripcion, codigo: item.codigo, cantidad: Number(item.cantidad || 0)
       };
       await addDoc(
-  collection(db, "TIENDAS", "RUTA1", "INVENTARIOS"),
+  collection(db, "TIENDAS", "RUTA2", "INVENTARIOS"),
   registro
 );
       ultimoRegistro=registro; renderTablaUltimo();
@@ -613,7 +613,7 @@ let nextFocus = null; // 'codigo' | 'cantidad' | null
 
     async function cargarCarritoPartidas(){
       tablaCarrito.innerHTML = "<tr><td colspan='5'>Cargando…</td></tr>";
-      const coll = collection(db, "TIENDAS", "RUTA1", "INVENTARIOS");
+      const coll = collection(db, "TIENDAS", "RUTA2", "INVENTARIOS");
       const q = query(coll, where("folioSesion","==", folio));
       const snap = await getDocs(q);
       const rows = [];
@@ -642,7 +642,7 @@ let nextFocus = null; // 'codigo' | 'cantidad' | null
     }
 
     async function modificarCantidad(docId, delta){
-      const ref = doc(db, "TIENDAS", "RUTA1", "INVENTARIOS", docId);
+      const ref = doc(db, "TIENDAS", "RUTA2", "INVENTARIOS", docId);
       const snap = await getDoc(ref);
       if(!snap.exists()) return;
       let nueva = roundTo(Number(snap.data().cantidad||0) + delta, DEC_CANTIDAD);
