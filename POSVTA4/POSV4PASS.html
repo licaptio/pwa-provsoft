@@ -241,7 +241,6 @@ header,#loginScreen,.btn,#modalCobro,#qrReaderContainer{display:none!important}
 </div> <!-- 👈 cierre de #posApp --> 
 <!-- 📸 LIBRERÍAS EXTERNAS -->
 
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="./html5-qrcode.min.js"></script> <!-- 👈 Asegúrate de que esta ruta sea correcta -->
 
 <!-- 💳 MODAL DE COBRO CON AUTORIZACIÓN DE DESCUENTO -->
@@ -336,7 +335,7 @@ async function obtenerUbicacionSegura() {
   }
 }
 
-// ⚙️ BLOQUE 5: SCRIPT PRINCIPAL (FIREBASE + LÓGICA POS)
+  // ⚙️ BLOQUE 5: SCRIPT PRINCIPAL (FIREBASE + LÓGICA POS)
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -375,7 +374,58 @@ const catalogoById = new Map();
 function haySesionActiva() {
   return document.body.classList.contains("sesion-activa");
 }
+/* ===========================================================
+   🖨️ RAWBT - ENVÍO DIRECTO A IMPRESORA
+   =========================================================== */
+function enviarRawBT(ticket) {
+  try {
+    const texto = encodeURIComponent(ticket);
 
+    // 📡 Llamada directa a RawBT
+    window.location.href = "rawbt:" + texto;
+
+  } catch (e) {
+    console.error("❌ Error enviando a RawBT:", e);
+    alert("No se pudo enviar el ticket a RawBT.");
+  }
+}
+
+/* ===========================================================
+   🔁 REENVÍO DE VENTAS PENDIENTES
+   =========================================================== */
+async function reenviarVentasPendientes() {
+  const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes") || "[]");
+  if (!pendientes.length) return;
+
+  console.log("📤 Reintentando ventas pendientes:", pendientes.length);
+
+  const restantes = [];
+
+  for (const item of pendientes) {
+    try {
+      await guardarVentaEnFirestore(item.venta);
+
+
+      console.log("✅ Reenviada:", item.venta.folio);
+
+    } catch (err) {
+      console.error("❌ Sigue pendiente:", item.venta.folio, err);
+      restantes.push(item);
+    }
+  }
+
+  localStorage.setItem("ventas_pendientes", JSON.stringify(restantes));
+}
+  window.addEventListener("online", () => {
+  console.log("🌐 Internet recuperado. Reenviando pendientes...");
+  reenviarVentasPendientes();
+});
+  // 🔁 Intentar reenviar pendientes al iniciar
+setTimeout(() => {
+  reenviarVentasPendientes();
+}, 3000);
+  
+  
 /* ===========================================================
    🔔 UTILIDAD GLOBAL: BEEP
    =========================================================== */
@@ -1619,40 +1669,41 @@ $("#btnConfirmarCobro").onclick = async () => {
       throw new Error("validacion");
     }
 
-    let folio = "";
-    const hoy = new Date();
-    const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, "");
-    const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR")
-      .toUpperCase()
-      .replace(/\s+/g, "")
-      .slice(0, 8);
-    const folioId = `${usuarioTag}_${fechaTag}`;
-    const folioRef = doc(db, "contadores", folioId);
+// 🧾 FOLIO LOCAL INMEDIATO / OFFLINE
+const hoy = new Date();
 
-const snap = await getDoc(folioRef);
+const fechaTag = hoy.toISOString().slice(0, 10).replace(/-/g, "");
 
-let consecutivo = 1;
+const horaTag = hoy
+  .toTimeString()
+  .slice(0, 8)
+  .replace(/:/g, "");
 
-if (snap.exists()) {
-  consecutivo = (snap.data().ultimo || 0) + 1;
-}
+const usuarioTag = (USUARIO_LOGUEADO.usuario || "USR")
+  .toUpperCase()
+  .replace(/\s+/g, "")
+  .slice(0, 8);
 
-folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
+// Consecutivo local por usuario/día
+const folioKey = `folio_local_${usuarioTag}_${fechaTag}`;
+let consecutivo = Number(localStorage.getItem(folioKey) || 0) + 1;
+localStorage.setItem(folioKey, String(consecutivo));
 
-await setDoc(folioRef, {
-  ultimo: consecutivo,
-  fecha: fechaTag,
-  usuario: usuarioTag,
-  actualizado_en: serverTimestamp()
-}, { merge: true });
+// Folio final
+const folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4, "0")}`;
+
+// ID local único extra para evitar duplicados técnicos
+const folio_local_uid = `${folio}-${horaTag}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    
     
     let comision_total = 0;
     const totVenta = calcularTotales(descuentoAutorizado);
     const factorDescLinea = totVenta.factorDesc || 1;
 
-    const venta = {
-      folio,
-      rutaId,
+const venta = {
+  folio,
+  folio_local_uid,
+  rutaId,
       cliente: $("#cliente").value || "PÚBLICO EN GENERAL",
       moneda: "MXN",
       tipoCambio: 1,
@@ -1748,28 +1799,51 @@ await setDoc(folioRef, {
     venta.comision_total = +comision_total.toFixed(2);
 
     console.log("💾 Guardando venta en Firestore...");
-    await guardarVentaEnFirestore(venta);
+// 🧾 IMPRIMIR PRIMERO
+console.log("🧾 Imprimiendo ticket primero...");
 
-    console.log("📲 Enviando a Telegram...");
-    await enviarTelegram(venta);
+rellenarTicket(venta);
+window.__VENTA_ACTUAL = venta;
+window.__ULTIMOS_TOTALES = calcularTotales(descuentoAutorizado);
 
-    console.log("🧾 Generando ticket...");
-    rellenarTicket(venta);
-    window.__VENTA_ACTUAL = venta;
-    window.__ULTIMOS_TOTALES = calcularTotales(descuentoAutorizado);
+imprimirTicketEstilado();
 
-    imprimirTicketEstilado();
+// 🧹 LIMPIAR POS INMEDIATO
+console.log("✅ Ticket enviado, limpiando carrito...");
 
-    console.log("✅ Venta completada, limpiando carrito...");
-    carrito = [];
-    renderDebounced();
-    cerrarCobro();
+carrito = [];
+renderDebounced();
+cerrarCobro();
 
-    const carritoContainer = document.getElementById("carrito-container");
-    if (carritoContainer) carritoContainer.style.display = "";
+const carritoContainer = document.getElementById("carrito-container");
+if (carritoContainer) carritoContainer.style.display = "";
 
-    const busc = document.getElementById("buscador");
-    if (busc) busc.focus();
+const busc = document.getElementById("buscador");
+if (busc) busc.focus();
+
+// 🔥 FIREBASE + TELEGRAM EN SEGUNDO PLANO
+setTimeout(() => {
+guardarVentaEnFirestore(venta)
+  .then(() => {
+    console.log("✅ Venta guardada en segundo plano:", venta.folio);
+  })
+    .catch(err => {
+      console.error("❌ Error en segundo plano:", err);
+
+      const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes") || "[]");
+
+      pendientes.push({
+        venta,
+        error: String(err?.message || err),
+        fecha_error: new Date().toISOString()
+      });
+
+      localStorage.setItem("ventas_pendientes", JSON.stringify(pendientes));
+
+      alert("⚠️ Ticket impreso, pero la venta quedó pendiente de sincronizar.");
+    });
+}, 100);
+    
 
   } catch (err) {
     console.error("❌ Error al confirmar venta:", err);
@@ -1824,180 +1898,6 @@ async function guardarVentaEnFirestore(v) {
     throw e; // Propagar el error para manejarlo arriba
   }
 }
-/* ===========================================================
-   📲 SECCIÓN 13: ENVÍO A TELEGRAM (CON UBICACIÓN)
-   =========================================================== */
-async function enviarTelegram(v) {
-  try {
-    const BOT_TOKEN = "8272633411:AAE6uKTpEtPW--IPk6ufix_CDGJ0dH6ru4Q";
-    const CHAT_ID = "6617988297";
-    const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
-      minimumFractionDigits: 2, maximumFractionDigits: 2
-    });
-
-    // 📦 Datos base
-    const folio = v.folio;
-    const total = formatoNum(v.resumen_financiero?.total);
-    const subtotal = formatoNum(v.resumen_financiero?.subtotal);
-    const desc = formatoNum(v.descuento_monto || 0);
-    const imp = formatoNum(v.resumen_financiero?.impuestos || 0);
-    const pago = formatoNum(v.recibido || v.resumen_financiero?.total || 0);
-    const cambio = formatoNum(v.cambio || 0);
-    const articulos = (v.detalle || []).reduce((a, b) => a + Number(b.cantidad || 0), 0);
-    const cajero = v.usuarioNombre || "—";
-    const cliente = v.cliente || "PÚBLICO EN GENERAL";
-    const descPorc = v.descuento_porcentaje || 0;
-
-    // 📍 Información de ubicación
-    let ubicacionInfo = "📍 Ubicación no disponible";
-    let mapsUrl = null;
-    
-    if (v.ubicacion) {
-      if (v.ubicacion.direccion) {
-        ubicacionInfo = `📍 ${v.ubicacion.direccion}`;
-        if (v.ubicacion.metodo) {
-          ubicacionInfo += ` (${v.ubicacion.metodo})`;
-        }
-      } else if (v.ubicacion.lat && v.ubicacion.lng) {
-        ubicacionInfo = `📍 Coordenadas: ${v.ubicacion.lat.toFixed(6)}, ${v.ubicacion.lng.toFixed(6)}`;
-        if (v.ubicacion.metodo) {
-          ubicacionInfo += ` (${v.ubicacion.metodo})`;
-        }
-        // Crear URL de Google Maps
-        mapsUrl = `https://www.google.com/maps?q=${v.ubicacion.lat},${v.ubicacion.lng}`;
-      }
-    }
-
-    // 🧾 Construir texto térmico para Telegram (incluyendo ubicación)
-    let ticket = `
-PROVEEDORA MATRIZ
-MADERO 690 SUR, CENTRO
-LINARES, NUEVO LEÓN, 67700
-RFC: PDD-031204-KL5
-TEL: (821) 212-1805
-RÉGIMEN GENERAL DE LEY
-PERSONAS MORALES
---------------------------------
-# Venta : ${folio}
-Fecha   : ${v.fecha_txt}
-Cliente : ${cliente}
---------------------------------
-`;
-
-    (v.detalle || []).forEach(it => {
-      const nombre = (it.nombre || "").substring(0, 32);
-      const cant = it.cantidad.toFixed(3).padStart(5, " ");
-      const prec = it.precio_unit.toFixed(2).padStart(8, " ");
-      const imp = it.importe.toFixed(2).padStart(9, " ");
-      ticket += `${nombre}\n`;
-      ticket += `Cant:${cant}  ${prec}  ${imp}\n`;
-    });
-
-    ticket += `--------------------------------
-Subtotal : $${subtotal}
-Desc. ${descPorc}% : $${desc}
-Impuestos: $${imp}
-Total    : $${total}
-Su Pago  : $${pago}
-Cambio   : $${cambio}
---------------------------------
-Artículos vendidos: ${articulos}
-Incluye ${imp} de Impuestos
-Cajero: ${cajero}
---------------------------------
-${ubicacionInfo}
---------------------------------
-¡Gracias por su compra!
-`;
-
-    // ✉️ Enviar texto del ticket
-    const ticketResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: "```" + ticket + "```",
-        parse_mode: "Markdown"
-      })
-    });
-
-    if (!ticketResponse.ok) {
-      throw new Error(`Error enviando ticket: ${ticketResponse.status}`);
-    }
-
-    console.log("✅ Ticket enviado a Telegram");
-
-    // 📍 Enviar ubicación en Google Maps como mensaje SEPARADO si hay coordenadas
-    if (mapsUrl) {
-      console.log("📍 Enviando enlace de Google Maps:", mapsUrl);
-      
-      // Pequeña pausa para evitar rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const mapsResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: `🗺️ *Ubicación de la venta:*\n[Ver en Google Maps](${mapsUrl})`,
-          parse_mode: "Markdown",
-          disable_web_page_preview: false
-        })
-      });
-
-      if (!mapsResponse.ok) {
-        console.warn("⚠️ No se pudo enviar el enlace de Google Maps, pero el ticket se envió correctamente");
-      } else {
-        console.log("✅ Enlace de Google Maps enviado");
-      }
-    }
-
-    // 🧾 Generar PDF opcional (para respaldo)
-    try {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-      pdf.setFont("courier", "bold");
-      pdf.setFontSize(11);
-      let y = 10;
-      ticket.split("\n").forEach(linea => {
-        pdf.text(linea, 10, y);
-        y += 5;
-        if (y > 280) { pdf.addPage(); y = 10; }
-      });
-      const pdfBlob = pdf.output("blob");
-
-      // Pequeña pausa para evitar rate limiting
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 📎 Enviar PDF como respaldo (opcional)
-      const formData = new FormData();
-      formData.append("chat_id", CHAT_ID);
-      formData.append("document", pdfBlob, `Ticket_${folio}.pdf`);
-      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-        method: "POST",
-        body: formData
-      });
-
-      console.log("✅ PDF enviado a Telegram");
-    } catch (pdfErr) {
-      console.warn("⚠️ Error generando/enviando PDF:", pdfErr);
-    }
-
-    console.log("✅ Todo enviado correctamente a Telegram:", folio);
-    
-  } catch (err) {
-    console.error("❌ Error enviando a Telegram:", err);
-
-    // 🚨 NUEVO BLOQUE: si hay error, guardamos la venta pendiente
-    if (!navigator.onLine || err.message.includes("Failed to fetch")) {
-      guardarVentaPendiente(v);
-      console.warn("📦 Venta guardada para reintento al reconectarse:", v.folio);
-      toast("📦 Venta guardada localmente (sin conexión)", "#f59e0b");
-    } else {
-      console.warn("⚠️ Error no relacionado con conexión:", err.message);
-    }
-  }
-}
 
 /* ===========================================================
    📦 SECCIÓN 13.1: MODO OFFLINE – COLA DE ENVÍO TELEGRAM
@@ -2021,34 +1921,35 @@ function guardarVentaPendiente(v) {
  * Intenta reenviar todas las ventas pendientes cuando hay conexión.
  */
 async function reenviarVentasPendientes() {
-  const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes_telegram") || "[]");
-  if (pendientes.length === 0) return;
+  const pendientes = JSON.parse(localStorage.getItem("ventas_pendientes") || "[]");
+  if (!pendientes.length) return;
 
   console.log(`📨 Intentando reenviar ${pendientes.length} ventas pendientes...`);
 
-  for (const v of pendientes) {
+  const restantes = [];
+
+  for (const item of pendientes) {
     try {
-      await enviarTelegram(v);
-      console.log("✅ Venta reenviada:", v.folio);
+      await guardarVentaEnFirestore(item.venta);
+      console.log("✅ Venta reenviada:", item.venta.folio);
     } catch (err) {
-      console.error("⚠️ Fallo al reenviar:", v.folio, err);
-      // Si vuelve a fallar, no la eliminamos aún
-      return;
+      console.error("⚠️ Fallo al reenviar:", item.venta?.folio, err);
+      restantes.push(item);
     }
   }
 
-  // Si todo salió bien, limpiamos la cola
-  localStorage.removeItem("ventas_pendientes_telegram");
-  console.log("🧹 Cola de ventas pendiente vaciada.");
+  localStorage.setItem("ventas_pendientes", JSON.stringify(restantes));
+
+  if (restantes.length === 0) {
+    console.log("🧹 Cola de ventas pendientes vaciada.");
+  }
 }
 
-/**
- * Detecta cuando vuelve la conexión y reintenta los envíos.
- */
 window.addEventListener("online", () => {
   toast("✅ Conexión restaurada. Reenviando ventas pendientes...", "#1e8e3e");
   setTimeout(reenviarVentasPendientes, 1000);
 });
+  
 
 /* ===========================================================
    🧾 SECCIÓN 14: TICKET VISUAL E IMPRESIÓN
@@ -2090,31 +1991,27 @@ const importe = p.importe ?? 0;
 
 function imprimirTicketEstilado() {
   try {
-    // 🧮 Función auxiliar para formatear números
     const formatoNum = n => (Number(n || 0)).toLocaleString("es-MX", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     });
 
-// 📦 Obtener datos de la venta actual
-const folio = $("#tFolio").textContent.trim();
-const fecha = $("#tFecha").textContent.trim();
-const cliente = $("#tCliente").textContent.trim();
+    const folio = $("#tFolio").textContent.trim();
+    const fecha = $("#tFecha").textContent.trim();
+    const cliente = $("#tCliente").textContent.trim();
 
-// 🧮 Totales reales provenientes del cálculo interno
-const t = window.__ULTIMOS_TOTALES || {};
-const subtotal = formatoNum(t.subtotal || 0);
-const descPorc = $("#tDescPorc").textContent.trim();
-const descMonto = formatoNum(window.__VENTA_ACTUAL?.descuento_monto || 0);
-const total = formatoNum(t.total || 0);
-const impuestos = formatoNum(t.impuestos || 0);
+    const t = window.__ULTIMOS_TOTALES || {};
+    const subtotal = formatoNum(t.subtotal || 0);
+    const descPorc = $("#tDescPorc").textContent.trim();
+    const descMonto = formatoNum(window.__VENTA_ACTUAL?.descuento_monto || 0);
+    const total = formatoNum(t.total || 0);
+    const impuestos = formatoNum(t.impuestos || 0);
 
-const pago = $("#tPago").textContent.trim();
-const cambio = $("#tCambio").textContent.trim();
-const articulos = $("#tArticulos").textContent.trim();
-const cajero = $("#tCajero").textContent.trim();
+    const pago = $("#tPago").textContent.trim();
+    const cambio = $("#tCambio").textContent.trim();
+    const articulos = $("#tArticulos").textContent.trim();
+    const cajero = $("#tCajero").textContent.trim();
 
-    // 🧾 Construir texto del ticket en formato térmico
     let ticket = `
 PROVEEDORA MATRIZ
 MADERO 690 SUR, CENTRO
@@ -2130,19 +2027,18 @@ Cliente : ${cliente}
 --------------------------------
 `;
 
-    // 📋 Detalle de productos
-const detalle = window.__VENTA_ACTUAL?.detalle || [];
+    const detalle = window.__VENTA_ACTUAL?.detalle || [];
 
-detalle.forEach(p => {
-  const cant = p.cantidad;
-  const precio = p.precio_unit;
-  const importe = p.importe;
+    detalle.forEach(p => {
+      const cant = Number(p.cantidad || 0);
+      const precio = Number(p.precio_unit || 0);
+      const importe = Number(p.importe || 0);
 
-  ticket += `${p.nombre}\n`;
-  ticket += `Cant:${cant}  ${precio.toFixed(2)}  ${importe.toFixed(2)}\n`;
-});
+const nombre = p.nombre.substring(0, 20);
+ticket += `${nombre}\n`;
+ticket += `${cant} x ${precio.toFixed(2)}   ${importe.toFixed(2)}\n`;
+    });
 
-    // 💵 Totales
     ticket += `--------------------------------
 Subtotal: ${subtotal}
 Desc. ${descPorc}: ${descMonto}
@@ -2154,55 +2050,23 @@ Artículos vendidos: ${articulos}
 Incluye ${impuestos} de Impuestos
 Cajero: ${cajero}
 --------------------------------
---------------------------------
 ¡Gracias por su compra!
 --------------------------------
---------------------------------
  SI REQUIERE FACTURA SOLICITARLA 
-    AL MOMENTO DE  SU COMPRA
---------------------------------
+    AL MOMENTO DE SU COMPRA
 --------------------------------
 `;
 
-    // 🖨️ Prioridad 1: InnerPrinter
-    if (window.InnerPrinter) {
-      try {
-        if (typeof window.InnerPrinter.printText === "function") {
-          window.InnerPrinter.printText(ticket);
-          return;
-        }
-        if (typeof window.InnerPrinter.printHtml === "function") {
-          window.InnerPrinter.printHtml(`<pre>${ticket}</pre>`);
-          return;
-        }
-      } catch (err) {
-        console.error("❌ Error con InnerPrinter:", err);
-      }
-    }
-
-    // 🖨️ Prioridad 2: RawBT (Android)
-    if (/Android/i.test(navigator.userAgent)) {
-      try {
-        const encoded = encodeURIComponent(ticket);
-        window.location.href = `rawbt:print?data=${encoded}`;
-        return;
-      } catch (err) {
-        console.error("❌ Error con RawBT:", err);
-      }
-    }
-
-    // 🖨️ Prioridad 3: Impresión navegador (fallback)
-    const w = window.open("", "_blank");
-    w.document.write(`<pre style="font-family:monospace;font-size:13px;">${ticket}</pre>`);
-    w.document.close();
-    w.print();
+    // 🖨️ SOLO RAWBT
+    const encoded = encodeURIComponent(ticket);
+    window.location.href = `rawbt:print?data=${encoded}`;
+    return;
 
   } catch (err) {
-    console.error("❌ Error generando ticket:", err);
-    alert("Error al generar ticket térmico.");
+    console.error("❌ Error generando ticket RawBT:", err);
+    alert("Error al enviar ticket a RawBT.");
   }
 }
-
 /* ===========================================================
    🙋‍♂️ SECCIÓN 15: CLIENTE PÚBLICO AUTOMÁTICO
    =========================================================== */
