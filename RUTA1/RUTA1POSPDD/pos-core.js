@@ -686,7 +686,8 @@ async function construirVenta(tot, pago) {
     consecutivo = (snap.data().ultimo || 0) + 1;
   }
 
-  const folio = `${usuarioTag}-${fechaTag}-${String(consecutivo).padStart(4,"0")}`;
+  const rutaTag = "R1";
+const folio = `${rutaTag}-${fechaTag}-${usuarioTag}-${String(consecutivo).padStart(4,"0")}`;
 
   await setDoc(folioRef, {
     ultimo: consecutivo,
@@ -739,11 +740,11 @@ async function construirVenta(tot, pago) {
 
 async function guardarVentaEnSegundoPlano(venta) {
   try {
-    await addDoc(
-      collection(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS),
-      venta
-    );
-
+await setDoc(
+  doc(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS, venta.folio),
+  venta
+);
+    
     toast("💾 Venta guardada", "#0c6cbd", 1200);
 
   } catch (e) {
@@ -877,15 +878,17 @@ async function sincronizarVentasPendientes() {
 
   for (const item of pendientes) {
     try {
-      await addDoc(
-        collection(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS),
-        {
-          ...item.venta,
-          sincronizada_desde_cola: true,
-          id_local: item.id_local,
-          sincronizada_en: new Date().toISOString()
-        }
-      );
+await setDoc(
+  doc(db, "TIENDAS", TIENDA_ID, COLECCION_VENTAS, item.venta.folio),
+  {
+    ...item.venta,
+    sincronizada_desde_cola: true,
+    id_local: item.id_local,
+    sincronizada_en: new Date().toISOString()
+  },
+  { merge: true }
+);
+      
 } catch (e) {
   item.intentos = Number(item.intentos || 0) + 1;
   item.ultimo_error = String(e?.message || e || "Error desconocido");
