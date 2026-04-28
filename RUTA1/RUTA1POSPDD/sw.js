@@ -1,4 +1,4 @@
-const CACHE_NAME = "provsoft-pos-v1";
+const CACHE_NAME = "provsoft-pos-v2";
 
 const urlsToCache = [
   "./",
