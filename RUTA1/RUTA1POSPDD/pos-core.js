@@ -506,9 +506,13 @@ function calcularTotales(descPorc = 0) {
   carrito.forEach(it => {
     const imp = Number(it.cantidad || 0) * Number(it.precioUnit || 0);
 
-    const ivaT = Number(it.ivaTasa || 0);
-    const iepsT = Number(it.iepsTasa || 0);
+let ivaT = Number(it.ivaTasa || 0);
+let iepsT = Number(it.iepsTasa || 0);
 
+// 🔥 NORMALIZAR (clave)
+if (ivaT > 1) ivaT = ivaT / 100;
+if (iepsT > 1) iepsT = iepsT / 100;
+    
     let base = imp;
 
     if (iepsT > 0 && ivaT > 0) {
