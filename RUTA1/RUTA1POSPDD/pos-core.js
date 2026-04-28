@@ -670,6 +670,12 @@ async function confirmarCobro() {
   ventaEnProceso = false;
 }
 
+function normalizarTasa(valor) {
+  let tasa = Number(valor || 0);
+  if (tasa > 1) tasa = tasa / 100;
+  return +tasa.toFixed(6);
+}
+
 async function construirVenta(tot, pago) {
   const hoy = new Date();
   const fechaTag = hoy.toISOString().slice(0,10).replace(/-/g,"");
@@ -731,10 +737,10 @@ const folio = `${rutaTag}-${fechaTag}-${usuarioTag}-${String(consecutivo).padSta
       cantidad:it.cantidad,
       precio_unit:it.precioUnit,
       importe:+(it.cantidad * it.precioUnit).toFixed(2),
-      ivaTasa:it.ivaTasa || 0,
-      iepsTasa:it.iepsTasa || 0,
-      iva_calculado:it.iva_calculado || 0,
-      ieps_calculado:it.ieps_calculado || 0,
+ivaTasa: normalizarTasa(it.ivaTasa),
+iepsTasa: normalizarTasa(it.iepsTasa),
+iva_calculado: +(it.iva_calculado || 0).toFixed(2),
+ieps_calculado: +(it.ieps_calculado || 0).toFixed(2),
       costo_unit:it.costoUnit || 0,
       departamento_id:it.departamento_id || null,
       departamento:it.departamento || null
