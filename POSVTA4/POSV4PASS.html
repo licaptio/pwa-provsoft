@@ -621,8 +621,7 @@ async function leerCache(ruta) {
 /* ===========================================================
    🧾 SECCIÓN 5: CARGA DE CATÁLOGO Y DEPARTAMENTOS (OPTIMIZADO)
    =========================================================== */
-
-async function cargarCatalogo() {
+  async function cargarCatalogo() {
   const cacheKey = "catalogo_cache";
   const cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
   const unDia = 24 * 60 * 60 * 1000;
@@ -640,9 +639,17 @@ async function cargarCatalogo() {
 // =====================================================
 // 🟢 1) Intentar cargar desde cache del Service Worker
 // =====================================================
-const catalogoSW = await leerCache("/catalogo");
+  const LIMITE_CACHE = 1000 * 60 * 60 * 24; // 24h
+  const meta = JSON.parse(localStorage.getItem("catalogo_cache_meta") || "{}");
+  const edadCache = Date.now() - (meta.fecha || 0);
+  const cacheValido = edadCache < LIMITE_CACHE;
+  // 🔴 AQUÍ VA EL LOG
+if (!cacheValido) {
+  console.log("🔄 Cache vencido, recargando catálogo desde Firebase...");
+}
+  const catalogoSW = await leerCache("/catalogo");
 
-if (catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
+if (cacheValido && catalogoSW && Array.isArray(catalogoSW) && catalogoSW.length > 0) {
 
   catalogo = catalogoSW.map(x => ({
     id: x.id,
@@ -1822,7 +1829,7 @@ if (carritoContainer) carritoContainer.style.display = "";
 const busc = document.getElementById("buscador");
 if (busc) busc.focus();
 
-// 🔥 FIREBASE + TELEGRAM EN SEGUNDO PLANO
+// 🔥 FIREBASE EN SEGUNDO PLANO
 setTimeout(() => {
 guardarVentaEnFirestore(venta)
   .then(() => {
