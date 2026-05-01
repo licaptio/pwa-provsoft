@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inventario vs Ventas por Fecha - PROVSOFT</title>
+  <link rel="icon" href="data:,">
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -42,208 +43,92 @@
       color: var(--texto);
     }
 
-    .wrap {
-      max-width: 100%;
-      padding: 18px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 18px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .topbar {
-      background: linear-gradient(135deg, var(--azul), var(--azul2));
-      color: white;
-      padding: 18px 20px;
-    }
-
-    .topbar h1 {
-      margin: 0 0 6px;
-      font-size: 24px;
-    }
-
-    .topbar p {
-      margin: 0;
-      opacity: .95;
-      font-size: 14px;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      padding: 16px;
-      border-bottom: 1px solid var(--gris);
-      background: #fff;
-    }
-
-    .field {
+    .app-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: linear-gradient(135deg, #ffffff 0%, #fff5f5 45%, #f8fafc 100%);
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
     }
-
-    .field label {
-      font-size: 12px;
-      font-weight: bold;
-      color: #475569;
-    }
-
-    .field input,
-    .field button {
-      min-height: 40px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
-      padding: 10px 12px;
-      font-size: 14px;
-      font-family: Arial, sans-serif;
-      background: white;
-    }
-
-    .field button {
-      cursor: pointer;
-      border: none;
-      background: var(--azul);
-      color: white;
-      font-weight: bold;
-    }
-
-    .field button.sec {
-      background: #0f766e;
-    }
-
-    .status {
-      padding: 12px 16px;
-      font-size: 14px;
-      border-bottom: 1px solid var(--gris);
-      background: var(--gris2);
-    }
-
-    .status.ok { color: var(--verde); }
-    .status.error { color: var(--rojo); }
-
-    .summary {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--gris);
+    .app-loader.hide { display: none; }
+    .loader-box {
+      width: min(560px, 96vw);
       background: #fff;
+      border: 1px solid #fee2e2;
+      border-radius: 20px;
+      box-shadow: 0 18px 50px rgba(127, 29, 29, .16);
+      padding: 24px;
+      text-align: center;
     }
+    .loader-logo { height: 70px; max-width: 180px; object-fit: contain; margin-bottom: 14px; }
+    .loader-title { margin: 0; color: #7f1d1d; font-size: 20px; font-weight: 800; letter-spacing: .3px; }
+    .loader-subtitle { margin: 7px 0 18px; color: #374151; font-size: 14px; font-weight: 700; }
+    .progress-shell { width: 100%; height: 14px; background: #fee2e2; border-radius: 999px; overflow: hidden; border: 1px solid #fecaca; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #b91c1c, #ef4444); border-radius: 999px; transition: width .25s ease; }
+    .loader-msg { margin: 12px 0 0; color: #4b5563; font-size: 13px; }
 
-    .pill {
-      background: #eef2ff;
-      color: #1e3a8a;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: bold;
-    }
+    .wrap { max-width: 100%; padding: 0; }
+    .card { background: #fff; min-height: 100vh; overflow: hidden; }
+    .topbar { background: #ffffff; color: #111827; padding: 16px 22px; border-bottom: 4px solid #b91c1c; box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+    .topbar-flex { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+    .brand-title { margin: 0; font-size: 23px; font-weight: 900; color: #991b1b; letter-spacing: .2px; text-transform: uppercase; }
+    .brand-subtitle { margin: 5px 0 0; color: #1f2937; font-size: 16px; font-weight: 800; text-transform: uppercase; }
+    .brand-note { margin: 4px 0 0; color: #6b7280; font-size: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 14px; }
+    .logo-empresa { height: 58px; max-width: 150px; object-fit: contain; }
+    .btn-exportar { min-height: 38px; border-radius: 10px; border: none; padding: 9px 14px; background: #991b1b; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 14px rgba(153, 27, 27, .18); }
+    .btn-exportar:hover { background: #7f1d1d; }
 
-    .table-wrap {
-      overflow: auto;
-      max-height: calc(100vh - 260px);
-      background: white;
-    }
+    .table-wrap { overflow: auto; height: calc(100vh - 105px); background: white; display: none; }
+    .table-wrap.show { display: block; }
 
-    table {
-      border-collapse: collapse;
-      width: max-content;
-      min-width: 100%;
-      font-size: 13px;
-    }
-
-    thead th {
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      color: #0f172a;
-    }
-
-    th, td {
-      border: 1px solid #dbe4f0;
-      padding: 8px 10px;
-      white-space: nowrap;
-      text-align: right;
-      vertical-align: middle;
-    }
-
-    th.left, td.left {
-      text-align: left;
-    }
-
-    .sticky1 {
-      position: sticky;
-      left: 0;
-      z-index: 4;
-      background: #fff;
-      min-width: 130px;
-      max-width: 130px;
-    }
-
-    .sticky2 {
-      position: sticky;
-      left: 130px;
-      z-index: 4;
-      background: #fff;
-      min-width: 340px;
-      max-width: 340px;
-    }
-
-    thead .sticky1,
-    thead .sticky2,
-    tfoot .sticky1,
-    tfoot .sticky2 {
-      background: #ffffff;
-    }
-
+    table { border-collapse: collapse; width: max-content; min-width: 100%; font-size: 13px; }
+    thead th { position: sticky; top: 0; z-index: 5; color: #0f172a; }
+    th, td { border: 1px solid #dbe4f0; padding: 8px 10px; white-space: nowrap; text-align: right; vertical-align: middle; }
+    th.left, td.left { text-align: left; }
+    .sticky1 { position: sticky; left: 0; z-index: 4; background: #fff; min-width: 130px; max-width: 130px; }
+    .sticky2 { position: sticky; left: 130px; z-index: 4; background: #fff; min-width: 340px; max-width: 340px; }
+    thead .sticky1, thead .sticky2, tfoot .sticky1, tfoot .sticky2 { background: #ffffff; }
     th.inv-col { background: var(--inv-head) !important; }
     td.inv-col { background: var(--inv-cell) !important; }
-
     th.trans-col { background: var(--trans-head); }
-    td.trans-col {
-      background: var(--trans-cell);
-      color: #1d4ed8;
-      font-weight: bold;
-    }
-
+    td.trans-col { background: var(--trans-cell); color: #1d4ed8; font-weight: bold; }
     th.vta-col { background: var(--vta-head); }
-    td.vta-col {
-      background: var(--vta-cell);
-      color: #166534;
-      font-weight: bold;
-    }
-
-    th.total-col, td.total-col {
-      background: #f8fafc;
-      font-weight: bold;
-    }
-
+    td.vta-col { background: var(--vta-cell); color: #166534; font-weight: bold; }
+    th.total-col, td.total-col { background: #f8fafc; font-weight: bold; }
     th.neto-col { background: var(--neto-head); }
-    td.neto-col {
-      background: var(--neto-cell);
-      font-weight: bold;
-    }
+    td.neto-col { background: var(--neto-cell); font-weight: bold; }
+    td.num-zero { color: #94a3b8; }
+    td.negativo { color: #b91c1c; font-weight: bold; }
+    tfoot td { position: sticky; bottom: 0; background: #ecfdf5; font-weight: bold; z-index: 3; }
 
-    td.num-zero {
-      color: #94a3b8;
-    }
 
-    td.negativo {
-      color: #b91c1c;
-      font-weight: bold;
-    }
-
-    tfoot td {
-      position: sticky;
-      bottom: 0;
-      background: #ecfdf5;
-      font-weight: bold;
-      z-index: 3;
-    }
+    .btn-config { min-height: 38px; border-radius: 10px; border: 1px solid #fecaca; padding: 9px 12px; background: #fff; color: #991b1b; font-size: 13px; font-weight: 900; cursor: pointer; }
+    .btn-config:hover { background: #fff5f5; }
+    .config-panel { display: none; padding: 16px 22px; background: #fff7f7; border-bottom: 1px solid #fecaca; }
+    .config-panel.show { display: block; }
+    .config-title { margin: 0 0 10px; color: #7f1d1d; font-size: 16px; font-weight: 900; text-transform: uppercase; }
+    .config-grid { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; align-items: end; }
+    .config-field { display: flex; flex-direction: column; gap: 5px; }
+    .config-field label { font-size: 11px; font-weight: 800; color: #7f1d1d; }
+    .config-field input, .config-field select, .config-field textarea { min-height: 36px; border: 1px solid #fca5a5; border-radius: 9px; padding: 8px 10px; font-size: 13px; background: white; }
+    .config-field textarea { min-height: 36px; resize: vertical; }
+    .config-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .config-actions button, .mini-btn { border: none; border-radius: 9px; padding: 9px 11px; font-size: 12px; font-weight: 900; cursor: pointer; color: white; }
+    .btn-save { background: #991b1b; }
+    .btn-new { background: #0f766e; }
+    .btn-del { background: #b91c1c; }
+    .btn-load { background: #b45309; }
+    .config-status { margin-top: 10px; font-size: 13px; color: #374151; }
+    .config-table-wrap { margin-top: 12px; max-height: 260px; overflow: auto; background: white; border: 1px solid #fecaca; border-radius: 12px; }
+    .config-table { width: 100%; min-width: 900px; font-size: 12px; }
+    .config-table th { background: #fee2e2; position: sticky; top: 0; z-index: 2; }
+    .tag { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; }
+    .tag.ok { background: #dcfce7; color: #166534; }
+    .tag.off { background: #fee2e2; color: #991b1b; }
 
     @media (max-width: 900px) {
       .controls {
@@ -263,39 +148,96 @@
 </head>
 
 <body>
+  <div id="loader" class="app-loader">
+    <div class="loader-box">
+      <img src="logo.jfif" class="loader-logo" alt="Logo empresa" />
+      <h2 class="loader-title">PROVEEDORA DE DULCES Y DESECHABLES</h2>
+      <div class="loader-subtitle">SUC CENTRAL · LISTADO INVENTARIO FÍSICO TEÓRICO</div>
+      <div class="progress-shell">
+        <div id="loaderBar" class="progress-bar"></div>
+      </div>
+      <p id="loaderMsg" class="loader-msg">Preparando consulta...</p>
+    </div>
+  </div>
+
   <div class="wrap">
     <div class="card">
       <div class="topbar">
-        <h1>Inventario vs Ventas por Fecha - <span id="tituloTienda">CENTRAL</span></h1>
-        <p>
-          Fórmula operativa: inventario inicial + transferencias - ventas.
-        </p>
-      </div>
-
-      <div class="controls">
-        <div class="field">
-          <label>Filtro código</label>
-          <input type="text" id="filtroCodigo" placeholder="Ej. 010921" />
-        </div>
-
-        <div class="field">
-          <label>Filtro descripción</label>
-          <input type="text" id="filtroDescripcion" placeholder="Buscar descripción" />
-        </div>
-
-        <div class="field">
-          <label>&nbsp;</label>
-          <div style="display:flex; gap:10px;">
-            <button id="btnCargar" style="flex:1;">Cargar</button>
-            <button id="btnExportar" class="sec" style="flex:1;">Exportar Excel</button>
+        <div class="topbar-flex">
+          <div>
+            <h1 class="brand-title">PROVEEDORA DE DULCES Y DESECHABLES SUC CENTRAL</h1>
+            <p class="brand-subtitle">LISTADO INVENTARIO FÍSICO TEÓRICO</p>
+            <p class="brand-note">Inventario inicial + transferencias - ventas</p>
+          </div>
+          <div class="header-actions">
+            <button id="btnAbrirConfig" class="btn-config" title="Equivalencias">⚙ Equivalencias</button>
+            <button id="btnExportar" class="btn-exportar">Exportar Excel</button>
+            <img src="logo.jfif" class="logo-empresa" alt="Logo empresa" />
           </div>
         </div>
       </div>
 
-      <div id="status" class="status">Esperando consulta...</div>
-      <div id="summary" class="summary"></div>
+      <div id="configPanel" class="config-panel">
+        <h3 class="config-title">Configuración de equivalencias por código - CENTRAL</h3>
+        <div class="config-grid">
+          <div class="config-field">
+            <label>Código venta</label>
+            <input list="listaCodigosVenta" type="text" id="codigoVenta" placeholder="Código que se vende" />
+          </div>
+          <div class="config-field">
+            <label>Descripción venta</label>
+            <input type="text" id="descripcionVenta" placeholder="Descripción venta" />
+          </div>
+          <div class="config-field">
+            <label>Código origen</label>
+            <input list="listaCodigosOrigen" type="text" id="codigoOrigen" placeholder="Código real a descontar" />
+          </div>
+          <div class="config-field">
+            <label>Descripción origen</label>
+            <input type="text" id="descripcionOrigen" placeholder="Descripción origen" />
+          </div>
+          <div class="config-field">
+            <label>Factor</label>
+            <input type="number" id="factor" min="0.0001" step="0.0001" placeholder="Ej. 500" />
+          </div>
+          <div class="config-field">
+            <label>Activo</label>
+            <select id="activo"><option value="true">Sí</option><option value="false">No</option></select>
+          </div>
+          <div class="config-field" style="grid-column: span 2;">
+            <label>Notas</label>
+            <textarea id="notas" placeholder="Comentario opcional"></textarea>
+          </div>
+          <div class="config-actions" style="grid-column: span 4;">
+            <button id="btnNuevo" class="btn-new">Nuevo</button>
+            <button id="btnGuardar" class="btn-save">Guardar</button>
+            <button id="btnEliminar" class="btn-del">Eliminar</button>
+            <button id="btnRecargarConfig" class="btn-load">Recargar reglas</button>
+            <button id="btnAplicarRecargar" class="btn-save">Aplicar y recargar listado</button>
+          </div>
+        </div>
+        <datalist id="listaCodigosVenta"></datalist>
+        <datalist id="listaCodigosOrigen"></datalist>
+        <div id="statusConfig" class="config-status">Listo.</div>
+        <div class="config-table-wrap">
+          <table class="config-table">
+            <thead>
+              <tr>
+                <th class="left">Código venta</th>
+                <th class="left">Descripción venta</th>
+                <th class="left">Código origen</th>
+                <th class="left">Descripción origen</th>
+                <th>Factor</th>
+                <th>Activo</th>
+                <th class="left">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbodyEquivalencias"></tbody>
+          </table>
+        </div>
+      </div>
 
-      <div class="table-wrap">
+      <div id="tablaWrap" class="table-wrap">
         <table id="tablaPivot">
           <thead></thead>
           <tbody></tbody>
@@ -329,6 +271,10 @@
 
     let ultimaPivot = null;
     let equivalentesCatalogoMap = {};
+    let equivalenciasActuales = [];
+    let equivalenciasMap = {};
+    let reglaEditandoId = null;
+    let opcionesCodigos = [];
 
     function getTiendaActual() {
       return "CENTRAL";
@@ -342,14 +288,25 @@
         INVENTARIOS_REF: db.collection("TIENDAS").doc(TIENDA).collection("inventario1"),
         TRANSFERENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("TECNOTRANSF"),
         VENTAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("ventas"),
-        PRODUCTOS_REF: db.collection("productos")
+        PRODUCTOS_REF: db.collection("productos"),
+        EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias")
       };
     }
 
-    function setStatus(msg, type = "") {
-      const el = $("status");
-      el.textContent = msg;
-      el.className = "status " + type;
+    function setStatus(msg, type = "", progress = null) {
+      const statusEl = document.getElementById("status");
+      if (statusEl) {
+        statusEl.textContent = msg;
+        statusEl.className = "status " + type;
+      }
+
+      const loaderMsg = document.getElementById("loaderMsg");
+      if (loaderMsg) loaderMsg.textContent = msg;
+
+      if (progress !== null) {
+        const loaderBar = document.getElementById("loaderBar");
+        if (loaderBar) loaderBar.style.width = Math.max(0, Math.min(100, progress)) + "%";
+      }
     }
 
     function fmtNum(n) {
@@ -363,7 +320,9 @@
       thead.innerHTML = "";
       tbody.innerHTML = "";
       tfoot.innerHTML = "";
-      $("summary").innerHTML = "";
+
+      const summaryEl = document.getElementById("summary");
+      if (summaryEl) summaryEl.innerHTML = "";
     }
 
     function escapeHtml(text) {
@@ -462,6 +421,240 @@
         "fecha",
         "FECHA"
       ]));
+    }
+
+
+    function setStatusConfig(msg, type = "") {
+      const el = document.getElementById("statusConfig");
+      if (!el) return;
+      el.textContent = msg;
+      el.style.color = type === "error" ? "#991b1b" : type === "ok" ? "#166534" : "#374151";
+    }
+
+    function construirMapaEquivalencias(items = []) {
+      const mapa = {};
+      for (const item of items) {
+        if (!item.activo) continue;
+        const codigoVenta = String(item.codigoVenta || "").trim();
+        const codigoVentaKey = normalizarCodigo(codigoVenta);
+        if (!codigoVentaKey) continue;
+        mapa[codigoVentaKey] = {
+          origen: String(item.codigoOrigen || "").trim(),
+          origenKey: normalizarCodigo(item.codigoOrigen || ""),
+          factor: Number(item.factor || 0),
+          descripcionOrigen: String(item.descripcionOrigen || "").trim(),
+          descripcionDestino: String(item.descripcionVenta || "").trim(),
+          docId: item.id || ""
+        };
+      }
+      return mapa;
+    }
+
+    async function cargarEquivalencias(silencioso = false) {
+      const { EQUIVALENCIAS_REF } = getRefsPorTienda();
+      if (!silencioso) setStatusConfig("Cargando equivalencias...");
+      const snap = await EQUIVALENCIAS_REF.orderBy("codigoVenta").get();
+      const items = [];
+      snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+      equivalenciasActuales = items;
+      equivalenciasMap = construirMapaEquivalencias(items);
+      pintarTablaEquivalencias();
+      if (!silencioso) setStatusConfig(`Equivalencias cargadas: ${items.length}`, "ok");
+      return items;
+    }
+
+    function pintarTablaEquivalencias() {
+      const body = document.getElementById("tbodyEquivalencias");
+      if (!body) return;
+      body.innerHTML = "";
+      equivalenciasActuales.forEach(item => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="left">${escapeHtml(item.codigoVenta || "")}</td>
+          <td class="left">${escapeHtml(item.descripcionVenta || "")}</td>
+          <td class="left">${escapeHtml(item.codigoOrigen || "")}</td>
+          <td class="left">${escapeHtml(item.descripcionOrigen || "")}</td>
+          <td>${fmtNum(item.factor || 0)}</td>
+          <td>${item.activo ? '<span class="tag ok">Sí</span>' : '<span class="tag off">No</span>'}</td>
+          <td class="left">
+            <button class="mini-btn btn-save" onclick="editarRegla('${item.id}')">Editar</button>
+            <button class="mini-btn btn-del" onclick="eliminarReglaDirecta('${item.id}')">Eliminar</button>
+          </td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function limpiarFormularioConfig() {
+      reglaEditandoId = null;
+      ["codigoVenta", "descripcionVenta", "codigoOrigen", "descripcionOrigen", "factor", "notas"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      const activo = document.getElementById("activo");
+      if (activo) activo.value = "true";
+      setStatusConfig("Formulario limpio.", "ok");
+    }
+
+    function validarFormularioConfig() {
+      const codigoVenta = String(document.getElementById("codigoVenta")?.value || "").trim();
+      const descripcionVenta = String(document.getElementById("descripcionVenta")?.value || "").trim();
+      const codigoOrigen = String(document.getElementById("codigoOrigen")?.value || "").trim();
+      const descripcionOrigen = String(document.getElementById("descripcionOrigen")?.value || "").trim();
+      const factor = Number(document.getElementById("factor")?.value || 0);
+      const activo = document.getElementById("activo")?.value === "true";
+      const notas = String(document.getElementById("notas")?.value || "").trim();
+      if (!codigoVenta) throw new Error("Falta código venta.");
+      if (!codigoOrigen) throw new Error("Falta código origen.");
+      if (!Number.isFinite(factor) || factor <= 0) throw new Error("El factor debe ser mayor a 0.");
+      return {
+        codigoVenta,
+        codigoVentaKey: normalizarCodigo(codigoVenta),
+        descripcionVenta,
+        codigoOrigen,
+        codigoOrigenKey: normalizarCodigo(codigoOrigen),
+        descripcionOrigen,
+        factor,
+        activo,
+        notas,
+        tipo: "CONVERSION_CODIGO"
+      };
+    }
+
+    async function guardarRegla() {
+      try {
+        const { EQUIVALENCIAS_REF } = getRefsPorTienda();
+        const payload = validarFormularioConfig();
+        const data = {
+          ...payload,
+          sucursal: getTiendaActual(),
+          actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (reglaEditandoId) {
+          await EQUIVALENCIAS_REF.doc(reglaEditandoId).update(data);
+          setStatusConfig("Equivalencia actualizada.", "ok");
+        } else {
+          data.creadoEn = firebase.firestore.FieldValue.serverTimestamp();
+          await EQUIVALENCIAS_REF.add(data);
+          setStatusConfig("Equivalencia guardada.", "ok");
+        }
+        await cargarEquivalencias(true);
+        limpiarFormularioConfig();
+      } catch (err) {
+        console.error(err);
+        setStatusConfig("Error al guardar: " + err.message, "error");
+      }
+    }
+
+    window.editarRegla = function(id) {
+      const item = equivalenciasActuales.find(x => x.id === id);
+      if (!item) return;
+      reglaEditandoId = id;
+      document.getElementById("codigoVenta").value = item.codigoVenta || "";
+      document.getElementById("descripcionVenta").value = item.descripcionVenta || "";
+      document.getElementById("codigoOrigen").value = item.codigoOrigen || "";
+      document.getElementById("descripcionOrigen").value = item.descripcionOrigen || "";
+      document.getElementById("factor").value = item.factor || "";
+      document.getElementById("activo").value = String(Boolean(item.activo));
+      document.getElementById("notas").value = item.notas || "";
+      setStatusConfig(`Editando: ${item.codigoVenta} → ${item.codigoOrigen}`);
+    };
+
+    window.eliminarReglaDirecta = async function(id) {
+      try {
+        const item = equivalenciasActuales.find(x => x.id === id);
+        if (!item) return;
+        if (!confirm(`¿Eliminar equivalencia ${item.codigoVenta} → ${item.codigoOrigen}?`)) return;
+        const { EQUIVALENCIAS_REF } = getRefsPorTienda();
+        await EQUIVALENCIAS_REF.doc(id).delete();
+        await cargarEquivalencias(true);
+        limpiarFormularioConfig();
+        setStatusConfig("Equivalencia eliminada.", "ok");
+      } catch (err) {
+        console.error(err);
+        setStatusConfig("Error al eliminar: " + err.message, "error");
+      }
+    };
+
+    async function eliminarReglaFormulario() {
+      if (!reglaEditandoId) {
+        setStatusConfig("Primero selecciona una regla con Editar.", "error");
+        return;
+      }
+      await window.eliminarReglaDirecta(reglaEditandoId);
+    }
+
+    function refrescarDatalistsOpciones() {
+      const ventaList = document.getElementById("listaCodigosVenta");
+      const origenList = document.getElementById("listaCodigosOrigen");
+      if (!ventaList || !origenList) return;
+      ventaList.innerHTML = "";
+      origenList.innerHTML = "";
+      opcionesCodigos
+        .sort((a, b) => String(a.codigo).localeCompare(String(b.codigo), "es"))
+        .forEach(item => {
+          const opt1 = document.createElement("option");
+          opt1.value = item.codigo;
+          opt1.label = `${item.codigo} - ${item.descripcion || ""}`;
+          ventaList.appendChild(opt1);
+          const opt2 = document.createElement("option");
+          opt2.value = item.codigo;
+          opt2.label = `${item.codigo} - ${item.descripcion || ""}`;
+          origenList.appendChild(opt2);
+        });
+    }
+
+    function cargarDescripcionAutomatica(inputCodigoId, inputDescId) {
+      const codigo = String(document.getElementById(inputCodigoId)?.value || "").trim();
+      if (!codigo) return;
+      const encontrado = opcionesCodigos.find(x => String(x.codigo) === codigo);
+      const desc = document.getElementById(inputDescId);
+      if (encontrado && desc && !desc.value.trim()) desc.value = encontrado.descripcion || "";
+    }
+
+    function aplicarEquivalenciasEmpaque(registros) {
+      const virtuales = [];
+      for (const item of registros) {
+        if (item.origen !== "VTA") continue;
+        const codigoVendido = String(item.codigoVendidoOriginal || item.codigo || "").trim();
+        const codigoVendidoKey = normalizarCodigo(codigoVendido);
+        const eq = equivalenciasMap[codigoVendidoKey];
+        if (!eq) continue;
+        const piezasVendidas = Number(item.cantidad || 0);
+        const factor = Number(eq.factor || 0);
+        if (!Number.isFinite(piezasVendidas) || piezasVendidas <= 0 || !Number.isFinite(factor) || factor <= 0) continue;
+        const fecha = String(item.fecha || "").trim();
+        if (!fecha) continue;
+        const consumoOrigen = piezasVendidas / factor;
+        if (!Number.isFinite(consumoOrigen) || consumoOrigen <= 0) continue;
+
+        virtuales.push({
+          origen: "INV",
+          id: `EQ_INV_${item.id}`,
+          codigo: codigoVendido,
+          codigoKey: codigoVendidoKey,
+          descripcion: eq.descripcionDestino || item.descripcion || "",
+          fecha,
+          cantidad: piezasVendidas,
+          virtual: true
+        });
+
+        virtuales.push({
+          origen: "VTA",
+          id: `EQ_VTA_${item.id}`,
+          codigo: String(eq.origen || "").trim(),
+          codigoKey: normalizarCodigo(eq.origen || ""),
+          descripcion: eq.descripcionOrigen || "",
+          fecha,
+          cantidad: consumoOrigen,
+          virtual: true
+        });
+      }
+      return {
+        registros: [...registros, ...virtuales],
+        totalVirtuales: virtuales.length,
+        totalVirtualesInv: virtuales.filter(x => x.origen === "INV").length,
+        totalVirtualesVta: virtuales.filter(x => x.origen === "VTA").length
+      };
     }
 
     async function cargarEquivalentesCatalogo() {
@@ -722,12 +915,11 @@
     async function cargarTodo() {
       try {
         limpiarTabla();
-        setStatus("Consultando inventario inicial, transferencias y ventas...");
+        setStatus("Consultando inventario inicial, transferencias y ventas...", "", 18);
 
         const equivalentesCatalogoData = await cargarEquivalentesCatalogo();
-
-        const filtroCodigo = $("filtroCodigo").value.trim().toLowerCase();
-        const filtroDescripcion = $("filtroDescripcion").value.trim().toLowerCase();
+        await cargarEquivalencias(true);
+        setStatus("Catálogo, alias y reglas de equivalencia cargados...", "", 32);
 
         const [inventariosData, transferenciasData, ventasData] = await Promise.all([
           cargarInventarios(),
@@ -735,27 +927,25 @@
           cargarVentas()
         ]);
 
+        const catalogo = new Map();
+        [equivalentesCatalogoData.catalogo, inventariosData.catalogo, transferenciasData.catalogo, ventasData.catalogo].forEach(mapita => {
+          mapita.forEach((descripcion, codigo) => {
+            if (codigo && !catalogo.has(codigo)) catalogo.set(codigo, descripcion || "");
+          });
+        });
+        opcionesCodigos = Array.from(catalogo.entries()).map(([codigo, descripcion]) => ({ codigo, descripcion }));
+        refrescarDatalistsOpciones();
+
         let registros = [
           ...inventariosData.docs,
           ...transferenciasData.docs,
           ...ventasData.docs
         ];
 
-        registros = registros.filter(item => {
-          const codigoVisible = String(item.codigo || "").toLowerCase();
-          const codigoKey = String(item.codigoKey || "").toLowerCase();
-          const descripcion = String(item.descripcion || "").toLowerCase();
+        const empaqueData = aplicarEquivalenciasEmpaque(registros);
+        registros = empaqueData.registros;
 
-          const okCodigo = !filtroCodigo ||
-            codigoVisible.includes(filtroCodigo) ||
-            codigoKey.includes(
-              filtroCodigo.replace(/\D/g, "").replace(/^0+/, "") || filtroCodigo
-            );
-
-          const okDescripcion = !filtroDescripcion || descripcion.includes(filtroDescripcion);
-
-          return okCodigo && okDescripcion;
-        });
+        setStatus("Armando listado físico teórico con equivalencias...", "", 68);
 
         registros.sort((a, b) => {
           const fa = String(a.fecha || "");
@@ -780,18 +970,29 @@
 
         pintarResumen(registros, pivot, {
           totalAliasesCatalogo: equivalentesCatalogoData.totalAliases || 0,
-          totalAliasAplicados: ventasData.totalAliasAplicados || 0
+          totalAliasAplicados: ventasData.totalAliasAplicados || 0,
+          totalReglasFactor: Object.keys(equivalenciasMap).length,
+          totalVirtuales: empaqueData.totalVirtuales || 0
         });
 
         pintarTabla(pivot);
 
         setStatus(
-          `Listo. Inventario: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Ventas: ${ventasData.docs.length} | Códigos: ${pivot.totalCodigos}`,
-          "ok"
+          `Listo. Inventario: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Ventas: ${ventasData.docs.length} | Reglas factor: ${Object.keys(equivalenciasMap).length} | Virtuales: ${empaqueData.totalVirtuales || 0} | Códigos: ${pivot.totalCodigos}`,
+          "ok",
+          100
         );
+
+        const loader = document.getElementById("loader");
+        const tablaWrap = document.getElementById("tablaWrap");
+
+        setTimeout(() => {
+          if (loader) loader.classList.add("hide");
+          if (tablaWrap) tablaWrap.classList.add("show");
+        }, 350);
       } catch (err) {
         console.error(err);
-        setStatus("Error al consultar Firestore: " + err.message, "error");
+        setStatus("Error al consultar Firestore: " + err.message, "error", 100);
       }
     }
 
@@ -905,23 +1106,8 @@
     }
 
     function pintarResumen(registros, pivot, extra = {}) {
-      const totalInvRegs = registros.filter(x => x.origen === "INV").length;
-      const totalTransRegs = registros.filter(x => x.origen === "TRANS").length;
-      const totalVtaRegs = registros.filter(x => x.origen === "VTA").length;
-
-      $("summary").innerHTML = `
-        <div class="pill">Inventario inicial: ${fmtNum(totalInvRegs)}</div>
-        <div class="pill">Transferencias: ${fmtNum(totalTransRegs)}</div>
-        <div class="pill">Ventas: ${fmtNum(totalVtaRegs)}</div>
-        <div class="pill">Alias catálogo: ${fmtNum(extra.totalAliasesCatalogo || 0)}</div>
-        <div class="pill">Ventas por alias: ${fmtNum(extra.totalAliasAplicados || 0)}</div>
-        <div class="pill">Códigos únicos: ${fmtNum(pivot.totalCodigos)}</div>
-        <div class="pill">Inventario base: ${fmtNum(pivot.totalInvGeneralBase)}</div>
-        <div class="pill">Transferencias suma: ${fmtNum(pivot.totalTransGeneral)}</div>
-        <div class="pill">Total entradas: ${fmtNum(pivot.totalInvGeneral)}</div>
-        <div class="pill">Total ventas: ${fmtNum(pivot.totalVtaGeneral)}</div>
-        <div class="pill">Neto: ${fmtNum(pivot.totalNetoGeneral)}</div>
-      `;
+      // Resumen visual desactivado: la pantalla se mantiene limpia.
+      // La información completa queda en la tabla y en el Excel.
     }
 
     function claseColumna(tipo) {
@@ -1168,11 +1354,34 @@
       );
     }
 
-    $("btnCargar").addEventListener("click", cargarTodo);
-    $("btnExportar").addEventListener("click", exportarExcel);
+    const btnAbrirConfig = document.getElementById("btnAbrirConfig");
+    if (btnAbrirConfig) btnAbrirConfig.addEventListener("click", async () => {
+      const panel = document.getElementById("configPanel");
+      if (!panel) return;
+      panel.classList.toggle("show");
+      if (panel.classList.contains("show")) await cargarEquivalencias(false);
+    });
+
+    const btnNuevo = document.getElementById("btnNuevo");
+    if (btnNuevo) btnNuevo.addEventListener("click", limpiarFormularioConfig);
+    const btnGuardar = document.getElementById("btnGuardar");
+    if (btnGuardar) btnGuardar.addEventListener("click", guardarRegla);
+    const btnEliminar = document.getElementById("btnEliminar");
+    if (btnEliminar) btnEliminar.addEventListener("click", eliminarReglaFormulario);
+    const btnRecargarConfig = document.getElementById("btnRecargarConfig");
+    if (btnRecargarConfig) btnRecargarConfig.addEventListener("click", () => cargarEquivalencias(false));
+    const btnAplicarRecargar = document.getElementById("btnAplicarRecargar");
+    if (btnAplicarRecargar) btnAplicarRecargar.addEventListener("click", cargarTodo);
+    const codigoVenta = document.getElementById("codigoVenta");
+    if (codigoVenta) codigoVenta.addEventListener("change", () => cargarDescripcionAutomatica("codigoVenta", "descripcionVenta"));
+    const codigoOrigen = document.getElementById("codigoOrigen");
+    if (codigoOrigen) codigoOrigen.addEventListener("change", () => cargarDescripcionAutomatica("codigoOrigen", "descripcionOrigen"));
+
+    const btnExportar = document.getElementById("btnExportar");
+    if (btnExportar) btnExportar.addEventListener("click", exportarExcel);
 
     window.addEventListener("load", async () => {
-      $("tituloTienda").textContent = getTiendaActual();
+      limpiarFormularioConfig();
       await cargarTodo();
     });
   </script>
