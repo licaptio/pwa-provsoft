@@ -27,6 +27,9 @@
       --trans-head: #dbeafe;
       --trans-cell: #eff6ff;
 
+      --eq-head: #fef3c7;
+      --eq-cell: #fffbeb;
+
       --vta-head: #dcfce7;
       --vta-cell: #ecfdf5;
 
@@ -96,6 +99,8 @@
     td.inv-col { background: var(--inv-cell) !important; }
     th.trans-col { background: var(--trans-head); }
     td.trans-col { background: var(--trans-cell); color: #1d4ed8; font-weight: bold; }
+    th.eq-col { background: var(--eq-head); }
+    td.eq-col { background: var(--eq-cell); color: #92400e; font-weight: bold; }
     th.vta-col { background: var(--vta-head); }
     td.vta-col { background: var(--vta-cell); color: #166534; font-weight: bold; }
     th.total-col, td.total-col { background: #f8fafc; font-weight: bold; }
@@ -167,7 +172,7 @@
           <div>
             <h1 class="brand-title">PROVEEDORA DE DULCES Y DESECHABLES SUC CENTRAL</h1>
             <p class="brand-subtitle">LISTADO INVENTARIO FÍSICO TEÓRICO</p>
-            <p class="brand-note">Inventario inicial + transferencias - ventas</p>
+            <p class="brand-note">Inventario inicial + equivalencias + transferencias - ventas</p>
           </div>
           <div class="header-actions">
             <button id="btnAbrirConfig" class="btn-config" title="Equivalencias">⚙ Equivalencias</button>
@@ -628,8 +633,8 @@
         if (!Number.isFinite(consumoOrigen) || consumoOrigen <= 0) continue;
 
         virtuales.push({
-          origen: "INV",
-          id: `EQ_INV_${item.id}`,
+          origen: "EQ",
+          id: `EQ_ENT_${item.id}`,
           codigo: codigoVendido,
           codigoKey: codigoVendidoKey,
           descripcion: eq.descripcionDestino || item.descripcion || "",
@@ -652,7 +657,7 @@
       return {
         registros: [...registros, ...virtuales],
         totalVirtuales: virtuales.length,
-        totalVirtualesInv: virtuales.filter(x => x.origen === "INV").length,
+        totalVirtualesInv: virtuales.filter(x => x.origen === "EQ").length,
         totalVirtualesVta: virtuales.filter(x => x.origen === "VTA").length
       };
     }
@@ -952,7 +957,7 @@
           const fb = String(b.fecha || "");
           if (fa !== fb) return fa.localeCompare(fb, "es");
 
-          const ordenOrigen = { INV: 1, TRANS: 2, VTA: 3 };
+          const ordenOrigen = { INV: 1, EQUIV: 2, TRANS: 3, VTA: 4 };
           if (a.origen !== b.origen) {
             return (ordenOrigen[a.origen] || 99) - (ordenOrigen[b.origen] || 99);
           }
@@ -1000,6 +1005,7 @@
       const mapa = new Map();
 
       const totalInvPorFecha = {};
+      const totalEqPorFecha = {};
       const totalTransPorFecha = {};
       const totalVtaPorFecha = {};
 
@@ -1021,9 +1027,11 @@
             codigoKey,
             descripcion: String(item.descripcion || "").trim(),
             invPorFecha: {},
+            eqPorFecha: {},
             transPorFecha: {},
             vtaPorFecha: {},
             totalInvBase: 0,
+            totalEq: 0,
             totalTrans: 0,
             totalVta: 0,
             totalInv: 0,
@@ -1039,6 +1047,11 @@
         if (origen === "INV") {
           row.invPorFecha[fecha] = (row.invPorFecha[fecha] || 0) + cantidad;
           totalInvPorFecha[fecha] = (totalInvPorFecha[fecha] || 0) + cantidad;
+        }
+
+        if (origen === "EQ") {
+          row.eqPorFecha[fecha] = (row.eqPorFecha[fecha] || 0) + cantidad;
+          totalEqPorFecha[fecha] = (totalEqPorFecha[fecha] || 0) + cantidad;
         }
 
         if (origen === "TRANS") {
@@ -1057,24 +1070,28 @@
       const columnas = [];
       for (const fecha of fechas) {
         if (totalInvPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "INV" });
+        if (totalEqPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "EQUIV" });
         if (totalTransPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "TRANS" });
         if (totalVtaPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "VTA" });
       }
 
       let totalInvGeneralBase = 0;
+      let totalEqGeneral = 0;
       let totalTransGeneral = 0;
       let totalVtaGeneral = 0;
       let totalNetoGeneral = 0;
 
       const rows = Array.from(mapa.values()).map(row => {
         row.totalInvBase = Object.values(row.invPorFecha).reduce((a, b) => a + Number(b || 0), 0);
+        row.totalEq = Object.values(row.eqPorFecha).reduce((a, b) => a + Number(b || 0), 0);
         row.totalTrans = Object.values(row.transPorFecha).reduce((a, b) => a + Number(b || 0), 0);
         row.totalVta = Object.values(row.vtaPorFecha).reduce((a, b) => a + Number(b || 0), 0);
 
-        row.totalInv = row.totalInvBase + row.totalTrans;
+        row.totalInv = row.totalInvBase + row.totalEq + row.totalTrans;
         row.neto = row.totalInv - row.totalVta;
 
         totalInvGeneralBase += row.totalInvBase;
+        totalEqGeneral += row.totalEq;
         totalTransGeneral += row.totalTrans;
         totalVtaGeneral += row.totalVta;
         totalNetoGeneral += row.neto;
@@ -1094,11 +1111,13 @@
         columnas,
         rows,
         totalInvPorFecha,
+        totalEqPorFecha,
         totalTransPorFecha,
         totalVtaPorFecha,
         totalInvGeneralBase,
+        totalEqGeneral,
         totalTransGeneral,
-        totalInvGeneral: totalInvGeneralBase + totalTransGeneral,
+        totalInvGeneral: totalInvGeneralBase + totalEqGeneral + totalTransGeneral,
         totalVtaGeneral,
         totalNetoGeneral,
         totalCodigos: rows.length
@@ -1112,6 +1131,7 @@
 
     function claseColumna(tipo) {
       if (tipo === "INV") return "inv-col";
+      if (tipo === "EQUIV") return "eq-col";
       if (tipo === "TRANS") return "trans-col";
       if (tipo === "VTA") return "vta-col";
       return "total-col";
@@ -1122,6 +1142,7 @@
         columnas,
         rows,
         totalInvPorFecha,
+        totalEqPorFecha,
         totalTransPorFecha,
         totalVtaPorFecha,
         totalInvGeneral,
@@ -1159,6 +1180,8 @@
 
           if (col.tipo === "INV") {
             val = row.invPorFecha[col.fecha] || 0;
+          } else if (col.tipo === "EQUIV") {
+            val = row.eqPorFecha[col.fecha] || 0;
           } else if (col.tipo === "TRANS") {
             val = row.transPorFecha[col.fecha] || 0;
           } else {
@@ -1196,6 +1219,8 @@
 
           if (col.tipo === "INV") {
             val = totalInvPorFecha[col.fecha] || 0;
+          } else if (col.tipo === "EQUIV") {
+            val = totalEqPorFecha[col.fecha] || 0;
           } else if (col.tipo === "TRANS") {
             val = totalTransPorFecha[col.fecha] || 0;
           } else {
@@ -1215,6 +1240,7 @@
     function excelCellStyle(tipo, bold = false) {
       const fills = {
         INV: "FFFFFF",
+        EQUIV: "FEF3C7",
         TRANS: "DBEAFE",
         VTA: "DCFCE7",
         NETO: "ECFCCB",
@@ -1250,6 +1276,7 @@
         columnas,
         rows,
         totalInvPorFecha,
+        totalEqPorFecha,
         totalTransPorFecha,
         totalVtaPorFecha,
         totalInvGeneral,
@@ -1274,6 +1301,7 @@
           row.descripcion || "",
           ...columnas.map(col => {
             if (col.tipo === "INV") return row.invPorFecha[col.fecha] || "";
+            if (col.tipo === "EQUIV") return row.eqPorFecha[col.fecha] || "";
             if (col.tipo === "TRANS") return row.transPorFecha[col.fecha] || "";
             return row.vtaPorFecha[col.fecha] || "";
           }),
@@ -1288,6 +1316,7 @@
         "Suma por fecha",
         ...columnas.map(col => {
           if (col.tipo === "INV") return totalInvPorFecha[col.fecha] || 0;
+          if (col.tipo === "EQUIV") return totalEqPorFecha[col.fecha] || 0;
           if (col.tipo === "TRANS") return totalTransPorFecha[col.fecha] || 0;
           return totalVtaPorFecha[col.fecha] || 0;
         }),
