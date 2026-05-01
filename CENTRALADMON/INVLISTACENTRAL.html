@@ -634,19 +634,20 @@
   return "CENTRAL";
 }
 
-    function getRefsPorTienda() {
-      const TIENDA = getTiendaActual();
+function getRefsPorTienda() {
+  const TIENDA = getTiendaActual();
 
-      return {
-        TIENDA,
-        INVENTARIOS_REF: db.collection("TIENDAS").doc(TIENDA).collection("inventario1"),
-        VENTAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("ventas"),
-        TRANSFERENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("SURTIDOTRANS"),
-        AJUSTES_REF: db.collection("TIENDAS").doc(TIENDA).collection("ajustes_inventario"),
-        EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias"),
-        PRODUCTOS_REF: db.collection("productos")
-      };
-    }
+  return {
+    TIENDA,
+    INVENTARIOS_REF: db.collection("TIENDAS").doc(TIENDA).collection("inventario1"),
+    VENTAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("ventas"),
+    TRANSFERENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("TECNOTRANSF"), // ← aquí
+    AJUSTES_REF: db.collection("TIENDAS").doc(TIENDA).collection("ajustes_inventario"),
+    EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias"),
+    PRODUCTOS_REF: db.collection("productos")
+  };
+}
+
 
     function actualizarTitulosTienda() {
       const tienda = getTiendaActual();
