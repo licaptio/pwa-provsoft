@@ -1102,14 +1102,22 @@ async function cargarAjustes() {
       `;
     }
 
-    function limpiarCapturaManual() {
-      $("manualCodigo").value = "";
-      $("manualDescripcion").value = "";
-      $("manualMotivo").value = "";
-      manualSugerencias.style.display = "none";
-      sugerenciasActuales = [];
-      sugerenciaIndex = -1;
-    }
+function limpiarCapturaManual() {
+  const codigo = $("manualCodigo");
+  const descripcion = $("manualDescripcion");
+  const motivo = $("manualMotivo"); // puede no existir
+
+  if (codigo) codigo.value = "";
+  if (descripcion) descripcion.value = "";
+  if (motivo) motivo.value = ""; // solo si existe
+
+  if (manualSugerencias) {
+    manualSugerencias.style.display = "none";
+  }
+
+  sugerenciasActuales = [];
+  sugerenciaIndex = -1;
+}
 
     function agregarManual() {
       const codigo = $("manualCodigo").value.trim();
