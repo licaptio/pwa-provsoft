@@ -51,8 +51,9 @@ body {
   background: #f3f6fb;
   color: var(--texto);
   zoom: 0.68;
+  overflow: hidden;
 }
-
+    
 /* ================= LOADER ================= */
 
 .app-loader {
@@ -225,11 +226,12 @@ body {
 
 .table-wrap {
   overflow: auto;
-  height: calc(100vh - 58px);
+  height: 145vh;
+  max-height: 145vh;
   background: white;
   display: none;
 }
-
+    
 .table-wrap.show {
   display: block;
 }
