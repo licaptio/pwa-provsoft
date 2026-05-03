@@ -1,769 +1,663 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solicitud de Conteo - PROVSOFT</title>
-  <link rel="icon" href="data:,">
+<meta charset="UTF-8">
+<title>PROVSOFT | Solicitud Conteo Diario</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    :root {
-      --azul: #00416A;
-      --azul2: #0c6cbd;
-      --gris: #e5e7eb;
-      --gris2: #f8fafc;
-      --texto: #1f2937;
-      --verde: #166534;
-      --rojo: #991b1b;
-      --shadow: 0 10px 28px rgba(0,0,0,.10);
-      --head: #fee2e2;
-      --cell: #fff7f7;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f3f6fb;
-      color: var(--texto);
-    }
-
-    .app-loader {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      background: linear-gradient(135deg, #ffffff 0%, #fff5f5 45%, #f8fafc 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 22px;
-    }
-    .app-loader.hide { display: none; }
-    .loader-box {
-      width: min(560px, 96vw);
-      background: #fff;
-      border: 1px solid #fee2e2;
-      border-radius: 20px;
-      box-shadow: 0 18px 50px rgba(127, 29, 29, .16);
-      padding: 24px;
-      text-align: center;
-    }
-    .loader-logo { height: 70px; max-width: 180px; object-fit: contain; margin-bottom: 14px; }
-    .loader-title { margin: 0; color: #7f1d1d; font-size: 20px; font-weight: 800; letter-spacing: .3px; }
-    .loader-subtitle { margin: 7px 0 18px; color: #374151; font-size: 14px; font-weight: 700; }
-    .progress-shell { width: 100%; height: 14px; background: #fee2e2; border-radius: 999px; overflow: hidden; border: 1px solid #fecaca; }
-    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #b91c1c, #ef4444); border-radius: 999px; transition: width .25s ease; }
-    .loader-msg { margin: 12px 0 0; color: #4b5563; font-size: 13px; }
-
-    .wrap { max-width: 100%; padding: 0; }
-    .card { background: #fff; min-height: 100vh; overflow: hidden; }
-    .topbar { background: #ffffff; color: #111827; padding: 16px 22px; border-bottom: 4px solid #b91c1c; box-shadow: 0 4px 18px rgba(0,0,0,.08); }
-    .topbar-flex { display: flex; justify-content: space-between; align-items: center; gap: 18px; }
-    .brand-title { margin: 0; font-size: 23px; font-weight: 900; color: #991b1b; letter-spacing: .2px; text-transform: uppercase; }
-    .brand-subtitle { margin: 5px 0 0; color: #1f2937; font-size: 16px; font-weight: 800; text-transform: uppercase; }
-    .brand-note { margin: 4px 0 0; color: #6b7280; font-size: 12px; }
-    .header-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-    .logo-empresa { height: 58px; max-width: 150px; object-fit: contain; }
-
-    button {
-      min-height: 38px;
-      border-radius: 10px;
-      border: none;
-      padding: 9px 14px;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 900;
-      cursor: pointer;
-      box-shadow: 0 6px 14px rgba(153, 27, 27, .14);
-    }
-    button:hover { filter: brightness(.95); }
-    button:disabled { opacity: .55; cursor: not-allowed; filter: grayscale(.2); }
-    .btn-save { background: #991b1b; }
-    .btn-new { background: #0f766e; }
-    .btn-del { background: #b91c1c; }
-    .btn-load { background: #b45309; }
-    .btn-dark { background: #374151; }
-    .btn-light { background: #fff; color: #991b1b; border: 1px solid #fecaca; box-shadow: none; }
-
-    .main { display: none; padding: 16px 22px 22px; background: #f3f6fb; }
-    .main.show { display: block; }
-
-    .config-panel { padding: 16px 18px; background: #fff7f7; border: 1px solid #fecaca; border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 16px; }
-    .config-title { margin: 0 0 10px; color: #7f1d1d; font-size: 16px; font-weight: 900; text-transform: uppercase; }
-    .config-grid { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; align-items: end; }
-    .config-field { display: flex; flex-direction: column; gap: 5px; }
-    .config-field label { font-size: 11px; font-weight: 800; color: #7f1d1d; }
-    .config-field input, .config-field select, .config-field textarea {
-      min-height: 36px;
-      border: 1px solid #fca5a5;
-      border-radius: 9px;
-      padding: 8px 10px;
-      font-size: 13px;
-      background: white;
-      outline: none;
-    }
-    .config-field textarea { min-height: 76px; resize: vertical; }
-    .config-field input:focus, .config-field textarea:focus, .config-field select:focus { border-color: #b91c1c; box-shadow: 0 0 0 3px rgba(185, 28, 28, .10); }
-    .config-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
-    .config-status { margin-top: 10px; font-size: 13px; color: #374151; font-weight: 700; }
-    .config-status.ok { color: var(--verde); }
-    .config-status.error { color: var(--rojo); }
-
-    .work-grid { display: grid; grid-template-columns: 44% 56%; gap: 16px; align-items: start; }
-    .section { background: #fff; border: 1px solid #dbe4f0; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
-    .section-head { padding: 12px 14px; background: #fff; border-bottom: 1px solid #dbe4f0; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-    .section-title { color: #7f1d1d; font-size: 14px; font-weight: 900; text-transform: uppercase; }
-    .section-note { color: #6b7280; font-size: 12px; font-weight: 700; }
-    .section-body { padding: 12px; }
-
-    .search-line { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 10px; }
-    .search-line input { min-height: 42px; border: 1px solid #fca5a5; border-radius: 10px; padding: 10px 12px; font-size: 15px; font-weight: 700; outline: none; }
-    .search-line input:focus { border-color: #b91c1c; box-shadow: 0 0 0 3px rgba(185, 28, 28, .10); }
-
-    .table-wrap { overflow: auto; height: calc(100vh - 360px); background: white; border: 1px solid #dbe4f0; border-radius: 12px; }
-    .table-wrap.selected { height: calc(100vh - 475px); }
-    table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; }
-    thead th { position: sticky; top: 0; z-index: 5; color: #0f172a; background: #fee2e2; }
-    th, td { border: 1px solid #dbe4f0; padding: 8px 10px; white-space: nowrap; text-align: left; vertical-align: middle; }
-    th.num, td.num { text-align: right; }
-    td.desc { white-space: normal; min-width: 280px; font-weight: 800; }
-    td.meta { color: #475569; font-size: 12px; }
-
-    .sticky1 { position: sticky; left: 0; z-index: 4; background: #fff; min-width: 130px; max-width: 130px; }
-    .sticky2 { position: sticky; left: 130px; z-index: 4; background: #fff; min-width: 310px; max-width: 310px; }
-    thead .sticky1, thead .sticky2 { background: #fee2e2; }
-
-    .tag { display: inline-block; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; }
-    .tag.ok { background: #dcfce7; color: #166534; }
-    .tag.off { background: #fee2e2; color: #991b1b; }
-    .tag.info { background: #dbeafe; color: #1d4ed8; }
-
-    .empty { padding: 24px; text-align: center; color: #64748b; font-size: 13px; font-weight: 800; }
-
-    .summary-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .summary-text { color: #374151; font-size: 13px; font-weight: 900; }
-
-    @media (max-width: 1100px) {
-      .work-grid { grid-template-columns: 1fr; }
-      .config-grid { grid-template-columns: 1fr 1fr; }
-      .table-wrap, .table-wrap.selected { height: 420px; }
-    }
-
-    @media (max-width: 700px) {
-      .topbar-flex { align-items: flex-start; flex-direction: column; }
-      .brand-title { font-size: 19px; }
-      .brand-subtitle { font-size: 13px; }
-      .main { padding: 12px; }
-      .config-grid { grid-template-columns: 1fr; }
-      .search-line { grid-template-columns: 1fr; }
-      .sticky2 { min-width: 220px; max-width: 220px; left: 130px; }
-    }
-  </style>
+<style>
+:root{
+  --azul:#00416A;
+  --azul2:#0c6cbd;
+  --rojo:#991b1b;
+  --verde:#166534;
+  --shadow:0 12px 30px rgba(0,0,0,.14);
+}
+*{box-sizing:border-box;font-family:Arial,sans-serif}
+body{margin:0;background:linear-gradient(135deg,var(--azul),#e5e7eb);min-height:100vh;color:#111827}
+.loader{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+.loader.hide{display:none}
+.loader-box{width:min(520px,95vw);text-align:center;border:1px solid #fee2e2;border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+.loader-box h2{margin:0;color:var(--rojo);font-size:18px}
+.loader-box p{font-size:13px;color:#475569}
+.progress-shell{height:12px;background:#fee2e2;border-radius:99px;overflow:hidden}
+.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#991b1b,#ef4444);transition:.2s}
+.app{max-width:1200px;margin:auto;padding:18px}
+.header{background:#fff;border-bottom:4px solid var(--rojo);border-radius:16px;box-shadow:var(--shadow);padding:14px 18px;margin-bottom:14px}
+.header h1{margin:0;color:var(--rojo);font-size:20px;font-weight:900}
+.header p{margin:4px 0 0;color:#475569;font-size:13px;font-weight:700}
+.panel{background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1fr;gap:10px;align-items:end}
+label{font-size:12px;font-weight:900;color:#334155;display:block;margin-bottom:5px}
+input,textarea{width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px;font-size:15px;outline:none;background:#fff}
+input:focus,textarea:focus{border-color:var(--azul2);box-shadow:0 0 0 3px rgba(12,108,189,.12)}
+button{border:none;border-radius:10px;padding:11px 14px;font-weight:900;cursor:pointer;font-size:14px}
+.btn-primary{background:var(--rojo);color:#fff}
+.btn-blue{background:var(--azul2);color:#fff}
+.btn-gray{background:#e5e7eb;color:#111827}
+.btn-green{background:var(--verde);color:#fff}
+.btn-danger{background:#b91c1c;color:#fff}
+.results{position:absolute;background:#fff;border:1px solid #cbd5e1;border-radius:12px;box-shadow:var(--shadow);width:100%;max-height:310px;overflow:auto;z-index:50;display:none}
+.result-item{padding:10px 12px;border-bottom:1px solid #e5e7eb;cursor:pointer}
+.result-item:hover{background:#eff6ff}
+.result-code{font-weight:900;color:var(--azul)}
+.result-desc{font-size:13px;color:#111827}
+.result-meta{font-size:11px;color:#64748b;margin-top:3px}
+.relative{position:relative}
+.table-wrap{overflow:auto;max-height:52vh;border:1px solid #e5e7eb;border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid #e5e7eb;padding:9px;text-align:left;vertical-align:top}
+th{background:#f8fafc;color:#334155;position:sticky;top:0}
+td.num,th.num{text-align:right}
+.empty{text-align:center;color:#64748b;padding:28px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+.badge{display:inline-block;padding:3px 8px;border-radius:99px;background:#e0f2fe;color:#075985;font-size:11px;font-weight:900}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.62);z-index:9998;display:none;align-items:center;justify-content:center;padding:18px}
+.modal.show{display:flex}
+.modal-box{width:min(720px,96vw);background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:18px;max-height:92vh;overflow:auto}
+.modal-box h2{margin:0 0 8px;color:var(--rojo)}
+.modal-box p{color:#475569;font-size:13px}
+.summary{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:10px;margin:10px 0;font-size:13px}
+.checkline{display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:13px;font-weight:800}
+.checkline input{width:auto;margin-top:2px}
+.status{font-size:13px;font-weight:800;margin-top:8px}
+.ok{color:var(--verde)}
+.err{color:#b91c1c}
+@media(max-width:800px){
+  .app{padding:10px}
+  .header h1{font-size:17px}
+}
+</style>
 </head>
 
 <body>
-  <div id="loader" class="app-loader">
-    <div class="loader-box">
-      <img src="logo.jfif" class="loader-logo" alt="Logo empresa" />
-      <h2 class="loader-title">PROVEEDORA DE DULCES Y DESECHABLES</h2>
-      <div class="loader-subtitle">SUC CENTRAL · SOLICITUD DE CONTEO FÍSICO</div>
-      <div class="progress-shell"><div id="loaderBar" class="progress-bar"></div></div>
-      <p id="loaderMsg" class="loader-msg">Preparando catálogo...</p>
-    </div>
+
+<div id="loader" class="loader">
+  <div class="loader-box">
+    <h2>PROVSOFT · SOLICITUD CONTEO DIARIO</h2>
+    <p id="loaderMsg">Iniciando aplicación...</p>
+    <div class="progress-shell"><div id="loaderBar" class="progress-bar"></div></div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <h1>PROVEEDORA DE DULCES Y DESECHABLES CENTRAL</h1>
+    <p>Solicitud de conteo físico · Sin cálculo de inventario · Colección CONTEO_DIARIO · Solicita AUDITORIA PDD</p>
   </div>
 
-  <div class="wrap">
-    <div class="card">
-      <div class="topbar">
-        <div class="topbar-flex">
-          <div>
-            <h1 class="brand-title">PROVEEDORA DE DULCES Y DESECHABLES SUC CENTRAL</h1>
-            <p class="brand-subtitle">SOLICITUD DE CONTEO FÍSICO</p>
-            <p class="brand-note">Selecciona artículos activos del catálogo y genera un documento pendiente para contestar y firmar en otra app.</p>
-          </div>
-          <div class="header-actions">
-            <button id="btnLimpiar" class="btn-light">Nuevo documento</button>
-            <button id="btnRecargarCatalogo" class="btn-load">Recargar catálogo</button>
-            <button id="btnGuardar" class="btn-save">Guardar solicitud</button>
-            <img src="logo.jfif" class="logo-empresa" alt="Logo empresa" />
-          </div>
-        </div>
+  <div class="panel">
+    <div class="grid">
+      <div class="relative">
+        <label>Buscar artículo por código o descripción</label>
+        <input id="buscador" autocomplete="off" placeholder="Ej. BIG COLA 500 / COLA BIG / código">
+        <div id="resultados" class="results"></div>
       </div>
-
-      <main id="main" class="main">
-        <section class="config-panel">
-          <h3 class="config-title">Datos del documento</h3>
-          <div class="config-grid">
-            <div class="config-field">
-              <label>Sucursal</label>
-              <input id="tienda" value="CENTRAL" />
-            </div>
-            <div class="config-field">
-              <label>Creado por</label>
-              <input id="creadoPor" value="GERARDO" />
-            </div>
-            <div class="config-field" style="grid-column: span 2;">
-              <label>Título</label>
-              <input id="titulo" value="Solicitud de conteo físico" />
-            </div>
-            <div class="config-field" style="grid-column: span 2;">
-              <label>Motivo</label>
-              <input id="motivo" value="Auditoría interna" />
-            </div>
-            <div class="config-field" style="grid-column: span 3;">
-              <label>Instrucciones para quien contesta</label>
-              <textarea id="instrucciones" placeholder="Ej. Contar físicamente anaquel, bodega y cajas cerradas. No estimar."></textarea>
-            </div>
-            <div class="config-field" style="grid-column: span 3;">
-              <label>Notas internas / comentario final del documento</label>
-              <textarea id="notasInternas" placeholder="Ej. Revisar productos con diferencia histórica, merma o ubicación dudosa."></textarea>
-            </div>
-          </div>
-          <div id="status" class="config-status">Catálogo listo.</div>
-        </section>
-
-        <div class="work-grid">
-          <section class="section">
-            <div class="section-head">
-              <div>
-                <div class="section-title">Catálogo activo</div>
-                <div class="section-note">Búsqueda flexible: BIG COLA 500 = COLA BIG 500</div>
-              </div>
-              <span id="tagCatalogo" class="tag info">0 productos</span>
-            </div>
-            <div class="section-body">
-              <div class="search-line">
-                <input id="busqueda" autocomplete="off" placeholder="Buscar por código, equivalente, concepto, marca o departamento..." />
-                <button id="btnBuscar" class="btn-load">Buscar</button>
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th class="sticky1">Código</th>
-                      <th class="sticky2">Descripción</th>
-                      <th>Departamento</th>
-                      <th>Marca</th>
-                      <th>Equiv.</th>
-                      <th>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodyCatalogo"></tbody>
-                </table>
-              </div>
-              <div class="summary-bar">
-                <div id="resumenBusqueda" class="summary-text">Escribe para filtrar.</div>
-              </div>
-            </div>
-          </section>
-
-          <section class="section">
-            <div class="section-head">
-              <div>
-                <div class="section-title">Artículos solicitados</div>
-                <div class="section-note">Este documento no calcula inventario; solo crea la solicitud.</div>
-              </div>
-              <span id="tagSeleccionados" class="tag ok">0 seleccionados</span>
-            </div>
-            <div class="section-body">
-              <div class="table-wrap selected">
-                <table>
-                  <thead>
-                    <tr>
-                      <th class="sticky1">Código</th>
-                      <th class="sticky2">Descripción</th>
-                      <th>Departamento</th>
-                      <th>Marca</th>
-                      <th>Unidad</th>
-                      <th>Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody id="tbodySeleccionados"></tbody>
-                </table>
-              </div>
-              <div class="summary-bar">
-                <div id="resumenSeleccion" class="summary-text">Sin artículos seleccionados.</div>
-                <div class="config-actions">
-                  <button id="btnVaciar" class="btn-del">Vaciar lista</button>
-                  <button id="btnGuardarAbajo" class="btn-save">Guardar solicitud</button>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
     </div>
+
+    <div class="actions">
+      <button class="btn-blue" id="btnActualizarListado">Actualizar listado</button>
+      <button class="btn-gray" id="btnLimpiar">Limpiar lista</button>
+    </div>
+
+    <div id="status" class="status"></div>
   </div>
 
-  <script type="module">
-    import { db } from "./config.js";
-    import {
-      collection,
-      doc,
-      getDocs,
-      query,
-      serverTimestamp,
-      setDoc,
-      where
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <div class="panel">
+    <h3>Productos seleccionados <span id="contador" class="badge">0</span></h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Producto</th>
+            <th>Origen</th>
+            <th>Unidad</th>
+            <th>Comentario solicitud</th>
+            <th class="num">Quitar</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="6" class="empty">Sin productos seleccionados.</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-    const $ = (id) => document.getElementById(id);
+    <div class="actions">
+      <button class="btn-primary" id="btnCrear">Crear solicitud</button>
+    </div>
+  </div>
+</div>
 
-    let catalogo = [];
-    let resultadosActuales = [];
-    let seleccionados = [];
+<div id="modalConfirm" class="modal">
+  <div class="modal-box">
+    <h2>Confirmar solicitud</h2>
+    <p>Revisa los productos y escribe instrucciones claras para el conteo.</p>
 
-    const IDB_NOMBRE = "PROVSOFT_SOLICITUD_CONTEO";
-    const IDB_VERSION = 1;
-    const IDB_STORE = "catalogo_productos_activos";
-    const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+    <div id="resumenModal" class="summary"></div>
 
-    function abrirIndexedDB() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open(IDB_NOMBRE, IDB_VERSION);
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-        req.onupgradeneeded = () => {
-          const dbLocal = req.result;
-          if (!dbLocal.objectStoreNames.contains(IDB_STORE)) {
-            dbLocal.createObjectStore(IDB_STORE, { keyPath: "id" });
-          }
-        };
-      });
-    }
+    <label>Notas / instrucciones de conteo</label>
+    <textarea id="notasSolicitud" rows="5" placeholder="Ej. Contar cajas y piezas. Mandar un solo resultado en cajas. Revisar exhibición, bodega y área de mayoreo."></textarea>
 
-    async function guardarCatalogoIndexedDB(items) {
-      const dbLocal = await abrirIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(IDB_STORE, "readwrite");
-        const store = tx.objectStore(IDB_STORE);
-        store.clear();
-        store.put({
-          id: "catalogo_activo",
-          actualizadoEnMs: Date.now(),
-          total: items.length,
-          items
-        });
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => reject(tx.error);
-      });
-    }
+    <label class="checkline">
+      <input type="checkbox" id="chkNotas">
+      Confirmo que las notas/instrucciones ya fueron revisadas.
+    </label>
 
-    async function leerCatalogoIndexedDB() {
-      const dbLocal = await abrirIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = dbLocal.transaction(IDB_STORE, "readonly");
-        const store = tx.objectStore(IDB_STORE);
-        const req = store.get("catalogo_activo");
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
-      });
-    }
+    <label class="checkline">
+      <input type="checkbox" id="chkFinal">
+      Confirmo crear la solicitud de conteo físico.
+    </label>
 
-    function cacheVigente(cache) {
-      if (!cache || !Array.isArray(cache.items) || !cache.items.length) return false;
-      const edad = Date.now() - Number(cache.actualizadoEnMs || 0);
-      return edad >= 0 && edad < CACHE_TTL_MS;
-    }
+    <div id="statusModal" class="status"></div>
 
-    function prepararCatalogo(items) {
-      catalogo = (items || []).map(item => ({
-        ...item,
-        _search: item._search || crearTextoBusqueda(item)
-      }));
-      catalogo.sort((a, b) => String(a.descripcion).localeCompare(String(b.descripcion), "es", { sensitivity: "base" }));
-      resultadosActuales = catalogo.slice(0, 200);
-      pintarCatalogo();
-      actualizarContadores();
-    }
+    <div class="actions">
+      <button class="btn-gray" id="btnCancelarModal">Cancelar</button>
+      <button class="btn-green" id="btnGuardarSolicitud">Confirmar y crear solicitud</button>
+    </div>
+  </div>
+</div>
 
-    function getTiendaActual() {
-      return String($("tienda")?.value || "CENTRAL").trim().toUpperCase() || "CENTRAL";
-    }
+<script type="module">
+import { db } from "./config.js";
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    function getRefs() {
-      const TIENDA = getTiendaActual();
-      return {
-        TIENDA,
-        PRODUCTOS_REF: collection(db, "productos"),
-        SOLICITUDES_REF: collection(db, "TIENDAS", TIENDA, "solicitudes_conteo")
-      };
-    }
+const INVENTARIOS_REF = collection(db, "TIENDAS", "CENTRAL", "inventario1");
+const TRANSFERENCIAS_REF = collection(db, "TIENDAS", "CENTRAL", "TECNOTRANSF");
+const CONTEO_REF = collection(db, "CONTEO_DIARIO");
 
-    function setStatus(msg, type = "", progress = null) {
-      const status = $("status");
-      if (status) {
-        status.textContent = msg;
-        status.className = "config-status " + type;
+const SUCURSAL_FIJA = "CENTRAL";
+const SOLICITADO_POR_FIJO = "AUDITORIA PDD";
+
+const $ = id => document.getElementById(id);
+
+let listado = [];
+let carrito = [];
+
+const DB_NAME = "PROVSOFT_CONTEO_DIARIO";
+const DB_VERSION = 1;
+const STORE_LISTADO = "listado_operativo";
+const CACHE_KEY = "listado_operativo_actualizado_en";
+const CACHE_HORAS = 24;
+
+function setLoader(msg, pct){
+  $("loaderMsg").textContent = msg;
+  $("loaderBar").style.width = Math.max(0, Math.min(100, pct)) + "%";
+}
+
+function setStatus(msg, type=""){
+  $("status").textContent = msg;
+  $("status").className = "status " + type;
+}
+
+function setStatusModal(msg, type=""){
+  $("statusModal").textContent = msg;
+  $("statusModal").className = "status " + type;
+}
+
+function escapeHtml(text){
+  return String(text ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function normalizarTexto(txt){
+  return String(txt ?? "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g," ")
+    .trim();
+}
+
+function listadoVencido(){
+  const ultima = localStorage.getItem(CACHE_KEY);
+  if (!ultima) return true;
+
+  const fecha = new Date(ultima);
+  if (Number.isNaN(fecha.getTime())) return true;
+
+  const horas = (Date.now() - fecha.getTime()) / (1000 * 60 * 60);
+  return horas >= CACHE_HORAS;
+}
+
+function abrirDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+
+    req.onupgradeneeded = e => {
+      const dbi = e.target.result;
+      if (!dbi.objectStoreNames.contains(STORE_LISTADO)) {
+        dbi.createObjectStore(STORE_LISTADO, { keyPath:"codigoBarra" });
       }
-      const loaderMsg = $("loaderMsg");
-      if (loaderMsg) loaderMsg.textContent = msg;
-      if (progress !== null) {
-        const loaderBar = $("loaderBar");
-        if (loaderBar) loaderBar.style.width = Math.max(0, Math.min(100, progress)) + "%";
-      }
-    }
+    };
 
-    function escapeHtml(text) {
-      return String(text ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-    function normalizar(txt) {
-      return String(txt || "")
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-z0-9\s]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-    }
+async function guardarListadoIndexedDB(items){
+  const dbi = await abrirDB();
 
-    function normalizarCodigo(valor) {
-      const s = String(valor ?? "").trim();
-      if (!s) return "";
-      const soloDigitos = s.replace(/\D/g, "");
-      if (!soloDigitos) return s.toLowerCase();
-      return soloDigitos.replace(/^0+/, "") || "0";
-    }
+  return new Promise((resolve,reject)=>{
+    const tx = dbi.transaction(STORE_LISTADO, "readwrite");
+    const store = tx.objectStore(STORE_LISTADO);
 
-    function tokensBusqueda(valor) {
-      return normalizar(valor).split(" ").filter(Boolean);
-    }
+    store.clear();
+    items.forEach(p => store.put(p));
 
-    function crearTextoBusqueda(p) {
-      return normalizar([
-        p.codigo,
-        normalizarCodigo(p.codigo),
-        p.descripcion,
-        p.departamento,
-        p.marca,
-        p.unidad,
-        ...(p.equivalentes || []),
-        ...(p.equivalentes || []).map(normalizarCodigo)
-      ].join(" "));
-    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 
-    function productoCoincide(p, busqueda) {
-      const tokens = tokensBusqueda(busqueda);
-      if (!tokens.length) return true;
-      const base = p._search || crearTextoBusqueda(p);
-      return tokens.every(token => base.includes(token));
-    }
+async function leerListadoIndexedDB(){
+  const dbi = await abrirDB();
 
-    function productoDesdeDoc(doc) {
-      const p = doc.data() || {};
-      const codigo = String(p.codigoBarra ?? p.codigo ?? p.Codigo ?? doc.id ?? "").trim();
-      const equivalentes = Array.isArray(p.codigosEquivalentes)
-        ? p.codigosEquivalentes.map(x => String(x || "").trim()).filter(Boolean)
+  return new Promise((resolve,reject)=>{
+    const tx = dbi.transaction(STORE_LISTADO, "readonly");
+    const store = tx.objectStore(STORE_LISTADO);
+    const req = store.getAll();
+
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function crearArticuloBase({ codigoBarra, concepto, origenCatalogo }){
+  const codigo = String(codigoBarra || "").trim();
+  const desc = String(concepto || "").trim();
+
+  if (!codigo || codigo.length < 3 || !desc) return null;
+
+  return {
+    codigoBarra: codigo,
+    concepto: desc,
+    origenCatalogo: origenCatalogo || "LISTADO",
+    unidadMedidaSat: "H87",
+    searchText: normalizarTexto(`${codigo} ${desc}`)
+  };
+}
+
+async function descargarListadoOperativo(){
+  setLoader("Leyendo inventarios y entradas reales...", 20);
+
+  const mapa = new Map();
+
+  const foliosSnap = await getDocs(INVENTARIOS_REF);
+  let i = 0;
+
+  for (const folioDoc of foliosSnap.docs) {
+    const itemsRef = collection(db, "TIENDAS", "CENTRAL", "inventario1", folioDoc.id, "items");
+    const itemsSnap = await getDocs(itemsRef);
+
+    itemsSnap.forEach(itemDoc => {
+      const data = itemDoc.data() || {};
+
+      const articulo = crearArticuloBase({
+        codigoBarra: data.codigo || data.Codigo || data.codigoBarra || itemDoc.id || "",
+        concepto: data.descripcion || data.Descripcion || data.concepto || "",
+        origenCatalogo: "INVENTARIO"
+      });
+
+      if (!articulo) return;
+      mapa.set(articulo.codigoBarra, articulo);
+    });
+
+    i++;
+    if (i % 5 === 0) {
+      const pct = 20 + Math.min(35, Math.round((i / Math.max(foliosSnap.size,1)) * 35));
+      setLoader(`Leyendo inventarios... ${i}/${foliosSnap.size}`, pct);
+    }
+  }
+
+  setLoader("Leyendo entradas / transferencias...", 60);
+
+  const transSnap = await getDocs(TRANSFERENCIAS_REF);
+  let t = 0;
+
+  transSnap.forEach(docSnap => {
+    const data = docSnap.data() || {};
+
+    const detalle = Array.isArray(data.items)
+      ? data.items
+      : Array.isArray(data.detalle)
+        ? data.detalle
         : [];
 
-      const item = {
-        id: doc.id,
-        codigo,
-        codigoKey: normalizarCodigo(codigo),
-        descripcion: String(p.concepto ?? p.descripcion ?? p.Descripcion ?? "").trim(),
-        departamento: String(p.departamento ?? "").trim(),
-        departamento_id: String(p.departamento_id ?? "").trim(),
-        marca: String(p.marca ?? "").trim(),
-        unidad: String(p.unidadMedidaSat ?? "H87").trim() || "H87",
-        cantidadPorCaja: Number(p.cantidadPorCaja ?? 1) || 1,
-        equivalentes,
-        activo: p.activo === true
-      };
-
-      item._search = crearTextoBusqueda(item);
-      return item;
-    }
-
-    async function descargarCatalogoFirebase() {
-      const { PRODUCTOS_REF } = getRefs();
-      const consulta = query(PRODUCTOS_REF, where("activo", "==", true));
-      const snap = await getDocs(consulta);
-      const items = [];
-
-      snap.forEach(documento => {
-        const item = productoDesdeDoc(documento);
-        if (item.codigo && item.descripcion) items.push(item);
+    detalle.forEach(item => {
+      const articulo = crearArticuloBase({
+        codigoBarra: item.codigo || item.codigoBarra || "",
+        concepto: item.nombre || item.descripcion || item.Descripcion || item.concepto || "",
+        origenCatalogo: "ENTRADA"
       });
 
-      await guardarCatalogoIndexedDB(items);
-      return items;
-    }
+      if (!articulo) return;
 
-    async function cargarCatalogo() {
-      setStatus("Revisando catálogo local...", "", 15);
-
-      try {
-        const cache = await leerCatalogoIndexedDB();
-        if (cacheVigente(cache)) {
-          prepararCatalogo(cache.items);
-          setStatus(`Catálogo activo cargado desde IndexedDB: ${catalogo.length} productos.`, "ok", 100);
-          setTimeout(() => {
-            $("loader")?.classList.add("hide");
-            $("main")?.classList.add("show");
-            $("busqueda")?.focus();
-          }, 350);
-          return;
-        }
-      } catch (err) {
-        console.warn("No se pudo leer IndexedDB:", err);
+      if (!mapa.has(articulo.codigoBarra)) {
+        mapa.set(articulo.codigoBarra, articulo);
       }
+    });
 
-      setStatus("Descargando catálogo activo desde Firebase...", "", 45);
-      const items = await descargarCatalogoFirebase();
-      prepararCatalogo(items);
-      setStatus(`Catálogo activo descargado y guardado localmente: ${catalogo.length} productos.`, "ok", 100);
-      setTimeout(() => {
-        $("loader")?.classList.add("hide");
-        $("main")?.classList.add("show");
-        $("busqueda")?.focus();
-      }, 350);
+    t++;
+    if (t % 50 === 0) {
+      setLoader(`Leyendo entradas... ${t}/${transSnap.size}`, 70);
+    }
+  });
+
+  const items = Array.from(mapa.values())
+    .sort((a, b) => a.concepto.localeCompare(b.concepto, "es", { sensitivity: "base" }));
+
+  setLoader("Guardando listado operativo local...", 86);
+  await guardarListadoIndexedDB(items);
+  localStorage.setItem(CACHE_KEY, new Date().toISOString());
+
+  return items;
+}
+
+async function cargarListado(forzar=false){
+  setLoader("Revisando listado operativo local...", 8);
+
+  const local = await leerListadoIndexedDB();
+  const vencido = listadoVencido();
+
+  if (!forzar && local.length && !vencido) {
+    listado = local;
+    setLoader(`Listado local vigente: ${local.length} artículos`, 95);
+    return;
+  }
+
+  if (!forzar && local.length && vencido) {
+    setLoader("Listado vencido. Actualizando automáticamente...", 15);
+  }
+
+  listado = await descargarListadoOperativo();
+}
+
+function buscarProductos(q){
+  const texto = normalizarTexto(q);
+  if (!texto) return [];
+
+  const partes = texto.split(" ").filter(Boolean);
+
+  return listado
+    .filter(p => partes.every(x => p.searchText.includes(x)))
+    .slice(0, 60);
+}
+
+function pintarResultados(items){
+  const box = $("resultados");
+  box.innerHTML = "";
+
+  if (!items.length) {
+    box.style.display = "none";
+    return;
+  }
+
+  items.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "result-item";
+    div.innerHTML = `
+      <div class="result-code">${escapeHtml(p.codigoBarra)}</div>
+      <div class="result-desc">${escapeHtml(p.concepto)}</div>
+      <div class="result-meta">Origen: ${escapeHtml(p.origenCatalogo || "LISTADO")}</div>
+    `;
+    div.onclick = () => agregarProducto(p);
+    box.appendChild(div);
+  });
+
+  box.style.display = "block";
+}
+
+function agregarProducto(p){
+  if (carrito.some(x => x.codigoBarra === p.codigoBarra)) {
+    setStatus("Ese producto ya está en la solicitud.", "err");
+    $("resultados").style.display = "none";
+    $("buscador").value = "";
+    return;
+  }
+
+  carrito.push({
+    codigoBarra: p.codigoBarra,
+    concepto: p.concepto,
+    origenCatalogo: p.origenCatalogo || "LISTADO",
+    unidadMedidaSat: p.unidadMedidaSat || "H87",
+    comentarioSolicitud: ""
+  });
+
+  $("buscador").value = "";
+  $("resultados").style.display = "none";
+  pintarCarrito();
+  setStatus("Producto agregado.", "ok");
+}
+
+function pintarCarrito(){
+  const body = $("tbody");
+  $("contador").textContent = carrito.length;
+
+  if (!carrito.length) {
+    body.innerHTML = `<tr><td colspan="6" class="empty">Sin productos seleccionados.</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = carrito.map((p, idx) => `
+    <tr>
+      <td><b>${escapeHtml(p.codigoBarra)}</b></td>
+      <td>${escapeHtml(p.concepto)}</td>
+      <td>${escapeHtml(p.origenCatalogo || "")}</td>
+      <td>${escapeHtml(p.unidadMedidaSat || "H87")}</td>
+      <td>
+        <input value="${escapeHtml(p.comentarioSolicitud || "")}"
+          data-idx="${idx}"
+          class="comentarioProducto"
+          placeholder="Comentario opcional del producto">
+      </td>
+      <td class="num">
+        <button class="btn-danger btnQuitar" data-idx="${idx}">X</button>
+      </td>
+    </tr>
+  `).join("");
+
+  document.querySelectorAll(".comentarioProducto").forEach(input => {
+    input.addEventListener("input", e => {
+      const idx = Number(e.target.dataset.idx);
+      if (carrito[idx]) carrito[idx].comentarioSolicitud = e.target.value;
+    });
+  });
+
+  document.querySelectorAll(".btnQuitar").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const idx = Number(e.target.dataset.idx);
+      carrito.splice(idx, 1);
+      pintarCarrito();
+    });
+  });
+}
+
+function abrirModalConfirmacion(){
+  if (!carrito.length) {
+    setStatus("Agrega al menos un producto.", "err");
+    return;
+  }
+
+  $("resumenModal").innerHTML = `
+    <b>Productos seleccionados:</b> ${carrito.length}<br>
+    <b>Sucursal:</b> ${SUCURSAL_FIJA}<br>
+    <b>Solicita:</b> ${SOLICITADO_POR_FIJO}
+  `;
+
+  $("chkNotas").checked = false;
+  $("chkFinal").checked = false;
+  $("notasSolicitud").value = "";
+  setStatusModal("");
+  $("modalConfirm").classList.add("show");
+}
+
+function cerrarModal(){
+  $("modalConfirm").classList.remove("show");
+}
+
+function generarFolio(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,"0");
+  return `CD-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+async function guardarSolicitud(){
+  try {
+    const notas = $("notasSolicitud").value.trim();
+
+    if (!$("chkNotas").checked) {
+      setStatusModal("Falta confirmar las notas.", "err");
+      return;
     }
 
-    async function recargarCatalogoForzado() {
-      try {
-        setStatus("Forzando descarga de catálogo activo...", "", 35);
-        const items = await descargarCatalogoFirebase();
-        prepararCatalogo(items);
-        buscar();
-        setStatus(`Catálogo actualizado desde Firebase y guardado en IndexedDB: ${catalogo.length} productos.`, "ok", 100);
-      } catch (err) {
-        console.error(err);
-        setStatus("Error al recargar catálogo: " + err.message, "error", 100);
-      }
+    if (!$("chkFinal").checked) {
+      setStatusModal("Falta confirmación final.", "err");
+      return;
     }
 
-    function buscar() {
-      const q = String($("busqueda")?.value || "").trim();
-      const filtrados = catalogo.filter(p => productoCoincide(p, q));
-      resultadosActuales = filtrados.slice(0, 300);
-      pintarCatalogo();
-      $("resumenBusqueda").textContent = q
-        ? `Coincidencias: ${filtrados.length}. Mostrando ${resultadosActuales.length}.`
-        : `Mostrando primeros ${resultadosActuales.length} productos activos.`;
-    }
+    const folio = generarFolio();
+    const ahoraLocal = new Date();
 
-    function estaSeleccionado(codigoKey) {
-      return seleccionados.some(x => x.codigoKey === codigoKey);
-    }
+    const payload = {
+      folio,
+      estatus: "PENDIENTE",
 
-    function pintarCatalogo() {
-      const body = $("tbodyCatalogo");
-      body.innerHTML = "";
+      sucursal: SUCURSAL_FIJA,
+      solicitadoPor: SOLICITADO_POR_FIJO,
 
-      if (!resultadosActuales.length) {
-        body.innerHTML = `<tr><td colspan="6"><div class="empty">Sin resultados.</div></td></tr>`;
-        return;
-      }
+      fechaSolicitud: serverTimestamp(),
+      fechaSolicitudLocalISO: ahoraLocal.toISOString(),
 
-      const frag = document.createDocumentFragment();
-      resultadosActuales.forEach(p => {
-        const tr = document.createElement("tr");
-        const disabled = estaSeleccionado(p.codigoKey);
-        tr.innerHTML = `
-          <td class="sticky1"><b>${escapeHtml(p.codigo)}</b></td>
-          <td class="sticky2 desc">${escapeHtml(p.descripcion)}</td>
-          <td class="meta">${escapeHtml(p.departamento)}</td>
-          <td class="meta">${escapeHtml(p.marca)}</td>
-          <td class="num"><span class="tag info">${p.equivalentes.length}</span></td>
-          <td><button class="${disabled ? "btn-dark" : "btn-new"}" ${disabled ? "disabled" : ""} onclick="agregarProducto('${escapeHtml(p.codigoKey)}')">${disabled ? "Agregado" : "Agregar"}</button></td>
-        `;
-        frag.appendChild(tr);
-      });
-      body.appendChild(frag);
-    }
+      fechaContestacion: null,
+      fechaContestacionLocalISO: null,
+      duracionRespuestaMinutos: null,
 
-    window.agregarProducto = function(codigoKey) {
-      const p = catalogo.find(x => x.codigoKey === codigoKey);
-      if (!p || estaSeleccionado(codigoKey)) return;
-      seleccionados.push({
-        codigo: p.codigo,
-        codigoKey: p.codigoKey,
-        descripcion: p.descripcion,
-        departamento: p.departamento,
-        departamento_id: p.departamento_id,
-        marca: p.marca,
-        unidad: p.unidad,
-        cantidadPorCaja: p.cantidadPorCaja,
-        equivalentes: p.equivalentes
-      });
-      pintarSeleccionados();
-      pintarCatalogo();
-      actualizarContadores();
-      setStatus(`Artículo agregado: ${p.codigo} · ${p.descripcion}`, "ok");
+      notasSolicitud: notas,
+      confirmacionNotas: true,
+      confirmacionFinal: true,
+
+      totalProductos: carrito.length,
+
+      productos: carrito.map((p, idx) => ({
+        orden: idx + 1,
+        codigoBarra: p.codigoBarra,
+        concepto: p.concepto,
+        origenCatalogo: p.origenCatalogo || "LISTADO",
+        unidadMedidaSat: p.unidadMedidaSat || "H87",
+        comentarioSolicitud: p.comentarioSolicitud || "",
+
+        cantidadContestada: null,
+        comentarioRespuesta: "",
+        contestado: false
+      })),
+
+      respuesta: {
+        contestadoPor: "",
+        productos: []
+      },
+
+      creadoEn: serverTimestamp(),
+      actualizadoEn: serverTimestamp()
     };
 
-    window.quitarProducto = function(codigoKey) {
-      seleccionados = seleccionados.filter(x => x.codigoKey !== codigoKey);
-      pintarSeleccionados();
-      pintarCatalogo();
-      actualizarContadores();
-      setStatus("Artículo retirado de la solicitud.", "ok");
-    };
+    setStatusModal("Guardando solicitud...", "");
+    await setDoc(doc(CONTEO_REF, folio), payload);
 
-    function pintarSeleccionados() {
-      const body = $("tbodySeleccionados");
-      body.innerHTML = "";
+    carrito = [];
+    pintarCarrito();
+    cerrarModal();
 
-      if (!seleccionados.length) {
-        body.innerHTML = `<tr><td colspan="6"><div class="empty">No hay artículos seleccionados.</div></td></tr>`;
-        return;
-      }
+    setStatus(`Solicitud creada: ${folio}`, "ok");
+    alert(`Solicitud creada correctamente:\n${folio}`);
 
-      const frag = document.createDocumentFragment();
-      seleccionados.forEach(p => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td class="sticky1"><b>${escapeHtml(p.codigo)}</b></td>
-          <td class="sticky2 desc">${escapeHtml(p.descripcion)}</td>
-          <td class="meta">${escapeHtml(p.departamento)}</td>
-          <td class="meta">${escapeHtml(p.marca)}</td>
-          <td>${escapeHtml(p.unidad)}</td>
-          <td><button class="btn-del" onclick="quitarProducto('${escapeHtml(p.codigoKey)}')">Quitar</button></td>
-        `;
-        frag.appendChild(tr);
-      });
-      body.appendChild(frag);
-    }
+  } catch (err) {
+    console.error(err);
+    setStatusModal("Error al guardar: " + err.message, "err");
+  }
+}
 
-    function actualizarContadores() {
-      $("tagCatalogo").textContent = `${catalogo.length} productos`;
-      $("tagSeleccionados").textContent = `${seleccionados.length} seleccionados`;
-      $("resumenSeleccion").textContent = seleccionados.length
-        ? `Solicitud lista con ${seleccionados.length} artículos.`
-        : "Sin artículos seleccionados.";
-    }
+$("buscador").addEventListener("input", e => {
+  pintarResultados(buscarProductos(e.target.value));
+});
 
-    function generarFolio(tienda) {
-      const d = new Date();
-      const pad = n => String(n).padStart(2, "0");
-      const yyyy = d.getFullYear();
-      const mm = pad(d.getMonth() + 1);
-      const dd = pad(d.getDate());
-      const hh = pad(d.getHours());
-      const mi = pad(d.getMinutes());
-      const ss = pad(d.getSeconds());
-      return `SOL-CONTEO-${tienda}-${yyyy}${mm}${dd}-${hh}${mi}${ss}`;
-    }
+$("buscador").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const items = buscarProductos($("buscador").value);
+    if (items.length === 1) agregarProducto(items[0]);
+    else if (items.length > 1) pintarResultados(items);
+  }
+});
 
-    function validarSolicitud() {
-      const tienda = getTiendaActual();
-      const creadoPor = String($("creadoPor")?.value || "").trim();
-      const titulo = String($("titulo")?.value || "").trim();
-      const motivo = String($("motivo")?.value || "").trim();
-      const instrucciones = String($("instrucciones")?.value || "").trim();
-      const notasInternas = String($("notasInternas")?.value || "").trim();
+document.addEventListener("click", e => {
+  if (!$("resultados").contains(e.target) && e.target !== $("buscador")) {
+    $("resultados").style.display = "none";
+  }
+});
 
-      if (!tienda) throw new Error("Falta sucursal.");
-      if (!creadoPor) throw new Error("Falta creado por.");
-      if (!titulo) throw new Error("Falta título.");
-      if (!seleccionados.length) throw new Error("Agrega al menos un artículo.");
+$("btnActualizarListado").onclick = async () => {
+  try {
+    $("loader").classList.remove("hide");
 
-      return { tienda, creadoPor, titulo, motivo, instrucciones, notasInternas };
-    }
+    await cargarListado(true);
 
-    async function guardarSolicitud() {
-      try {
-        const base = validarSolicitud();
-        const { SOLICITUDES_REF } = getRefs();
-        const folio = generarFolio(base.tienda);
+    setLoader("Listo.", 100);
 
-        const payload = {
-          tipo: "SOLICITUD_CONTEO",
-          estado: "PENDIENTE",
-          respondido: false,
-          firmaRequerida: true,
-          folio,
-          tienda: base.tienda,
-          creadoPor: base.creadoPor,
-          creadoEn: serverTimestamp(),
-          actualizadoEn: serverTimestamp(),
-          titulo: base.titulo,
-          motivo: base.motivo,
-          instrucciones: base.instrucciones,
-          notasInternas: base.notasInternas,
-          totalProductos: seleccionados.length,
-          productos: seleccionados.map((p, index) => ({
-            orden: index + 1,
-            codigo: p.codigo,
-            codigoKey: p.codigoKey,
-            descripcion: p.descripcion,
-            departamento: p.departamento,
-            departamento_id: p.departamento_id,
-            marca: p.marca,
-            unidad: p.unidad,
-            cantidadPorCaja: p.cantidadPorCaja,
-            equivalentes: p.equivalentes || []
-          })),
-          respuesta: null,
-          respondidoPor: "",
-          respondidoEn: null
-        };
+    setTimeout(() => {
+      $("loader").classList.add("hide");
+    }, 300);
 
-        setStatus("Guardando solicitud de conteo...", "");
-        await setDoc(doc(SOLICITUDES_REF, folio), payload);
-        setStatus(`Solicitud guardada: ${folio}`, "ok");
-        alert(`Solicitud guardada correctamente:\n${folio}`);
-      } catch (err) {
-        console.error(err);
-        setStatus("Error: " + err.message, "error");
-        alert("Error: " + err.message);
-      }
-    }
+    const ultima = localStorage.getItem(CACHE_KEY);
+    setStatus(`Listado disponible: ${listado.length} artículos. Última actualización: ${ultima || "sin registro"}`, "ok");
 
-    function limpiarDocumento() {
-      if (seleccionados.length && !confirm("¿Vaciar la solicitud actual?")) return;
-      seleccionados = [];
-      $("titulo").value = "Solicitud de conteo físico";
-      $("motivo").value = "Auditoría interna";
-      $("instrucciones").value = "";
-      $("notasInternas").value = "";
-      pintarSeleccionados();
-      pintarCatalogo();
-      actualizarContadores();
-      setStatus("Documento limpio.", "ok");
-    }
+  } catch (err) {
+    console.error(err);
+    setStatus("Error actualizando listado: " + err.message, "err");
+    $("loader").classList.add("hide");
+  }
+};
 
-    function vaciarSeleccion() {
-      if (!seleccionados.length) return;
-      if (!confirm("¿Quitar todos los artículos seleccionados?")) return;
-      seleccionados = [];
-      pintarSeleccionados();
-      pintarCatalogo();
-      actualizarContadores();
-      setStatus("Lista vaciada.", "ok");
-    }
+$("btnLimpiar").onclick = () => {
+  if (!carrito.length) return;
+  if (!confirm("¿Limpiar productos seleccionados?")) return;
+  carrito = [];
+  pintarCarrito();
+};
 
-    let timerBusqueda = null;
-    $("busqueda").addEventListener("input", () => {
-      clearTimeout(timerBusqueda);
-      timerBusqueda = setTimeout(buscar, 120);
-    });
-    $("busqueda").addEventListener("keydown", e => {
-      if (e.key === "Enter") buscar();
-    });
-    $("btnBuscar").addEventListener("click", buscar);
-    $("btnRecargarCatalogo").addEventListener("click", recargarCatalogoForzado);
-    $("btnGuardar").addEventListener("click", guardarSolicitud);
-    $("btnGuardarAbajo").addEventListener("click", guardarSolicitud);
-    $("btnLimpiar").addEventListener("click", limpiarDocumento);
-    $("btnVaciar").addEventListener("click", vaciarSeleccion);
+$("btnCrear").onclick = abrirModalConfirmacion;
+$("btnCancelarModal").onclick = cerrarModal;
+$("btnGuardarSolicitud").onclick = guardarSolicitud;
 
-    window.addEventListener("load", async () => {
-      try {
-        pintarSeleccionados();
-        await cargarCatalogo();
-      } catch (err) {
-        console.error(err);
-        setStatus("Error al cargar catálogo: " + err.message, "error", 100);
-      }
-    });
-  </script>
+window.addEventListener("load", async () => {
+  try {
+    await cargarListado(false);
+
+    setLoader("Aplicación lista.", 100);
+
+    setTimeout(() => {
+      $("loader").classList.add("hide");
+    }, 350);
+
+    const ultima = localStorage.getItem(CACHE_KEY);
+    setStatus(`Listado disponible: ${listado.length} artículos. Última actualización: ${ultima || "sin registro"}`, "ok");
+
+  } catch (err) {
+    console.error(err);
+    setLoader("Error al cargar listado.", 100);
+    setStatus("Error: " + err.message, "err");
+  }
+});
+</script>
+
 </body>
 </html>
