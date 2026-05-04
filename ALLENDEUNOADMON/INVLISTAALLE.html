@@ -435,6 +435,15 @@
         font-size: 20px;
       }
     }
+    @keyframes parpadeoAjuste {
+  0% { background-color: #ede9fe; }
+  50% { background-color: #c4b5fd; }
+  100% { background-color: #ede9fe; }
+}
+
+.fila-ajustada td {
+  animation: parpadeoAjuste 1.2s infinite;
+}
   </style>
 </head>
 <body>
@@ -923,6 +932,9 @@ function construirMapaEquivalencias(items = []) {
       equivalenciasActuales.forEach(item => {
         const tr = document.createElement("tr");
 
+if (row.ultimoAjusteCantidad !== null) {
+  tr.classList.add("fila-ajustada");
+}
         tr.innerHTML = `
           <td class="left">${escapeHtml(item.codigoVenta || "")}</td>
           <td class="left">${escapeHtml(item.descripcionVenta || "")}</td>
