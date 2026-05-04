@@ -1175,7 +1175,8 @@ function construirMapaEquivalencias(items = []) {
             codigoKey: normalizarCodigo(codigoOriginal),
             descripcion,
             fecha,
-            cantidad
+  fechaMs: normalizarFechaMs(data.fecha ?? data.Fecha),
+  cantidad
           });
 
           if (codigoOriginal && !catalogo.has(codigoOriginal)) {
@@ -1211,6 +1212,7 @@ function construirMapaEquivalencias(items = []) {
           codigoKey: resuelto.codigoKey,
           descripcion: resuelto.descripcion,
           fecha: obtenerFechaVenta(data),
+           fechaMs: normalizarFechaMs(data.fecha ?? data.Fecha),  
           cantidad: obtenerCantidadVenta(data),
           aliasAplicado: resuelto.fueAlias,
           codigoVendidoOriginal: resuelto.codigoVendidoOriginal
@@ -1325,6 +1327,11 @@ function construirMapaEquivalencias(items = []) {
             codigoKey: normalizarCodigo(codigoOriginal),
             descripcion,
             fecha,
+              fechaMs: normalizarFechaMs(
+    data.fecha_guardado_server ||
+    data.fecha_guardado ||
+    data.fecha_surtido_completo
+  ),
             cantidad
           });
 
@@ -1611,7 +1618,16 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
           totalVtaPorFecha[fecha] = (totalVtaPorFecha[fecha] || 0) + cantidad;
         }
       }
+const fechasMsMap = {};
 
+for (const item of registros) {
+  if (item.fecha && item.fechaMs) {
+    fechasMsMap[item.fecha] = Math.max(
+      fechasMsMap[item.fecha] || 0,
+      item.fechaMs
+    );
+  }
+}
       const fechas = Array.from(fechasConMovimiento).sort();
 
       const columnas = [];
@@ -1638,25 +1654,30 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
           ? row.ajustesEventos[row.ajustesEventos.length - 1]
           : null;
 
-        const desdeFecha = ultimo ? ultimo.fecha : "";
+      
+const sumarDesde = (obj, fechasMsMap) =>
+  Object.entries(obj || {}).reduce((acc, [fecha, val]) => {
+    const fechaMsItem = fechasMsMap[fecha] || 0;
 
-        const sumarDesde = (obj) => Object.entries(obj || {}).reduce((acc, [fecha, val]) => {
-          if (!desdeFecha || fecha >= desdeFecha) return acc + Number(val || 0);
-          return acc;
-        }, 0);
+    if (!ultimo || fechaMsItem >= (ultimo.fechaMs || 0)) {
+      return acc + Number(val || 0);
+    }
+
+    return acc;
+  }, 0);
 
         if (ultimo) {
           row.ultimoAjusteFecha = ultimo.fecha;
           row.ultimoAjusteCantidad = Number(ultimo.cantidad || 0);
-          row.totalInvBase = row.ultimoAjusteCantidad + sumarDesde(row.invPorFecha);
-          row.totalTrans = sumarDesde(row.transPorFecha);
-          row.totalVta = sumarDesde(row.vtaPorFecha);
+row.totalInvBase = row.ultimoAjusteCantidad + sumarDesde(row.invPorFecha, fechasMsMap);
+row.totalTrans = sumarDesde(row.transPorFecha, fechasMsMap);
+row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
           row.totalInv = row.totalInvBase + row.totalTrans;
           row.neto = row.totalInv - row.totalVta;
         } else {
-          row.totalInvBase = sumarDesde(row.invPorFecha);
-          row.totalTrans = sumarDesde(row.transPorFecha);
-          row.totalVta = sumarDesde(row.vtaPorFecha);
+row.totalInvBase = sumarDesde(row.invPorFecha, fechasMsMap);
+row.totalTrans = sumarDesde(row.transPorFecha, fechasMsMap);
+row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
           row.totalInv = row.totalInvBase + row.totalTrans;
           row.neto = row.totalInv - row.totalVta;
         }
