@@ -932,9 +932,6 @@ function construirMapaEquivalencias(items = []) {
       equivalenciasActuales.forEach(item => {
         const tr = document.createElement("tr");
 
-if (row.ultimoAjusteCantidad !== null) {
-  tr.classList.add("fila-ajustada");
-}
         tr.innerHTML = `
           <td class="left">${escapeHtml(item.codigoVenta || "")}</td>
           <td class="left">${escapeHtml(item.descripcionVenta || "")}</td>
@@ -1794,8 +1791,12 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
 
       const frag = document.createDocumentFragment();
 
-      for (const row of rows) {
-        const tr = document.createElement("tr");
+ for (const row of rows) {
+  const tr = document.createElement("tr");
+
+  if (row.ultimoAjusteCantidad !== null) {
+    tr.classList.add("fila-ajustada");
+  }
 
         let html = `
           <td class="left sticky1">${escapeHtml(row.codigo)}</td>
