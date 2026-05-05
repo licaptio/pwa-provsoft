@@ -23,15 +23,10 @@ input,textarea{padding:10px;width:100%;border:1px solid #ccc;border-radius:6px;b
 .result-item{padding:8px;cursor:pointer}
 .result-item:hover{background:#f1f5f9}
 .loader{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999}
-.hide{display:none}
-.modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.45);
-  display:flex;align-items:center;justify-content:center;z-index:1000
-}
-.modal-box{
-  background:white;padding:25px;border-radius:12px;width:90%;max-width:650px;
-  box-shadow:0 12px 30px #0003
-}
+.hide{display:none!important}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal.hide{display:none!important}
+.modal-box{background:white;padding:25px;border-radius:12px;width:90%;max-width:650px;box-shadow:0 12px 30px #0003}
 .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head>
@@ -40,43 +35,40 @@ input,textarea{padding:10px;width:100%;border:1px solid #ccc;border-radius:6px;b
 
 <div id="loader" class="loader">
   <h3>PROVSOFT · Cargando listado...</h3>
-  <div id="loaderBar" style="height:10px;background:#dc2626;width:0%"></div>
 </div>
 
 <div class="app">
-
-<div class="header">
-  <b>PROVEEDORA DE DULCES Y DESECHABLES CENTRAL</b><br>
-  Solicita: AUDITORIA PDD
-</div>
-
-<div class="panel" style="position:relative">
-  <input id="buscador" placeholder="Buscar producto">
-  <div id="resultados" class="results"></div>
-
-  <div class="actions">
-    <button class="btn-blue" id="btnActualizar">Actualizar listado</button>
-    <button class="btn-green" id="btnSugeridos">Cargar sugeridos</button>
-    <button class="btn-gray" id="btnLimpiar">Limpiar</button>
-    <button class="btn-red" id="btnCrear">Crear solicitud</button>
+  <div class="header">
+    <b>PROVEEDORA DE DULCES Y DESECHABLES CENTRAL</b><br>
+    Solicita: AUDITORIA PDD
   </div>
 
-  <div id="status"></div>
-</div>
+  <div class="panel" style="position:relative">
+    <input id="buscador" placeholder="Buscar producto">
+    <div id="resultados" class="results"></div>
 
-<div class="panel">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Código</th>
-        <th>Producto</th>
-        <th>Quitar</th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
-</div>
+    <div class="actions">
+      <button class="btn-blue" id="btnActualizar">Actualizar listado</button>
+      <button class="btn-green" id="btnSugeridos">Cargar sugeridos</button>
+      <button class="btn-gray" id="btnLimpiar">Limpiar</button>
+      <button class="btn-red" id="btnCrear">Crear solicitud</button>
+    </div>
 
+    <div id="status"></div>
+  </div>
+
+  <div class="panel">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Quitar</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 <div id="modalNotas" class="modal hide">
@@ -166,13 +158,13 @@ function pintarCarrito(){
   `).join("");
 }
 
-window.quitar = i=>{
+window.quitar = i => {
   carrito.splice(i,1);
   pintarCarrito();
 };
 
 function agregar(p){
-  if(carrito.find(x=>x.codigo===p.codigo)) return;
+  if (carrito.find(x => x.codigo === p.codigo)) return;
   carrito.push(p);
   pintarCarrito();
 }
@@ -191,7 +183,6 @@ document.getElementById("btnCrear").onclick = () => {
     alert("No hay productos seleccionados.");
     return;
   }
-
   document.getElementById("modalNotas").classList.remove("hide");
 };
 
