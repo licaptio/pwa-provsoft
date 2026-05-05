@@ -1945,7 +1945,7 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
           row.descripcion || "",
           ...columnas.map(col => {
             if (col.tipo === "AJU") return row.ajuPorFecha[col.fecha] ?? "";
-            if (col.tipo === "INV") return row.invPorFecha[col.fecha] || "";
+            if (col.tipo === "INV") return Number(row.invPorFecha[col.fecha] || 0);
             if (col.tipo === "TRANS") return row.transPorFecha[col.fecha] || "";
             return row.vtaPorFecha[col.fecha] || "";
           }),
@@ -1959,12 +1959,12 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
       data.push([
         "TOTAL",
         "Suma por fecha",
-        ...columnas.map(col => {
-          if (col.tipo === "AJU") return totalAjuPorFecha[col.fecha] || 0;
-          if (col.tipo === "INV") return totalInvPorFecha[col.fecha] || 0;
-          if (col.tipo === "TRANS") return totalTransPorFecha[col.fecha] || 0;
-          return totalVtaPorFecha[col.fecha] || 0;
-        }),
+...columnas.map(col => {
+  if (col.tipo === "AJU") return Number(row.ajuPorFecha[col.fecha] || 0);
+  if (col.tipo === "INV") return Number(row.invPorFecha[col.fecha] || 0);
+  if (col.tipo === "TRANS") return Number(row.transPorFecha[col.fecha] || 0);
+  return Number(row.vtaPorFecha[col.fecha] || 0);
+}),
         totalAjuGeneral || 0,
         totalInvGeneral || 0,
         totalVtaGeneral || 0,
@@ -1987,6 +1987,8 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
       const totalRowIndex = data.length - 1;
 
       for (let R = range.s.r; R <= range.e.r; R++) {
+        const esFilaAjustada =
+  R > 0 && R < totalRowIndex && rows[R - 1]?.ultimoAjusteCantidad !== null;
         for (let C = range.s.c; C <= range.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: R, c: C });
           if (!ws[addr]) continue;
@@ -2009,7 +2011,18 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
             tipo = "TOTAL";
           }
 
-          ws[addr].s = excelCellStyle(tipo, bold);
+          let style = excelCellStyle(tipo, bold);
+
+// 👉 si la fila tiene ajuste → sobrescribir color
+if (esFilaAjustada) {
+  style.fill = {
+    patternType: "solid",
+    fgColor: { rgb: "C4B5FD" } // morado como tu UI
+  };
+  style.font = { bold: true };
+}
+
+ws[addr].s = style;
           if (C >= 2) ws[addr].z = "#,##0.####";
         }
       }
