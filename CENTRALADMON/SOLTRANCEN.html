@@ -328,6 +328,18 @@
       font-size:14px;
       cursor:pointer;
     }
+
+    .btn-borrador{
+      background:#fff7ed;
+      color:#9a3412;
+      border:1px solid #fed7aa;
+    }
+
+    .btn-traer{
+      background:#ecfdf5;
+      color:#166534;
+      border:1px solid #bbf7d0;
+    }
   </style>
 </head>
 <body>
@@ -391,6 +403,8 @@
       <div class="acciones-row">
         <button id="btnAgregar" class="btn-principal">➕ AGREGAR</button>
         <button id="btnLimpiar" class="btn-secundario">🗑 LIMPIAR</button>
+        <button id="btnGuardarBorrador" class="btn-secundario btn-borrador">💾 GUARDAR BORRADOR</button>
+        <button id="btnCargarBorrador" class="btn-secundario btn-traer">📂 TRAER BORRADOR</button>
       </div>
     </div>
 
@@ -408,10 +422,14 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  const SUCURSAL = "CENTRAL";
+  const BORRADOR_KEY = "soltran_borrador_central";
+
   let carrito = [];
   let catalogo = [];
   let seleccionado = null;
   let indexSeleccion = -1;
+  let folioActual = "";
 
   const resSugerencias = document.getElementById("resSugerencias");
   const inpBusqueda = document.getElementById("inpBusqueda");
@@ -421,6 +439,8 @@
   const btnAgregar = document.getElementById("btnAgregar");
   const btnLimpiar = document.getElementById("btnLimpiar");
   const btnFinalizarBarra = document.getElementById("btnFinalizarBarra");
+  const btnGuardarBorrador = document.getElementById("btnGuardarBorrador");
+  const btnCargarBorrador = document.getElementById("btnCargarBorrador");
 
   async function cargarCatalogo() {
     try {
@@ -480,8 +500,93 @@
 
   function nuevoFolio() {
     const d = new Date();
-    const fol = `SOL-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}-${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;
-    document.getElementById("folioText").innerText = fol;
+    folioActual = `SOL-${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}-${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}`;
+    document.getElementById("folioText").innerText = folioActual;
+  }
+
+  function obtenerFolioPantalla() {
+    const folioPantalla = String(document.getElementById("folioText").innerText || "").trim();
+    if (folioPantalla && folioPantalla !== "Cargando...") return folioPantalla;
+    return folioActual;
+  }
+
+  function guardarBorradorManual() {
+    if (!folioActual) {
+      folioActual = obtenerFolioPantalla();
+    }
+
+    if (!folioActual || folioActual === "Cargando...") {
+      nuevoFolio();
+    }
+
+    if (carrito.length === 0) {
+      alert("No hay productos para guardar en borrador.");
+      return;
+    }
+
+    const data = {
+      folio: folioActual,
+      sucursal: SUCURSAL,
+      items: carrito,
+      fecha_guardado: new Date().toISOString()
+    };
+
+    localStorage.setItem(BORRADOR_KEY, JSON.stringify(data));
+    alert(`💾 Borrador guardado:\n${folioActual}`);
+  }
+
+  function cargarBorradorManual() {
+    const raw = localStorage.getItem(BORRADOR_KEY);
+
+    if (!raw) {
+      alert("No existe borrador guardado.");
+      return;
+    }
+
+    try {
+      const data = JSON.parse(raw);
+
+      if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
+        alert("El borrador está vacío o dañado.");
+        return;
+      }
+
+      if (carrito.length > 0) {
+        const reemplazar = confirm(
+          "Ya tienes una solicitud en pantalla.\n\n¿Quieres reemplazarla con el borrador guardado?"
+        );
+
+        if (!reemplazar) return;
+      }
+
+      folioActual = data.folio || "";
+      carrito = data.items || [];
+
+      if (!folioActual) {
+        nuevoFolio();
+      } else {
+        document.getElementById("folioText").innerText = folioActual;
+      }
+
+      seleccionado = null;
+      indexSeleccion = -1;
+      prodSelected.innerHTML = "🛒 Toque para buscar producto...";
+      inpCantidad.value = 1;
+      inpBusqueda.value = "";
+      cerrarSugerencias();
+
+      actualizarUI();
+      inpBusqueda.focus();
+
+      alert(`📂 Borrador restaurado:\n${folioActual}`);
+    } catch (e) {
+      console.error("Error leyendo borrador:", e);
+      alert("Error leyendo borrador guardado.");
+    }
+  }
+
+  function borrarBorrador() {
+    localStorage.removeItem(BORRADOR_KEY);
   }
 
   function pintarSeleccion(items) {
@@ -694,6 +799,8 @@
 
   btnAgregar.onclick = agregarProducto;
   btnLimpiar.onclick = resetCaptura;
+  btnGuardarBorrador.onclick = guardarBorradorManual;
+  btnCargarBorrador.onclick = cargarBorradorManual;
 
   btnFinalizarBarra.onclick = async () => {
     if (carrito.length === 0) {
@@ -710,8 +817,8 @@
     if (!confirm("¿Confirmar envío de solicitud?")) return;
 
     const btn = btnFinalizarBarra;
-    const fol = document.getElementById("folioText").innerText;
-    const suc = "CENTRAL";
+    const fol = obtenerFolioPantalla();
+    const suc = SUCURSAL;
     const usuario = "";
 
     try {
@@ -727,6 +834,8 @@
       });
 
       generarPDF(fol, suc, carrito, usuario);
+
+      borrarBorrador();
 
       carrito = [];
       actualizarUI();
