@@ -711,13 +711,13 @@
 
     const btn = btnFinalizarBarra;
     const fol = document.getElementById("folioText").innerText;
-    const suc = "ALLENDE 1";
+    const suc = "CENTRAL";
     const usuario = "";
 
     try {
       btn.disabled = true;
 
-      await setDoc(doc(db, "TIENDAS", suc, "transferencias1", fol), {
+      await setDoc(doc(db, "TIENDAS", suc, "SOLTRAN", fol), {
         folio: fol,
         items: carrito,
         capturista: usuario,
