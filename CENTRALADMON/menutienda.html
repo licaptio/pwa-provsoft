@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>PROVSOFT | CENTRAL ADMIN</title>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#00416A">
+
+<style>
+
+:root{
+  --azul:#00416A;
+  --azul2:#0c6cbd;
+  --fondo:#eef3f8;
+  --blanco:#fff;
+  --texto:#1f2937;
+  --shadow:0 10px 25px rgba(0,0,0,.15);
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+  background:linear-gradient(135deg,#00416A,#0c6cbd);
+  min-height:100vh;
+  color:white;
+  overflow-x:hidden;
+}
+
+.header{
+  padding:30px 20px 10px;
+  text-align:center;
+}
+
+.logo{
+  width:90px;
+  height:90px;
+  object-fit:cover;
+  border-radius:20px;
+  background:white;
+  padding:5px;
+  box-shadow:var(--shadow);
+}
+
+h1{
+  margin-top:15px;
+  font-size:34px;
+  letter-spacing:1px;
+}
+
+.sub{
+  margin-top:8px;
+  opacity:.9;
+  font-size:15px;
+}
+
+.grid{
+  width:100%;
+  max-width:1200px;
+  margin:auto;
+  padding:30px 20px 50px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+}
+
+.card{
+  background:rgba(255,255,255,.12);
+  border:1px solid rgba(255,255,255,.15);
+  backdrop-filter:blur(10px);
+  border-radius:20px;
+  padding:25px;
+  transition:.2s;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  text-decoration:none;
+  color:white;
+}
+
+.card:hover{
+  transform:translateY(-5px) scale(1.02);
+  background:rgba(255,255,255,.18);
+}
+
+.icon{
+  font-size:50px;
+  margin-bottom:15px;
+}
+
+.card h2{
+  font-size:22px;
+  margin-bottom:10px;
+}
+
+.card p{
+  opacity:.9;
+  font-size:14px;
+  line-height:1.5;
+}
+
+.footer{
+  text-align:center;
+  padding:20px;
+  opacity:.7;
+  font-size:13px;
+}
+
+.installBtn{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#00c853;
+  color:white;
+  border:none;
+  border-radius:14px;
+  padding:15px 22px;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:var(--shadow);
+  display:none;
+}
+
+.installBtn:hover{
+  opacity:.9;
+}
+
+@media(max-width:700px){
+
+  h1{
+    font-size:28px;
+  }
+
+  .card{
+    padding:20px;
+  }
+
+}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+
+  <img src="logo.jfif" class="logo">
+
+  <h1>CENTRAL ADMIN</h1>
+
+  <div class="sub">
+    Plataforma PROVSOFT • Control Centralizado
+  </div>
+
+</div>
+
+<div class="grid">
+
+  <a class="card" href="CATALOGOCENTRA.html">
+    <div class="icon">📦</div>
+    <h2>Catálogo</h2>
+    <p>
+      Consulta y administración de productos centrales.
+    </p>
+  </a>
+
+  <a class="card" href="INVLISTACENTRAL.html">
+    <div class="icon">📋</div>
+    <h2>Inventarios</h2>
+    <p>
+      Listado y revisión de inventarios físicos.
+    </p>
+  </a>
+
+  <a class="card" href="SOLICITUDDECONTEOCENTRAL.html">
+    <div class="icon">🧾</div>
+    <h2>Solicitud Conteo</h2>
+    <p>
+      Crear solicitudes de auditoría y conteo.
+    </p>
+  </a>
+
+  <a class="card" href="CONTESTAINV.html">
+    <div class="icon">✍️</div>
+    <h2>Contestar Inventario</h2>
+    <p>
+      Captura y validación de respuestas de inventario.
+    </p>
+  </a>
+
+  <a class="card" href="SOLTRANCEN.html">
+    <div class="icon">🚚</div>
+    <h2>Transferencias</h2>
+    <p>
+      Solicitudes y control de movimientos internos.
+    </p>
+  </a>
+
+  <a class="card" href="CARGARPIVTScentral.html">
+    <div class="icon">📤</div>
+    <h2>Cargar PIVTS</h2>
+    <p>
+      Subida y procesamiento de archivos centrales.
+    </p>
+  </a>
+
+</div>
+
+<div class="footer">
+  PROVSOFT © CENTRAL ADMIN
+</div>
+
+<button id="installBtn" class="installBtn">
+  Instalar App
+</button>
+
+<script>
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js')
+  .then(() => console.log('SW OK'))
+  .catch(err => console.log(err));
+}
+
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+
+  e.preventDefault();
+
+  deferredPrompt = e;
+
+  document.getElementById('installBtn').style.display = 'block';
+
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+
+  if (!deferredPrompt) return;
+
+  deferredPrompt.prompt();
+
+  const { outcome } = await deferredPrompt.userChoice;
+
+  console.log(outcome);
+
+  deferredPrompt = null;
+
+});
+
+</script>
+
+</body>
+</html>
