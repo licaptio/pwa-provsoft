@@ -1,15 +1,16 @@
-const CACHE_NAME = "provsoft-allende-v3";
+const CACHE_NAME = "provsoft-central-v1";
 
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./pwa-register.js",
-  "./CATALOGO.html",
-  "./SOLTRANAPP.html",
-  "./responderasolicitudalle1.html",
+  "./CATALOGOCENTRA.html",
+  "./CONTESTAINV.html",
+  "./SOLTRANCEN.html",
   "./icons/icon-192.png",
-  "./icons/icon-512.png"
+  "./icons/icon-512.png",
+  "./logo.jfif"
 ];
 
 self.addEventListener("install", event => {
@@ -37,8 +38,11 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(event.request.url);
 
-  // Para HTML: siempre intenta red primero
-  if (event.request.mode === "navigate" || url.pathname.endsWith(".html") || url.pathname === "/") {
+  if (
+    event.request.mode === "navigate" ||
+    url.pathname.endsWith(".html") ||
+    url.pathname === "/"
+  ) {
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -51,7 +55,6 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Para demás archivos: caché primero, pero actualiza en segundo plano
   event.respondWith(
     caches.match(event.request).then(cached => {
       const fetchPromise = fetch(event.request)
@@ -66,4 +69,3 @@ self.addEventListener("fetch", event => {
     })
   );
 });
-
