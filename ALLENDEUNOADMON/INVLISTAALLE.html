@@ -1956,20 +1956,20 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         ]);
       }
 
-      data.push([
-        "TOTAL",
-        "Suma por fecha",
-...columnas.map(col => {
-  if (col.tipo === "AJU") return Number(row.ajuPorFecha[col.fecha] || 0);
-  if (col.tipo === "INV") return Number(row.invPorFecha[col.fecha] || 0);
-  if (col.tipo === "TRANS") return Number(row.transPorFecha[col.fecha] || 0);
-  return Number(row.vtaPorFecha[col.fecha] || 0);
-}),
-        totalAjuGeneral || 0,
-        totalInvGeneral || 0,
-        totalVtaGeneral || 0,
-        totalNetoGeneral || 0
-      ]);
+data.push([
+  "TOTAL",
+  "Suma por fecha",
+  ...columnas.map(col => {
+    if (col.tipo === "AJU") return Number(totalAjuPorFecha[col.fecha] || 0);
+    if (col.tipo === "INV") return Number(totalInvPorFecha[col.fecha] || 0);
+    if (col.tipo === "TRANS") return Number(totalTransPorFecha[col.fecha] || 0);
+    return Number(totalVtaPorFecha[col.fecha] || 0);
+  }),
+  totalAjuGeneral || 0,
+  totalInvGeneral || 0,
+  totalVtaGeneral || 0,
+  totalNetoGeneral || 0
+]);
 
       const ws = XLSX.utils.aoa_to_sheet(data);
 
