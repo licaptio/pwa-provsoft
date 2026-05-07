@@ -597,7 +597,22 @@ tr.diff-row td{background:#fff7ed;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
+<script>
 
+if ("serviceWorker" in navigator) {
+
+  window.addEventListener("load", () => {
+
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("SW OK"))
+      .catch(err => console.log("SW ERROR", err));
+
+  });
+
+}
+
+</script>
+  
 <body>
 
 <section id="viewLogin" class="view active">
@@ -626,7 +641,7 @@ tr.diff-row td{background:#fff7ed;}
 <section id="viewLoading" class="view">
   <div class="center-screen">
     <div class="loading-box">
-      <img src="./logo_proveedora.jfif" class="logo-main" alt="PROVEEDORA">
+      <img src="./logo.jfif" class="logo-main" alt="PROVEEDORA">
       <div class="spinner-logo"></div>
       <h1>Cargando sistema</h1>
       <div id="loadingText" class="sub">Validando sesión y preparando PROVSOFT...</div>
@@ -638,7 +653,7 @@ tr.diff-row td{background:#fff7ed;}
 <section id="viewSucursal" class="view">
   <div class="center-screen">
     <div class="selector-box">
-      <img src="./logo_proveedora.jfif" class="logo-main" alt="PROVEEDORA">
+      <img src="./logo.jfif" class="logo-main" alt="PROVEEDORA">
       <h1>Seleccionar sucursal</h1>
       <div id="usuarioActivo" class="sub">Sesión activa.</div>
 
@@ -663,7 +678,7 @@ tr.diff-row td{background:#fff7ed;}
 <section id="viewApp" class="view">
   <div class="topbar">
     <div class="brand">
-      <img src="./logo_proveedora.jfif" class="logo-mini" alt="PROVEEDORA">
+      <img src="./logo.jfif" class="logo-mini" alt="PROVEEDORA">
       <div class="title-wrap">
         <h1>Surtido de Transferencia</h1>
         <div id="subSucursal" class="sub">PROVSOFT | Pantalla operativa</div>
@@ -866,7 +881,7 @@ const SUCURSALES = {
 
 const COLECCION_OPERADORES = 'usuarios_ruta';
 const COLECCION_PRODUCTOS = 'productos';
-const LOGO_URL = './logo_proveedora.jfif';
+const LOGO_URL = './logo.jfif';
 
 const RESPONSABLES = {
   captura: [
