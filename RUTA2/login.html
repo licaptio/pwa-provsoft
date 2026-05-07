@@ -212,7 +212,7 @@ async function login(){
 
     console.error(err);
 
-    error.innerText = "Usuario o contraseña incorrectos.";
+    error.innerText = err.code + " | " + err.message;
 
   }
 
