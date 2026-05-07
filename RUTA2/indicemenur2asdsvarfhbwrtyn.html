@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>RUTA 2 | PROVSOFT</title>
+
+<style>
+:root{
+  --azul:#00416A;
+  --azul2:#0c6cbd;
+  --rojo:#991b1b;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --txt:#1f2937;
+  --shadow:0 10px 30px rgba(0,0,0,.12);
+}
+
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:Arial,sans-serif;
+}
+
+body{
+  background:
+    linear-gradient(rgba(255,255,255,.88),rgba(255,255,255,.88)),
+    linear-gradient(135deg,var(--azul),#dbeafe);
+  min-height:100vh;
+  color:var(--txt);
+  padding:25px;
+}
+
+.top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:30px;
+  flex-wrap:wrap;
+}
+
+.titlebox{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+}
+
+h1{
+  color:var(--rojo);
+  font-size:34px;
+  font-weight:900;
+  letter-spacing:.5px;
+}
+
+.sub{
+  color:#374151;
+  font-size:14px;
+  font-weight:700;
+}
+
+.note{
+  color:#6b7280;
+  font-size:12px;
+}
+
+.logo{
+  height:80px;
+  object-fit:contain;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:22px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:20px;
+  padding:22px;
+  box-shadow:var(--shadow);
+  transition:.25s;
+  border:1px solid #e5e7eb;
+  position:relative;
+  overflow:hidden;
+}
+
+.card:hover{
+  transform:translateY(-4px);
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:6px;
+  background:linear-gradient(to right,var(--azul),var(--azul2));
+}
+
+.icon{
+  font-size:42px;
+  margin-bottom:14px;
+}
+
+.card h2{
+  font-size:22px;
+  margin-bottom:8px;
+  color:var(--azul);
+}
+
+.card p{
+  font-size:13px;
+  line-height:1.5;
+  color:#4b5563;
+  margin-bottom:20px;
+}
+
+.btn{
+  display:inline-block;
+  width:100%;
+  text-align:center;
+  text-decoration:none;
+  background:var(--rojo);
+  color:white;
+  padding:12px;
+  border-radius:12px;
+  font-weight:900;
+  transition:.2s;
+}
+
+.btn:hover{
+  background:#7f1d1d;
+}
+
+.footer{
+  margin-top:35px;
+  text-align:center;
+  color:#6b7280;
+  font-size:11px;
+}
+
+@media(max-width:700px){
+
+  body{
+    padding:14px;
+  }
+
+  h1{
+    font-size:26px;
+  }
+
+  .logo{
+    height:60px;
+  }
+
+  .card{
+    padding:18px;
+  }
+
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+
+  <div class="titlebox">
+    <h1>RUTA 2</h1>
+
+    <div class="sub">
+      PROVEEDORA DE DULCES Y DESECHABLES
+    </div>
+
+    <div class="note">
+      Plataforma operativa PROVSOFT · Ruta móvil
+    </div>
+  </div>
+
+  <img src="logo.jfif" class="logo">
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="icon">📦</div>
+
+    <h2>Inventario</h2>
+
+    <p>
+      Captura y control de inventario físico inicial de unidad móvil.
+    </p>
+
+    <a class="btn" href="INVENTARIOAPP.html">
+      Abrir inventario
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="icon">📊</div>
+
+    <h2>Listado Teórico</h2>
+
+    <p>
+      Inventario teórico por fecha:
+      inventario + transferencias - ventas.
+    </p>
+
+    <a class="btn" href="LISTADOR2.html">
+      Abrir listado
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="icon">🧾</div>
+
+    <h2>Factura Global</h2>
+
+    <p>
+      Generación y control CFDI global de ruta móvil.
+    </p>
+
+    <a class="btn" href="GLOBALR2.html">
+      Abrir factura global
+    </a>
+  </div>
+
+</div>
+
+<div class="footer">
+  PROVSOFT · RUTA 2 · OPERACIÓN MÓVIL
+</div>
+
+</body>
+</html>
