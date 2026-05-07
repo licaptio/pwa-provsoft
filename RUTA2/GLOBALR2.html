@@ -7,6 +7,7 @@
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
@@ -18,9 +19,11 @@ button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 
-<body>
+<body style="display:none;">
 
 <h2>🧾 PROVSOFT · Factura Global Diaria</h2>
+
+<button onclick="logout()" style="float:right;">Cerrar sesión</button>
 
 <label>📅 Fecha:</label><br>
 <input type="date" id="fecha"><br><br>
@@ -54,7 +57,7 @@ button { padding: 10px 16px; font-size: 14px; cursor: pointer; }
 
 <script>
 /* ======================================================
-   CONFIGURACIÓN FIREBASE (AJUSTA AQUÍ)
+   CONFIGURACIÓN FIREBASE
    ====================================================== */
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
@@ -65,18 +68,35 @@ const firebaseConfig = {
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
 
-// 🔥 ESTA LÍNEA ES OBLIGATORIA
 firebase.initializeApp(firebaseConfig);
 
-// 🔥 AHORA SÍ EXISTE EL APP [DEFAULT]
+const auth = firebase.auth();
 const db = firebase.firestore();
+
+/* ======================================================
+   🔒 CANDADO DE AUTENTICACIÓN
+   ====================================================== */
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  document.body.style.display = "block";
+});
+
+function logout(){
+  auth.signOut().then(() => {
+    window.location.replace("login.html");
+  });
+}
 
 /* ======================================================
    CONFIG PROVSOFT
    ====================================================== */
 const CONFIG = {
-  rutaId: "Almacen_Ruta_2",  // 👈 RUTA 2
-  serie: "RM2"              // 👈 SERIE FISCAL NUEVA
+  rutaId: "Almacen_Ruta_2",
+  serie: "RM2"
 };
 
 const FISCAL_EMISOR = {
@@ -88,10 +108,8 @@ const FISCAL_EMISOR = {
   direccion: "MADERO 690 CENTRO LINARES NUEVO LEON MEXICO"
 };
 
-
 let ventasCache = [];
 
- 
 /* ======================================================
    FECHA
    ====================================================== */
@@ -112,20 +130,22 @@ async function cargarVentas() {
   const rango = rangoDia();
   if (!rango) return alert("Selecciona fecha");
 
-const Timestamp = firebase.firestore.Timestamp;
-const snap = await db.collection("ventas_rutav2")
-  .where("rutaId", "==", CONFIG.rutaId)
-  .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
-  .where("fecha", "<=", Timestamp.fromDate(rango.fin))
-  .get();
+  const Timestamp = firebase.firestore.Timestamp;
 
-ventasCache = [];
-snap.forEach(d => {
-  const v = { id: d.id, ...d.data() };
-  if (v.facturada_global !== true) {
-    ventasCache.push(v);
-  }
-});
+  const snap = await db.collection("ventas_rutav2")
+    .where("rutaId", "==", CONFIG.rutaId)
+    .where("fecha", ">=", Timestamp.fromDate(rango.inicio))
+    .where("fecha", "<=", Timestamp.fromDate(rango.fin))
+    .get();
+
+  ventasCache = [];
+
+  snap.forEach(d => {
+    const v = { id: d.id, ...d.data() };
+    if (v.facturada_global !== true) {
+      ventasCache.push(v);
+    }
+  });
 
   pintarVentas(ventasCache);
 
@@ -152,12 +172,12 @@ function pintarVentas(ventas) {
     tbody.appendChild(tr);
   });
 }
+
 function normRate(raw){
   raw = Number(raw || 0);
-  // acepta 0.08, 8, 800 (tu caso)
-  if (raw >= 100) return raw / 10000; // 800 -> 0.08
-  if (raw >= 1)   return raw / 100;   // 8   -> 0.08
-  return raw;                         // 0.08
+  if (raw >= 100) return raw / 10000;
+  if (raw >= 1) return raw / 100;
+  return raw;
 }
 
 function extraerBasesYImpuestos(venta){
@@ -166,26 +186,24 @@ function extraerBasesYImpuestos(venta){
   let base16 = 0, iva16 = 0, base0 = 0, baseIEPS = 0, ieps = 0;
 
   det.forEach(it => {
-    const gross = Number(it.importe || 0);   // 👈 el precio FINAL
+    const gross = Number(it.importe || 0);
     if (gross <= 0) return;
 
-    const ivaRate  = Number(it.ivaTasa || 0);                 // 0.16 o 0
-    const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);   // 0.08 si aplica
+    const ivaRate  = Number(it.ivaTasa || 0);
+    const iepsRate = normRate(it.iepsTasa ?? it.ieps ?? 0);
 
-    // IEPS + IVA juntos (CASO CRÍTICO)
-if (iepsRate > 0 && ivaRate > 0) {
-  const base = gross / (1 + iepsRate + ivaRate * (1 + iepsRate));
-  const iepsCalc = base * iepsRate;
-  const ivaCalc  = (base + iepsCalc) * ivaRate;
+    if (iepsRate > 0 && ivaRate > 0) {
+      const base = gross / (1 + iepsRate + ivaRate * (1 + iepsRate));
+      const iepsCalc = base * iepsRate;
+      const ivaCalc  = (base + iepsCalc) * ivaRate;
 
-  baseIEPS += base;
-  ieps     += iepsCalc;
-  base16   += (base + iepsCalc);
-  iva16    += ivaCalc;
-  return;
-}
+      baseIEPS += base;
+      ieps     += iepsCalc;
+      base16   += (base + iepsCalc);
+      iva16    += ivaCalc;
+      return;
+    }
 
-    // IVA 16 (solo)
     if (ivaRate > 0 && iepsRate <= 0) {
       const base = gross / (1 + ivaRate);
       base16 += base;
@@ -193,7 +211,6 @@ if (iepsRate > 0 && ivaRate > 0) {
       return;
     }
 
-    // IEPS (solo)
     if (iepsRate > 0 && ivaRate <= 0) {
       const base = gross / (1 + iepsRate);
       baseIEPS += base;
@@ -201,25 +218,21 @@ if (iepsRate > 0 && ivaRate > 0) {
       return;
     }
 
-    // Exento
     base0 += gross;
   });
 
   return { base16, iva16, base0, baseIEPS, ieps };
 }
 
-  function addImp(impMap, impuesto, tasa, base) {
+function addImp(impMap, impuesto, tasa, base) {
   const key = `${impuesto}_${Number(tasa).toFixed(6)}`;
   if (!impMap[key]) impMap[key] = { impuesto, tasa: Number(tasa), base: 0, importe: 0 };
   impMap[key].base += Number(base) || 0;
 }
 
-/* ======================================================
-   UTILIDADES (YA LAS TIENES ARRIBA, NO LAS DUPLIQUES)
-   ====================================================== */
-// ✅ Deja estas SOLO una vez (arriba del todo, como ya las tienes)
 const r2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 const r6 = n => Math.round((Number(n) + Number.EPSILON) * 1e6) / 1e6;
+
 function validarTicketsContraFecha(ventas, fechaSeleccionada) {
   if (!fechaSeleccionada) {
     return {
@@ -333,9 +346,6 @@ async function generarTXT() {
     impuestosGlobales[key].base += Number(base) || 0;
   }
 
-  // ===============================
-  // RECORRER VENTAS (03 por ticket)
-  // ===============================
   ventasParaFactura.forEach(v => {
     const { base16, iva16, base0, baseIEPS, ieps } = extraerBasesYImpuestos(v);
 
@@ -368,10 +378,8 @@ async function generarTXT() {
     grupos.push(grupo);
   });
 
-  // ===============================
-  // IMPUESTOS GLOBALES (01 y 04)
-  // ===============================
   impuestosGlobal = 0;
+
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
     if (ig.tasa > 0) {
@@ -383,13 +391,9 @@ async function generarTXT() {
   const impuestos01 = r2(impuestosGlobal);
   const total01 = r2(subtotal01 + impuestos01);
 
-  // ===============================
-  // FOLIO + LÍNEAS
-  // ===============================
   const folio = await obtenerFolioSeguro(CONFIG.serie);
   const lineas = [];
 
-  // 01 principal
   lineas.push([
     "01","FA","4.0",
     CONFIG.serie, folio, "01",
@@ -423,7 +427,6 @@ async function generarTXT() {
     "N"
   ].join("|"));
 
-  // 01 CFDI40 INFO_GLOBAL
   lineas.push([
     "01","CFDI40","01","INFO_GLOBAL",
     "01",
@@ -433,10 +436,8 @@ async function generarTXT() {
     "RECEPTOR","67700","616"
   ].join("|"));
 
-  // ===============================
-  // 03 y 03-IMP
-  // ===============================
   let n = 1;
+
   grupos.forEach(g => {
     lineas.push([
       "03", n, "1.000", "ACT", "", "01010101",
@@ -464,9 +465,6 @@ async function generarTXT() {
     n++;
   });
 
-  // ===============================
-  // 04
-  // ===============================
   for (const k in impuestosGlobales) {
     const ig = impuestosGlobales[k];
     const imp2 = (ig.tasa === 0) ? 0 : r2(ig.base * ig.tasa);
@@ -481,9 +479,6 @@ async function generarTXT() {
     ].join("|"));
   }
 
-  // ===============================
-  // DESCARGAR + MARCAR
-  // ===============================
   descargar(lineas.join("\n"), `CFDI_GLOBAL_${CONFIG.serie}_${folio}.txt`);
 
   await marcarVentasComoFacturadas(ventasParaFactura, CONFIG.serie, folio);
@@ -491,10 +486,6 @@ async function generarTXT() {
   alert("✅ TXT GLOBAL generado y ventas marcadas como facturadas");
 }
 
-
-/* ======================================================
-   👉 AQUÍ PEGA obtenerFolioSeguro()
-   ====================================================== */
 async function obtenerFolioSeguro(serie) {
   const ref = db.collection("series_fiscales").doc(serie);
 
@@ -513,6 +504,7 @@ async function obtenerFolioSeguro(serie) {
     return siguiente;
   });
 }
+
 async function marcarVentasComoFacturadas(ventas, serie, folio) {
   const batch = db.batch();
   const ahora = firebase.firestore.FieldValue.serverTimestamp();
@@ -545,5 +537,4 @@ function descargar(contenido, nombreArchivo) {
 }
 </script>
 </body>
-
 </html>
