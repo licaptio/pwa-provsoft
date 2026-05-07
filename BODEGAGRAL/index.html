@@ -597,22 +597,6 @@ tr.diff-row td{background:#fff7ed;}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 </head>
-<script>
-
-if ("serviceWorker" in navigator) {
-
-  window.addEventListener("load", () => {
-
-    navigator.serviceWorker.register("./service-worker.js")
-      .then(() => console.log("SW OK"))
-      .catch(err => console.log("SW ERROR", err));
-
-  });
-
-}
-
-</script>
-  
 <body>
 
 <section id="viewLogin" class="view active">
@@ -2474,5 +2458,19 @@ function init() {
 init();
 
 </script>
+<script>
+if ("serviceWorker" in navigator) {
+
+  window.addEventListener("load", () => {
+
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("SW OK"))
+      .catch(err => console.log("SW ERROR", err));
+
+  });
+
+}
+</script>
+
 </body>
 </html>
