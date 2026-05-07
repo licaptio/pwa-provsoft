@@ -3,59 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
 <title>LOGIN | RUTA 2</title>
 
 <style>
-
 :root{
   --azul:#00416A;
   --azul2:#0c6cbd;
   --rojo:#991b1b;
-  --bg:#f4f7fb;
 }
-
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
-  font-family:Arial,sans-serif;
-}
-
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
 body{
   min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
-
   background:
     linear-gradient(rgba(255,255,255,.88),rgba(255,255,255,.88)),
     linear-gradient(135deg,var(--azul),#dbeafe);
-
   padding:20px;
 }
-
 .login-box{
   width:100%;
   max-width:420px;
-
   background:white;
   border-radius:24px;
-
   padding:35px;
-
   box-shadow:0 15px 40px rgba(0,0,0,.15);
-
   border:1px solid #e5e7eb;
 }
-
 .logo{
   width:120px;
   display:block;
   margin:auto;
   margin-bottom:20px;
 }
-
 h1{
   text-align:center;
   color:var(--rojo);
@@ -63,14 +44,12 @@ h1{
   font-size:30px;
   font-weight:900;
 }
-
 .sub{
   text-align:center;
   color:#4b5563;
   font-size:13px;
   margin-bottom:28px;
 }
-
 label{
   display:block;
   margin-bottom:7px;
@@ -78,7 +57,6 @@ label{
   font-weight:700;
   color:#374151;
 }
-
 input{
   width:100%;
   padding:14px;
@@ -87,55 +65,41 @@ input{
   margin-bottom:18px;
   font-size:15px;
 }
-
 input:focus{
   outline:none;
   border-color:var(--azul2);
   box-shadow:0 0 0 3px rgba(12,108,189,.15);
 }
-
 button{
   width:100%;
   border:none;
   background:var(--rojo);
   color:white;
-
   padding:15px;
-
   border-radius:14px;
-
   font-size:15px;
   font-weight:900;
-
   cursor:pointer;
-
-  transition:.2s;
 }
-
-button:hover{
-  background:#7f1d1d;
-}
-
+button:hover{background:#7f1d1d}
 #error{
   margin-top:16px;
   color:#dc2626;
   text-align:center;
   font-size:13px;
   font-weight:700;
+  min-height:20px;
 }
-
 .footer{
   margin-top:25px;
   text-align:center;
   color:#6b7280;
   font-size:11px;
 }
-
 .loading{
   opacity:.7;
   pointer-events:none;
 }
-
 </style>
 </head>
 
@@ -152,14 +116,12 @@ button:hover{
   </div>
 
   <label>Correo</label>
-  <input type="email" id="email" placeholder="usuario@empresa.com">
+  <input type="email" id="email" placeholder="usuario@empresa.com" autocomplete="username">
 
   <label>Contraseña</label>
-  <input type="password" id="password" placeholder="********">
+  <input type="password" id="password" placeholder="********" autocomplete="current-password">
 
-  <button onclick="login()" id="btnLogin">
-    INICIAR SESIÓN
-  </button>
+  <button id="btnLogin">INICIAR SESIÓN</button>
 
   <div id="error"></div>
 
@@ -169,43 +131,43 @@ button:hover{
 
 </div>
 
-<!-- FIREBASE -->
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth,
+  setPersistence,
+  browserSessionPersistence,
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
   authDomain: "inventariopv-643f1.firebaseapp.com",
   projectId: "inventariopv-643f1",
-  storageBucket: "inventariopv-643f1.appspot.com",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
   messagingSenderId: "96242533231",
   appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
-const auth = firebase.auth();
+const emailInput = document.getElementById("email");
+const passInput = document.getElementById("password");
+const btn = document.getElementById("btnLogin");
+const errorBox = document.getElementById("error");
 
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+await setPersistence(auth, browserSessionPersistence);
 
 async function login(){
+  const email = emailInput.value.trim();
+  const password = passInput.value;
 
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value;
-
-  const btn = document.getElementById("btnLogin");
-  const error = document.getElementById("error");
-
-  error.innerText = "";
+  errorBox.innerText = "";
 
   if(!email || !password){
-
-    error.innerText = "Completa correo y contraseña.";
+    errorBox.innerText = "Completa correo y contraseña.";
     return;
   }
 
@@ -213,40 +175,28 @@ async function login(){
   btn.innerText = "VALIDANDO...";
 
   try{
-
-    await auth.signInWithEmailAndPassword(email,password);
-
-    window.location.href = "indicemenur2asdsvarfhbwrtyn.html";
-
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.replace("indicemenur2asdsvarfhbwrtyn.html");
   }catch(err){
-
     console.error(err);
-
-    error.innerText = err.code + " | " + err.message;
-
+    errorBox.innerText = err.code + " | " + err.message;
   }
 
   btn.classList.remove("loading");
   btn.innerText = "INICIAR SESIÓN";
 }
 
-document.addEventListener("keydown",(e)=>{
+btn.addEventListener("click", login);
 
-  if(e.key==="Enter"){
-    login();
-  }
-
+document.addEventListener("keydown", e => {
+  if(e.key === "Enter") login();
 });
 
-auth.onAuthStateChanged(user=>{
-
+onAuthStateChanged(auth, user => {
   if(user){
-
-    window.location.href = "indicemenur2asdsvarfhbwrtyn.html";
+    window.location.replace("indicemenur2asdsvarfhbwrtyn.html");
   }
-
 });
-
 </script>
 
 </body>
