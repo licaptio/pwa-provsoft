@@ -6,8 +6,6 @@
   <title>Inventario vs Ventas por Fecha - PROVSOFT</title>
   <link rel="icon" href="data:,">
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 
   <style>
@@ -558,7 +556,7 @@ tfoot td {
     <div class="loader-box">
       <img src="logo.jfif" class="loader-logo" alt="Logo empresa" />
       <h2 class="loader-title">PROVEEDORA DE DULCES Y DESECHABLES</h2>
-      <div class="loader-subtitle">SUC CENTRAL · LISTADO INVENTARIO FÍSICO TEÓRICO</div>
+      <div class="loader-subtitle">RUTA 2 VENTA · LISTADO INVENTARIO FÍSICO TEÓRICO</div>
       <div class="progress-shell">
         <div id="loaderBar" class="progress-bar"></div>
       </div>
@@ -571,7 +569,7 @@ tfoot td {
       <div class="topbar">
         <div class="topbar-flex">
           <div>
-            <h1 class="brand-title">PROVEEDORA DE DULCES Y DESECHABLES SUC CENTRAL</h1>
+            <h1 class="brand-title">PROVEEDORA DE DULCES Y DESECHABLES RUTA 2 VENTA</h1>
             <p class="brand-subtitle">LISTADO INVENTARIO FÍSICO TEÓRICO</p>
             <p class="brand-note">Inventario inicial + equivalencias + transferencias - ventas</p>
           </div>
@@ -584,7 +582,7 @@ tfoot td {
       </div>
 
       <div id="configPanel" class="config-panel">
-        <h3 class="config-title">Configuración de equivalencias por código - CENTRAL</h3>
+        <h3 class="config-title">Configuración de equivalencias por código - RUTA 2</h3>
         <div class="config-grid">
           <div class="config-field">
             <label>Código venta</label>
@@ -653,21 +651,22 @@ tfoot td {
     </div>
   </div>
 
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSy...",
-      authDomain: "inventariopv-643f1.firebaseapp.com",
-      projectId: "inventariopv-643f1",
-      storageBucket: "inventariopv-643f1.firebasestorage.app",
-      messagingSenderId: "96242533231",
-      appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
-    };
+  <script type="module">
+    import { db } from "./config.js";
+    import {
+      collection,
+      doc,
+      getDocs,
+      query,
+      where,
+      orderBy,
+      limit,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-
-    const db = firebase.firestore();
     const $ = (id) => document.getElementById(id);
 
     const tabla = $("tablaPivot");
@@ -692,11 +691,11 @@ function getRefsPorTienda() {
 
   return {
     TIENDA,
-    INVENTARIOS_REF: db.collection("TIENDAS").doc(TIENDA).collection("INVENTARIOS"),
-    TRANSFERENCIAS_REF: db.collection("almacenes").doc("Almacen_Ruta_2").collection("entradas"),
-    VENTAS_REF: db.collection("ventas_rutav2"),
-    PRODUCTOS_REF: db.collection("productos"),
-    EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias")
+    INVENTARIOS_REF: collection(db, "TIENDAS", TIENDA, "INVENTARIOS"),
+    TRANSFERENCIAS_REF: collection(db, "almacenes", "Almacen_Ruta_2", "entradas"),
+    VENTAS_REF: collection(db, "ventas_rutav2"),
+    PRODUCTOS_REF: collection(db, "productos"),
+    EQUIVALENCIAS_REF: collection(db, "TIENDAS", TIENDA, "configuracion_equivalencias")
   };
 }
 
@@ -867,7 +866,7 @@ function normalizarFecha(valor) {
     async function cargarEquivalencias(silencioso = false) {
       const { EQUIVALENCIAS_REF } = getRefsPorTienda();
       if (!silencioso) setStatusConfig("Cargando equivalencias...");
-      const snap = await EQUIVALENCIAS_REF.orderBy("codigoVenta").get();
+      const snap = await getDocs(query(EQUIVALENCIAS_REF, orderBy("codigoVenta")));
       const items = [];
       snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
       equivalenciasActuales = items;
@@ -941,14 +940,14 @@ function normalizarFecha(valor) {
         const data = {
           ...payload,
           sucursal: getTiendaActual(),
-          actualizadoEn: firebase.firestore.FieldValue.serverTimestamp()
+          actualizadoEn: serverTimestamp()
         };
         if (reglaEditandoId) {
-          await EQUIVALENCIAS_REF.doc(reglaEditandoId).update(data);
+          await updateDoc(doc(EQUIVALENCIAS_REF, reglaEditandoId), data);
           setStatusConfig("Equivalencia actualizada.", "ok");
         } else {
-          data.creadoEn = firebase.firestore.FieldValue.serverTimestamp();
-          await EQUIVALENCIAS_REF.add(data);
+          data.creadoEn = serverTimestamp();
+          await addDoc(EQUIVALENCIAS_REF, data);
           setStatusConfig("Equivalencia guardada.", "ok");
         }
         await cargarEquivalencias(true);
@@ -979,7 +978,7 @@ function normalizarFecha(valor) {
         if (!item) return;
         if (!confirm(`¿Eliminar equivalencia ${item.codigoVenta} → ${item.codigoOrigen}?`)) return;
         const { EQUIVALENCIAS_REF } = getRefsPorTienda();
-        await EQUIVALENCIAS_REF.doc(id).delete();
+        await deleteDoc(doc(EQUIVALENCIAS_REF, id));
         await cargarEquivalencias(true);
         limpiarFormularioConfig();
         setStatusConfig("Equivalencia eliminada.", "ok");
@@ -1074,9 +1073,7 @@ function normalizarFecha(valor) {
     async function cargarEquivalentesCatalogo() {
       const { PRODUCTOS_REF } = getRefsPorTienda();
 
-      const snap = await PRODUCTOS_REF
-        .where("activo", "==", true)
-        .get();
+      const snap = await getDocs(query(PRODUCTOS_REF, where("activo", "==", true)));
 
       const mapa = {};
       const catalogo = new Map();
@@ -1161,9 +1158,7 @@ function normalizarFecha(valor) {
 async function cargarInventarios() {
   const { INVENTARIOS_REF } = getRefsPorTienda();
 
-  const snap = await INVENTARIOS_REF
-    .orderBy("epochMs", "asc")
-    .get();
+  const snap = await getDocs(query(INVENTARIOS_REF, orderBy("epochMs", "asc")));
 
   const docs = [];
   const catalogo = new Map();
@@ -1206,7 +1201,7 @@ async function cargarTransferencias() {
 
   const fechaInicioInventario = await obtenerFechaInventarioInicial();
 
-  const transferSnap = await TRANSFERENCIAS_REF.get();
+  const transferSnap = await getDocs(TRANSFERENCIAS_REF);
 
   const docs = [];
   const catalogo = new Map();
@@ -1258,10 +1253,7 @@ async function cargarTransferencias() {
 async function obtenerFechaInventarioInicial() {
   const { INVENTARIOS_REF } = getRefsPorTienda();
 
-  const snap = await INVENTARIOS_REF
-    .orderBy("epochMs", "asc")
-    .limit(1)
-    .get();
+  const snap = await getDocs(query(INVENTARIOS_REF, orderBy("epochMs", "asc"), limit(1)));
 
   if (snap.empty) return null;
 
@@ -1273,9 +1265,7 @@ async function cargarVentas() {
 
   const fechaInicioInventario = await obtenerFechaInventarioInicial();
 
-  const ventasSnap = await VENTAS_REF
-    .where("rutaId", "==", "Almacen_Ruta_2")
-    .get();
+  const ventasSnap = await getDocs(query(VENTAS_REF, where("rutaId", "==", "Almacen_Ruta_2")));
 
   const docs = [];
   const catalogo = new Map();
