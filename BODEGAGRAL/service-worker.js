@@ -5,7 +5,7 @@ const APP_ASSETS = [
   "./index.html",
   "./manifest.json",
   "./config.js",
-  "./logo_proveedora.jfif"
+  "./logo.jfif"
 ];
 
 self.addEventListener("install", event => {
