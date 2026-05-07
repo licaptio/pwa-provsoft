@@ -6,6 +6,9 @@
 
 <title>RUTA 2 | PROVSOFT</title>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
 <style>
 :root{
   --azul:#00416A;
@@ -31,6 +34,7 @@ body{
   min-height:100vh;
   color:var(--txt);
   padding:25px;
+  display:none;
 }
 
 .top{
@@ -69,6 +73,20 @@ h1{
 .logo{
   height:80px;
   object-fit:contain;
+}
+
+.logout{
+  background:var(--azul);
+  color:white;
+  border:none;
+  padding:10px 16px;
+  border-radius:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.logout:hover{
+  background:#002f4d;
 }
 
 .grid{
@@ -182,7 +200,11 @@ h1{
     </div>
   </div>
 
-  <img src="logo.jfif" class="logo">
+  <div style="display:flex; align-items:center; gap:14px;">
+    <button class="logout" onclick="logout()">Cerrar sesión</button>
+    <img src="logo.jfif" class="logo">
+  </div>
+
 </div>
 
 <div class="grid">
@@ -196,7 +218,7 @@ h1{
       Captura inventario físico unidad móvil.
     </p>
 
-    <a class="btn" href="tomadeinventariofisico.html.html">
+    <a class="btn" href="tomadeinventariofisico.html">
       Abrir inventario
     </a>
   </div>
@@ -235,6 +257,36 @@ h1{
 <div class="footer">
   PROVSOFT · RUTA 2 · OPERACIÓN MÓVIL
 </div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    window.location.replace("login.html");
+    return;
+  }
+
+  document.body.style.display = "block";
+});
+
+function logout(){
+  auth.signOut().then(() => {
+    window.location.replace("login.html");
+  });
+}
+</script>
 
 </body>
 </html>
