@@ -970,7 +970,6 @@ window.imprimirPDF = function(){
   const deptosHtml = Object.entries(r.deptos)
     .sort((a,b)=> a[0].localeCompare(b[0]))
     .map(([depto,v])=>{
-
       const margen = v.ventaSinImp > 0
         ? (v.utilidadBruta / v.ventaSinImp) * 100
         : 0;
@@ -995,90 +994,201 @@ window.imprimirPDF = function(){
 <head>
 <meta charset="UTF-8">
 <title>Estado Financiero Ruta 2</title>
+
 <style>
-body{ font-family:Arial,sans-serif; padding:25px; color:#111; }
-.header{ display:flex; align-items:center; gap:15px; }
-.header img{ width:150px; }
-h1{ color:#ea580c; margin-bottom:4px; }
-h2{ margin-top:28px; color:#ea580c; border-bottom:2px solid #ea580c; padding-bottom:5px; }
-.sub{ color:#555; margin-bottom:20px; }
-table{ width:100%; border-collapse:collapse; margin-top:12px; font-size:12px; }
-th,td{ border-bottom:1px solid #ddd; padding:7px; text-align:right; }
-th:first-child,td:first-child{ text-align:left; }
-th{ background:#fff7ed; color:#ea580c; }
-.total{ font-weight:bold; background:#fff7ed; }
-.positivo{ color:#166534; font-weight:bold; }
-.negativo{ color:#991b1b; font-weight:bold; }
-.firma{ margin-top:50px; display:flex; gap:60px; }
-.linea{ flex:1; border-top:1px solid #333; text-align:center; padding-top:8px; font-size:12px; }
-@media print{ body{ padding:10px; } }
+@page{
+  size: letter landscape;
+  margin: 7mm;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  font-family:Arial,sans-serif;
+  margin:0;
+  padding:0;
+  color:#111;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
+
+.pagina{
+  page-break-after:always;
+  break-after:page;
+}
+
+.pagina:last-child{
+  page-break-after:auto;
+  break-after:auto;
+}
+
+.header{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  margin-bottom:8px;
+}
+
+.header img{
+  width:130px;
+}
+
+h1{
+  color:#ea580c;
+  margin:0 0 4px;
+  font-size:24px;
+}
+
+h2{
+  color:#ea580c;
+  border-bottom:2px solid #ea580c;
+  padding-bottom:4px;
+  margin:8px 0 8px;
+  font-size:18px;
+}
+
+.sub{
+  color:#555;
+  font-size:12px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:8px;
+  font-size:11px;
+}
+
+th,td{
+  border-bottom:1px solid #ddd;
+  padding:5px 6px;
+  text-align:right;
+}
+
+th:first-child,
+td:first-child{
+  text-align:left;
+}
+
+th{
+  background:#fff7ed;
+  color:#ea580c;
+}
+
+.total{
+  font-weight:bold;
+  background:#fff7ed;
+}
+
+.positivo{
+  color:#166534;
+  font-weight:bold;
+}
+
+.negativo{
+  color:#991b1b;
+  font-weight:bold;
+}
+
+.seccion1{
+  zoom:.95;
+}
+
+.seccion2{
+  zoom:.74;
+}
+
+.firma{
+  margin-top:20px;
+  display:flex;
+  gap:60px;
+}
+
+.linea{
+  flex:1;
+  border-top:1px solid #333;
+  text-align:center;
+  padding-top:6px;
+  font-size:11px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="header">
-  <img src="./logo.jfif">
-  <div>
-    <h1>Estado Financiero Ruta 2</h1>
-    <div class="sub">
-      PROVEEDORA<br>
-      Periodo: ${r.fechaInicio} al ${r.fechaFin}<br>
-      Generado: ${new Date().toLocaleString("es-MX")}
+<div class="pagina seccion1">
+
+  <div class="header">
+    <img src="./logo.jfif">
+    <div>
+      <h1>Estado Financiero Ruta 2</h1>
+      <div class="sub">
+        PROVEEDORA<br>
+        Periodo: ${r.fechaInicio} al ${r.fechaFin}<br>
+        Generado: ${new Date().toLocaleString("es-MX")}
+      </div>
     </div>
   </div>
+
+  <h2>1. Estado de resultados calculado</h2>
+
+  <table>
+    <tbody>
+      <tr><td>VENTA SIN IMPUESTOS</td><td>${fmtMoney(r.totalVentaSinImp)}</td></tr>
+      <tr><td>MENOS COSTO HISTÓRICO</td><td>${fmtMoney(r.totalCosto)}</td></tr>
+      <tr class="total"><td>UTILIDAD BRUTA</td><td>${fmtMoney(r.totalUtilidadBruta)}</td></tr>
+      <tr><td>MARGEN BRUTO</td><td>${r.margenBruto.toFixed(2)}%</td></tr>
+      <tr><td>MENOS COMISIONES CALCULADAS</td><td>${fmtMoney(r.totalComisiones)}</td></tr>
+      <tr class="total"><td>UTILIDAD DESPUÉS DE COMISIONES</td><td>${fmtMoney(r.utilidadDespuesComisiones)}</td></tr>
+      ${gastosHtml}
+      <tr class="total"><td>TOTAL GASTOS DE RUTA</td><td>${fmtMoney(r.totalGastos)}</td></tr>
+      <tr class="total"><td>RESULTADO OPERATIVO FINAL</td><td>${fmtMoney(r.utilidadOperativa)}</td></tr>
+      <tr class="total"><td>MARGEN OPERATIVO</td><td>${r.margenOperativo.toFixed(2)}%</td></tr>
+    </tbody>
+  </table>
+
 </div>
 
-<h2>1. Estado de resultados calculado</h2>
+<div class="pagina seccion2">
 
-<table>
-  <tbody>
-    <tr><td>VENTA SIN IMPUESTOS</td><td>${fmtMoney(r.totalVentaSinImp)}</td></tr>
-    <tr><td>MENOS COSTO HISTÓRICO</td><td>${fmtMoney(r.totalCosto)}</td></tr>
-    <tr class="total"><td>UTILIDAD BRUTA</td><td>${fmtMoney(r.totalUtilidadBruta)}</td></tr>
-    <tr><td>MARGEN BRUTO</td><td>${r.margenBruto.toFixed(2)}%</td></tr>
-    <tr><td>MENOS COMISIONES CALCULADAS</td><td>${fmtMoney(r.totalComisiones)}</td></tr>
-    <tr class="total"><td>UTILIDAD DESPUÉS DE COMISIONES</td><td>${fmtMoney(r.utilidadDespuesComisiones)}</td></tr>
-    ${gastosHtml}
-    <tr class="total"><td>TOTAL GASTOS DE RUTA</td><td>${fmtMoney(r.totalGastos)}</td></tr>
-    <tr class="total"><td>RESULTADO OPERATIVO FINAL</td><td>${fmtMoney(r.utilidadOperativa)}</td></tr>
-    <tr class="total"><td>MARGEN OPERATIVO</td><td>${r.margenOperativo.toFixed(2)}%</td></tr>
-  </tbody>
-</table>
+  <h2>2. Comparativo por departamento</h2>
 
-<h2>2. Comparativo por departamento</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Departamento</th>
+        <th>Venta sin impuestos</th>
+        <th>Costo histórico</th>
+        <th>Utilidad bruta</th>
+        <th>% Margen</th>
+        <th>IVA</th>
+        <th>IEPS</th>
+        <th>Total venta</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${deptosHtml}
+      <tr class="total">
+        <td>TOTAL GENERAL</td>
+        <td>${fmtMoney(r.totalVentaSinImp)}</td>
+        <td>${fmtMoney(r.totalCosto)}</td>
+        <td>${fmtMoney(r.totalUtilidadBruta)}</td>
+        <td>${r.margenBruto.toFixed(2)}%</td>
+        <td>${fmtMoney(r.totalIva)}</td>
+        <td>${fmtMoney(r.totalIeps)}</td>
+        <td>${fmtMoney(r.totalVentaConImp)}</td>
+      </tr>
+    </tbody>
+  </table>
 
-<table>
-  <thead>
-    <tr>
-      <th>Departamento</th>
-      <th>Venta sin impuestos</th>
-      <th>Costo histórico</th>
-      <th>Utilidad bruta</th>
-      <th>% Margen</th>
-      <th>IVA</th>
-      <th>IEPS</th>
-      <th>Total venta</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${deptosHtml}
-    <tr class="total">
-      <td>TOTAL GENERAL</td>
-      <td>${fmtMoney(r.totalVentaSinImp)}</td>
-      <td>${fmtMoney(r.totalCosto)}</td>
-      <td>${fmtMoney(r.totalUtilidadBruta)}</td>
-      <td>${r.margenBruto.toFixed(2)}%</td>
-      <td>${fmtMoney(r.totalIva)}</td>
-      <td>${fmtMoney(r.totalIeps)}</td>
-      <td>${fmtMoney(r.totalVentaConImp)}</td>
-    </tr>
-  </tbody>
-</table>
+  <div class="firma">
+    <div class="linea">Elaboró</div>
+    <div class="linea">Revisó</div>
+    <div class="linea">Autorizó</div>
+  </div>
 
-<div class="firma">
-  <div class="linea">Elaboró</div>
-  <div class="linea">Revisó</div>
-  <div class="linea">Autorizó</div>
 </div>
 
 <script>
@@ -1102,6 +1212,7 @@ window.onload = function(){
   w.document.write(html);
   w.document.close();
 }
+
 
 </script>
 
