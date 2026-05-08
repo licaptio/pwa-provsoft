@@ -69,7 +69,7 @@ h2{
   margin-bottom:15px;
 }
 
-input,select,textarea,button{
+input,textarea,button{
   padding:9px;
   border-radius:7px;
   border:1px solid var(--borde);
@@ -204,7 +204,7 @@ th{
 
 .formGrid{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
   gap:10px;
   margin-top:15px;
 }
@@ -219,12 +219,10 @@ th{
 .danger{ background:#991b1b; }
 .warn{ background:#92400e; }
 
-.badge{
-  display:inline-block;
-  padding:3px 7px;
-  border-radius:999px;
-  background:#e5e7eb;
-  font-size:12px;
+.selectActivo{
+  padding:9px;
+  border-radius:7px;
+  border:1px solid var(--borde);
 }
 
 @media(max-width:700px){
@@ -244,7 +242,7 @@ th{
     <div>
       <h2>Estado Financiero Ruta 2</h2>
       <div class="subtitulo">
-        Venta sin impuestos - costo histórico = utilidad bruta. Después comisiones y gastos de ruta.
+        Venta sin impuestos - costo histórico = utilidad bruta. Después comisiones y gastos prorrateados de ruta.
       </div>
     </div>
     <button class="configBtn" onclick="abrirConfig()" title="Configuración de gastos">⚙</button>
@@ -263,40 +261,7 @@ th{
     <div class="progressText" id="progressText">Esperando consulta...</div>
   </div>
 
-  <div class="resumenGrid">
-    <div class="box">
-      <label>Venta sin impuestos</label>
-      <strong id="boxVenta">$0.00</strong>
-    </div>
-    <div class="box">
-      <label>Costo histórico</label>
-      <strong id="boxCosto">$0.00</strong>
-    </div>
-    <div class="box">
-      <label>Utilidad bruta</label>
-      <strong id="boxUtilidadBruta">$0.00</strong>
-    </div>
-    <div class="box">
-      <label>Margen bruto</label>
-      <strong id="boxMargenBruto">0.00%</strong>
-    </div>
-    <div class="box">
-      <label>Comisiones calculadas</label>
-      <strong id="boxComisiones">$0.00</strong>
-    </div>
-    <div class="box">
-      <label>Gastos de ruta</label>
-      <strong id="boxGastos">$0.00</strong>
-    </div>
-    <div class="box">
-      <label>Utilidad operativa</label>
-      <strong id="boxUtilidadOperativa">$0.00</strong>
-    </div>
-    <div class="box">
-      <label>Margen operativo</label>
-      <strong id="boxMargenOperativo">0.00%</strong>
-    </div>
-  </div>
+
 
   <div class="sectionTitle">1. Utilidad bruta por departamento</div>
   <table>
@@ -326,15 +291,16 @@ th{
     <tbody id="tablaComisiones"></tbody>
   </table>
 
-  <div class="sectionTitle">3. Gastos fijos / directos / prorrateados</div>
+  <div class="sectionTitle">3. Gastos de ruta prorrateados</div>
   <table>
     <thead>
       <tr>
-        <th>Categoría</th>
         <th>Concepto</th>
-        <th>Tipo</th>
-        <th>Base</th>
-        <th>Aplicado periodo</th>
+        <th>Monto base</th>
+        <th>Días base</th>
+        <th>Gasto diario</th>
+        <th>Días reporte</th>
+        <th>Aplicado al periodo</th>
       </tr>
     </thead>
     <tbody id="tablaGastos"></tbody>
@@ -357,66 +323,35 @@ th{
     </div>
 
     <div class="subtitulo">
-      Una sola colección: <b>gastos_rutas</b>. Aquí entran nómina, gasolina, seguros, IMSS, INFONAVIT, mantenimiento, impuestos y otros.
+      Guarda en <b>/TIENDAS/RUTA2/gastos_rutas</b>. Cada gasto se prorratea: monto ÷ días aplicación × días del reporte.
     </div>
 
     <div class="formGrid">
       <input type="hidden" id="gastoId">
 
       <div>
-        <label>Categoría</label>
-        <select id="categoria">
-          <option value="NOMINA">NOMINA</option>
-          <option value="GASOLINA">GASOLINA</option>
-          <option value="MANTENIMIENTO">MANTENIMIENTO</option>
-          <option value="SEGURO_VEHICULO">SEGURO_VEHICULO</option>
-          <option value="SEGURO_SOCIAL">SEGURO_SOCIAL</option>
-          <option value="INFONAVIT">INFONAVIT</option>
-          <option value="IMPUESTO_NOMINA">IMPUESTO_NOMINA</option>
-          <option value="VIATICOS">VIATICOS</option>
-          <option value="MERMA">MERMA</option>
-          <option value="RENTA">RENTA</option>
-          <option value="SISTEMAS">SISTEMAS</option>
-          <option value="OTROS">OTROS</option>
-        </select>
+        <label>Concepto del gasto</label>
+        <input id="concepto" placeholder="Ej. Nómina, gasolina, seguro, IMSS">
       </div>
 
       <div>
-        <label>Concepto</label>
-        <input id="concepto" placeholder="Ej. Nómina chofer">
-      </div>
-
-      <div>
-        <label>Monto</label>
+        <label>Monto total</label>
         <input id="monto" type="number" step="0.01" placeholder="0.00">
       </div>
 
       <div>
-        <label>Tipo cálculo</label>
-        <select id="tipoCalculo">
-          <option value="DIRECTO">DIRECTO</option>
-          <option value="PRORRATEADO">PRORRATEADO</option>
-        </select>
-      </div>
-
-      <div>
-        <label>Días aplicación</label>
+        <label>Días que cubre ese monto</label>
         <input id="diasAplicacion" type="number" value="1" min="1">
       </div>
 
       <div>
-        <label>Fecha inicio</label>
-        <input id="fechaGastoInicio" type="date">
-      </div>
-
-      <div>
-        <label>Fecha fin</label>
-        <input id="fechaGastoFin" type="date">
+        <label>Fecha actualización información</label>
+        <input id="fechaActualizacionInfo" type="date">
       </div>
 
       <div>
         <label>Activo</label>
-        <select id="activo">
+        <select id="activo" class="selectActivo">
           <option value="true">SI</option>
           <option value="false">NO</option>
         </select>
@@ -438,13 +373,13 @@ th{
     <table>
       <thead>
         <tr>
-          <th>Categoría</th>
           <th>Concepto</th>
-          <th>Monto</th>
-          <th>Tipo</th>
+          <th>Monto total</th>
           <th>Días</th>
-          <th>Vigencia</th>
+          <th>Gasto diario</th>
+          <th>Última actualización</th>
           <th>Activo</th>
+          <th>Notas</th>
           <th>Acciones</th>
         </tr>
       </thead>
@@ -477,8 +412,7 @@ const db = getFirestore(app);
 
 const RUTA_FIJA = "Almacen_Ruta_2";
 const COL_VENTAS = "ventas_rutav2";
-const COL_GASTOS =
-  "TIENDAS/RUTA2/gastos_rutas";
+const COL_GASTOS = "TIENDAS/RUTA2/gastos_rutas";
 
 let gastosCache = [];
 
@@ -540,13 +474,6 @@ function daysBetweenInclusive(a,b){
   return Math.max(0, Math.floor((db - da) / MS) + 1);
 }
 
-function overlapDays(startA,endA,startB,endB){
-  const s = new Date(Math.max(startA.getTime(), startB.getTime()));
-  const e = new Date(Math.min(endA.getTime(), endB.getTime()));
-  if(e < s) return 0;
-  return daysBetweenInclusive(s,e);
-}
-
 function setText(id,value,clase=null){
   const el = document.getElementById(id);
   el.innerText = value;
@@ -569,6 +496,7 @@ window.consultar = async function(){
 
   const fechaInicio = buildLocalDate(inicio);
   const fechaFin = buildLocalDate(fin,true);
+  const diasReporte = daysBetweenInclusive(fechaInicio,fechaFin);
 
   setProgress(10,"Consultando ventas Ruta 2");
 
@@ -643,8 +571,7 @@ window.consultar = async function(){
 
   setProgress(60,"Consultando gastos de ruta");
 
-  const gastosAplicados = await calcularGastosPeriodo(fechaInicio,fechaFin);
-
+  const gastosAplicados = await calcularGastosPeriodo(diasReporte);
   const totalGastos = gastosAplicados.reduce((acc,g)=> acc + g.montoAplicado, 0);
 
   const utilidadDespuesComisiones = totalUtilidadBruta - totalComisiones;
@@ -661,35 +588,36 @@ window.consultar = async function(){
   renderDeptos(deptos,totalVentaSinImp,totalCosto,totalUtilidadBruta,totalIva,totalIeps,totalVentaConImp);
   renderComisiones(totalComisiones);
   renderGastos(gastosAplicados,totalGastos);
-  renderFinal({
-    totalVentaSinImp,
-    totalCosto,
-    totalUtilidadBruta,
-    totalComisiones,
-    utilidadDespuesComisiones,
-    totalGastos,
-    utilidadOperativa,
-    margenBruto,
-    margenOperativo
-  });
+let gastosHtml = "";
 
-  setText("boxVenta",fmtMoney(totalVentaSinImp));
-  setText("boxCosto",fmtMoney(totalCosto));
-  setText("boxUtilidadBruta",fmtMoney(totalUtilidadBruta), totalUtilidadBruta >= 0 ? "positivo" : "negativo");
-  setText("boxMargenBruto",margenBruto.toFixed(2) + "%");
-  setText("boxComisiones",fmtMoney(totalComisiones));
-  setText("boxGastos",fmtMoney(totalGastos));
-  setText("boxUtilidadOperativa",fmtMoney(utilidadOperativa), utilidadOperativa >= 0 ? "positivo" : "negativo");
-  setText("boxMargenOperativo",margenOperativo.toFixed(2) + "%");
+gastosAplicados.forEach(g=>{
+  gastosHtml += `
+    <tr>
+      <td>MENOS ${String(g.concepto || "").toUpperCase()}</td>
+      <td>${fmtMoney(g.montoAplicado)}</td>
+    </tr>
+  `;
+});
+
+renderFinal({
+  totalVentaSinImp,
+  totalCosto,
+  totalUtilidadBruta,
+  totalComisiones,
+  utilidadDespuesComisiones,
+  totalGastos,
+  utilidadOperativa,
+  margenOperativo,
+  gastosHtml
+});
 
   setProgress(100,"Reporte terminado");
 }
 
-async function calcularGastosPeriodo(fechaInicio,fechaFin){
+async function calcularGastosPeriodo(diasReporte){
 
   const qGastos = query(
     collection(db,COL_GASTOS),
-    where("rutaId","==",RUTA_FIJA),
     where("activo","==",true)
   );
 
@@ -699,37 +627,21 @@ async function calcularGastosPeriodo(fechaInicio,fechaFin){
   snap.forEach(docSnap=>{
     const g = { id:docSnap.id, ...docSnap.data() };
 
-    const tipo = g.tipo_calculo || "DIRECTO";
     const monto = n(g.monto);
     const diasAplicacion = Math.max(1,n(g.dias_aplicacion));
-
-    const gastoInicio = tsToDate(g.fecha_inicio) || fechaInicio;
-    const gastoFin = tsToDate(g.fecha_fin) || fechaFin;
-
-    let montoAplicado = 0;
-    let diasAplicados = 0;
-
-    if(tipo === "DIRECTO"){
-      if(gastoInicio >= fechaInicio && gastoInicio <= fechaFin){
-        montoAplicado = monto;
-        diasAplicados = 1;
-      }
-    }else{
-      diasAplicados = overlapDays(fechaInicio,fechaFin,gastoInicio,gastoFin);
-      const diario = monto / diasAplicacion;
-      montoAplicado = diario * diasAplicados;
-    }
+    const gastoDiario = monto / diasAplicacion;
+    const montoAplicado = gastoDiario * diasReporte;
 
     if(montoAplicado > 0){
       aplicados.push({
         id:g.id,
-        categoria:g.categoria || "OTROS",
         concepto:g.concepto || "SIN CONCEPTO",
-        tipo_calculo:tipo,
         montoBase:monto,
         dias_aplicacion:diasAplicacion,
-        dias_aplicados:diasAplicados,
+        gastoDiario,
+        diasReporte,
         montoAplicado,
+        fecha_actualizacion_info:g.fecha_actualizacion_info || null,
         notas:g.notas || ""
       });
     }
@@ -802,20 +714,21 @@ function renderGastos(gastos,totalGastos){
   if(gastos.length === 0){
     tbody.innerHTML = `
       <tr>
-        <td colspan="5">Sin gastos aplicables en el periodo.</td>
+        <td colspan="6">Sin gastos activos registrados.</td>
       </tr>
     `;
   }
 
   gastos
-    .sort((a,b)=> a.categoria.localeCompare(b.categoria))
+    .sort((a,b)=> a.concepto.localeCompare(b.concepto))
     .forEach(g=>{
       tbody.innerHTML += `
         <tr>
-          <td>${g.categoria}</td>
           <td>${g.concepto}</td>
-          <td><span class="badge">${g.tipo_calculo}</span></td>
-          <td>${fmtMoney(g.montoBase)} / ${g.dias_aplicacion} día(s)</td>
+          <td>${fmtMoney(g.montoBase)}</td>
+          <td>${g.dias_aplicacion}</td>
+          <td>${fmtMoney(g.gastoDiario)}</td>
+          <td>${g.diasReporte}</td>
           <td>${fmtMoney(g.montoAplicado)}</td>
         </tr>
       `;
@@ -823,36 +736,49 @@ function renderGastos(gastos,totalGastos){
 
   tbody.innerHTML += `
     <tr class="total">
-      <td colspan="4">TOTAL GASTOS RUTA</td>
+      <td colspan="5">TOTAL GASTOS PRORRATEADOS</td>
       <td>${fmtMoney(totalGastos)}</td>
     </tr>
   `;
 }
 
 function renderFinal(r){
+
   const tbody = document.getElementById("tablaFinal");
 
   tbody.innerHTML = `
-    <tr>
-      <td>Utilidad bruta</td>
-      <td>${fmtMoney(r.totalUtilidadBruta)}</td>
+  
+    <tr class="total">
+      <td>VENTA SIN IMPUESTOS</td>
+      <td>${fmtMoney(r.totalVentaSinImp)}</td>
     </tr>
+
     <tr>
-      <td>Menos comisiones calculadas</td>
+      <td>MENOS COSTO HISTÓRICO</td>
+      <td>${fmtMoney(r.totalCosto)}</td>
+    </tr>
+
+    <tr class="total">
+      <td>UTILIDAD BRUTA</td>
+      <td class="${r.totalUtilidadBruta >= 0 ? "positivo" : "negativo"}">
+        ${fmtMoney(r.totalUtilidadBruta)}
+      </td>
+    </tr>
+
+    <tr>
+      <td>MENOS COMISIONES</td>
       <td>${fmtMoney(r.totalComisiones)}</td>
     </tr>
-    <tr>
-      <td>Utilidad después de comisiones</td>
-      <td>${fmtMoney(r.utilidadDespuesComisiones)}</td>
-    </tr>
-    <tr>
-      <td>Menos gastos de ruta</td>
-      <td>${fmtMoney(r.totalGastos)}</td>
-    </tr>
+
+    ${r.gastosHtml}
+
     <tr class="total">
-      <td>UTILIDAD OPERATIVA FINAL</td>
-      <td class="${r.utilidadOperativa >= 0 ? "positivo" : "negativo"}">${fmtMoney(r.utilidadOperativa)}</td>
+      <td>RESULTADO OPERATIVO FINAL</td>
+      <td class="${r.utilidadOperativa >= 0 ? "positivo" : "negativo"}">
+        ${fmtMoney(r.utilidadOperativa)}
+      </td>
     </tr>
+
     <tr class="total">
       <td>MARGEN OPERATIVO</td>
       <td>${r.margenOperativo.toFixed(2)}%</td>
@@ -875,13 +801,10 @@ window.cerrarConfig = function(){
 
 window.limpiarFormGasto = function(){
   document.getElementById("gastoId").value = "";
-  document.getElementById("categoria").value = "NOMINA";
   document.getElementById("concepto").value = "";
   document.getElementById("monto").value = "";
-  document.getElementById("tipoCalculo").value = "DIRECTO";
   document.getElementById("diasAplicacion").value = "1";
-  document.getElementById("fechaGastoInicio").value = "";
-  document.getElementById("fechaGastoFin").value = "";
+  document.getElementById("fechaActualizacionInfo").value = "";
   document.getElementById("activo").value = "true";
   document.getElementById("notas").value = "";
 }
@@ -892,20 +815,17 @@ window.guardarGasto = async function(){
 
   const data = {
     rutaId:RUTA_FIJA,
-    categoria:document.getElementById("categoria").value,
     concepto:document.getElementById("concepto").value.trim(),
     monto:n(document.getElementById("monto").value),
-    tipo_calculo:document.getElementById("tipoCalculo").value,
     dias_aplicacion:Math.max(1,n(document.getElementById("diasAplicacion").value)),
-    fecha_inicio:dateInputToTimestamp("fechaGastoInicio",false),
-    fecha_fin:dateInputToTimestamp("fechaGastoFin",true),
+    fecha_actualizacion_info:dateInputToTimestamp("fechaActualizacionInfo",false),
     activo:document.getElementById("activo").value === "true",
     notas:document.getElementById("notas").value.trim(),
     actualizado_en:serverTimestamp()
   };
 
   if(!data.concepto){
-    alert("Escribe concepto");
+    alert("Escribe el concepto del gasto");
     return;
   }
 
@@ -914,8 +834,8 @@ window.guardarGasto = async function(){
     return;
   }
 
-  if(!data.fecha_inicio){
-    alert("Selecciona fecha inicio");
+  if(!data.fecha_actualizacion_info){
+    alert("Selecciona fecha de actualización de información");
     return;
   }
 
@@ -933,12 +853,7 @@ window.guardarGasto = async function(){
 
 async function cargarGastosConfig(){
 
-  const qGastos = query(
-    collection(db,COL_GASTOS),
-    where("rutaId","==",RUTA_FIJA)
-  );
-
-  const snap = await getDocs(qGastos);
+  const snap = await getDocs(collection(db,COL_GASTOS));
 
   gastosCache = [];
   snap.forEach(docSnap=>{
@@ -946,8 +861,8 @@ async function cargarGastosConfig(){
   });
 
   gastosCache.sort((a,b)=>{
-    const ca = a.categoria || "";
-    const cb = b.categoria || "";
+    const ca = a.concepto || "";
+    const cb = b.concepto || "";
     return ca.localeCompare(cb);
   });
 
@@ -970,18 +885,20 @@ function renderConfigGastos(){
 
   gastosCache.forEach(g=>{
 
-    const ini = dateToInput(g.fecha_inicio) || "-";
-    const fin = dateToInput(g.fecha_fin) || "sin fin";
+    const monto = n(g.monto);
+    const dias = Math.max(1,n(g.dias_aplicacion));
+    const diario = monto / dias;
+    const fechaAct = dateToInput(g.fecha_actualizacion_info) || "-";
 
     tbody.innerHTML += `
       <tr>
-        <td>${g.categoria || "OTROS"}</td>
         <td>${g.concepto || ""}</td>
-        <td>${fmtMoney(g.monto)}</td>
-        <td>${g.tipo_calculo || "DIRECTO"}</td>
-        <td>${g.dias_aplicacion || 1}</td>
-        <td>${ini} a ${fin}</td>
+        <td>${fmtMoney(monto)}</td>
+        <td>${dias}</td>
+        <td>${fmtMoney(diario)}</td>
+        <td>${fechaAct}</td>
         <td>${g.activo ? "SI" : "NO"}</td>
+        <td>${g.notas || ""}</td>
         <td>
           <button class="smallBtn" onclick="editarGasto('${g.id}')">Editar</button>
           <button class="smallBtn danger" onclick="toggleGasto('${g.id}',${g.activo ? "false" : "true"})">
@@ -999,13 +916,10 @@ window.editarGasto = function(id){
   if(!g) return;
 
   document.getElementById("gastoId").value = g.id;
-  document.getElementById("categoria").value = g.categoria || "OTROS";
   document.getElementById("concepto").value = g.concepto || "";
   document.getElementById("monto").value = n(g.monto);
-  document.getElementById("tipoCalculo").value = g.tipo_calculo || "DIRECTO";
   document.getElementById("diasAplicacion").value = g.dias_aplicacion || 1;
-  document.getElementById("fechaGastoInicio").value = dateToInput(g.fecha_inicio);
-  document.getElementById("fechaGastoFin").value = dateToInput(g.fecha_fin);
+  document.getElementById("fechaActualizacionInfo").value = dateToInput(g.fecha_actualizacion_info);
   document.getElementById("activo").value = g.activo ? "true" : "false";
   document.getElementById("notas").value = g.notas || "";
 }
