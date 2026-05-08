@@ -1956,12 +1956,12 @@ async function generarPDFProfesional(payload) {
     console.warn(e);
   }
 
-  const surtidos = ordenarPorConcepto(
-    payload.detalle.filter(x =>
-      Number(x.cantidad_surtida || 0) > 0 &&
-      x.agregado_en_surtido !== true
-    )
-  );
+const surtidos = ordenarPorConcepto(
+  payload.detalle.filter(x =>
+    Number(x.cantidad_surtida || 0) > 0
+  )
+);
+  
 
   const noSurtidos = ordenarPorConcepto(
     payload.detalle.filter(x =>
