@@ -1,1 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estado Financiero Bruto | Ruta 2</title>
 
+<style>
+body{
+  font-family:Arial;
+  background:#f4f6f9;
+  padding:20px;
+}
+
+.card{
+  max-width:1100px;
+  margin:auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.1);
+}
+
+h2{
+  margin:0 0 5px;
+  color:#0c4a6e;
+}
+
+.subtitulo{
+  margin-bottom:15px;
+  color:#555;
+  font-size:14px;
+}
+
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:15px;
+}
+
+input,button{
+  padding:8px;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+
+button{
+  background:#0c4a6e;
+  color:white;
+  cursor:pointer;
+}
+
+.progressBox{ margin-top:15px; }
+
+.progressBar{
+  width:100%;
+  height:18px;
+  background:#e5e7eb;
+  border-radius:8px;
+  overflow:hidden;
+}
+
+.progressFill{
+  height:100%;
+  width:0%;
+  background:#0c4a6e;
+  transition:width .3s;
+}
+
+.progressText{
+  margin-top:5px;
+  font-size:13px;
+  color:#555;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  font-size:14px;
+}
+
+th,td{
+  padding:8px;
+  border-bottom:1px solid #ddd;
+  text-align:right;
+}
+
+th:first-child,
+td:first-child{
+  text-align:left;
+}
+
+th{
+  background:#f1f5f9;
+}
+
+.total{
+  font-weight:bold;
+  background:#eef2f7;
+}
+
+.positivo{
+  color:#166534;
+  font-weight:bold;
+}
+
+.negativo{
+  color:#991b1b;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Estado Financiero Bruto | Ruta 2</h2>
+<div class="subtitulo">
+  Venta antes de impuestos contra costo histórico guardado en la venta.
+</div>
+
+<div class="controls">
+  <input type="date" id="fechaInicio">
+  <input type="date" id="fechaFin">
+  <button onclick="consultar()">Consultar Ruta 2</button>
+</div>
+
+<div class="progressBox">
+  <div class="progressBar">
+    <div class="progressFill" id="progressFill"></div>
+  </div>
+  <div class="progressText" id="progressText">Esperando consulta...</div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Departamento</th>
+      <th>Venta registrada</th>
+      <th>Costo histórico</th>
+      <th>Utilidad bruta</th>
+      <th>% Margen bruto</th>
+      <th>IVA</th>
+      <th>IEPS</th>
+      <th>Total venta</th>
+    </tr>
+  </thead>
+  <tbody id="tablaBody"></tbody>
+</table>
+
+</div>
+
+<script type="module">
+import { firebaseConfig } from "./config.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const RUTA_FIJA = "Almacen_Ruta_2";
+
+function n(v){
+  return Number(v) || 0;
+}
+
+function fixIEPS(v){
+  return n(v) / 8;
+}
+
+function setProgress(p,text){
+  document.getElementById("progressFill").style.width = p + "%";
+  document.getElementById("progressText").innerText = `${text} (${p}%)`;
+}
+
+function buildLocalDate(dateString,end=false){
+  const [y,m,d] = dateString.split("-").map(Number);
+  if(end) return new Date(y,m-1,d,23,59,59,999);
+  return new Date(y,m-1,d,0,0,0,0);
+}
+
+function fmtMoney(v){
+  return new Intl.NumberFormat("es-MX", {
+    style:"currency",
+    currency:"MXN",
+    minimumFractionDigits:2
+  }).format(n(v));
+}
+
+window.consultar = async function(){
+
+  const inicio = document.getElementById("fechaInicio").value;
+  const fin    = document.getElementById("fechaFin").value;
+
+  if(!inicio || !fin){
+    alert("Selecciona rango de fechas");
+    return;
+  }
+
+  const fechaInicio = buildLocalDate(inicio);
+  const fechaFin    = buildLocalDate(fin,true);
+
+  setProgress(15,"Consultando ventas Ruta 2");
+
+  const q = query(
+    collection(db,"ventas_rutav2"),
+    where("rutaId","==",RUTA_FIJA),
+    where("fecha",">=",fechaInicio),
+    where("fecha","<=",fechaFin)
+  );
+
+  const snapshot = await getDocs(q);
+
+  if(snapshot.empty){
+    document.getElementById("tablaBody").innerHTML = "";
+    setProgress(0,"Sin ventas Ruta 2");
+    alert("No hay ventas en Ruta 2 para ese periodo");
+    return;
+  }
+
+  setProgress(35,"Procesando ventas");
+
+  const acumulado = {};
+  let count = 0;
+
+  snapshot.forEach(docSnap=>{
+
+    const venta = docSnap.data();
+
+    (venta.detalle || []).forEach(item=>{
+
+      const depto = item.departamento_info?.nombre || "SIN DEPARTAMENTO";
+
+const ventaRegistrada = n(item.importe);
+
+const iva  = n(item.iva_calculado);
+
+// IEPS viene inflado en tus ventas históricas
+const ieps = fixIEPS(item.ieps_calculado);
+
+const ventaSinImpuestos = Math.max(0, ventaRegistrada - iva - ieps);
+
+const costoHistorico = n(item.costo_total_linea);
+
+const utilidadBruta = ventaSinImpuestos - costoHistorico;
+
+
+      if(!acumulado[depto]){
+        acumulado[depto] = {
+          ventaSinImpuestos:0,
+          costoHistorico:0,
+          utilidadBruta:0,
+          iva:0,
+          ieps:0,
+          totalVenta:0
+        };
+      }
+
+      acumulado[depto].ventaSinImpuestos += ventaSinImpuestos;
+      acumulado[depto].costoHistorico     += costoHistorico;
+      acumulado[depto].utilidadBruta      += utilidadBruta;
+      acumulado[depto].iva                += iva;
+      acumulado[depto].ieps               += ieps;
+      acumulado[depto].totalVenta += ventaRegistrada;
+    });
+
+    count++;
+    const percent = 35 + Math.round((count / snapshot.size) * 55);
+    setProgress(percent,"Calculando utilidad bruta");
+  });
+
+  render(acumulado);
+  setProgress(100,"Estado financiero bruto terminado");
+}
+
+function render(data){
+
+  const tbody = document.getElementById("tablaBody");
+  tbody.innerHTML = "";
+
+  let gVentaAntes = 0;
+  let gCosto = 0;
+  let gUtilidad = 0;
+  let gIva = 0;
+  let gIeps = 0;
+  let gTotal = 0;
+
+  Object.entries(data)
+    .sort((a,b)=> a[0].localeCompare(b[0]))
+    .forEach(([depto,v])=>{
+
+      gVentaAntes += v.ventaSinImpuestos;
+      gCosto      += v.costoHistorico;
+      gUtilidad   += v.utilidadBruta;
+      gIva        += v.iva;
+      gIeps       += v.ieps;
+      gTotal      += v.totalVenta;
+
+const margen = v.ventaSinImpuestos > 0
+  ? (v.utilidadBruta / v.ventaSinImpuestos) * 100
+  : 0;
+
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${depto}</td>
+          <td>${fmtMoney(v.ventaSinImpuestos)}</td>
+          <td>${fmtMoney(v.costoHistorico)}</td>
+          <td class="${v.utilidadBruta >= 0 ? "positivo" : "negativo"}">
+            ${fmtMoney(v.utilidadBruta)}
+          </td>
+          <td>${margen.toFixed(2)}%</td>
+          <td>${fmtMoney(v.iva)}</td>
+          <td>${fmtMoney(v.ieps)}</td>
+          <td>${fmtMoney(v.totalVenta)}</td>
+        </tr>
+      `;
+    });
+
+  const gMargen = gVentaAntes > 0
+    ? (gUtilidad / gVentaAntes) * 100
+    : 0;
+
+  tbody.innerHTML += `
+    <tr class="total">
+      <td>TOTAL GENERAL</td>
+      <td>${fmtMoney(gVentaAntes)}</td>
+      <td>${fmtMoney(gCosto)}</td>
+      <td class="${gUtilidad >= 0 ? "positivo" : "negativo"}">
+        ${fmtMoney(gUtilidad)}
+      </td>
+      <td>${gMargen.toFixed(2)}%</td>
+      <td>${fmtMoney(gIva)}</td>
+      <td>${fmtMoney(gIeps)}</td>
+      <td>${fmtMoney(gTotal)}</td>
+    </tr>
+  `;
+}
+</script>
+
+</body>
+</html>
