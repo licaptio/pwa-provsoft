@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Detalle de Ventas por Artículo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family:'Poppins',Arial,sans-serif;
+  background:#f4f6f9;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  border-radius:14px;
+  padding:20px;
+  max-width:1300px;
+  margin:auto;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+}
+
+h1{
+  color:#00416A;
+  margin-bottom:15px;
+}
+
+.filtros{
+  display:grid;
+  grid-template-columns: repeat(auto-fit,minmax(200px,1fr));
+  gap:12px;
+}
+
+select,input,button{
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+
+button{
+  background:#00416A;
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:20px;
+  font-size:13px;
+}
+
+th,td{
+  padding:7px;
+  border:1px solid #ddd;
+  text-align:center;
+}
+
+th{
+  background:#00416A;
+  color:white;
+  position:sticky;
+  top:0;
+}
+
+tr:nth-child(even){
+  background:#f8f9fb;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+<h1>📋 Detalle Global de Ventas</h1>
+
+<div class="filtros">
+  <select id="ruta">
+    <option value="">Selecciona ruta</option>
+    <option value="Almacen_Ruta_1">Ruta 1</option>
+    <option value="Almacen_Ruta_2">Ruta 2</option>
+  </select>
+
+  <input type="date" id="fechaInicio">
+  <input type="date" id="fechaFin">
+
+  <button onclick="generarListado()">Generar Listado</button>
+  <button id="btnGuardarComision"
+        style="margin-top:10px;background:#1e8e3e;"
+        onclick="guardarComision()">
+  💾 Guardar Comisión y Generar PDF
+</button>
+
+</div>
+
+<div id="resultado"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  where,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1",
+  storageBucket: "inventariopv-643f1.firebasestorage.app",
+  messagingSenderId: "96242533231",
+  appId: "1:96242533231:web:aae75a18fbaf9840529e9a"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+let resumenActual = null;
+
+window.generarListado = async function(){
+  const ruta = document.getElementById("ruta").value;
+  const f1 = document.getElementById("fechaInicio").value;
+  const f2 = document.getElementById("fechaFin").value;
+
+  if(!ruta || !f1 || !f2){
+    alert("Selecciona ruta y rango de fechas");
+    return;
+  }
+
+  const inicio = new Date(f1 + "T00:00:00");
+  const fin = new Date(f2 + "T23:59:59");
+
+  const q = query(
+    collection(db,"ventas_rutav2"),
+    where("rutaId","==",ruta),
+    where("fecha",">=",inicio),
+    where("fecha","<=",fin)
+  );
+
+  const snap = await getDocs(q);
+
+  let dataPorDepto = {};
+  let totalGeneral = 0;
+  let totalGeneralVentas = 0;
+  let encargadoRuta = "NO DEFINIDO";
+
+  snap.forEach(doc=>{
+    const v = doc.data();
+    if (encargadoRuta === "NO DEFINIDO" && v.usuarioNombre) {
+  encargadoRuta = v.usuarioNombre;
+}
+    if(!Array.isArray(v.detalle)) return;
+
+    v.detalle.forEach(item=>{
+
+const depto = item.departamento_info?.nombre || "SIN DEPTO";
+
+let comision = 0;
+
+const importe = Number(item.importe) || 0;
+const precioUnit = Number(item.precio_unit) || 0;
+
+const cantidad =
+  Number(item.cantidad) ||
+  Number(item.qty) ||
+  (precioUnit > 0 ? importe / precioUnit : 0);
+
+// 🔥 CÁLCULO CORRECTO PARA CIGARROS
+if (depto.toUpperCase().includes("CIGARRO")) {
+  comision = +(cantidad * 0.05).toFixed(2);
+} else {
+  comision = Number(item.comision_monto) || 0;
+}
+
+      if(!dataPorDepto[depto]){
+        dataPorDepto[depto] = {
+          filas: [],
+          totalComision: 0,
+          totalVentas: 0
+        };
+      }
+
+      dataPorDepto[depto].filas.push({
+        folio: v.folio || "-",
+        fecha: v.fecha_txt || "-",
+        codigo: item.codigo || "-",
+        nombre: item.nombre || "-",
+        cantidad: cantidad,                 // ✅ YA NO ES undefined
+        precio: Number(item.precio_unit) || 0,
+        importe: importe,
+       comisionValor: depto.toUpperCase().includes("CIGARRO")
+  ? "$0.50 / 10 pzs"
+  : (item.comision_valor || 0) + "%",
+        comisionMonto: comision
+      });
+
+      // 🔢 SUMATORIAS
+      dataPorDepto[depto].totalComision += comision;
+      dataPorDepto[depto].totalVentas += importe;
+      totalGeneral += comision;
+      totalGeneralVentas += importe;
+    });
+  });
+
+  const departamentosOrdenados = Object.keys(dataPorDepto).sort();
+
+  let html = `
+    <p><strong>Ruta:</strong> ${ruta}</p>
+    <p><strong>Periodo:</strong> ${f1} al ${f2}</p>
+
+    <p style="font-size:16px;margin:10px 0;">
+      <strong>Total General de Ventas:</strong>
+      $${totalGeneralVentas.toFixed(2)}
+    </p>
+
+    <p style="font-size:16px;margin:5px 0;">
+      <strong>Total General de Comisión:</strong>
+      $${totalGeneral.toFixed(2)}
+    </p>
+
+    <table>
+      <tr>
+        <th>Folio</th>
+        <th>Fecha</th>
+        <th>Código</th>
+        <th>Descripción</th>
+        <th>Departamento</th>
+        <th>Cantidad</th>     
+        <th>Precio Unit.</th>
+        <th>Total</th>
+        <th>% Comisión</th>
+        <th>Total Comisión</th>
+      </tr>
+  `;
+
+  departamentosOrdenados.forEach(depto=>{
+
+    html += `
+      <tr style="background:#e3eefc;font-weight:bold;">
+        <td colspan="9">📦 ${depto}</td>
+      </tr>
+    `;
+
+    dataPorDepto[depto].filas.forEach(f=>{
+      html += `
+        <tr>
+          <td>${f.folio}</td>
+          <td>${f.fecha}</td>
+          <td>${f.codigo}</td>
+          <td>${f.nombre}</td>
+          <td>${depto}</td>
+          <td>${f.cantidad}</td> <!-- 👈 NUEVO -->
+          <td>$${f.precio.toFixed(2)}</td>
+          <td>$${f.importe.toFixed(2)}</td>
+          <td>${f.comisionValor}</td>
+          <td>$${f.comisionMonto.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+      <tr style="background:#fff3cd;font-weight:bold;">
+        <td colspan="8">Total Comisión ${depto}</td>
+        <td>$${dataPorDepto[depto].totalComision.toFixed(2)}</td>
+      </tr>
+
+      <tr style="background:#e8f5e9;font-weight:bold;">
+        <td colspan="8">Total Ventas ${depto}</td>
+        <td>$${dataPorDepto[depto].totalVentas.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+resumenActual = {
+  ruta,
+  encargado: encargadoRuta, // 👈 ESTA LÍNEA FALTABA
+  periodo: { inicio: f1, fin: f2 },
+  totalVentas: totalGeneralVentas,
+  totalComisiones: totalGeneral,
+  departamentos: Object.keys(dataPorDepto).map(d => ({
+    nombre: d,
+    totalVentas: dataPorDepto[d].totalVentas,
+    totalComision: dataPorDepto[d].totalComision
+  })),
+  fechaGeneracion: new Date()
+};
+
+  document.getElementById("resultado").innerHTML = html;
+};
+function formatoMoneda(valor) {
+  return valor.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function generarPDFComision(data) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("p", "mm", "a4");
+
+  let y = 15;
+
+  /* ====== ENCABEZADO ====== */
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(16);
+  pdf.text("REPORTE DE COMISIONES", 105, y, { align: "center" });
+  y += 10;
+
+  pdf.setDrawColor(0);
+  pdf.line(10, y, 200, y);
+  y += 8;
+
+  /* ====== DATOS GENERALES ====== */
+  pdf.setFontSize(11);
+  pdf.setFont("helvetica", "normal");
+
+ pdf.text(`Ruta: ${data.ruta}`, 10, y); y += 6;
+pdf.text(`Encargado de Ruta: ${data.encargado}`, 10, y); y += 6;
+pdf.text(
+  `Periodo: ${data.periodo.inicio} al ${data.periodo.fin}`,
+  10,
+  y
+);
+y += 8;
+
+
+pdf.text(
+  `Total General de Ventas: $${formatoMoneda(data.totalVentas)}`,
+  10,
+  y
+);
+y += 6;
+
+pdf.setFont("helvetica", "bold");
+pdf.text(
+  `Total General de Comisiones: $${formatoMoneda(data.totalComisiones)}`,
+  10,
+  y
+);
+y += 10;
+
+
+  /* ====== TABLA: COMISIONES POR DEPARTAMENTO ====== */
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(12);
+  pdf.text("Comisiones por Departamento", 10, y);
+  y += 6;
+
+  // Encabezados de tabla
+  pdf.setFontSize(10);
+  pdf.setFillColor(230, 230, 230);
+  pdf.rect(10, y, 190, 8, "F");
+
+  pdf.text("Departamento", 12, y + 5);
+  pdf.text("Ventas ($)", 120, y + 5, { align: "right" });
+  pdf.text("Comisión ($)", 190, y + 5, { align: "right" });
+
+  y += 8;
+
+  pdf.setFont("helvetica", "normal");
+
+data.departamentos.forEach(d => {
+  if (y > 270) {
+    pdf.addPage();
+    y = 15;
+  }
+
+  pdf.rect(10, y, 190, 8);
+
+  // 👇 ESTA LÍNEA ES LA QUE FALTABA
+  pdf.text(d.nombre, 12, y + 5);
+
+  pdf.text(
+    formatoMoneda(d.totalVentas),
+    120,
+    y + 5,
+    { align: "right" }
+  );
+
+  pdf.text(
+    formatoMoneda(d.totalComision),
+    190,
+    y + 5,
+    { align: "right" }
+  );
+
+  y += 8;
+});
+
+  /* ====== PIE ====== */
+  y += 8;
+  pdf.setFontSize(9);
+  pdf.setFont("helvetica", "italic");
+  pdf.text(
+    `Documento generado el ${new Date().toLocaleString()}`,
+    105,
+    y,
+    { align: "center" }
+  );
+
+  pdf.save(
+    `Comisiones_${data.ruta}_${data.periodo.inicio}_${data.periodo.fin}.pdf`
+  );
+}
+window.guardarComision = async function () {
+  if (!resumenActual) {
+    alert("Primero genera el listado");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "comisiones_generadas"), {
+      ruta: resumenActual.ruta,
+      periodo: resumenActual.periodo,
+      total_vendido: resumenActual.totalVentas,
+      total_comisiones: resumenActual.totalComisiones,
+      departamentos: resumenActual.departamentos,
+      fecha: new Date()
+    });
+
+    generarPDFComision(resumenActual);
+
+    alert("✅ Comisión guardada correctamente");
+
+  } catch (e) {
+    console.error(e);
+    alert("❌ Error al guardar la comisión");
+  }
+};
+</script>
+</body>
+</html>
