@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Departamentos y Comisiones – PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+/* =============================
+   BASE
+============================= */
+body{
+  font-family:'Inter','Poppins',Arial,sans-serif;
+  background:#eef1f5;
+  margin:0;
+  padding:30px;
+  color:#222;
+}
+
+h2{
+  margin:0 0 6px 0;
+  font-weight:600;
+}
+
+.small{
+  font-size:13px;
+  color:#666;
+  margin-bottom:18px;
+}
+
+/* =============================
+   CONTAINER
+============================= */
+.container{
+  max-width:1280px;
+  margin:0 auto;
+}
+
+/* =============================
+   TABLE
+============================= */
+table{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  background:#fff;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 10px 30px rgba(0,0,0,.08);
+}
+
+th{
+  background:linear-gradient(135deg,#00416A,#0c6cbd);
+  color:#fff;
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  font-weight:600;
+  padding:14px 12px;
+}
+
+td{
+  padding:12px;
+  border-bottom:1px solid #edf0f4;
+  vertical-align:middle;
+  font-size:14px;
+}
+
+tr:last-child td{
+  border-bottom:none;
+}
+
+/* =============================
+   BADGES
+============================= */
+.badge{
+  display:inline-block;
+  padding:4px 12px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+  color:#fff;
+}
+
+.badge.ok{
+  background:linear-gradient(135deg,#1e8e3e,#34c759);
+}
+
+.badge.warn{
+  background:linear-gradient(135deg,#e67e22,#f39c12);
+}
+
+/* =============================
+   ASSIGN BOX
+============================= */
+.assign-box{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.assign-box select{
+  width:70px;
+  padding:6px;
+}
+
+.assign-box input{
+  width:90px;
+  padding:6px;
+  text-align:right;
+}
+
+/* =============================
+   BUTTONS
+============================= */
+button{
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:600;
+}
+
+button.save{
+  background:linear-gradient(135deg,#0c6cbd,#00416A);
+  color:#fff;
+  box-shadow:0 4px 12px rgba(12,108,189,.35);
+}
+
+button.save:hover{filter:brightness(1.1)}
+
+button.edit{
+  background:#ecf0f1;
+  color:#555;
+}
+
+button.edit:hover{
+  background:#dcdde1;
+}
+
+button:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+/* =============================
+   OVERLAY
+============================= */
+#overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+}
+
+#overlay .box{
+  background:#fff;
+  padding:24px;
+  border-radius:16px;
+  width:280px;
+  text-align:center;
+  box-shadow:0 20px 40px rgba(0,0,0,.25);
+}
+
+.spinner{
+  width:38px;
+  height:38px;
+  border:4px solid #e0e0e0;
+  border-top-color:#0c6cbd;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+.progress-bar{
+  background:#eee;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:10px;
+}
+
+.progress-bar div{
+  height:10px;
+  width:0%;
+  background:#0c6cbd;
+  transition:width .25s;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>⚙️ Departamentos y Comisiones</h2>
+<div class="small">
+Panel administrativo de control. La comisión vive en los productos.
+</div>
+
+<table id="tabla">
+<thead>
+<tr>
+  <th>ID</th>
+  <th>Departamento</th>
+  <th>Comisión actual</th>
+  <th>Avance</th>
+  <th>Asignar comisión</th>
+  <th>Renombrar</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay">
+  <div class="box">
+    <div class="spinner"></div>
+    <b>Actualizando productos…</b>
+    <div class="small" id="progressText">0 / 0</div>
+    <div class="progress-bar">
+      <div id="bar"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, query, where,
+  updateDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* FIREBASE */
+const app = initializeApp({
+  apiKey: "AIzaSyCK5nb6u2CGRJ8AB1aPlRn54b97bdeAFeM",
+  authDomain: "inventariopv-643f1.firebaseapp.com",
+  projectId: "inventariopv-643f1"
+});
+const db = getFirestore(app);
+
+/* UI */
+const overlay=document.getElementById("overlay");
+const bar=document.getElementById("bar");
+const progressText=document.getElementById("progressText");
+
+function start(total){
+  overlay.style.display="flex";
+  bar.style.width="0%";
+  progressText.textContent=`0 / ${total}`;
+}
+function step(i,total){
+  bar.style.width=Math.round((i/total)*100)+"%";
+  progressText.textContent=`${i} / ${total}`;
+}
+function stop(){overlay.style.display="none";}
+
+/* MAIN */
+async function cargar(){
+  const tbody=document.querySelector("#tabla tbody");
+  tbody.innerHTML="";
+
+  const snap=await getDocs(
+    query(collection(db,"productos"),where("activo","==",true))
+  );
+
+  const map=new Map();
+
+  snap.forEach(d=>{
+    const p=d.data();
+    if(!p.departamento_id)return;
+    if(!map.has(p.departamento_id)){
+      map.set(p.departamento_id,{
+        id:p.departamento_id,
+        nombre:p.departamento||"SIN NOMBRE",
+        docs:[]
+      });
+    }
+    map.get(p.departamento_id).docs.push(d);
+  });
+
+  [...map.values()]
+    .sort((a,b)=>Number(a.id)-Number(b.id))
+    .forEach(dep=>renderFila(dep,tbody));
+}
+
+function renderFila(dep,tbody){
+  const tr=document.createElement("tr");
+
+  const count=new Map();
+  dep.docs.forEach(d=>{
+    const p=d.data();
+    if(p.comision_tipo!=null){
+      const k=`${p.comision_tipo}|${p.comision_valor}`;
+      count.set(k,(count.get(k)||0)+1);
+    }
+  });
+
+  let dominante=null,max=0;
+  for(const [k,v] of count){if(v>max){max=v;dominante=k}}
+
+  let texto="—",pct=0,faltan=dep.docs.length;
+  let tipoDom="",valorDom="";
+  if(dominante){
+    [tipoDom,valorDom]=dominante.split("|");
+    texto=`${tipoDom} ${valorDom}`;
+    pct=Math.round((max/dep.docs.length)*100);
+    faltan=dep.docs.length-max;
+  }
+
+  tr.innerHTML=`
+    <td>${dep.id}</td>
+    <td>${dep.nombre}</td>
+    <td>${texto}</td>
+    <td>
+      ${pct===100
+        ? `<span class="badge ok">100 %</span>`
+        : `<span class="badge warn">${pct} % (${faltan})</span>`}
+    </td>
+    <td>
+      <div class="assign-box">
+        <select>
+          <option value="porcentaje">%</option>
+          <option value="pieza">$</option>
+        </select>
+        <input type="number" step="0.01" value="${valorDom||0}">
+        <button class="save">Guardar</button>
+      </div>
+    </td>
+    <td>
+      <button class="edit">✏️</button>
+    </td>
+  `;
+
+  const sel=tr.querySelector("select");
+  const inp=tr.querySelector("input");
+  const btnSave=tr.querySelector(".save");
+  const btnEdit=tr.querySelector(".edit");
+
+  if(tipoDom) sel.value=tipoDom;
+
+  btnSave.onclick=async()=>{
+    const tipo=sel.value;
+    const valor=Number(inp.value)||0;
+    if(!confirm(`Asignar comisión ${tipo} ${valor} a ${dep.docs.length} productos?`))return;
+
+    start(dep.docs.length);
+    let i=0;
+    for(const d of dep.docs){
+      i++;
+      await updateDoc(d.ref,{
+        comision_tipo:tipo,
+        comision_valor:valor,
+        updatedAt:serverTimestamp()
+      });
+      step(i,dep.docs.length);
+    }
+    stop();
+    cargar();
+  };
+
+  btnEdit.onclick=async()=>{
+    const nuevo=prompt("Nuevo nombre del departamento:",dep.nombre);
+    if(!nuevo)return;
+
+    start(dep.docs.length);
+    let i=0;
+    for(const d of dep.docs){
+      i++;
+      await updateDoc(d.ref,{
+        departamento:nuevo.toUpperCase(),
+        updatedAt:serverTimestamp()
+      });
+      step(i,dep.docs.length);
+    }
+    stop();
+    cargar();
+  };
+
+  tbody.appendChild(tr);
+}
+
+cargar();
+</script>
+
+</body>
+</html>
