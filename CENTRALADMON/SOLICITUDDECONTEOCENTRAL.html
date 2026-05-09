@@ -247,14 +247,48 @@ document.getElementById("buscador").oninput = e => {
 };
 
 async function cargar(){
-  const snap = await getDocs(collection(db,"TIENDAS","CENTRAL","inventario1"));
 
-  listado = snap.docs.map(d=>({
-    codigo:d.id,
-    nombre:String(d.data().descripcion || d.data().concepto || d.id)
-  }));
+  const snap = await getDocs(
 
-  document.getElementById("status").innerText = "Listado cargado: " + listado.length + " artículos";
+    collection(
+      db,
+      "TIENDAS",
+      "CENTRAL",
+      "inventario1"
+    )
+  );
+
+  listado = [];
+
+  snap.forEach(doc=>{
+
+    const d = doc.data();
+
+    const codigo = String(
+      d.codigo ||
+      d.codigoBarra ||
+      d.codigobarra ||
+      ""
+    ).trim();
+
+    const nombre = String(
+      d.descripcion ||
+      d.concepto ||
+      d.nombre ||
+      ""
+    ).trim();
+
+    if(!codigo || !nombre) return;
+
+    listado.push({
+      codigo,
+      nombre
+    });
+
+  });
+
+  document.getElementById("status").innerText =
+    "Listado cargado: " + listado.length + " artículos";
 }
 
 document.getElementById("btnActualizar").onclick = cargar;
