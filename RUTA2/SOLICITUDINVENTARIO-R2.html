@@ -93,10 +93,19 @@ import {
   getDocs,
   doc,
   setDoc,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const CONTEO_REF = collection(db, "TIENDAS", "CENTRAL", "CONTEO_DIARIO");
+const CONTEO_REF = collection(
+  db,
+  "TIENDAS",
+  "RUTA2",
+  "CONTEO_DIARIO"
+);
 
 let listado = [];
 let carrito = [];
@@ -200,7 +209,7 @@ document.getElementById("btnConfirmarFinal").onclick = async () => {
   await setDoc(doc(CONTEO_REF, folio), {
     folio,
     estatus:"PENDIENTE",
-    sucursal:"CENTRAL",
+    sucursal:"RUTA2",
     solicitadoPor:"AUDITORIA PDD",
     fechaSolicitud:serverTimestamp(),
     notasSolicitud:notas,
@@ -231,12 +240,8 @@ document.getElementById("buscador").oninput = e => {
   ).slice(0,20);
 
   box.innerHTML = res.map(p=>`
-    <div class="result-item">
-  <b>${p.codigo}</b><br>
-  ${p.nombre}<br>
-  <span style="color:green">
-    Stock: ${Number(p.stock).toFixed(2)}
-  </span>
+<div class="result-item">
+  ${p.codigo} - ${p.nombre}
 </div>
   `).join("");
 
@@ -254,33 +259,41 @@ document.getElementById("buscador").oninput = e => {
 async function cargar(){
 
   document.getElementById("status").innerText =
-    "Calculando stock físico teórico...";
+    "Cargando listado...";
 
-  const inventariosData = await cargarInventarios();
-  const transferenciasData = await cargarTransferencias();
-  const ventasData = await cargarVentas();
+  const snap = await getDocs(
 
-  let registros = [
-    ...inventariosData.docs,
-    ...transferenciasData.docs,
-    ...ventasData.docs
-  ];
+    collection(
+      db,
+      "TIENDAS",
+      "RUTA2",
+      "INVENTARIOS"
+    )
+  );
 
-  const pivot = construirPivot(registros);
+  listado = snap.docs.map(doc=>{
 
-  listado = pivot.rows
-    .filter(p => p.neto > 0)
-    .map(p => ({
-      codigo: p.codigo,
-      nombre: p.descripcion || "",
-      stock: p.neto
-    }))
-    .sort((a,b)=> b.stock - a.stock);
+    const d = doc.data();
+
+    return {
+
+      codigo:String(
+        d.codigo || doc.id || ""
+      ).trim(),
+
+      nombre:String(
+        d.descripcion ||
+        d.concepto ||
+        ""
+      ).trim()
+    };
+
+  });
 
   document.getElementById("status").innerText =
-    "Listado calculado: " + listado.length + " productos disponibles";
+    "Listado cargado: " + listado.length + " artículos";
 }
-
+  
 document.getElementById("btnActualizar").onclick = cargar;
 
 pintarCarrito();
