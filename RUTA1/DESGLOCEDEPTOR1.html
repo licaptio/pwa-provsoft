@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>DESGLOCE DEPARTAMENTO R1 | PROVSOFT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="icon" href="./logo.jfif">
+
+<style>
+:root{
+  --naranja:#f97316;
+  --naranja2:#ea580c;
+  --verde:#166534;
+  --rojo:#991b1b;
+  --azul:#0c6cbd;
+  --borde:#d1d5db;
+  --texto:#111827;
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  padding:20px;
+  background:linear-gradient(to right,#fff7ed,#ffffff);
+  font-family:Arial,sans-serif;
+  color:var(--texto);
+}
+
+.card{
+  max-width:1700px;
+  margin:auto;
+  background:white;
+  border-radius:18px;
+  padding:22px;
+  box-shadow:0 8px 30px rgba(0,0,0,.10);
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+
+.logoWrap{
+  display:flex;
+  align-items:center;
+  gap:18px;
+}
+
+.logoWrap img{
+  width:150px;
+  max-width:100%;
+  object-fit:contain;
+}
+
+h1{
+  margin:0;
+  color:var(--naranja2);
+  font-size:30px;
+}
+
+.sub{
+  margin-top:6px;
+  color:#555;
+  font-size:14px;
+}
+
+.controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:22px;
+  align-items:center;
+}
+
+input,select,button{
+  font-family:Arial,sans-serif;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid var(--borde);
+  background:white;
+}
+
+button{
+  background:var(--naranja2);
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+}
+
+button:hover{ background:var(--naranja); }
+
+.btnAzul{ background:var(--azul); }
+.btnAzul:hover{ background:#075985; }
+
+.btnRojo{ background:var(--rojo); }
+.btnRojo:hover{ background:#b91c1c; }
+
+.progressBox{ margin-top:18px; }
+
+.progressBar{
+  width:100%;
+  height:18px;
+  background:#e5e7eb;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progressFill{
+  height:100%;
+  width:0%;
+  background:linear-gradient(to right,var(--naranja),var(--naranja2));
+  transition:width .3s;
+}
+
+.progressText{
+  margin-top:7px;
+  font-size:13px;
+  color:#555;
+}
+
+.sectionTitle{
+  margin-top:26px;
+  background:#fff7ed;
+  color:var(--naranja2);
+  border-left:6px solid var(--naranja2);
+  padding:12px;
+  border-radius:10px;
+  font-weight:bold;
+  font-size:18px;
+}
+
+.positivo{ color:var(--verde); font-weight:bold; }
+.negativo{ color:var(--rojo); font-weight:bold; }
+
+.tableWrap{
+  width:100%;
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:14px;
+  font-size:13px;
+}
+
+th,td{
+  padding:8px;
+  border-bottom:1px solid #e5e7eb;
+  text-align:right;
+  white-space:nowrap;
+}
+
+th:first-child,
+td:first-child{
+  text-align:left;
+}
+
+th{
+  background:#fff7ed;
+  color:var(--naranja2);
+  position:sticky;
+  top:0;
+  z-index:2;
+}
+
+.total{
+  background:#fff7ed;
+  font-weight:bold;
+}
+
+.filtrosDetalle{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+
+.filtrosDetalle input{
+  min-width:260px;
+}
+
+.badge{
+  display:inline-block;
+  background:#e0f2fe;
+  color:#075985;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:bold;
+}
+
+@media(max-width:700px){
+  body{ padding:10px; }
+  .card{ padding:15px; }
+  h1{ font-size:22px; }
+  table{ font-size:11px; }
+  th,td{ padding:6px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <div class="topbar">
+    <div class="logoWrap">
+      <img src="./logo.jfif">
+      <div>
+        <h1>DESGLOCE DEPARTAMENTO RUTA 1</h1>
+        <div class="sub">
+          Consulta ticket por ticket cómo se forma cada fila del reporte por departamento.
+        </div>
+      </div>
+    </div>
+
+    <button class="btnRojo" onclick="window.close()">Cerrar</button>
+  </div>
+
+  <div class="controls">
+    <input type="date" id="fechaInicio">
+    <input type="date" id="fechaFin">
+
+    <select id="departamento">
+      <option value="">TODOS LOS DEPARTAMENTOS</option>
+    </select>
+
+    <button onclick="consultar()">Consultar</button>
+    <button class="btnAzul" onclick="exportarCSV()">Exportar CSV</button>
+    <button class="btnAzul" onclick="imprimir()">Imprimir</button>
+  </div>
+
+  <div class="progressBox">
+    <div class="progressBar">
+      <div class="progressFill" id="progressFill"></div>
+    </div>
+    <div class="progressText" id="progressText">Esperando consulta...</div>
+  </div>
+
+  <div class="sectionTitle">Detalle ticket por ticket</div>
+
+  <div class="filtrosDetalle">
+    <input id="buscarTexto" placeholder="Buscar ticket, cliente, producto, código..." oninput="renderDetalle()">
+
+    <select id="filtroMargen" onchange="renderDetalle()">
+      <option value="">Todos</option>
+      <option value="perdida">Solo pérdida</option>
+      <option value="bajo">Margen menor a 10%</option>
+      <option value="descuento">Con descuento</option>
+    </select>
+  </div>
+
+  <div class="tableWrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Fecha</th>
+          <th>Cliente</th>
+          <th>Departamento</th>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Cantidad</th>
+          <th>Venta bruta</th>
+          <th>Descuento</th>
+          <th>Venta neta</th>
+          <th>Costo total</th>
+          <th>Costo unitario</th>
+          <th>Utilidad</th>
+          <th>% Margen</th>
+          <th>IVA</th>
+          <th>IEPS</th>
+          <th>Total venta</th>
+        </tr>
+      </thead>
+      <tbody id="tablaDetalle"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script type="module">
+import { firebaseConfig } from "./config.js";
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const RUTA_FIJA = "Almacen_Ruta_1";
+const COL_VENTAS = "ventas_rutav2";
+
+let detalleGlobal = [];
+
+function n(v){
+  return Number(v) || 0;
+}
+
+function fmtMoney(v){
+  return new Intl.NumberFormat("es-MX", {
+    style:"currency",
+    currency:"MXN",
+    minimumFractionDigits:2
+  }).format(n(v));
+}
+
+function fmtNum(v){
+  return new Intl.NumberFormat("es-MX", {
+    minimumFractionDigits:2,
+    maximumFractionDigits:2
+  }).format(n(v));
+}
+
+function setProgress(p,text){
+  document.getElementById("progressFill").style.width = p + "%";
+  document.getElementById("progressText").innerText = `${text} (${p}%)`;
+}
+
+function buildLocalDate(dateString,end=false){
+  const [y,m,d] = dateString.split("-").map(Number);
+  if(end) return new Date(y,m-1,d,23,59,59,999);
+  return new Date(y,m-1,d,0,0,0,0);
+}
+
+function tsToDate(ts){
+  if(!ts) return null;
+  if(typeof ts.toDate === "function") return ts.toDate();
+  if(ts.seconds) return new Date(ts.seconds * 1000);
+  return new Date(ts);
+}
+
+function fmtFecha(ts){
+  const d = tsToDate(ts);
+  if(!d || isNaN(d)) return "";
+  return d.toLocaleString("es-MX");
+}
+
+function getParam(name){
+  const url = new URL(window.location.href);
+  return decodeURIComponent(url.searchParams.get(name) || "");
+}
+
+function detectarCamposTicket(venta, docId){
+  return venta.folio 
+    || venta.ticket 
+    || venta.numero_ticket 
+    || venta.id_ticket 
+    || venta.consecutivo 
+    || docId;
+}
+
+function detectarCodigo(item){
+  return item.codigo
+    || item.codigo_barras
+    || item.clave
+    || item.sku
+    || item.id_producto
+    || "";
+}
+
+function detectarProducto(item){
+  return item.descripcion
+    || item.nombre
+    || item.producto
+    || item.descripcion_producto
+    || "";
+}
+
+function detectarCantidad(item){
+  return n(item.cantidad || item.piezas || item.qty || 0);
+}
+
+function detectarCliente(venta){
+  return venta.cliente
+    || venta.nombre_cliente
+    || venta.razon_social
+    || venta.cliente_nombre
+    || "PUBLICO EN GENERAL";
+}
+
+window.onload = async function(){
+
+  const inicio = getParam("inicio");
+  const fin = getParam("fin");
+  const depto = getParam("depto");
+
+  if(inicio) document.getElementById("fechaInicio").value = inicio;
+  if(fin) document.getElementById("fechaFin").value = fin;
+
+  if(depto){
+    const sel = document.getElementById("departamento");
+    const opt = document.createElement("option");
+    opt.value = depto;
+    opt.textContent = depto;
+    opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+  if(inicio && fin){
+    await consultar();
+  }
+};
+
+window.consultar = async function(){
+
+  const inicio = document.getElementById("fechaInicio").value;
+  const fin = document.getElementById("fechaFin").value;
+  const deptoFiltro = document.getElementById("departamento").value;
+
+  if(!inicio || !fin){
+    alert("Selecciona rango de fechas");
+    return;
+  }
+
+  setProgress(10,"Consultando ventas");
+
+  const fechaInicio = buildLocalDate(inicio);
+  const fechaFin = buildLocalDate(fin,true);
+
+  const qVentas = query(
+    collection(db,COL_VENTAS),
+    where("rutaId","==",RUTA_FIJA),
+    where("fecha",">=",fechaInicio),
+    where("fecha","<=",fechaFin)
+  );
+
+  const snapVentas = await getDocs(qVentas);
+
+  detalleGlobal = [];
+  const departamentosSet = new Set();
+
+  let count = 0;
+
+  snapVentas.forEach(docSnap=>{
+
+    const venta = docSnap.data();
+    const ticket = detectarCamposTicket(venta, docSnap.id);
+    const cliente = detectarCliente(venta);
+    const fecha = venta.fecha || null;
+
+    (venta.detalle || []).forEach(item=>{
+
+      const depto = item.departamento_info?.nombre 
+        || item.departamento 
+        || item.depto 
+        || "SIN DEPARTAMENTO";
+
+      departamentosSet.add(depto);
+
+      if(deptoFiltro && depto !== deptoFiltro) return;
+
+      const cantidad = detectarCantidad(item);
+
+      const ventaSinImpNeta = n(item.importe);
+      const descuentoSinImp = n(item.descuento_aplicado);
+      const ventaSinImpBruta = ventaSinImpNeta + descuentoSinImp;
+
+      const costoHistorico = n(item.costo_total_linea);
+      const costoUnitario = cantidad > 0 ? costoHistorico / cantidad : 0;
+
+      const utilidadBruta = item.utilidad_linea !== undefined
+        ? n(item.utilidad_linea)
+        : ventaSinImpNeta - costoHistorico;
+
+      const iva = n(item.iva_calculado);
+
+      const iepsTasa = n(item.iepsTasa);
+      const iepsBase = n(item.ieps_calculado);
+
+      const ieps = iepsTasa > 0
+        ? iepsBase * (iepsTasa / 100)
+        : 0;
+
+      const ventaConImp = ventaSinImpNeta;
+
+      const margen = ventaSinImpNeta > 0
+        ? (utilidadBruta / ventaSinImpNeta) * 100
+        : 0;
+
+      detalleGlobal.push({
+        ticket,
+        fecha,
+        cliente,
+        departamento:depto,
+        codigo:detectarCodigo(item),
+        producto:detectarProducto(item),
+        cantidad,
+        ventaSinImpBruta,
+        descuentoSinImp,
+        ventaSinImpNeta,
+        costoHistorico,
+        costoUnitario,
+        utilidadBruta,
+        margen,
+        iva,
+        ieps,
+        ventaConImp
+      });
+
+    });
+
+    count++;
+    const p = snapVentas.size > 0 
+      ? 10 + Math.round((count / snapVentas.size) * 70)
+      : 80;
+
+    setProgress(p,"Procesando tickets");
+  });
+
+  cargarSelectDepartamentos(departamentosSet, deptoFiltro);
+  renderDetalle();
+
+  setProgress(100,`Consulta terminada. Líneas encontradas: ${detalleGlobal.length}`);
+};
+
+function cargarSelectDepartamentos(setDeptos, valorActual){
+
+  const sel = document.getElementById("departamento");
+  const actual = valorActual || sel.value;
+
+  sel.innerHTML = `<option value="">TODOS LOS DEPARTAMENTOS</option>`;
+
+  [...setDeptos]
+    .sort((a,b)=> a.localeCompare(b))
+    .forEach(d=>{
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d;
+      if(d === actual) opt.selected = true;
+      sel.appendChild(opt);
+    });
+}
+
+window.renderDetalle = function(){
+
+  const tbody = document.getElementById("tablaDetalle");
+  const texto = document.getElementById("buscarTexto").value.trim().toLowerCase();
+  const filtroMargen = document.getElementById("filtroMargen").value;
+
+  let rows = [...detalleGlobal];
+
+  if(texto){
+    rows = rows.filter(x=>{
+      const cad = `
+        ${x.ticket}
+        ${x.cliente}
+        ${x.departamento}
+        ${x.codigo}
+        ${x.producto}
+      `.toLowerCase();
+
+      return cad.includes(texto);
+    });
+  }
+
+  if(filtroMargen === "perdida"){
+    rows = rows.filter(x=> x.utilidadBruta < 0);
+  }
+
+  if(filtroMargen === "bajo"){
+    rows = rows.filter(x=> x.margen < 10);
+  }
+
+  if(filtroMargen === "descuento"){
+    rows = rows.filter(x=> x.descuentoSinImp > 0);
+  }
+
+  tbody.innerHTML = "";
+
+  if(rows.length === 0){
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="17">Sin resultados.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  rows.forEach(x=>{
+
+    tbody.innerHTML += `
+      <tr>
+        <td>${x.ticket}</td>
+        <td>${fmtFecha(x.fecha)}</td>
+        <td>${x.cliente}</td>
+        <td><span class="badge">${x.departamento}</span></td>
+        <td>${x.codigo}</td>
+        <td>${x.producto}</td>
+        <td>${fmtNum(x.cantidad)}</td>
+        <td>${fmtMoney(x.ventaSinImpBruta)}</td>
+        <td>${fmtMoney(x.descuentoSinImp)}</td>
+        <td>${fmtMoney(x.ventaSinImpNeta)}</td>
+        <td>${fmtMoney(x.costoHistorico)}</td>
+        <td>${fmtMoney(x.costoUnitario)}</td>
+        <td class="${x.utilidadBruta >= 0 ? "positivo" : "negativo"}">${fmtMoney(x.utilidadBruta)}</td>
+        <td>${x.margen.toFixed(2)}%</td>
+        <td>${fmtMoney(x.iva)}</td>
+        <td>${fmtMoney(x.ieps)}</td>
+        <td>${fmtMoney(x.ventaConImp)}</td>
+      </tr>
+    `;
+  });
+
+  const total = rows.reduce((acc,x)=>{
+    acc.cantidad += n(x.cantidad);
+    acc.ventaSinImpBruta += n(x.ventaSinImpBruta);
+    acc.descuentoSinImp += n(x.descuentoSinImp);
+    acc.ventaSinImpNeta += n(x.ventaSinImpNeta);
+    acc.costoHistorico += n(x.costoHistorico);
+    acc.utilidadBruta += n(x.utilidadBruta);
+    acc.iva += n(x.iva);
+    acc.ieps += n(x.ieps);
+    acc.ventaConImp += n(x.ventaConImp);
+    return acc;
+  },{
+    cantidad:0,
+    ventaSinImpBruta:0,
+    descuentoSinImp:0,
+    ventaSinImpNeta:0,
+    costoHistorico:0,
+    utilidadBruta:0,
+    iva:0,
+    ieps:0,
+    ventaConImp:0
+  });
+
+  const margen = total.ventaSinImpNeta > 0
+    ? (total.utilidadBruta / total.ventaSinImpNeta) * 100
+    : 0;
+
+  tbody.innerHTML += `
+    <tr class="total">
+      <td colspan="6">TOTAL FILTRADO</td>
+      <td>${fmtNum(total.cantidad)}</td>
+      <td>${fmtMoney(total.ventaSinImpBruta)}</td>
+      <td>${fmtMoney(total.descuentoSinImp)}</td>
+      <td>${fmtMoney(total.ventaSinImpNeta)}</td>
+      <td>${fmtMoney(total.costoHistorico)}</td>
+      <td>-</td>
+      <td class="${total.utilidadBruta >= 0 ? "positivo" : "negativo"}">${fmtMoney(total.utilidadBruta)}</td>
+      <td>${margen.toFixed(2)}%</td>
+      <td>${fmtMoney(total.iva)}</td>
+      <td>${fmtMoney(total.ieps)}</td>
+      <td>${fmtMoney(total.ventaConImp)}</td>
+    </tr>
+  `;
+};
+
+window.exportarCSV = function(){
+
+  if(detalleGlobal.length === 0){
+    alert("Primero consulta información.");
+    return;
+  }
+
+  const encabezados = [
+    "Ticket",
+    "Fecha",
+    "Cliente",
+    "Departamento",
+    "Codigo",
+    "Producto",
+    "Cantidad",
+    "Venta bruta",
+    "Descuento",
+    "Venta neta",
+    "Costo total",
+    "Costo unitario",
+    "Utilidad",
+    "Margen",
+    "IVA",
+    "IEPS",
+    "Total venta"
+  ];
+
+  const lineas = detalleGlobal.map(x=>[
+    x.ticket,
+    fmtFecha(x.fecha),
+    x.cliente,
+    x.departamento,
+    x.codigo,
+    x.producto,
+    x.cantidad,
+    x.ventaSinImpBruta,
+    x.descuentoSinImp,
+    x.ventaSinImpNeta,
+    x.costoHistorico,
+    x.costoUnitario,
+    x.utilidadBruta,
+    x.margen,
+    x.iva,
+    x.ieps,
+    x.ventaConImp
+  ]);
+
+  const csv = [
+    encabezados.join(","),
+    ...lineas.map(row=> row.map(v=>{
+      const s = String(v ?? "").replaceAll('"','""');
+      return `"${s}"`;
+    }).join(","))
+  ].join("\n");
+
+  const blob = new Blob(["\uFEFF" + csv], { type:"text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "DESGLOCE_DEPARTAMENTO_R1.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+};
+
+window.imprimir = function(){
+  window.print();
+};
+
+</script>
+
+</body>
+</html>
