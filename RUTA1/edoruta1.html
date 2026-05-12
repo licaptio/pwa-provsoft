@@ -795,7 +795,13 @@ function renderDeptos(r){
 
       tbody.innerHTML += `
         <tr>
-          <td>${depto}</td>
+          <td>
+  <a href="#"
+     onclick="abrirDesgloseDepto('${encodeURIComponent(depto)}'); return false;"
+     style="color:#0c6cbd;font-weight:bold;text-decoration:underline;">
+    ${depto}
+  </a>
+</td>
           <td>${fmtMoney(v.ventaSinImpBruta)}</td>
           <td>${fmtMoney(v.descuentoSinImp)}</td>
           <td>${fmtMoney(v.ventaSinImpNeta)}</td>
@@ -1284,6 +1290,24 @@ window.onload = function(){
   w.document.open();
   w.document.write(html);
   w.document.close();
+};
+window.abrirDesgloseDepto = function(depto){
+
+  if(!ultimoReporte){
+    alert("Primero genera el reporte.");
+    return;
+  }
+
+  const inicio = ultimoReporte.fechaInicio;
+  const fin = ultimoReporte.fechaFin;
+
+  const url =
+    `DESGLOCEDEPTOR1.html?` +
+    `depto=${depto}` +
+    `&inicio=${inicio}` +
+    `&fin=${fin}`;
+
+  window.open(url, "_blank");
 };
 
 </script>
