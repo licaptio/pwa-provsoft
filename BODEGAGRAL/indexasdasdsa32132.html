@@ -12,7 +12,7 @@
   
 <style>
 :root{
-  --azul:#00416A;
+  --azul:#00416A;A
   --azul2:#0c6cbd;
   --naranja:#f97316;
   --naranja2:#fb923c;
@@ -1267,42 +1267,29 @@ function cerrarModalInicioOperacion() {
 }
 
 function activarModoCarrito() {
-  // Evita que TAB se vaya al encabezado o al modal oculto.
+  // El TAB queda atrapado en el carrito: cantidades + guardar/surtir.
   [
     'btnCambiarSucursal',
-    'btnLogoutApp'
+    'btnLogoutApp',
+    'busquedaProducto',
+    'cantidadAgregar',
+    'btnAgregarProducto',
+    'btnImprimirSolicitud'
   ].forEach(id => {
     if ($(id)) $(id).tabIndex = -1;
   });
 
-  const orden = [
-    ['busquedaProducto', 1],
-    ['cantidadAgregar', 2],
-    ['btnAgregarProducto', 3],
-    ['btnImprimirSolicitud', 4],
-    ['btnGuardarCambios', 5],
-    ['btnGuardarSurtido', 6]
-  ];
-
-  orden.forEach(([id, tab]) => {
+  [
+    ['btnGuardarCambios', 900],
+    ['btnGuardarSurtido', 901]
+  ].forEach(([id, tab]) => {
     if ($(id)) $(id).tabIndex = tab;
   });
 
   asignarTabindexPartidas();
 
   setTimeout(() => {
-    const buscador = $('busquedaProducto');
-
-    buscador.scrollIntoView({
-      behavior:'smooth',
-      block:'center'
-    });
-
-    buscador.focus({
-      preventScroll:true
-    });
-
-    buscador.select();
+    enfocarPrimerCampoCarrito();
   }, 120);
 }
 
@@ -1333,7 +1320,38 @@ function asignarTabindexPartidas() {
     });
 }
 
+function getCamposCarrito() {
+  const inputs = [...document.querySelectorAll('.input-surtido')]
+    .filter(el => el && !el.disabled && el.offsetParent !== null);
+
+  const acciones = [
+    $('btnGuardarCambios'),
+    $('btnGuardarSurtido')
+  ].filter(el => el && !el.disabled && el.offsetParent !== null);
+
+  return [...inputs, ...acciones];
+}
+
 function enfocarPrimerCampoCarrito() {
+  const campos = getCamposCarrito();
+
+  if (campos.length) {
+    campos[0].scrollIntoView({
+      behavior:'smooth',
+      block:'center'
+    });
+
+    campos[0].focus({
+      preventScroll:true
+    });
+
+    if (typeof campos[0].select === 'function') {
+      campos[0].select();
+    }
+
+    return;
+  }
+
   const buscador = $('busquedaProducto');
 
   buscador.scrollIntoView({
@@ -1346,6 +1364,50 @@ function enfocarPrimerCampoCarrito() {
   });
 
   buscador.select();
+}
+
+function instalarTabAtrapadoCarrito() {
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+
+    const modalInicioAbierto =
+      $('modalInicioOperacion')?.style.display === 'flex';
+
+    const modalSolicitudesAbierto =
+      $('modalSolicitudes')?.style.display === 'flex';
+
+    if (modalInicioAbierto || modalSolicitudesAbierto) return;
+
+    if (!solicitudOriginal) return;
+
+    const campos = getCamposCarrito();
+
+    if (!campos.length) return;
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const actual = document.activeElement;
+    let idx = campos.indexOf(actual);
+
+    if (idx === -1) {
+      campos[0].focus();
+      if (typeof campos[0].select === 'function') campos[0].select();
+      return;
+    }
+
+    if (e.shiftKey) {
+      idx = idx <= 0 ? campos.length - 1 : idx - 1;
+    } else {
+      idx = idx >= campos.length - 1 ? 0 : idx + 1;
+    }
+
+    campos[idx].focus();
+
+    if (typeof campos[idx].select === 'function') {
+      campos[idx].select();
+    }
+  }, true);
 }
 
 function generarFolioEntrada() {
@@ -1570,6 +1632,10 @@ function renderDetalle() {
   }).join('');
 
   bindDetalleEvents();
+
+  if (solicitudOriginal) {
+    asignarTabindexPartidas();
+  }
 }
 
 function bindDetalleEvents() {
@@ -1604,6 +1670,15 @@ function bindDetalleEvents() {
       detalle[idx].cantidad_surtida = value >= 0 ? value : 0;
 
       recalcularTodo();
+
+      setTimeout(() => {
+        const nuevo = document.querySelector(`.input-surtido[data-index="${idx}"]`);
+
+        if (nuevo) {
+          nuevo.focus({ preventScroll:true });
+          nuevo.select();
+        }
+      }, 0);
     });
   });
 
@@ -1916,6 +1991,10 @@ async function cargarSolicitudPorClave(clave) {
     );
 
     cerrarModalInicioOperacion();
+
+    setTimeout(() => {
+      enfocarPrimerCampoCarrito();
+    }, 180);
 
   } catch (error) {
     console.error(error);
@@ -3022,57 +3101,6 @@ function bindEvents() {
       }
     });
 
-  document.addEventListener('keydown',(e)=>{
-
-    if(e.key !== 'Tab') return;
-
-    const modalInicioAbierto =
-      $('modalInicioOperacion').style.display === 'flex';
-
-    const modalSolicitudesAbierto =
-      $('modalSolicitudes').style.display === 'flex';
-
-    if(modalInicioAbierto || modalSolicitudesAbierto) return;
-
-    const operativos = [
-      $('busquedaProducto'),
-      $('cantidadAgregar'),
-      $('btnAgregarProducto'),
-      $('btnImprimirSolicitud'),
-      $('btnGuardarCambios'),
-      $('btnGuardarSurtido'),
-      ...document.querySelectorAll('.input-surtido')
-    ].filter(el => {
-      return el &&
-        !el.disabled &&
-        el.offsetParent !== null;
-    });
-
-    if(!operativos.length) return;
-
-    const actual = document.activeElement;
-    const idx = operativos.indexOf(actual);
-
-    if(idx === -1) {
-      e.preventDefault();
-      operativos[0].focus();
-      return;
-    }
-
-    const ultimo = idx === operativos.length - 1;
-    const primero = idx === 0;
-
-    if(!e.shiftKey && ultimo) {
-      e.preventDefault();
-      operativos[0].focus();
-    }
-
-    if(e.shiftKey && primero) {
-      e.preventDefault();
-      operativos[operativos.length - 1].focus();
-    }
-  });
-
   document.addEventListener('click',(e)=>{
 
     const box = $('results');
@@ -3090,6 +3118,7 @@ function bindEvents() {
 function init() {
 
   bindEvents();
+  instalarTabAtrapadoCarrito();
 
   renderDetalle();
   renderResumen();
