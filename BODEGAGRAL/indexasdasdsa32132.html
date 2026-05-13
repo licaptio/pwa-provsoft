@@ -1653,6 +1653,8 @@ async function cargarSolicitudPorClave(clave) {
         `La solicitud ${data.folio || snap.id} ya fue surtida anteriormente.`
       );
 
+      await liberarBloqueoSolicitud();
+
       return;
     }
 
@@ -2705,11 +2707,9 @@ function bindEvents() {
       signOut(auth);
     };
 
-  $('btnCambiarSucursal').onclick = () => {
+  $('btnCambiarSucursal').onclick = async () => {
 
-    bloqueoActivoSolicitudId = null;
-
-    await limpiarPantalla(false);
+    await limpiarPantalla();
 
     sucursalActual = null;
 
@@ -2740,13 +2740,11 @@ function bindEvents() {
     };
 
   $('btnNuevaOperacion').onclick =
-    () => {
+    async () => {
 
       if(!confirm('¿Limpiar operación actual?')) return;
 
-      bloqueoActivoSolicitudId = null;
-
-    await limpiarPantalla(false);
+      await limpiarPantalla();
     };
 
   $('btnCerrarModalSolicitudes').onclick =
