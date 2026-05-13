@@ -585,6 +585,42 @@ tr.diff-row td{background:#fff7ed;}
   padding:18px;
 }
 
+.modal-card.start-card{
+  width:min(720px,96vw);
+}
+
+.step-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:#eff6ff;
+  color:var(--azul);
+  border:1px solid #bfdbfe;
+  border-radius:999px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:900;
+  margin-bottom:12px;
+}
+
+.step-badge span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:22px;
+  border-radius:999px;
+  background:var(--azul);
+  color:white;
+}
+
+.modal-actions-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:12px;
+}
+
 .modal-head{
   display:flex;
   justify-content:space-between;
@@ -801,37 +837,14 @@ tr.diff-row td{background:#fff7ed;}
   </div>
 
   <div class="wrap">
+    <div class="hidden-fields">
+      <input id="folioEntrada">
+      <input id="sucursalDestino">
+      <input id="almacenOrigen">
+      <div id="estado" class="estado-box muted">Listo.</div>
+    </div>
+
     <div class="grid-main">
-      <div class="card">
-        <h2 class="card-title">Documento origen</h2>
-
-        <div class="doc-card">
-          <div>
-            <div class="field" style="margin-bottom:0;">
-              <label>Folio o ID de solicitud</label>
-              <input id="folioSolicitud" placeholder="Ej. SOL-20260506-1340">
-            </div>
-          </div>
-
-          <div class="doc-actions">
-            <button id="btnCargarSolicitud" class="btn-primary">Cargar solicitud</button>
-            <button id="btnNuevaOperacion" class="btn-secondary">Nueva operación</button>
-          </div>
-        </div>
-
-        <div class="inline-note" style="margin-top:12px;">
-          Si dejas vacío el folio, se abre el listado de solicitudes pendientes.
-        </div>
-
-        <div class="hidden-fields">
-          <input id="folioEntrada">
-          <input id="sucursalDestino">
-          <input id="almacenOrigen">
-        </div>
-
-        <div id="estado" class="estado-box muted">Listo.</div>
-      </div>
-
       <div class="right-col">
         <div class="card">
           <h2 class="card-title">Operación de surtido</h2>
@@ -927,6 +940,38 @@ tr.diff-row td{background:#fff7ed;}
     </div>
   </div>
 </section>
+
+
+<div id="modalInicioOperacion" class="modal-backdrop">
+  <div class="modal-card start-card">
+    <div class="step-badge">
+      <span>1</span>
+      Paso 1 de 2 · Seleccionar solicitud
+    </div>
+
+    <div class="modal-head">
+      <h2>Documento origen</h2>
+    </div>
+
+    <div class="field">
+      <label>Folio o ID de solicitud</label>
+      <input id="folioSolicitud" placeholder="Ej. SOL-20260506-1340">
+    </div>
+
+    <div class="inline-note">
+      Si dejas vacío el folio, se abre el listado de solicitudes pendientes.
+    </div>
+
+    <div class="modal-actions-row">
+      <button id="btnCargarSolicitud" class="btn-primary">Cargar solicitud</button>
+      <button id="btnNuevaOperacion" class="btn-secondary">Nueva operación</button>
+    </div>
+
+    <div class="estado-box muted">
+      Paso 2: al cargar la solicitud, se abre la pantalla operativa del carrito.
+    </div>
+  </div>
+</div>
 
 <div id="modalSolicitudes" class="modal-backdrop">
   <div class="modal-card">
@@ -1188,6 +1233,18 @@ function actualizarHeaderInfo() {
 
   $('headerAlmacenOrigen').textContent =
     $('almacenOrigen').value || '-';
+}
+
+function abrirModalInicioOperacion() {
+  $('modalInicioOperacion').style.display = 'flex';
+
+  setTimeout(() => {
+    $('folioSolicitud').focus();
+  }, 80);
+}
+
+function cerrarModalInicioOperacion() {
+  $('modalInicioOperacion').style.display = 'none';
 }
 
 function generarFolioEntrada() {
@@ -1732,6 +1789,8 @@ async function cargarSolicitudPorClave(clave) {
       'ok'
     );
 
+    cerrarModalInicioOperacion();
+
   } catch (error) {
     console.error(error);
 
@@ -2145,6 +2204,8 @@ async function guardarSurtido() {
     bloqueoActivoSolicitudId = null;
 
     await limpiarPantalla(false);
+
+    abrirModalInicioOperacion();
 
   } catch (error) {
     console.error(error);
@@ -2695,6 +2756,8 @@ function bindEvents() {
           `Sucursal ${sucursalActual.nombre} lista.`,
           'ok'
         );
+
+        abrirModalInicioOperacion();
       };
     });
 
@@ -2709,6 +2772,8 @@ function bindEvents() {
 
   $('btnCambiarSucursal').onclick = async () => {
 
+    cerrarModalInicioOperacion();
+
     await limpiarPantalla();
 
     sucursalActual = null;
@@ -2718,6 +2783,12 @@ function bindEvents() {
 
   $('btnCargarSolicitud').onclick =
     cargarSolicitud;
+
+  $('folioSolicitud').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      $('btnCargarSolicitud').click();
+    }
+  });
 
   $('btnAgregarProducto').onclick =
     agregarProductoExtra;
@@ -2742,9 +2813,11 @@ function bindEvents() {
   $('btnNuevaOperacion').onclick =
     async () => {
 
-      if(!confirm('¿Limpiar operación actual?')) return;
+      if(solicitudOriginal && !confirm('¿Limpiar operación actual?')) return;
 
       await limpiarPantalla();
+
+      abrirModalInicioOperacion();
     };
 
   $('btnCerrarModalSolicitudes').onclick =
@@ -2830,6 +2903,8 @@ function init() {
       sucursalActual = null;
       solicitudOriginal = null;
       detalle = [];
+
+      cerrarModalInicioOperacion();
 
       showView('viewLogin');
     }
