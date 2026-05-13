@@ -125,9 +125,9 @@ input,select,button{
   font-size:15px;
 }
 
-input:focus,select:focus{
-  outline:2px solid rgba(12,108,189,.18);
-  border-color:#86b7fe;
+input:focus,select:focus,button:focus{
+  outline:3px solid rgba(249,115,22,.35);
+  border-color:#f97316;
 }
 
 button{
@@ -1236,42 +1236,118 @@ function actualizarHeaderInfo() {
 }
 
 function abrirModalInicioOperacion() {
+  activarModoInicio();
 
   const modal = $('modalInicioOperacion');
 
   modal.style.display = 'flex';
 
-  // reactivar tabulación
-  modal.querySelectorAll('input,button,select,textarea')
+  modal.querySelectorAll('input,button,select,textarea,a')
     .forEach(el => {
       el.tabIndex = 0;
     });
 
   setTimeout(() => {
     $('folioSolicitud').focus();
+    $('folioSolicitud').select();
   }, 80);
 }
-function cerrarModalInicioOperacion() {
 
+function cerrarModalInicioOperacion() {
   const modal = $('modalInicioOperacion');
 
   modal.style.display = 'none';
 
-  // desactivar enfoque del modal
-  modal.querySelectorAll('input,button,select,textarea')
+  modal.querySelectorAll('input,button,select,textarea,a')
     .forEach(el => {
       el.tabIndex = -1;
     });
 
-  // mandar foco operativo al carrito
-  setTimeout(() => {
-
-    $('busquedaProducto').focus();
-    $('busquedaProducto').select();
-
-  }, 80);
+  activarModoCarrito();
 }
-  
+
+function activarModoCarrito() {
+  // Evita que TAB se vaya al encabezado o al modal oculto.
+  [
+    'btnCambiarSucursal',
+    'btnLogoutApp'
+  ].forEach(id => {
+    if ($(id)) $(id).tabIndex = -1;
+  });
+
+  const orden = [
+    ['busquedaProducto', 1],
+    ['cantidadAgregar', 2],
+    ['btnAgregarProducto', 3],
+    ['btnImprimirSolicitud', 4],
+    ['btnGuardarCambios', 5],
+    ['btnGuardarSurtido', 6]
+  ];
+
+  orden.forEach(([id, tab]) => {
+    if ($(id)) $(id).tabIndex = tab;
+  });
+
+  asignarTabindexPartidas();
+
+  setTimeout(() => {
+    const buscador = $('busquedaProducto');
+
+    buscador.scrollIntoView({
+      behavior:'smooth',
+      block:'center'
+    });
+
+    buscador.focus({
+      preventScroll:true
+    });
+
+    buscador.select();
+  }, 120);
+}
+
+function activarModoInicio() {
+  [
+    'btnCambiarSucursal',
+    'btnLogoutApp'
+  ].forEach(id => {
+    if ($(id)) $(id).tabIndex = 0;
+  });
+
+  [
+    'busquedaProducto',
+    'cantidadAgregar',
+    'btnAgregarProducto',
+    'btnImprimirSolicitud',
+    'btnGuardarCambios',
+    'btnGuardarSurtido'
+  ].forEach(id => {
+    if ($(id)) $(id).tabIndex = -1;
+  });
+}
+
+function asignarTabindexPartidas() {
+  document.querySelectorAll('.input-surtido')
+    .forEach((input, idx) => {
+      input.tabIndex = 10 + idx;
+    });
+}
+
+function enfocarPrimerCampoCarrito() {
+  const buscador = $('busquedaProducto');
+
+  buscador.scrollIntoView({
+    behavior:'smooth',
+    block:'center'
+  });
+
+  buscador.focus({
+    preventScroll:true
+  });
+
+  buscador.select();
+}
+
 function generarFolioEntrada() {
   const d = new Date();
 
@@ -1497,7 +1573,30 @@ function renderDetalle() {
 }
 
 function bindDetalleEvents() {
-  document.querySelectorAll('.input-surtido').forEach(input => {
+  const inputs = [...document.querySelectorAll('.input-surtido')];
+
+  inputs.forEach((input, visualIndex) => {
+    input.tabIndex = 10 + visualIndex;
+
+    input.addEventListener('focus', (e) => {
+      e.target.select();
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+
+        const next = inputs[visualIndex + 1];
+
+        if (next) {
+          next.focus();
+          next.select();
+        } else {
+          $('btnGuardarCambios').focus();
+        }
+      }
+    });
+
     input.addEventListener('change', (e) => {
       const idx = Number(e.target.dataset.index);
       const value = Number(e.target.value || 0);
@@ -1507,6 +1606,8 @@ function bindDetalleEvents() {
       recalcularTodo();
     });
   });
+
+  asignarTabindexPartidas();
 }
 
 async function cargarOperadores() {
@@ -1988,6 +2089,8 @@ function agregarProductoExtra() {
   $('results').style.display = 'none';
 
   recalcularTodo();
+
+  enfocarPrimerCampoCarrito();
 }
 
 async function limpiarPantalla(liberarBloqueo = true) {
@@ -2882,6 +2985,93 @@ function bindEvents() {
 
       },120);
     });
+
+  $('busquedaProducto')
+    .addEventListener('keydown',(e)=>{
+
+      if(e.key === 'Enter'){
+        e.preventDefault();
+
+        if(productoSeleccionado){
+          $('cantidadAgregar').focus();
+          $('cantidadAgregar').select();
+        } else {
+          const first = document.querySelector('#results .result-item[data-index]');
+          if(first) first.click();
+        }
+      }
+    });
+
+  $('cantidadAgregar')
+    .addEventListener('keydown',(e)=>{
+
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        $('btnAgregarProducto').click();
+        enfocarPrimerCampoCarrito();
+      }
+    });
+
+  $('btnAgregarProducto')
+    .addEventListener('keydown',(e)=>{
+
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        $('btnAgregarProducto').click();
+        enfocarPrimerCampoCarrito();
+      }
+    });
+
+  document.addEventListener('keydown',(e)=>{
+
+    if(e.key !== 'Tab') return;
+
+    const modalInicioAbierto =
+      $('modalInicioOperacion').style.display === 'flex';
+
+    const modalSolicitudesAbierto =
+      $('modalSolicitudes').style.display === 'flex';
+
+    if(modalInicioAbierto || modalSolicitudesAbierto) return;
+
+    const operativos = [
+      $('busquedaProducto'),
+      $('cantidadAgregar'),
+      $('btnAgregarProducto'),
+      $('btnImprimirSolicitud'),
+      $('btnGuardarCambios'),
+      $('btnGuardarSurtido'),
+      ...document.querySelectorAll('.input-surtido')
+    ].filter(el => {
+      return el &&
+        !el.disabled &&
+        el.offsetParent !== null;
+    });
+
+    if(!operativos.length) return;
+
+    const actual = document.activeElement;
+    const idx = operativos.indexOf(actual);
+
+    if(idx === -1) {
+      e.preventDefault();
+      operativos[0].focus();
+      return;
+    }
+
+    const ultimo = idx === operativos.length - 1;
+    const primero = idx === 0;
+
+    if(!e.shiftKey && ultimo) {
+      e.preventDefault();
+      operativos[0].focus();
+    }
+
+    if(e.shiftKey && primero) {
+      e.preventDefault();
+      operativos[operativos.length - 1].focus();
+    }
+  });
 
   document.addEventListener('click',(e)=>{
 
