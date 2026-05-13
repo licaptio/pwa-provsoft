@@ -1,4 +1,4 @@
-const CACHE_NAME = "proveedora-transferencias-v1";
+const CACHE_NAME = "proveedora-transferencias-v2";
 
 const APP_ASSETS = [
   "./",
