@@ -12,7 +12,7 @@
   
 <style>
 :root{
-  --azul:#00416A;A
+  --azul:#00416A;
   --azul2:#0c6cbd;
   --naranja:#f97316;
   --naranja2:#fb923c;
@@ -615,10 +615,14 @@ tr.diff-row td{background:#fff7ed;}
 }
 
 .modal-actions-row{
-  display:grid;
-  grid-template-columns:1fr 1fr;
+  display:flex;
   gap:10px;
   margin-top:12px;
+}
+
+.modal-actions-row button{
+  flex:1;
+  min-width:0;
 }
 
 .modal-head{
