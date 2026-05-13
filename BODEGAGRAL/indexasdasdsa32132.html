@@ -2574,6 +2574,206 @@ async function cargarImagenComoDataURL(url) {
   });
 }
 
+
+async function generarPDFHojaCheck(payload) {
+
+  const { jsPDF } = window.jspdf;
+
+  const pdf = new jsPDF(
+    'p',
+    'mm',
+    'letter'
+  );
+
+  const pageWidth =
+    pdf.internal.pageSize.getWidth();
+
+  let y = 10;
+  let logo = null;
+
+  try {
+    logo = await cargarImagenComoDataURL(LOGO_URL);
+  } catch(e){
+    console.warn(e);
+  }
+
+  const partidasBase = ordenarPorConcepto(
+    payload.detalle.filter(x =>
+      x.agregado_en_surtido !== true &&
+      Number(x.cantidad_solicitada || 0) > 0
+    )
+  );
+
+  if (logo) {
+    pdf.addImage(
+      logo,
+      'PNG',
+      10,
+      6,
+      55,
+      20
+    );
+  }
+
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(18);
+
+  pdf.text(
+    'HOJA DE CHECK DE SURTIDO',
+    pageWidth - 10,
+    15,
+    { align:'right' }
+  );
+
+  pdf.setFontSize(9);
+  pdf.setFont('helvetica','normal');
+
+  pdf.text(
+    'Documento operativo para revisar y marcar mercancía. No representa cierre de surtido ni transferencia definitiva.',
+    pageWidth - 10,
+    22,
+    { align:'right' }
+  );
+
+  pdf.setFontSize(10);
+
+  pdf.text(
+    `Folio solicitud: ${payload.folio_solicitud}`,
+    10,
+    34
+  );
+
+  pdf.text(
+    `Folio surtido provisional: ${payload.folio_surtido}`,
+    10,
+    40
+  );
+
+  pdf.text(
+    `Sucursal destino: ${payload.sucursal_destino}`,
+    10,
+    46
+  );
+
+  pdf.text(
+    `Almacén origen: ${payload.almacen_origen}`,
+    10,
+    52
+  );
+
+  pdf.text(
+    `Fecha impresión: ${fechaMx(nowISO())}`,
+    110,
+    34
+  );
+
+  y = 62;
+
+  const rows = partidasBase.map((item, idx) => [
+    idx + 1,
+    item.codigo || '',
+    item.nombre || '',
+    Number(item.cantidad_solicitada || 0),
+    '',
+    '',
+    ''
+  ]);
+
+  pdf.autoTable({
+    startY:y,
+
+    head:[[
+      '#',
+      'Código',
+      'Concepto',
+      'Solicitado',
+      'Check',
+      'Surtido físico',
+      'Observación'
+    ]],
+
+    body:rows,
+
+    theme:'grid',
+
+    headStyles:{
+      fillColor:[0,65,106]
+    },
+
+    styles:{
+      fontSize:8,
+      cellPadding:2,
+      minCellHeight:8
+    },
+
+    columnStyles:{
+      0:{cellWidth:9},
+      1:{cellWidth:28},
+      2:{cellWidth:78},
+      3:{cellWidth:20, halign:'center'},
+      4:{cellWidth:16},
+      5:{cellWidth:23},
+      6:{cellWidth:31}
+    },
+
+    margin:{
+      left:10,
+      right:10
+    }
+  });
+
+  y = pdf.lastAutoTable.finalY + 12;
+
+  if (y > 230) {
+    pdf.addPage();
+    y = 20;
+  }
+
+  pdf.setFont('helvetica','bold');
+  pdf.setFontSize(10);
+  pdf.text('Control operativo', 10, y);
+
+  y += 14;
+
+  const boxW = 58;
+
+  function firmaBox(x,titulo) {
+
+    pdf.roundedRect(
+      x,
+      y,
+      boxW,
+      26,
+      2,
+      2
+    );
+
+    pdf.line(
+      x + 4,
+      y + 17,
+      x + boxW - 4,
+      y + 17
+    );
+
+    pdf.setFontSize(8);
+
+    pdf.text(
+      titulo,
+      x + boxW/2,
+      y + 22,
+      { align:'center' }
+    );
+  }
+
+  firmaBox(10, 'SURTE');
+  firmaBox(74, 'REVISA');
+  firmaBox(138, 'ENTREGA');
+
+  pdf.save(
+    `${payload.folio_surtido}_HOJA_CHECK_${payload.sucursal_destino}.pdf`
+  );
+}
+
 async function generarPDFProfesional(payload) {
 
   const { jsPDF } = window.jspdf;
@@ -3018,7 +3218,7 @@ function bindEvents() {
       const payload =
         construirPayload(null, 'PENDIENTE');
 
-      generarPDFProfesional(payload);
+      generarPDFHojaCheck(payload);
     };
 
   $('btnNuevaOperacion').onclick =
