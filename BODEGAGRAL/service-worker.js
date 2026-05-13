@@ -2,9 +2,12 @@ const CACHE_NAME = "proveedora-transferencias-v3";
 
 const APP_ASSETS = [
   "./",
+  "./indexasdasdsa32132.html",
   "./manifest.json",
   "./config.js",
-  "./logo.jfif"
+  "./logo.jfif",
+  "./icons/icon-192.png",
+  "./icons/icon-512.png"
 ];
 
 self.addEventListener("install", event => {
@@ -13,13 +16,13 @@ self.addEventListener("install", event => {
     caches.open(CACHE_NAME).then(async cache => {
 
       for (const asset of APP_ASSETS) {
-
         try {
           await cache.add(asset);
         } catch (error) {
           console.warn("No se pudo cachear:", asset, error);
         }
       }
+
     })
   );
 
