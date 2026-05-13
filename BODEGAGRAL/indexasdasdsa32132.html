@@ -299,6 +299,64 @@ button:disabled{
   flex-wrap:wrap;
 }
 
+.header-info{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:16px;
+  padding:8px 12px;
+  font-size:12px;
+}
+
+.header-info-item{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:95px;
+}
+
+.header-info-label{
+  opacity:.85;
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.35px;
+}
+
+.header-info-value{
+  color:#fff;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.header-status{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:16px;
+  padding:8px 12px;
+  font-size:12px;
+  font-weight:900;
+  min-width:220px;
+}
+
+.header-status .dot{
+  width:12px;
+  height:12px;
+  border-radius:999px;
+  background:#9ca3af;
+  box-shadow:0 0 0 4px rgba(255,255,255,.12);
+}
+
+.header-status.ok .dot{background:#22c55e;}
+.header-status.error .dot{background:#ef4444;}
+.header-status.info .dot{background:#60a5fa;}
+
 .status-chip{
   background:rgba(255,255,255,.16);
   border:1px solid rgba(255,255,255,.24);
@@ -316,8 +374,30 @@ button:disabled{
 
 .grid-main{
   display:grid;
-  grid-template-columns:320px 1fr;
+  grid-template-columns:1fr;
   gap:16px;
+}
+
+.doc-card{
+  display:grid;
+  grid-template-columns:minmax(280px,1fr) auto;
+  gap:12px;
+  align-items:end;
+}
+
+.doc-actions{
+  display:flex;
+  gap:10px;
+  align-items:end;
+  flex-wrap:wrap;
+}
+
+.doc-actions button{
+  width:auto;
+}
+
+.hidden-fields{
+  display:none;
 }
 
 .card{
@@ -353,9 +433,17 @@ button:disabled{
 
 .toolbar{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 130px auto;
+  grid-template-columns:minmax(260px,1fr) 130px auto auto auto auto;
   gap:10px;
   align-items:end;
+}
+
+.toolbar-action{
+  margin-bottom:0;
+}
+
+.toolbar-action label{
+  visibility:hidden;
 }
 
 .results{
@@ -383,7 +471,7 @@ button:disabled{
 }
 
 .totales-bar{
-  display:grid;
+  display:none;
   grid-template-columns:repeat(4,1fr);
   gap:10px;
   margin-bottom:12px;
@@ -557,8 +645,25 @@ tr.diff-row td{background:#fff7ed;}
     grid-template-columns:1fr;
   }
 
+  .doc-card{
+    grid-template-columns:1fr;
+  }
+
+  .doc-actions button{
+    flex:1;
+  }
+
+  .header-info,
+  .header-status{
+    width:100%;
+  }
+
   .toolbar{
     grid-template-columns:1fr;
+  }
+
+  .toolbar-action label{
+    display:none;
   }
 
   .totales-bar{
@@ -670,7 +775,26 @@ tr.diff-row td{background:#fff7ed;}
     </div>
 
     <div class="top-actions">
-      <div id="statusChip" class="status-chip">Inicializando...</div>
+      <div class="header-info">
+        <div class="header-info-item">
+          <span class="header-info-label">Folio surtido</span>
+          <span id="headerFolioSurtido" class="header-info-value">-</span>
+        </div>
+        <div class="header-info-item">
+          <span class="header-info-label">Destino</span>
+          <span id="headerSucursalDestino" class="header-info-value">-</span>
+        </div>
+        <div class="header-info-item">
+          <span class="header-info-label">Origen</span>
+          <span id="headerAlmacenOrigen" class="header-info-value">-</span>
+        </div>
+      </div>
+
+      <div id="statusChip" class="header-status info">
+        <span class="dot"></span>
+        <span id="statusText">Inicializando...</span>
+      </div>
+
       <button id="btnCambiarSucursal" class="btn-secondary btn-small">Cambiar sucursal</button>
       <button id="btnLogoutApp" class="btn-danger btn-small">Salir</button>
     </div>
@@ -678,51 +802,34 @@ tr.diff-row td{background:#fff7ed;}
 
   <div class="wrap">
     <div class="grid-main">
-      <div class="left-col">
-        <div class="card">
-          <h2 class="card-title">Documento origen</h2>
+      <div class="card">
+        <h2 class="card-title">Documento origen</h2>
 
-          <div class="field">
-            <label>Folio o ID de solicitud</label>
-            <input id="folioSolicitud" placeholder="Ej. SOL-20260506-1340">
+        <div class="doc-card">
+          <div>
+            <div class="field" style="margin-bottom:0;">
+              <label>Folio o ID de solicitud</label>
+              <input id="folioSolicitud" placeholder="Ej. SOL-20260506-1340">
+            </div>
           </div>
 
-          <div class="actions-2" style="margin-bottom:10px;">
+          <div class="doc-actions">
             <button id="btnCargarSolicitud" class="btn-primary">Cargar solicitud</button>
             <button id="btnNuevaOperacion" class="btn-secondary">Nueva operación</button>
           </div>
-
-          <div class="inline-note">
-            Si dejas vacío el folio, se abre el listado de solicitudes pendientes.
-          </div>
-
-          <div class="field">
-            <label>Folio surtido</label>
-            <input id="folioEntrada" disabled>
-          </div>
-
-          <div class="field">
-            <label>Sucursal destino</label>
-            <input id="sucursalDestino" disabled>
-          </div>
-
-          <div class="field">
-            <label>Almacén origen</label>
-            <input id="almacenOrigen" disabled>
-          </div>
-
-          <div id="estado" class="estado-box muted">Listo.</div>
-
-          <div class="save-wrap" style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button id="btnImprimirSolicitud" class="btn-warning" style="display:none;">
-              Imprimir hoja de surtido
-            </button>
-
-            <button id="btnGuardarSurtido" class="btn-success">
-              Guardar surtido
-            </button>
-          </div>
         </div>
+
+        <div class="inline-note" style="margin-top:12px;">
+          Si dejas vacío el folio, se abre el listado de solicitudes pendientes.
+        </div>
+
+        <div class="hidden-fields">
+          <input id="folioEntrada">
+          <input id="sucursalDestino">
+          <input id="almacenOrigen">
+        </div>
+
+        <div id="estado" class="estado-box muted">Listo.</div>
       </div>
 
       <div class="right-col">
@@ -743,9 +850,30 @@ tr.diff-row td{background:#fff7ed;}
               <input id="cantidadAgregar" type="number" min="1" step="1" value="1">
             </div>
 
-            <div class="field" style="margin-bottom:0;">
+            <div class="field toolbar-action">
               <label>&nbsp;</label>
               <button id="btnAgregarProducto" class="btn-orange">Agregar</button>
+            </div>
+
+            <div class="field toolbar-action">
+              <label>&nbsp;</label>
+              <button id="btnImprimirSolicitud" class="btn-warning" style="display:none;">
+                Imprimir hoja
+              </button>
+            </div>
+
+            <div class="field toolbar-action">
+              <label>&nbsp;</label>
+              <button id="btnGuardarCambios" class="btn-warning">
+                Guardar cambios
+              </button>
+            </div>
+
+            <div class="field toolbar-action">
+              <label>&nbsp;</label>
+              <button id="btnGuardarSurtido" class="btn-success">
+                Surtir
+              </button>
             </div>
           </div>
         </div>
@@ -839,7 +967,8 @@ import {
   where,
   getDocs,
   limit,
-  serverTimestamp
+  serverTimestamp,
+  runTransaction
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 const app = initializeApp(firebaseConfig);
@@ -893,6 +1022,9 @@ let productoSeleccionado = null;
 let timerBusqueda = null;
 let solicitudesDisponibles = [];
 let sistemaCargado = false;
+let bloqueoActivoSolicitudId = null;
+
+const BLOQUEO_MINUTOS = 15;
 
 const $ = (id) => document.getElementById(id);
 
@@ -910,9 +1042,21 @@ function setStatus(text, mode = 'info') {
 
   if (mode === 'ok') $('estado').classList.add('ok');
   if (mode === 'error') $('estado').classList.add('error');
+  if (mode !== 'ok' && mode !== 'error') $('estado').classList.add('muted');
 
   $('estado').textContent = text;
-  $('statusChip').textContent = text.length > 42 ? text.slice(0, 42) + '...' : text;
+
+  const chip = $('statusChip');
+  chip.className = 'header-status ' + (
+    mode === 'ok'
+      ? 'ok'
+      : mode === 'error'
+        ? 'error'
+        : 'info'
+  );
+
+  $('statusText').textContent =
+    text.length > 55 ? text.slice(0, 55) + '...' : text;
 }
 
 function escapeHtml(text) {
@@ -943,6 +1087,107 @@ function fechaMx(iso) {
 
 function nowISO() {
   return new Date().toISOString();
+}
+
+function bloqueoExpirado(bloqueo) {
+  if (!bloqueo?.activo || !bloqueo?.desde) return true;
+
+  const desde = new Date(bloqueo.desde).getTime();
+
+  if (!Number.isFinite(desde)) return true;
+
+  return Date.now() - desde > BLOQUEO_MINUTOS * 60 * 1000;
+}
+
+function usuarioActualBloqueo() {
+  const user = auth.currentUser;
+
+  return {
+    uid: user?.uid || '',
+    usuario: user?.email || 'SIN_CORREO',
+    desde: nowISO()
+  };
+}
+
+async function tomarBloqueoSolicitud(docRef) {
+  const actual = usuarioActualBloqueo();
+
+  await runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(docRef);
+
+    if (!snap.exists()) {
+      throw new Error('La solicitud no existe.');
+    }
+
+    const data = snap.data() || {};
+    const bloqueo = data.bloqueo || {};
+
+    const ocupadoPorOtro =
+      bloqueo.activo === true &&
+      bloqueo.uid &&
+      bloqueo.uid !== actual.uid &&
+      !bloqueoExpirado(bloqueo);
+
+    if (ocupadoPorOtro) {
+      throw new Error(
+        `Solicitud bloqueada por ${bloqueo.usuario || 'otro usuario'}.`
+      );
+    }
+
+    transaction.set(
+      docRef,
+      {
+        bloqueo: {
+          activo: true,
+          uid: actual.uid,
+          usuario: actual.usuario,
+          desde: actual.desde,
+          minutos_expiracion: BLOQUEO_MINUTOS
+        },
+        fecha_ultimo_bloqueo: actual.desde
+      },
+      { merge:true }
+    );
+  });
+}
+
+async function liberarBloqueoSolicitud() {
+  if (!sucursalActual || !bloqueoActivoSolicitudId) return;
+
+  const id = bloqueoActivoSolicitudId;
+  const actual = usuarioActualBloqueo();
+
+  try {
+    await setDoc(
+      doc(db, ...sucursalActual.solicitudes, id),
+      {
+        bloqueo: {
+          activo: false,
+          uid: actual.uid,
+          usuario: actual.usuario,
+          liberado_en: nowISO()
+        }
+      },
+      { merge:true }
+    );
+  } catch (error) {
+    console.warn('No se pudo liberar bloqueo:', error);
+  } finally {
+    if (bloqueoActivoSolicitudId === id) {
+      bloqueoActivoSolicitudId = null;
+    }
+  }
+}
+
+function actualizarHeaderInfo() {
+  $('headerFolioSurtido').textContent =
+    $('folioEntrada').value || '-';
+
+  $('headerSucursalDestino').textContent =
+    $('sucursalDestino').value || '-';
+
+  $('headerAlmacenOrigen').textContent =
+    $('almacenOrigen').value || '-';
 }
 
 function generarFolioEntrada() {
@@ -1388,6 +1633,14 @@ async function cargarSolicitudPorClave(clave) {
       snap = folSnap.docs[0];
     }
 
+    const solicitudRef = snap.ref;
+
+    await tomarBloqueoSolicitud(solicitudRef);
+
+    bloqueoActivoSolicitudId = snap.id;
+
+    snap = await getDoc(solicitudRef);
+
     const data = snap.data() || {};
 
     if (data.estatus === 'SURTIDO') {
@@ -1410,7 +1663,9 @@ async function cargarSolicitudPorClave(clave) {
 
     $('folioSolicitud').value = data.folio || snap.id;
 
-    $('folioEntrada').value = generarFolioEntrada();
+    $('folioEntrada').value =
+      data.folio_surtido ||
+      generarFolioEntrada();
 
     $('sucursalDestino').value =
       data.sucursal ||
@@ -1420,15 +1675,51 @@ async function cargarSolicitudPorClave(clave) {
     $('almacenOrigen').value =
       sucursalActual.almacenOrigen;
 
-    const itemsSolicitud = Array.isArray(data.carrito)
-      ? data.carrito
-      : Array.isArray(data.items)
-        ? data.items
-        : [];
+    actualizarHeaderInfo();
 
-    detalle = ordenarPorConcepto(
-      itemsSolicitud.map(crearLineaDesdeSolicitud)
-    );
+    let detalleGuardado = null;
+
+    if (data.folio_surtido) {
+      const surtidoSnap = await getDoc(
+        doc(db, ...sucursalActual.surtido, data.folio_surtido)
+      );
+
+      if (
+        surtidoSnap.exists() &&
+        surtidoSnap.data()?.estatus === 'PENDIENTE'
+      ) {
+        detalleGuardado = Array.isArray(surtidoSnap.data().detalle)
+          ? surtidoSnap.data().detalle
+          : null;
+      }
+    }
+
+    if (detalleGuardado) {
+      detalle = ordenarPorConcepto(
+        detalleGuardado.map(x => ({
+          codigo: String(x.codigo || '').trim(),
+          nombre: String(x.nombre || '').trim(),
+          cantidad_solicitada: Number(x.cantidad_solicitada || 0),
+          cantidad_surtida: Number(x.cantidad_surtida || 0),
+          diferencia: Number(x.diferencia || 0),
+          agregado_en_surtido: x.agregado_en_surtido === true,
+          precioPublico: Number(x.precioPublico || 0),
+          unidad: String(x.unidad || ''),
+          origen_solicitud: x.agregado_en_surtido ? 'AGREGADO_MANUAL' : 'SOLICITUD',
+          codigosEquivalentes: []
+        }))
+      );
+    } else {
+      const itemsSolicitud = Array.isArray(data.carrito)
+        ? data.carrito
+        : Array.isArray(data.items)
+          ? data.items
+          : [];
+
+      detalle = ordenarPorConcepto(
+        itemsSolicitud.map(crearLineaDesdeSolicitud)
+      );
+    }
 
     recalcularTodo();
 
@@ -1613,7 +1904,11 @@ function agregarProductoExtra() {
   recalcularTodo();
 }
 
-function limpiarPantalla() {
+async function limpiarPantalla(liberarBloqueo = true) {
+  if (liberarBloqueo) {
+    await liberarBloqueoSolicitud();
+  }
+
   solicitudOriginal = null;
   detalle = [];
   productoSeleccionado = null;
@@ -1626,6 +1921,8 @@ function limpiarPantalla() {
 
   $('almacenOrigen').value =
     sucursalActual?.almacenOrigen || '';
+
+  actualizarHeaderInfo();
 
   $('busquedaProducto').value = '';
   $('cantidadAgregar').value = '1';
@@ -1667,7 +1964,7 @@ function validarGuardar() {
   return true;
 }
 
-function construirPayload(responsables = null) {
+function construirPayload(responsables = null, estatus = 'PENDIENTE') {
   return {
     folio_surtido:
       $('folioEntrada').value.trim(),
@@ -1701,7 +1998,7 @@ function construirPayload(responsables = null) {
     fecha_guardado: nowISO(),
     fecha_guardado_server: serverTimestamp(),
 
-    estatus: 'SURTIDO',
+    estatus,
 
     detalle: detalle.map((x, i) => ({
       renglon: i + 1,
@@ -1728,6 +2025,66 @@ function construirPayload(responsables = null) {
   };
 }
 
+async function guardarCambios() {
+  if (!validarGuardar()) return;
+
+  try {
+    $('btnGuardarCambios').disabled = true;
+
+    setStatus('Guardando cambios...');
+
+    const payload = construirPayload(null, 'PENDIENTE');
+
+    await setDoc(
+      doc(
+        db,
+        ...sucursalActual.surtido,
+        payload.folio_surtido
+      ),
+      payload
+    );
+
+    await setDoc(
+      doc(
+        db,
+        ...sucursalActual.solicitudes,
+        solicitudOriginal.id
+      ),
+      {
+        estatus:'PENDIENTE_SURTIDO',
+        fecha_actualizacion:nowISO(),
+        folio_surtido:payload.folio_surtido,
+        bloqueo: {
+          activo: true,
+          uid: auth.currentUser?.uid || '',
+          usuario: auth.currentUser?.email || '',
+          desde: nowISO(),
+          minutos_expiracion: BLOQUEO_MINUTOS
+        }
+      },
+      { merge:true }
+    );
+
+    setStatus(
+      `Cambios guardados: ${payload.folio_surtido}`,
+      'ok'
+    );
+
+    alert('Cambios guardados. Puede continuar después.');
+
+  } catch (error) {
+    console.error(error);
+
+    setStatus(
+      'Error al guardar cambios: ' + error.message,
+      'error'
+    );
+
+  } finally {
+    $('btnGuardarCambios').disabled = false;
+  }
+}
+
 async function guardarSurtido() {
   if (!validarGuardar()) return;
 
@@ -1737,10 +2094,11 @@ async function guardarSurtido() {
 
   try {
     $('btnGuardarSurtido').disabled = true;
+    $('btnGuardarCambios').disabled = true;
 
     setStatus('Guardando surtido...');
 
-    const payload = construirPayload(respuesta);
+    const payload = construirPayload(respuesta, 'SURTIDO');
 
     await setDoc(
       doc(
@@ -1760,7 +2118,13 @@ async function guardarSurtido() {
       {
         estatus:'SURTIDO',
         fecha_surtido:nowISO(),
-        folio_surtido:payload.folio_surtido
+        folio_surtido:payload.folio_surtido,
+        bloqueo: {
+          activo:false,
+          uid: auth.currentUser?.uid || '',
+          usuario: auth.currentUser?.email || '',
+          liberado_en: nowISO()
+        }
       },
       { merge:true }
     );
@@ -1776,7 +2140,9 @@ async function guardarSurtido() {
       `Surtido completado.\n\nFolio: ${payload.folio_surtido}`
     );
 
-    limpiarPantalla();
+    bloqueoActivoSolicitudId = null;
+
+    await limpiarPantalla(false);
 
   } catch (error) {
     console.error(error);
@@ -1788,6 +2154,7 @@ async function guardarSurtido() {
 
   } finally {
     $('btnGuardarSurtido').disabled = false;
+    $('btnGuardarCambios').disabled = false;
   }
 }
 
@@ -2318,6 +2685,8 @@ function bindEvents() {
         $('almacenOrigen').value =
           sucursalActual.almacenOrigen;
 
+        actualizarHeaderInfo();
+
         showView('viewApp');
 
         setStatus(
@@ -2331,11 +2700,16 @@ function bindEvents() {
     () => signOut(auth);
 
   $('btnLogoutApp').onclick =
-    () => signOut(auth);
+    async () => {
+      await liberarBloqueoSolicitud();
+      signOut(auth);
+    };
 
   $('btnCambiarSucursal').onclick = () => {
 
-    limpiarPantalla();
+    bloqueoActivoSolicitudId = null;
+
+    await limpiarPantalla(false);
 
     sucursalActual = null;
 
@@ -2348,14 +2722,19 @@ function bindEvents() {
   $('btnAgregarProducto').onclick =
     agregarProductoExtra;
 
+  $('btnGuardarCambios').onclick =
+    guardarCambios;
+
   $('btnGuardarSurtido').onclick =
     guardarSurtido;
 
   $('btnImprimirSolicitud').onclick =
     () => {
 
+      if (!validarGuardar()) return;
+
       const payload =
-        construirPayload();
+        construirPayload(null, 'PENDIENTE');
 
       generarPDFProfesional(payload);
     };
@@ -2365,7 +2744,9 @@ function bindEvents() {
 
       if(!confirm('¿Limpiar operación actual?')) return;
 
-      limpiarPantalla();
+      bloqueoActivoSolicitudId = null;
+
+    await limpiarPantalla(false);
     };
 
   $('btnCerrarModalSolicitudes').onclick =
@@ -2445,6 +2826,8 @@ function init() {
       },600);
 
     } else {
+
+      await liberarBloqueoSolicitud();
 
       sucursalActual = null;
       solicitudOriginal = null;
