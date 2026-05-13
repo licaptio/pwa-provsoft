@@ -761,8 +761,19 @@ tr.diff-row td{background:#fff7ed;}
         <input id="loginPassword" type="password" placeholder="Contraseña" autocomplete="current-password">
       </div>
 
-      <button id="btnLogin" class="btn-primary">Entrar</button>
-      <div id="loginEstado" class="estado-box muted">Ingrese usuario y contraseña.</div>
+<button id="btnLogin" class="btn-primary">Entrar</button>
+
+<div id="loginEstado" class="estado-box muted">
+  Ingrese usuario y contraseña.
+</div>
+
+<button
+  id="btnInstalarApp"
+  class="btn-orange"
+  style="display:none;margin-top:12px;"
+>
+  Instalar aplicación
+</button>
     </div>
   </div>
 </section>
@@ -1075,7 +1086,65 @@ let bloqueoActivoSolicitudId = null;
 
 const BLOQUEO_MINUTOS = 15;
 
+let deferredInstallPrompt = null;
+
 const $ = (id) => document.getElementById(id);
+
+function appYaInstalada() {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  );
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+
+  e.preventDefault();
+
+  deferredInstallPrompt = e;
+
+  if (!appYaInstalada()) {
+    $('btnInstalarApp').style.display = 'block';
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+
+  deferredInstallPrompt = null;
+
+  $('btnInstalarApp').style.display = 'none';
+});
+
+$('btnInstalarApp').onclick = async () => {
+
+  if (!deferredInstallPrompt) {
+
+    $('loginEstado').textContent =
+      'La instalación aún no está disponible.';
+
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+
+  const result =
+    await deferredInstallPrompt.userChoice;
+
+  deferredInstallPrompt = null;
+
+  $('btnInstalarApp').style.display = 'none';
+
+  if (result.outcome === 'accepted') {
+
+    $('loginEstado').textContent =
+      'Aplicación instalada correctamente.';
+
+  } else {
+
+    $('loginEstado').textContent =
+      'Instalación cancelada.';
+  }
+};
 
 function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -3305,6 +3374,37 @@ function bindEvents() {
       }
     });
 
+  $('btnInstalarApp').onclick = async () => {
+
+  if (!deferredInstallPrompt) {
+
+    $('loginEstado').textContent =
+      'La instalación aún no está disponible.';
+
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+
+  const result =
+    await deferredInstallPrompt.userChoice;
+
+  deferredInstallPrompt = null;
+
+  $('btnInstalarApp').style.display = 'none';
+
+  if (result.outcome === 'accepted') {
+
+    $('loginEstado').textContent =
+      'Aplicación instalada correctamente.';
+
+  } else {
+
+    $('loginEstado').textContent =
+      'Instalación cancelada.';
+  }
+};
+  
   document.addEventListener('click',(e)=>{
 
     const box = $('results');
