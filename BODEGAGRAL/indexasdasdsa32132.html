@@ -1236,17 +1236,42 @@ function actualizarHeaderInfo() {
 }
 
 function abrirModalInicioOperacion() {
-  $('modalInicioOperacion').style.display = 'flex';
+
+  const modal = $('modalInicioOperacion');
+
+  modal.style.display = 'flex';
+
+  // reactivar tabulación
+  modal.querySelectorAll('input,button,select,textarea')
+    .forEach(el => {
+      el.tabIndex = 0;
+    });
 
   setTimeout(() => {
     $('folioSolicitud').focus();
   }, 80);
 }
-
 function cerrarModalInicioOperacion() {
-  $('modalInicioOperacion').style.display = 'none';
-}
 
+  const modal = $('modalInicioOperacion');
+
+  modal.style.display = 'none';
+
+  // desactivar enfoque del modal
+  modal.querySelectorAll('input,button,select,textarea')
+    .forEach(el => {
+      el.tabIndex = -1;
+    });
+
+  // mandar foco operativo al carrito
+  setTimeout(() => {
+
+    $('busquedaProducto').focus();
+    $('busquedaProducto').select();
+
+  }, 80);
+}
+  
 function generarFolioEntrada() {
   const d = new Date();
 
