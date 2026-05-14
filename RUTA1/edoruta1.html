@@ -1071,7 +1071,7 @@ window.imprimirPDF = function(){
 <style>
 @page{
   size: letter landscape;
-  margin: 7mm;
+  margin: 4mm;
 }
 
 *{
@@ -1116,10 +1116,11 @@ h1{
 
 h2{
   color:#ea580c;
-  border-bottom:2px solid #ea580c;
-  padding-bottom:4px;
-  margin:8px 0 8px;
-  font-size:18px;
+  border-bottom:3px solid #ea580c;
+  padding-bottom:5px;
+  margin:6px 0 8px;
+  font-size:20px;
+  font-weight:900;
 }
 
 .sub{
@@ -1130,14 +1131,16 @@ h2{
 table{
   width:100%;
   border-collapse:collapse;
-  margin-top:8px;
-  font-size:9.5px;
+  margin-top:6px;
+  font-size:11.5px;
+  font-weight:600;
 }
 
 th,td{
-  border-bottom:1px solid #ddd;
-  padding:5px 6px;
+  border-bottom:1px solid #bfbfbf;
+  padding:7px 8px;
   text-align:right;
+  line-height:1.2;
 }
 
 th:first-child,
@@ -1155,6 +1158,20 @@ th{
   background:#fff7ed;
 }
 
+thead th{
+  font-weight:900;
+  font-size:12px;
+}
+
+tbody td{
+  font-weight:700;
+}
+
+.total td{
+  font-weight:900;
+  font-size:12px;
+}
+
 .positivo{
   color:#166534;
   font-weight:bold;
@@ -1166,11 +1183,11 @@ th{
 }
 
 .seccion1{
-  zoom:.95;
+  zoom:1.05;
 }
 
 .seccion2{
-  zoom:.68;
+  zoom:.84;
 }
 
 .firma{
