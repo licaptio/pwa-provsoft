@@ -478,7 +478,7 @@ const firebaseConfig = {
     let productosSolicitud = [];
 let configLocal = {
   tiendaLocal: 'ALLENDE 1',
-  usuarioActual: 'YAHAIRA SANTOS',
+  usuarioActual: 'ROCIO TAMEZ',
   tiendaDestinoDefault: localStorage.getItem('prov_intercambios_destino') || 'ALLENDE 2'
 };
 
@@ -536,6 +536,11 @@ function guardarConfig() {
       if (status === 'PENDIENTE_AUTORIZACION') return 'st-pend';
       if (status === 'AUTORIZADO') return 'st-aut';
       if (status === 'SURTIDO') return 'st-sur';
+      if (status === 'SURTIDO_PARCIAL') return 'st-sur';
+if (status === 'NO_SURTIDO') return 'st-rech';
+
+if (status === 'RECIBIDO_PARCIAL') return 'st-rec';
+if (status === 'NO_RECIBIDO') return 'st-rech';
       if (status === 'RECIBIDO') return 'st-rec';
       if (status === 'RECHAZADO') return 'st-rech';
       if (status === 'CANCELADO') return 'st-can';
@@ -638,10 +643,20 @@ async function cargarProductos() {
           unidadMedidaSat: p.unidadMedidaSat || 'H87',
           departamento: p.departamento || '',
           marca: p.marca || '',
-          cantidad_solicitada: cantidad,
-          cantidad_autorizada: cantidad,
-          cantidad_surtida: 0,
-          cantidad_recibida: 0,
+cantidad_solicitada: cantidad,
+
+cantidad_autorizada: cantidad,
+
+cantidad_surtida: 0,
+cantidad_recibida: 0,
+
+movimiento_salida: 0,
+movimiento_entrada: 0,
+
+faltante_surtido: 0,
+diferencia_recepcion: 0,
+
+estado_item: 'PENDIENTE',
           producto_ref: `/productos/${codigo}`
         });
       }
@@ -828,7 +843,7 @@ async function cargarProductos() {
 
       const snap = await db.collection('TIENDAS').doc(tienda).collection('intercambios')
         .where('rol_local', '==', 'SOLICITA')
-        .where('estatus', '==', 'SURTIDO')
+        .where('estatus', 'in', ['SURTIDO', 'SURTIDO_PARCIAL'])
         .get();
 
       tbody.innerHTML = '';
@@ -891,7 +906,7 @@ async function cargarProductos() {
 
       const snap = await db.collection('TIENDAS').doc(tienda).collection('intercambios')
         .where('rol_local', '==', 'SOLICITA')
-        .where('estatus', '==', 'SURTIDO')
+        .where('estatus', 'in', ['SURTIDO', 'SURTIDO_PARCIAL'])
         .get();
 
       tbody.innerHTML = '';
@@ -986,35 +1001,270 @@ async function cargarProductos() {
       cargarAutorizar();
     }
 
-    async function surtirSolicitud(folio, tiendaSolicitante, tiendaSurtidora) {
-      if (!confirm(`¿Marcar surtido ${folio}?`)) return;
-      const ahora = firebase.firestore.FieldValue.serverTimestamp();
-      const usuario = configLocal.usuarioActual || 'SIN_USUARIO';
-      const lote = db.batch();
+async function surtirSolicitud(folio, tiendaSolicitante, tiendaSurtidora) {
 
-      const a = db.collection('TIENDAS').doc(tiendaSolicitante).collection('intercambios').doc(folio);
-      const b = db.collection('TIENDAS').doc(tiendaSurtidora).collection('intercambios').doc(folio);
+  if (!confirm(`¿Marcar surtido ${folio}?`)) return;
 
-      lote.update(a, { estatus: 'SURTIDO', fecha_surtido: ahora, surtido_por: usuario, updatedAt: ahora });
-      lote.update(b, { estatus: 'SURTIDO', fecha_surtido: ahora, surtido_por: usuario, updatedAt: ahora });
-      await lote.commit();
-      cargarSurtir();
-    }
+  const ahora = firebase.firestore.FieldValue.serverTimestamp();
+  const usuario = configLocal.usuarioActual || 'SIN_USUARIO';
 
-    async function recibirSolicitud(folio, tiendaSolicitante, tiendaSurtidora) {
-      if (!confirm(`¿Marcar recibido ${folio}?`)) return;
-      const ahora = firebase.firestore.FieldValue.serverTimestamp();
-      const usuario = configLocal.usuarioActual || 'SIN_USUARIO';
-      const lote = db.batch();
+  const ref = db.collection('TIENDAS')
+    .doc(tiendaSurtidora)
+    .collection('intercambios')
+    .doc(folio);
 
-      const a = db.collection('TIENDAS').doc(tiendaSolicitante).collection('intercambios').doc(folio);
-      const b = db.collection('TIENDAS').doc(tiendaSurtidora).collection('intercambios').doc(folio);
+  const snap = await ref.get();
 
-      lote.update(a, { estatus: 'RECIBIDO', fecha_recepcion: ahora, recibido_por: usuario, updatedAt: ahora });
-      lote.update(b, { estatus: 'RECIBIDO', fecha_recepcion: ahora, recibido_por: usuario, updatedAt: ahora });
-      await lote.commit();
-      cargarRecibir();
-    }
+  if (!snap.exists) {
+    alert('Documento no encontrado');
+    return;
+  }
+
+  const data = snap.data();
+
+  if (data.estatus === 'SURTIDO') {
+    alert('Ya fue surtido');
+    return;
+  }
+
+  let itemsActualizados = (data.items || []).map(x => {
+
+    const surtida = Number(
+      prompt(
+        `Cantidad surtida para:\n${x.concepto}\nSolicitado: ${x.cantidad_autorizada}`,
+        x.cantidad_autorizada
+      ) || 0
+    );
+
+    return {
+
+      ...x,
+
+      cantidad_surtida: surtida,
+
+      movimiento_salida: surtida * -1,
+
+      faltante_surtido:
+        Number(x.cantidad_autorizada || 0) - surtida,
+
+      estado_item:
+        surtida <= 0
+          ? 'NO_SURTIDO'
+          : surtida < Number(x.cantidad_autorizada || 0)
+          ? 'SURTIDO_PARCIAL'
+          : 'SURTIDO'
+
+    };
+
+  });
+
+  const parcial = itemsActualizados.some(
+    x => x.estado_item === 'SURTIDO_PARCIAL'
+  );
+
+  const noSurtido = itemsActualizados.every(
+    x => x.estado_item === 'NO_SURTIDO'
+  );
+
+  let estatusFinal = 'SURTIDO';
+
+  if (parcial) estatusFinal = 'SURTIDO_PARCIAL';
+
+  if (noSurtido) estatusFinal = 'NO_SURTIDO';
+
+  const lote = db.batch();
+
+  const a = db.collection('TIENDAS')
+    .doc(tiendaSolicitante)
+    .collection('intercambios')
+    .doc(folio);
+
+  const b = db.collection('TIENDAS')
+    .doc(tiendaSurtidora)
+    .collection('intercambios')
+    .doc(folio);
+
+  lote.update(a, {
+    estatus: estatusFinal,
+    fecha_surtido: ahora,
+    surtido_por: usuario,
+    items: itemsActualizados,
+    updatedAt: ahora
+  });
+
+  lote.update(b, {
+    estatus: estatusFinal,
+    fecha_surtido: ahora,
+    surtido_por: usuario,
+    items: itemsActualizados,
+    updatedAt: ahora
+  });
+
+  await lote.commit();
+  for (const item of itemsActualizados) {
+
+  if (item.cantidad_surtida > 0) {
+
+    await db.collection('movimientos_intercambios').add({
+
+      folio,
+
+      tienda: tiendaSurtidora,
+
+      tipo: 'SALIDA',
+
+      codigo: item.codigoBarra,
+
+      producto: item.concepto,
+
+      movimiento: item.movimiento_salida,
+
+      cantidad: item.cantidad_surtida,
+
+      usuario,
+
+      fecha: new Date()
+
+    });
+
+  }
+
+}
+
+  alert('Surtido guardado correctamente');
+
+  cargarSurtir();
+}
+
+async function recibirSolicitud(folio, tiendaSolicitante, tiendaSurtidora) {
+
+  if (!confirm(`¿Marcar recibido ${folio}?`)) return;
+
+  const ahora = firebase.firestore.FieldValue.serverTimestamp();
+  const usuario = configLocal.usuarioActual || 'SIN_USUARIO';
+
+  const ref = db.collection('TIENDAS')
+    .doc(tiendaSolicitante)
+    .collection('intercambios')
+    .doc(folio);
+
+  const snap = await ref.get();
+
+  if (!snap.exists) {
+    alert('Documento no encontrado');
+    return;
+  }
+
+  const data = snap.data();
+
+  if (data.estatus === 'RECIBIDO') {
+    alert('Ya fue recibido');
+    return;
+  }
+
+  let itemsActualizados = (data.items || []).map(x => {
+
+    const recibida = Number(
+      prompt(
+        `Cantidad recibida para:\n${x.concepto}\nSurtido: ${x.cantidad_surtida}`,
+        x.cantidad_surtida
+      ) || 0
+    );
+
+    return {
+
+      ...x,
+
+      cantidad_recibida: recibida,
+
+      movimiento_entrada: recibida,
+
+      diferencia_recepcion:
+        Number(x.cantidad_surtida || 0) - recibida,
+
+      estado_item:
+        recibida <= 0
+          ? 'NO_RECIBIDO'
+          : recibida < Number(x.cantidad_surtida || 0)
+          ? 'RECIBIDO_PARCIAL'
+          : 'RECIBIDO'
+
+    };
+
+  });
+
+  const parcial = itemsActualizados.some(
+    x => x.estado_item === 'RECIBIDO_PARCIAL'
+  );
+
+  let estatusFinal = parcial
+    ? 'RECIBIDO_PARCIAL'
+    : 'RECIBIDO';
+
+  const lote = db.batch();
+
+  const a = db.collection('TIENDAS')
+    .doc(tiendaSolicitante)
+    .collection('intercambios')
+    .doc(folio);
+
+  const b = db.collection('TIENDAS')
+    .doc(tiendaSurtidora)
+    .collection('intercambios')
+    .doc(folio);
+
+  lote.update(a, {
+    estatus: estatusFinal,
+    fecha_recepcion: ahora,
+    recibido_por: usuario,
+    items: itemsActualizados,
+    updatedAt: ahora
+  });
+
+  lote.update(b, {
+    estatus: estatusFinal,
+    fecha_recepcion: ahora,
+    recibido_por: usuario,
+    items: itemsActualizados,
+    updatedAt: ahora
+  });
+
+  await lote.commit();
+
+  for (const item of itemsActualizados) {
+
+  if (item.cantidad_recibida > 0) {
+
+    await db.collection('movimientos_intercambios').add({
+
+      folio,
+
+      tienda: tiendaSolicitante,
+
+      tipo: 'ENTRADA',
+
+      codigo: item.codigoBarra,
+
+      producto: item.concepto,
+
+      movimiento: item.movimiento_entrada,
+
+      cantidad: item.cantidad_recibida,
+
+      usuario,
+
+      fecha: new Date()
+
+    });
+
+  }
+
+}
+
+  alert('Recepción guardada');
+
+  cargarRecibir();
+}
 
     // =============================
     // INIT
