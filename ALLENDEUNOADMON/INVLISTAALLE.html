@@ -261,8 +261,21 @@
     th.trans-col { background: var(--trans-head); }
     td.trans-col { background: var(--trans-cell); }
 
-    th.aju-col { background: var(--aju-head); }
-    td.aju-col { background: var(--aju-cell); font-weight: bold; color: #5b21b6; }
+    th.aju-col {
+      background: #c4b5fd !important;
+      color: #3b0764;
+      font-weight: 900;
+      border-left: 3px solid #7c3aed;
+      border-right: 3px solid #7c3aed;
+    }
+
+    td.aju-col {
+      background: #ede9fe !important;
+      color: #4c1d95;
+      font-weight: 900;
+      border-left: 3px solid #7c3aed;
+      border-right: 3px solid #7c3aed;
+    }
 
     th.vta-col { background: var(--vta-head); }
     td.vta-col { background: var(--vta-cell); }
@@ -453,15 +466,6 @@
         font-size: 20px;
       }
     }
-    @keyframes parpadeoAjuste {
-  0% { background-color: #ede9fe; }
-  50% { background-color: #c4b5fd; }
-  100% { background-color: #ede9fe; }
-}
-
-.fila-ajustada td {
-  animation: parpadeoAjuste 1.2s infinite;
-}
   </style>
 </head>
 <body>
@@ -1388,8 +1392,15 @@ function construirMapaEquivalencias(items = []) {
       snap.forEach(doc => {
         const data = doc.data() || {};
 
-        // Salida real: solo cuando el documento ya fue aplicado al inventario.
-        if (data.tipoMovimientoPendiente !== "SALIDA_DEVOLUCION_MATRIZ") return;
+        // Devolución operativa: se pinta como salida desde que se genera.
+        // No espera autorización ni aplicadoInventario porque la mercancía ya salió.
+        const esDevolucionValida =
+          data.tipoMovimientoPendiente === "SALIDA_DEVOLUCION_MATRIZ" ||
+          data.tipoDocumento === "DEVOLUCION_MERCANCIA_MATRIZ" ||
+          data.origen === "APP_DEVOLUCION_MATRIZ_TIENDA" ||
+          data.aplicadoInventario === true;
+
+        if (!esDevolucionValida) return;
 
         const fechaBase = data.actualizadoEn || data.creadoEn || data.actualizadoEnLocal || data.creadoEnLocal || "";
         const fecha = normalizarFecha(fechaBase);
@@ -2062,10 +2073,6 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
       for (const row of rows) {
         const tr = document.createElement("tr");
 
-        if (row.ultimoAjusteCantidad !== null) {
-          tr.classList.add("fila-ajustada");
-        }
-
         let html = `
           <td class="left sticky1">${escapeHtml(row.codigo)}</td>
           <td class="left sticky2">
@@ -2236,9 +2243,6 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
       const totalRowIndex = data.length - 1;
 
       for (let R = range.s.r; R <= range.e.r; R++) {
-        const esFilaAjustada =
-          R > 0 && R < totalRowIndex && rows[R - 1]?.ultimoAjusteCantidad !== null;
-
         for (let C = range.s.c; C <= range.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: R, c: C });
           if (!ws[addr]) continue;
@@ -2263,13 +2267,6 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
 
           let style = excelCellStyle(tipo, bold);
 
-          if (esFilaAjustada) {
-            style.fill = {
-              patternType: "solid",
-              fgColor: { rgb: "C4B5FD" }
-            };
-            style.font = { bold: true };
-          }
 
           ws[addr].s = style;
           if (C >= 2) ws[addr].z = "#,##0.####";
