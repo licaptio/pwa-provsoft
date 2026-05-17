@@ -1389,7 +1389,7 @@ function construirMapaEquivalencias(items = []) {
         const data = doc.data() || {};
 
         // Salida real: solo cuando el documento ya fue aplicado al inventario.
-        if (data.aplicadoInventario !== true) return;
+        if (data.tipoMovimientoPendiente !== "SALIDA_DEVOLUCION_MATRIZ") return;
 
         const fechaBase = data.actualizadoEn || data.creadoEn || data.actualizadoEnLocal || data.creadoEnLocal || "";
         const fecha = normalizarFecha(fechaBase);
