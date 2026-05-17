@@ -6,99 +6,458 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#00416A">
+  <meta name="theme-color" content="#b80000">
   <link rel="icon" href="icons/icon-192.svg">
 
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    :root {
-      --azul: #00416A;
-      --azul2: #0c6cbd;
-      --fondo: #f4f7fb;
-      --shadow: 0 10px 25px rgba(0,0,0,.1);
+    :root{
+      --rojo:#d60000;
+      --rojo-oscuro:#9f0000;
+      --verde:#00883e;
+      --verde-oscuro:#006b31;
+      --azul:#00416A;
+      --gris:#f4f6f8;
+      --blanco:#ffffff;
+      --texto:#1f2937;
+      --shadow:0 12px 28px rgba(0,0,0,.14);
+      --radius:22px;
     }
 
-    body {
-      font-family: 'Poppins', sans-serif;
-      margin: 0;
-      background: var(--fondo);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
+    *{
+      box-sizing:border-box;
     }
 
-    .container {
-      width: 100%;
-      max-width: 500px;
-      text-align: center;
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:'Poppins',Arial,sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(214,0,0,.12), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(0,136,62,.12), transparent 35%),
+        linear-gradient(135deg,#ffffff,#f1f5f9);
+      padding:18px;
+      color:var(--texto);
     }
 
-    h1 {
-      color: var(--azul);
-      margin-bottom: 30px;
+    .app{
+      width:100%;
+      max-width:1150px;
+      margin:auto;
+      min-height:calc(100vh - 36px);
+      background:rgba(255,255,255,.92);
+      border-radius:30px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      border:1px solid rgba(0,0,0,.06);
     }
 
-    .menu {
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
+    .header{
+      padding:22px 24px;
+      display:grid;
+      grid-template-columns:220px 1fr;
+      gap:20px;
+      align-items:center;
+      background:#fff;
+      border-bottom:5px solid var(--rojo);
     }
 
-    .btn {
-      background: linear-gradient(135deg, var(--azul), var(--azul2));
-      color: white;
-      padding: 15px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 600;
-      box-shadow: var(--shadow);
-      transition: .2s;
-      border: none;
-      cursor: pointer;
-      font-size: 16px;
+    .logoBox{
+      background:white;
+      border:3px solid var(--rojo);
+      border-radius:24px;
+      padding:8px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:105px;
     }
 
-    .btn:hover {
-      transform: translateY(-2px);
-      opacity: 0.95;
+    .logoBox img{
+      width:100%;
+      max-height:95px;
+      object-fit:contain;
     }
 
-    .footer {
-      margin-top: 25px;
-      font-size: 12px;
-      color: #666;
+    .titulo h1{
+      margin:0;
+      color:var(--rojo);
+      font-size:30px;
+      font-weight:800;
+      line-height:1.1;
+      letter-spacing:.3px;
+      text-transform:uppercase;
     }
 
-    #btnInstall {
-      display: none;
+    .titulo h2{
+      margin:8px 0 0;
+      color:var(--verde-oscuro);
+      font-size:24px;
+      font-weight:700;
+      text-transform:uppercase;
+    }
+
+    .status{
+      margin-top:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:#f1fff6;
+      border:1px solid rgba(0,136,62,.25);
+      color:var(--verde-oscuro);
+      padding:8px 13px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:700;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      background:var(--verde);
+      border-radius:50%;
+      box-shadow:0 0 0 4px rgba(0,136,62,.12);
+    }
+
+    .contenido{
+      padding:24px;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:24px;
+    }
+
+    .columna{
+      background:#ffffff;
+      border-radius:var(--radius);
+      padding:20px;
+      border:1px solid rgba(0,0,0,.07);
+      box-shadow:0 8px 20px rgba(0,0,0,.07);
+    }
+
+    .columna.matriz{
+      border-top:7px solid var(--rojo);
+    }
+
+    .columna.consultas{
+      border-top:7px solid var(--verde);
+    }
+
+    .columna.auditoria{
+      grid-column:1 / -1;
+      border-top:7px solid var(--azul);
+    }
+
+    .sectionTitle{
+      margin:0 0 18px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-size:24px;
+      font-weight:800;
+      text-transform:uppercase;
+      color:#111827;
+    }
+
+    .sectionTitle span{
+      width:12px;
+      height:34px;
+      border-radius:10px;
+      display:inline-block;
+    }
+
+    .consultas .sectionTitle span{ background:var(--verde); }
+    .matriz .sectionTitle span{ background:var(--rojo); }
+    .auditoria .sectionTitle span{ background:var(--azul); }
+
+    .menu{
+      display:grid;
+      gap:14px;
+    }
+
+    .btn{
+      width:100%;
+      min-height:68px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      text-decoration:none;
+      border:none;
+      cursor:pointer;
+      border-radius:18px;
+      padding:15px 18px;
+      color:white;
+      font-weight:800;
+      font-size:16px;
+      text-align:left;
+      box-shadow:0 8px 18px rgba(0,0,0,.16);
+      transition:.18s ease;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .btn::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg,rgba(255,255,255,.18),transparent);
+      pointer-events:none;
+    }
+
+    .btn:hover{
+      transform:translateY(-2px);
+      filter:brightness(1.03);
+    }
+
+    .btn:active{
+      transform:scale(.98);
+    }
+
+    .icon{
+      width:42px;
+      height:42px;
+      min-width:42px;
+      border-radius:13px;
+      background:rgba(255,255,255,.22);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      font-size:22px;
+    }
+
+    .btnText{
+      display:flex;
+      flex-direction:column;
+      line-height:1.15;
+    }
+
+    .btnText small{
+      margin-top:5px;
+      font-size:12px;
+      font-weight:600;
+      opacity:.9;
+    }
+
+    .verde{
+      background:linear-gradient(135deg,var(--verde-oscuro),var(--verde));
+    }
+
+    .rojo{
+      background:linear-gradient(135deg,var(--rojo-oscuro),var(--rojo));
+    }
+
+    .azul{
+      background:linear-gradient(135deg,#00385c,#0c6cbd);
+    }
+
+    .gris{
+      background:linear-gradient(135deg,#374151,#6b7280);
+    }
+
+    #btnInstall{
+      display:none;
+      margin-bottom:18px;
+      background:linear-gradient(135deg,#111827,#374151);
+    }
+
+    .footer{
+      margin-top:22px;
+      padding:16px;
+      text-align:center;
+      font-size:12px;
+      color:#555;
+      border-top:1px solid rgba(0,0,0,.08);
+      background:#fff;
+    }
+
+    @media(max-width:850px){
+      .header{
+        grid-template-columns:1fr;
+        text-align:center;
+      }
+
+      .logoBox{
+        max-width:330px;
+        margin:auto;
+      }
+
+      .titulo h1{
+        font-size:24px;
+      }
+
+      .titulo h2{
+        font-size:20px;
+      }
+
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .columna.auditoria{
+        grid-column:auto;
+      }
+    }
+
+    @media(max-width:480px){
+      body{
+        padding:10px;
+      }
+
+      .app{
+        border-radius:22px;
+      }
+
+      .contenido{
+        padding:14px;
+      }
+
+      .columna{
+        padding:15px;
+      }
+
+      .sectionTitle{
+        font-size:20px;
+      }
+
+      .btn{
+        min-height:64px;
+        font-size:14px;
+        padding:13px 14px;
+      }
+
+      .icon{
+        width:38px;
+        height:38px;
+        min-width:38px;
+      }
     }
   </style>
 </head>
+
 <body>
 
-  <div class="container">
-    <h1>PROVSOFT<br>ALLENDE ONE</h1>
+  <main class="app">
 
-    <div class="menu">
-      <button class="btn" id="btnInstall">📲 Instalar app</button>
-      <a class="btn" href="CATALOGO.html">📦 Catálogo Productos Informativo</a>
-      <a class="btn" href="SOLTRANAPP.html"> Solicitar mercancia Transferencias</a>
-      <a class="btn" href="responderasolicitudalle1.html">📋 Responder Solicitud de INVENTARIOS auditoria</a>
-      <a class="btn" href="intercambio1.html">📋 Traspasos entre tiendas </a>
-      <a class="btn" href="repotransfallende1.html">📋 Listado de Transferencias </a>
-      <a class="btn" href="SOLMERMA.html"> Merma ALLENDE </a>
-      <a class="btn" href="SOLDEVALLENDE1.html"> Devolucion de Mercancia a Cedis </a>
-    </div>
+    <header class="header">
+      <div class="logoBox">
+        <!-- Cambia el nombre si tu logo tiene otro archivo -->
+        <img src="logo.jfif" alt="Logo Proveedora">
+      </div>
 
-    <div class="footer">
-      Sistema interno PROVSOFT
-    </div>
-  </div>
+      <div class="titulo">
+        <h1>Proveedora de Dulces y Desechables</h1>
+        <h2>Sucursal Allende 1</h2>
+        <div class="status">
+          <span class="dot"></span>
+          Sistema interno PROVSOFT
+        </div>
+      </div>
+    </header>
+
+    <section class="contenido">
+
+      <button class="btn" id="btnInstall">
+        <span class="icon">📲</span>
+        <span class="btnText">
+          Instalar aplicación
+          <small>Acceso directo en este dispositivo</small>
+        </span>
+      </button>
+
+      <div class="grid">
+
+        <!-- CONSULTAS -->
+        <section class="columna consultas">
+          <h3 class="sectionTitle"><span></span> Consultas</h3>
+
+          <div class="menu">
+            <a class="btn verde" href="CATALOGO.html">
+              <span class="icon">📦</span>
+              <span class="btnText">
+                Catálogo
+                <small>Productos informativos</small>
+              </span>
+            </a>
+
+            <a class="btn verde" href="repotransfallende1.html">
+              <span class="icon">📋</span>
+              <span class="btnText">
+                Listado de transferencias
+                <small>Consulta de movimientos registrados</small>
+              </span>
+            </a>
+          </div>
+        </section>
+
+        <!-- CEDIS MATRIZ -->
+        <section class="columna matriz">
+          <h3 class="sectionTitle"><span></span> Cedis Matriz</h3>
+
+          <div class="menu">
+            <a class="btn rojo" href="SOLTRANAPP.html">
+              <span class="icon">🚚</span>
+              <span class="btnText">
+                Solicitudes / Transferencias
+                <small>Solicitar mercancía a matriz</small>
+              </span>
+            </a>
+
+            <a class="btn rojo" href="SOLMERMA.html">
+              <span class="icon">⚠️</span>
+              <span class="btnText">
+                Merma Allende 1
+                <small>Mercancía dañada, caducada o no vendible</small>
+              </span>
+            </a>
+
+            <a class="btn rojo" href="SOLDEVALLENDE1.html">
+              <span class="icon">↩️</span>
+              <span class="btnText">
+                Devolución de mercancía a Cedis
+                <small>Mercancía detenida, no caducada</small>
+              </span>
+            </a>
+
+            <a class="btn rojo" href="intercambio1.html">
+              <span class="icon">🔁</span>
+              <span class="btnText">
+                Traspasos entre tiendas
+                <small>Movimiento entre sucursales</small>
+              </span>
+            </a>
+          </div>
+        </section>
+
+        <!-- AUDITORIA -->
+        <section class="columna auditoria">
+          <h3 class="sectionTitle"><span></span> Auditoría</h3>
+
+          <div class="menu">
+            <a class="btn azul" href="responderasolicitudalle1.html">
+              <span class="icon">🧾</span>
+              <span class="btnText">
+                Responder solicitud
+                <small>Inventarios / auditoría interna</small>
+              </span>
+            </a>
+          </div>
+        </section>
+
+      </div>
+
+    </section>
+
+    <footer class="footer">
+      PROVSOFT · Menú principal Allende 1
+    </footer>
+
+  </main>
 
   <script src="pwa-register.js"></script>
+
   <script>
     let deferredPrompt = null;
     const btnInstall = document.getElementById("btnInstall");
@@ -106,7 +465,7 @@
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      btnInstall.style.display = "block";
+      btnInstall.style.display = "flex";
     });
 
     btnInstall.addEventListener("click", async () => {
@@ -117,5 +476,6 @@
       btnInstall.style.display = "none";
     });
   </script>
+
 </body>
 </html>
