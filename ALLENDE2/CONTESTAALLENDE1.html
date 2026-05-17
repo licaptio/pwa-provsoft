@@ -14,7 +14,6 @@
 }
 
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif}
-
 body{background:var(--gris);color:var(--texto)}
 
 .loading{
@@ -23,15 +22,8 @@ body{background:var(--gris);color:var(--texto)}
   color:white;display:flex;flex-direction:column;
   align-items:center;justify-content:center;z-index:9999
 }
-
 .loading img{width:280px;max-width:90%;margin-bottom:25px}
-
-.barra-wrap{
-  width:320px;max-width:90%;height:10px;
-  background:rgba(255,255,255,.25);
-  border-radius:20px;overflow:hidden;margin-top:20px
-}
-
+.barra-wrap{width:320px;max-width:90%;height:10px;background:rgba(255,255,255,.25);border-radius:20px;overflow:hidden;margin-top:20px}
 .barra{height:100%;width:0%;background:white;transition:.3s}
 
 .app{max-width:1200px;margin:auto;padding:15px}
@@ -41,11 +33,7 @@ body{background:var(--gris);color:var(--texto)}
   color:white;border-radius:22px;padding:20px;margin-bottom:15px;
   display:flex;align-items:center;gap:20px
 }
-
-.header img{
-  width:180px;background:white;border-radius:14px;padding:8px
-}
-
+.header img{width:180px;background:white;border-radius:14px;padding:8px}
 .header h2{font-size:30px}
 .header p{margin-top:5px;opacity:.9}
 
@@ -53,29 +41,15 @@ body{background:var(--gris);color:var(--texto)}
   background:white;border-radius:22px;padding:18px;margin-bottom:15px;
   box-shadow:0 5px 18px rgba(0,0,0,.08)
 }
-
 .box h3{color:var(--rojo);margin-bottom:15px}
 
 .solicitud{
   background:white;border:2px solid #eee;border-radius:18px;
-  padding:15px;margin-bottom:15px;cursor:pointer;
-  transition:.15s
+  padding:15px;margin-bottom:15px;cursor:pointer;transition:.15s
 }
-
-.solicitud:hover{
-  border-color:var(--rojo);
-  transform:translateY(-1px)
-}
-
-.solicitud-head{
-  display:flex;justify-content:space-between;gap:10px;
-  flex-wrap:wrap;margin-bottom:12px
-}
-
-.estado{
-  background:#fff0f0;color:var(--rojo);
-  padding:8px 12px;border-radius:20px;font-weight:bold
-}
+.solicitud:hover{border-color:var(--rojo);transform:translateY(-1px)}
+.solicitud-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.estado{background:#fff0f0;color:var(--rojo);padding:8px 12px;border-radius:20px;font-weight:bold}
 
 table{width:100%;border-collapse:collapse;margin-top:10px}
 th{background:#fafafa;text-align:left}
@@ -110,8 +84,13 @@ button{
 }
 
 canvas{
-  width:100%;height:170px;border:2px dashed #ccc;
-  border-radius:18px;margin-top:10px;touch-action:none
+  width:100%;
+  height:170px;
+  border:2px dashed #ccc;
+  border-radius:18px;
+  margin-top:10px;
+  touch-action:none;
+  background:white;
 }
 
 .firma-img{
@@ -160,7 +139,7 @@ canvas{
 
 </div>
 
-<!-- MODAL: VER ORDEN -->
+<!-- MODAL ORDEN -->
 <div class="modal" id="modalOrden">
   <div class="modal-box">
 
@@ -196,7 +175,7 @@ canvas{
   </div>
 </div>
 
-<!-- MODAL: CONTESTAR -->
+<!-- MODAL CONTESTAR -->
 <div class="modal" id="modalDetalle">
   <div class="modal-box">
 
@@ -312,7 +291,7 @@ window.cargarSolicitudes = async function(){
   renderSolicitudes();
   estado('Órdenes cargadas');
   barra(100);
-}
+};
 
 function renderSolicitudes(){
 
@@ -353,7 +332,6 @@ function renderSolicitudes(){
     lista.appendChild(div);
 
   });
-
 }
 
 window.abrirOrden = function(id){
@@ -362,8 +340,7 @@ window.abrirOrden = function(id){
 
   if(!solicitudActual) return;
 
-  document.getElementById('ordenFolio').textContent =
-    solicitudActual.folio;
+  document.getElementById('ordenFolio').textContent = solicitudActual.folio;
 
   document.getElementById('ordenInfo').innerHTML = `
     <b>Solicita:</b> ${solicitudActual.tienda_solicita}<br>
@@ -396,23 +373,22 @@ window.abrirOrden = function(id){
       : '<p>Sin firma registrada.</p>';
 
   document.getElementById('modalOrden').style.display = 'flex';
-
-}
+};
 
 window.cerrarOrden = function(){
   document.getElementById('modalOrden').style.display = 'none';
-}
+};
 
 window.abrirContestacion = function(){
   cerrarOrden();
   if(!solicitudActual) return;
   abrirDetalle(solicitudActual.id);
-}
+};
 
 window.imprimirOrden = function(){
   if(!solicitudActual) return;
   imprimir(solicitudActual);
-}
+};
 
 window.abrirDetalle = function(id){
 
@@ -420,8 +396,7 @@ window.abrirDetalle = function(id){
 
   if(!solicitudActual) return;
 
-  document.getElementById('modalFolio').textContent =
-    solicitudActual.folio;
+  document.getElementById('modalFolio').textContent = solicitudActual.folio;
 
   document.getElementById('modalInfo').innerHTML = `
     <b>Solicita:</b> ${solicitudActual.tienda_solicita}<br>
@@ -457,15 +432,17 @@ window.abrirDetalle = function(id){
 
   document.getElementById('autorizadoPor').value = '';
 
-  limpiarFirma();
-
   document.getElementById('modalDetalle').style.display = 'flex';
 
-}
+  setTimeout(()=>{
+    iniciarFirma();
+    limpiarFirma();
+  },100);
+};
 
 window.cerrarModal = function(){
   document.getElementById('modalDetalle').style.display = 'none';
-}
+};
 
 window.autorizarSolicitud = async function(){
 
@@ -474,8 +451,7 @@ window.autorizarSolicitud = async function(){
     return;
   }
 
-  const autorizadoPor =
-    document.getElementById('autorizadoPor').value.trim();
+  const autorizadoPor = document.getElementById('autorizadoPor').value.trim();
 
   if(!autorizadoPor){
     alert('Captura quién autoriza en Allende 2');
@@ -504,7 +480,6 @@ window.autorizarSolicitud = async function(){
           ? 'AUTORIZADO_PARCIAL'
           : 'AUTORIZADO'
     };
-
   });
 
   const todoCero = itemsActualizados.every(
@@ -546,8 +521,7 @@ window.autorizarSolicitud = async function(){
   cerrarModal();
 
   await cargarSolicitudes();
-
-}
+};
 
 window.rechazarSolicitud = async function(){
 
@@ -556,8 +530,7 @@ window.rechazarSolicitud = async function(){
     return;
   }
 
-  const autorizadoPor =
-    document.getElementById('autorizadoPor').value.trim();
+  const autorizadoPor = document.getElementById('autorizadoPor').value.trim();
 
   if(!autorizadoPor){
     alert('Captura quién rechaza en Allende 2');
@@ -592,8 +565,7 @@ window.rechazarSolicitud = async function(){
   cerrarModal();
 
   await cargarSolicitudes();
-
-}
+};
 
 function imprimir(docu){
 
@@ -674,7 +646,6 @@ function imprimir(docu){
     </body>
     </html>
   `);
-
 }
 
 function iniciarFirma(){
@@ -682,64 +653,73 @@ function iniciarFirma(){
   const canvas = document.getElementById('firma');
   const ctx = canvas.getContext('2d');
 
+  const rect = canvas.getBoundingClientRect();
+
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#111';
+
   let dibujando = false;
-
-  function ajustar(){
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
-  }
-
-  ajustar();
 
   function pos(e){
     const r = canvas.getBoundingClientRect();
+    const touch = e.touches ? e.touches[0] : e;
 
     return {
-      x:(e.touches ? e.touches[0].clientX : e.clientX) - r.left,
-      y:(e.touches ? e.touches[0].clientY : e.clientY) - r.top
+      x: touch.clientX - r.left,
+      y: touch.clientY - r.top
     };
   }
 
   function start(e){
     e.preventDefault();
+
     dibujando = true;
+
     const p = pos(e);
+
     ctx.beginPath();
     ctx.moveTo(p.x,p.y);
   }
 
   function move(e){
     if(!dibujando) return;
+
     e.preventDefault();
 
     const p = pos(e);
 
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#111';
     ctx.lineTo(p.x,p.y);
     ctx.stroke();
 
-    firmaBase64 = canvas.toDataURL();
+    firmaBase64 = canvas.toDataURL('image/png');
   }
 
-  function end(){
+  function end(e){
+    if(e) e.preventDefault();
+
+    if(!dibujando) return;
+
     dibujando = false;
-    firmaBase64 = canvas.toDataURL();
+
+    firmaBase64 = canvas.toDataURL('image/png');
   }
 
-  canvas.addEventListener('mousedown',start);
-  canvas.addEventListener('mousemove',move);
-  canvas.addEventListener('mouseup',end);
-  canvas.addEventListener('mouseleave',end);
+  canvas.onmousedown = start;
+  canvas.onmousemove = move;
+  canvas.onmouseup = end;
+  canvas.onmouseleave = end;
 
-  canvas.addEventListener('touchstart',start,{passive:false});
-  canvas.addEventListener('touchmove',move,{passive:false});
-  canvas.addEventListener('touchend',end);
-
+  canvas.ontouchstart = start;
+  canvas.ontouchmove = move;
+  canvas.ontouchend = end;
 }
 
 function limpiarFirma(){
+
   const canvas = document.getElementById('firma');
   const ctx = canvas.getContext('2d');
 
@@ -753,8 +733,6 @@ async function init(){
   estado('Preparando aplicación...');
   barra(20);
 
-  iniciarFirma();
-
   barra(40);
 
   await cargarSolicitudes();
@@ -764,7 +742,6 @@ async function init(){
   setTimeout(()=>{
     document.getElementById('loading').style.display = 'none';
   },500);
-
 }
 
 window.onload = init;
