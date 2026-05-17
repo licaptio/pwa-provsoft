@@ -35,6 +35,15 @@
 
       --neto-head: #ecfccb;
       --neto-cell: #f7fee7;
+
+      --dev-head: #fecaca;
+      --dev-cell: #fff1f2;
+
+      --merma-head: #fca5a5;
+      --merma-cell: #fef2f2;
+
+      --inter-head: #bbf7d0;
+      --inter-cell: #f0fdf4;
     }
 
     * { box-sizing: border-box; }
@@ -258,6 +267,15 @@
     th.vta-col { background: var(--vta-head); }
     td.vta-col { background: var(--vta-cell); }
 
+    th.dev-col { background: var(--dev-head); }
+    td.dev-col { background: var(--dev-cell); }
+
+    th.merma-col { background: var(--merma-head); }
+    td.merma-col { background: var(--merma-cell); }
+
+    th.inter-col { background: var(--inter-head); }
+    td.inter-col { background: var(--inter-cell); }
+
     th.total-col, td.total-col {
       background: #f8fafc;
       font-weight: bold;
@@ -456,7 +474,7 @@
           <button class="icon-btn" id="btnAbrirConfig" title="Configuración">⚙</button>
           <h1>Inventario vs Ventas por Fecha - <span id="tituloTienda">ALLENDE 1</span></h1>
           <p>
-            Reporte operativo con alias del catálogo, ajustes auditados, inventarios, transferencias y ventas.
+            Reporte operativo con alias del catálogo, ajustes auditados, inventarios, transferencias, intercambios, devoluciones, mermas y ventas.
           </p>
         </div>
 
@@ -652,6 +670,9 @@
         VENTAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("ventas"),
         TRANSFERENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("SURTIDOTRANS"),
         AJUSTES_REF: db.collection("TIENDAS").doc(TIENDA).collection("ajustes_inventario"),
+        DEVOLUCIONES_REF: db.collection("TIENDAS").doc(TIENDA).collection("DEVOLUCIONES"),
+        INTERCAMBIOS_REF: db.collection("TIENDAS").doc(TIENDA).collection("INTERCAMBIOS"),
+        MERMAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("MERMAS"),
         EQUIVALENCIAS_REF: db.collection("TIENDAS").doc(TIENDA).collection("configuracion_equivalencias"),
         PRODUCTOS_REF: db.collection("productos")
       };
@@ -1357,6 +1378,150 @@ function construirMapaEquivalencias(items = []) {
       };
     }
 
+
+    async function cargarDevoluciones() {
+      const { DEVOLUCIONES_REF } = getRefsPorTienda();
+      const snap = await DEVOLUCIONES_REF.get();
+      const docs = [];
+      const catalogo = new Map();
+
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+
+        // Salida real: solo cuando el documento ya fue aplicado al inventario.
+        if (data.aplicadoInventario !== true) return;
+
+        const fechaBase = data.actualizadoEn || data.creadoEn || data.actualizadoEnLocal || data.creadoEnLocal || "";
+        const fecha = normalizarFecha(fechaBase);
+        const productos = Array.isArray(data.productos) ? data.productos : [];
+
+        productos.forEach(item => {
+          const codigoOriginal = String(item.codigo || item.productoId || "").trim();
+          const descripcion = String(item.descripcion || item.concepto || "").trim();
+          const cantidad = Number(item.cantidad || 0);
+
+          if (!codigoOriginal || !fecha || !Number.isFinite(cantidad) || cantidad <= 0) return;
+
+          docs.push({
+            origen: "DEV",
+            id: `${doc.id}_${codigoOriginal}`,
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            fecha,
+            fechaMs: normalizarFechaMs(fechaBase),
+            cantidad
+          });
+
+          if (!catalogo.has(codigoOriginal)) {
+            catalogo.set(codigoOriginal, descripcion);
+          }
+        });
+      });
+
+      return {
+        docs,
+        totalDevolucionesDocs: snap.size,
+        catalogo
+      };
+    }
+
+    async function cargarIntercambios() {
+      const { INTERCAMBIOS_REF } = getRefsPorTienda();
+      const snap = await INTERCAMBIOS_REF.get();
+      const docs = [];
+      const catalogo = new Map();
+
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+
+        // Entrada teórica: documento autorizado e item autorizado.
+        if (String(data.estado || "").toUpperCase() !== "AUTORIZADO") return;
+
+        const fechaBase = data.fecha_autorizacion || data.updatedAt || data.fecha_solicitud || "";
+        const fecha = normalizarFecha(fechaBase);
+        const items = Array.isArray(data.items) ? data.items : [];
+
+        items.forEach(item => {
+          if (String(item.estado_item || "").toUpperCase() !== "AUTORIZADO") return;
+
+          const codigoOriginal = String(item.codigo || item.productoId || "").trim();
+          const descripcion = String(item.descripcion || item.concepto || "").trim();
+          const cantidad = Number(item.cantidad_autorizada ?? item.cantidad_solicitada ?? item.cantidad ?? 0);
+
+          if (!codigoOriginal || !fecha || !Number.isFinite(cantidad) || cantidad <= 0) return;
+
+          docs.push({
+            origen: "INTER",
+            id: `${doc.id}_${codigoOriginal}`,
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            fecha,
+            fechaMs: normalizarFechaMs(fechaBase),
+            cantidad
+          });
+
+          if (!catalogo.has(codigoOriginal)) {
+            catalogo.set(codigoOriginal, descripcion);
+          }
+        });
+      });
+
+      return {
+        docs,
+        totalIntercambiosDocs: snap.size,
+        catalogo
+      };
+    }
+
+    async function cargarMermas() {
+      const { MERMAS_REF } = getRefsPorTienda();
+      const snap = await MERMAS_REF.get();
+      const docs = [];
+      const catalogo = new Map();
+
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+
+        // Salida real: solo cuando la merma ya fue aplicada al inventario.
+        if (data.aplicadoInventario !== true) return;
+
+        const fechaBase = data.actualizadoEn || data.creadoEn || data.actualizadoEnLocal || data.creadoEnLocal || "";
+        const fecha = normalizarFecha(fechaBase);
+        const productos = Array.isArray(data.productos) ? data.productos : [];
+
+        productos.forEach(item => {
+          const codigoOriginal = String(item.codigo || item.productoId || "").trim();
+          const descripcion = String(item.descripcion || item.concepto || "").trim();
+          const cantidad = Number(item.cantidad || 0);
+
+          if (!codigoOriginal || !fecha || !Number.isFinite(cantidad) || cantidad <= 0) return;
+
+          docs.push({
+            origen: "MERMA",
+            id: `${doc.id}_${codigoOriginal}`,
+            codigo: codigoOriginal,
+            codigoKey: normalizarCodigo(codigoOriginal),
+            descripcion,
+            fecha,
+            fechaMs: normalizarFechaMs(fechaBase),
+            cantidad
+          });
+
+          if (!catalogo.has(codigoOriginal)) {
+            catalogo.set(codigoOriginal, descripcion);
+          }
+        });
+      });
+
+      return {
+        docs,
+        totalMermasDocs: snap.size,
+        catalogo
+      };
+    }
+
     function refrescarDatalistsOpciones() {
       const ventaList = $("listaCodigosVenta");
       const origenList = $("listaCodigosOrigen");
@@ -1445,7 +1610,7 @@ codigoKey: codigoVendidoKey,
       try {
         actualizarTitulosTienda();
         limpiarTabla();
-        setStatus("Consultando inventarios, transferencias, ventas y alias equivalentes...");
+        setStatus("Consultando inventarios, transferencias, intercambios, devoluciones, mermas, ventas y alias equivalentes...");
 
         await cargarEquivalencias(); // Se conserva para no romper el módulo viejo, pero el inventario usa codigosEquivalentes del catálogo.
         const equivalentesCatalogoData = await cargarEquivalentesCatalogo();
@@ -1453,18 +1618,38 @@ codigoKey: codigoVendidoKey,
         const filtroCodigo = $("filtroCodigo").value.trim().toLowerCase();
         const filtroDescripcion = $("filtroDescripcion").value.trim().toLowerCase();
 
-        const [inventariosData, ventasData, transferenciasData, ajustesData] = await Promise.all([
+        const [
+          inventariosData,
+          ventasData,
+          transferenciasData,
+          ajustesData,
+          devolucionesData,
+          intercambiosData,
+          mermasData
+        ] = await Promise.all([
           cargarInventarios(),
           cargarVentas(),
           cargarTransferencias(),
-          cargarAjustesInventario()
+          cargarAjustesInventario(),
+          cargarDevoluciones(),
+          cargarIntercambios(),
+          cargarMermas()
         ]);
 
         totalAliasAplicadosUltimaCarga = ventasData.totalAliasAplicados || 0;
 
         const catalogo = new Map();
 
-        [equivalentesCatalogoData.catalogo, ajustesData.catalogo, inventariosData.catalogo, ventasData.catalogo, transferenciasData.catalogo].forEach(mapita => {
+        [
+          equivalentesCatalogoData.catalogo,
+          ajustesData.catalogo,
+          inventariosData.catalogo,
+          ventasData.catalogo,
+          transferenciasData.catalogo,
+          devolucionesData.catalogo,
+          intercambiosData.catalogo,
+          mermasData.catalogo
+        ].forEach(mapita => {
           mapita.forEach((descripcion, codigo) => {
             if (codigo && !catalogo.has(codigo)) {
               catalogo.set(codigo, descripcion || "");
@@ -1482,7 +1667,10 @@ codigoKey: codigoVendidoKey,
           ...ajustesData.docs,
           ...inventariosData.docs,
           ...transferenciasData.docs,
-          ...ventasData.docs
+          ...intercambiosData.docs,
+          ...ventasData.docs,
+          ...devolucionesData.docs,
+          ...mermasData.docs
         ];
 
         const empaqueData = aplicarEquivalenciasEmpaque(registros);
@@ -1494,7 +1682,10 @@ totalVirtualesInv: empaqueData.totalVirtualesInv,
 totalVirtualesVta: empaqueData.totalVirtualesVta,
           totalAliasesCatalogo: equivalentesCatalogoData.totalAliases || 0,
           totalAliasAplicados: ventasData.totalAliasAplicados || 0,
-          totalAjustes: ajustesData.docs.length || 0
+          totalAjustes: ajustesData.docs.length || 0,
+          totalDevoluciones: devolucionesData.docs.length || 0,
+          totalIntercambios: intercambiosData.docs.length || 0,
+          totalMermas: mermasData.docs.length || 0
         };
 
         registros = registros.filter(item => {
@@ -1518,7 +1709,7 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
           const fb = String(b.fecha || "");
           if (fa !== fb) return fa.localeCompare(fb, "es");
 
-          const ordenOrigen = { AJU: 1, INV: 2, TRANS: 3, VTA: 4 };
+          const ordenOrigen = { AJU: 1, INV: 2, TRANS: 3, INTER: 4, VTA: 5, DEV: 6, MERMA: 7 };
           if (a.origen !== b.origen) {
             return (ordenOrigen[a.origen] || 99) - (ordenOrigen[b.origen] || 99);
           }
@@ -1538,7 +1729,7 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
         pintarTabla(pivot);
 
         setStatus(
-          `Listo. Ajustes: ${ajustesData.docs.length} | Inventarios: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Ventas: ${ventasData.docs.length} | Alias catálogo: ${equivalenciasData.totalAliasesCatalogo} | Ventas reasignadas por alias: ${equivalenciasData.totalAliasAplicados} | Filtrados: ${registros.length}`,
+          `Listo. Ajustes: ${ajustesData.docs.length} | Inventarios: ${inventariosData.docs.length} | Transferencias: ${transferenciasData.docs.length} | Intercambios: ${intercambiosData.docs.length} | Ventas: ${ventasData.docs.length} | Devoluciones: ${devolucionesData.docs.length} | Mermas: ${mermasData.docs.length} | Alias catálogo: ${equivalenciasData.totalAliasesCatalogo} | Ventas reasignadas por alias: ${equivalenciasData.totalAliasAplicados} | Filtrados: ${registros.length}`,
           "ok"
         );
       } catch (err) {
@@ -1553,7 +1744,10 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
       const totalAjuPorFecha = {};
       const totalInvPorFecha = {};
       const totalTransPorFecha = {};
+      const totalInterPorFecha = {};
       const totalVtaPorFecha = {};
+      const totalDevPorFecha = {};
+      const totalMermaPorFecha = {};
 
       const fechasConMovimiento = new Set();
 
@@ -1577,15 +1771,21 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
             ajuPorFecha: {},
             invPorFecha: {},
             transPorFecha: {},
+            interPorFecha: {},
             vtaPorFecha: {},
+            devPorFecha: {},
+            mermaPorFecha: {},
             ajustesEventos: [],
             totalAju: 0,
             ultimoAjusteFecha: "",
             ultimoAjusteCantidad: null,
             totalInvBase: 0,
             totalTrans: 0,
+            totalInter: 0,
             totalInv: 0,
             totalVta: 0,
+            totalDev: 0,
+            totalMerma: 0,
             totalVtaAlias: 0,
             aliasCodigos: new Set(),
             neto: 0
@@ -1618,6 +1818,10 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
           row.transPorFecha[fecha] = (row.transPorFecha[fecha] || 0) + cantidad;
           totalTransPorFecha[fecha] = (totalTransPorFecha[fecha] || 0) + cantidad;
 
+        } else if (origen === "INTER") {
+          row.interPorFecha[fecha] = (row.interPorFecha[fecha] || 0) + cantidad;
+          totalInterPorFecha[fecha] = (totalInterPorFecha[fecha] || 0) + cantidad;
+
         } else if (origen === "VTA") {
           row.vtaPorFecha[fecha] = (row.vtaPorFecha[fecha] || 0) + cantidad;
           if (item.aliasAplicado) {
@@ -1625,18 +1829,28 @@ totalVirtualesVta: empaqueData.totalVirtualesVta,
             if (item.codigoVendidoOriginal) row.aliasCodigos.add(String(item.codigoVendidoOriginal));
           }
           totalVtaPorFecha[fecha] = (totalVtaPorFecha[fecha] || 0) + cantidad;
+
+        } else if (origen === "DEV") {
+          row.devPorFecha[fecha] = (row.devPorFecha[fecha] || 0) + cantidad;
+          totalDevPorFecha[fecha] = (totalDevPorFecha[fecha] || 0) + cantidad;
+
+        } else if (origen === "MERMA") {
+          row.mermaPorFecha[fecha] = (row.mermaPorFecha[fecha] || 0) + cantidad;
+          totalMermaPorFecha[fecha] = (totalMermaPorFecha[fecha] || 0) + cantidad;
         }
       }
-const fechasMsMap = {};
 
-for (const item of registros) {
-  if (item.fecha && item.fechaMs) {
-    fechasMsMap[item.fecha] = Math.max(
-      fechasMsMap[item.fecha] || 0,
-      item.fechaMs
-    );
-  }
-}
+      const fechasMsMap = {};
+
+      for (const item of registros) {
+        if (item.fecha && item.fechaMs) {
+          fechasMsMap[item.fecha] = Math.max(
+            fechasMsMap[item.fecha] || 0,
+            item.fechaMs
+          );
+        }
+      }
+
       const fechas = Array.from(fechasConMovimiento).sort();
 
       const columnas = [];
@@ -1644,12 +1858,18 @@ for (const item of registros) {
         if (totalAjuPorFecha[fecha] !== undefined) columnas.push({ fecha, tipo: "AJU" });
         if (totalInvPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "INV" });
         if (totalTransPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "TRANS" });
+        if (totalInterPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "INTER" });
         if (totalVtaPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "VTA" });
+        if (totalDevPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "DEV" });
+        if (totalMermaPorFecha[fecha] > 0) columnas.push({ fecha, tipo: "MERMA" });
       }
 
       let totalInvGeneralBase = 0;
       let totalTransGeneral = 0;
+      let totalInterGeneral = 0;
       let totalVtaGeneral = 0;
+      let totalDevGeneral = 0;
+      let totalMermaGeneral = 0;
       let totalAjuGeneral = 0;
       let totalNetoGeneral = 0;
 
@@ -1663,38 +1883,41 @@ for (const item of registros) {
           ? row.ajustesEventos[row.ajustesEventos.length - 1]
           : null;
 
-      
-const sumarDesde = (obj, fechasMsMap) =>
-  Object.entries(obj || {}).reduce((acc, [fecha, val]) => {
-    const fechaMsItem = fechasMsMap[fecha] || 0;
+        const sumarDesde = (obj, fechasMsMap) =>
+          Object.entries(obj || {}).reduce((acc, [fecha, val]) => {
+            const fechaMsItem = fechasMsMap[fecha] || 0;
 
-    if (!ultimo || fechaMsItem >= (ultimo.fechaMs || 0)) {
-      return acc + Number(val || 0);
-    }
+            if (!ultimo || fechaMsItem >= (ultimo.fechaMs || 0)) {
+              return acc + Number(val || 0);
+            }
 
-    return acc;
-  }, 0);
+            return acc;
+          }, 0);
 
         if (ultimo) {
           row.ultimoAjusteFecha = ultimo.fecha;
           row.ultimoAjusteCantidad = Number(ultimo.cantidad || 0);
-row.totalInvBase = row.ultimoAjusteCantidad + sumarDesde(row.invPorFecha, fechasMsMap);
-row.totalTrans = sumarDesde(row.transPorFecha, fechasMsMap);
-row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
-          row.totalInv = row.totalInvBase + row.totalTrans;
-          row.neto = row.totalInv - row.totalVta;
+          row.totalInvBase = row.ultimoAjusteCantidad + sumarDesde(row.invPorFecha, fechasMsMap);
         } else {
-row.totalInvBase = sumarDesde(row.invPorFecha, fechasMsMap);
-row.totalTrans = sumarDesde(row.transPorFecha, fechasMsMap);
-row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
-          row.totalInv = row.totalInvBase + row.totalTrans;
-          row.neto = row.totalInv - row.totalVta;
+          row.totalInvBase = sumarDesde(row.invPorFecha, fechasMsMap);
         }
+
+        row.totalTrans = sumarDesde(row.transPorFecha, fechasMsMap);
+        row.totalInter = sumarDesde(row.interPorFecha, fechasMsMap);
+        row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
+        row.totalDev = sumarDesde(row.devPorFecha, fechasMsMap);
+        row.totalMerma = sumarDesde(row.mermaPorFecha, fechasMsMap);
+
+        row.totalInv = row.totalInvBase + row.totalTrans + row.totalInter;
+        row.neto = row.totalInv - row.totalVta - row.totalDev - row.totalMerma;
 
         totalAjuGeneral += row.ultimoAjusteCantidad || 0;
         totalInvGeneralBase += row.totalInvBase || 0;
         totalTransGeneral += row.totalTrans || 0;
+        totalInterGeneral += row.totalInter || 0;
         totalVtaGeneral += row.totalVta || 0;
+        totalDevGeneral += row.totalDev || 0;
+        totalMermaGeneral += row.totalMerma || 0;
         totalNetoGeneral += row.neto || 0;
 
         return {
@@ -1717,12 +1940,18 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         totalAjuPorFecha,
         totalInvPorFecha,
         totalTransPorFecha,
+        totalInterPorFecha,
         totalVtaPorFecha,
+        totalDevPorFecha,
+        totalMermaPorFecha,
         totalAjuGeneral,
         totalInvGeneralBase,
         totalTransGeneral,
-        totalInvGeneral: totalInvGeneralBase + totalTransGeneral,
+        totalInterGeneral,
+        totalInvGeneral: totalInvGeneralBase + totalTransGeneral + totalInterGeneral,
         totalVtaGeneral,
+        totalDevGeneral,
+        totalMermaGeneral,
         totalNetoGeneral,
         totalCodigos: rows.length
       };
@@ -1731,13 +1960,19 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
     function pintarResumen(registros, pivot, equivalenciasData = {}) {
       const totalInvRegs = registros.filter(x => x.origen === "INV").length;
       const totalTransRegs = registros.filter(x => x.origen === "TRANS").length;
+      const totalInterRegs = registros.filter(x => x.origen === "INTER").length;
       const totalVtaRegs = registros.filter(x => x.origen === "VTA").length;
+      const totalDevRegs = registros.filter(x => x.origen === "DEV").length;
+      const totalMermaRegs = registros.filter(x => x.origen === "MERMA").length;
 
       $("summary").innerHTML = `
         <div class="pill">Ajustes auditados: ${fmtNum(equivalenciasData.totalAjustes || 0)}</div>
         <div class="pill">Registros inventario: ${fmtNum(totalInvRegs)}</div>
         <div class="pill">Registros transferencias: ${fmtNum(totalTransRegs)}</div>
+        <div class="pill">Intercambios autorizados: ${fmtNum(totalInterRegs)}</div>
         <div class="pill">Registros ventas: ${fmtNum(totalVtaRegs)}</div>
+        <div class="pill">Devoluciones aplicadas: ${fmtNum(totalDevRegs)}</div>
+        <div class="pill">Mermas aplicadas: ${fmtNum(totalMermaRegs)}</div>
         <div class="pill">Alias catálogo: ${fmtNum(equivalenciasData.totalAliasesCatalogo || 0)}</div>
         <div class="pill">Ventas por alias: ${fmtNum(equivalenciasData.totalAliasAplicados || 0)}</div>
         <div class="pill">Reglas factor antiguas: ${fmtNum(Object.keys(equivalenciasMap).length)}</div>
@@ -1746,8 +1981,11 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         <div class="pill">Últimas aperturas AJU: ${fmtNum(pivot.totalAjuGeneral || 0)}</div>
         <div class="pill">Inventario base/auditado: ${fmtNum(pivot.totalInvGeneralBase)}</div>
         <div class="pill">Transferencias: ${fmtNum(pivot.totalTransGeneral)}</div>
+        <div class="pill">Intercambios: ${fmtNum(pivot.totalInterGeneral)}</div>
         <div class="pill">Total inventario: ${fmtNum(pivot.totalInvGeneral)}</div>
         <div class="pill">Total ventas: ${fmtNum(pivot.totalVtaGeneral)}</div>
+        <div class="pill">Total devoluciones: ${fmtNum(pivot.totalDevGeneral)}</div>
+        <div class="pill">Total mermas: ${fmtNum(pivot.totalMermaGeneral)}</div>
         <div class="pill">Neto: ${fmtNum(pivot.totalNetoGeneral)}</div>
       `;
     }
@@ -1756,18 +1994,39 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
       if (tipo === "AJU") return "aju-col";
       if (tipo === "INV") return "inv-col";
       if (tipo === "TRANS") return "trans-col";
+      if (tipo === "INTER") return "inter-col";
       if (tipo === "VTA") return "vta-col";
+      if (tipo === "DEV") return "dev-col";
+      if (tipo === "MERMA") return "merma-col";
       return "total-col";
+    }
+
+    function valorColumnaRow(row, col) {
+      if (col.tipo === "AJU") return row.ajuPorFecha[col.fecha];
+      if (col.tipo === "INV") return row.invPorFecha[col.fecha] || 0;
+      if (col.tipo === "TRANS") return row.transPorFecha[col.fecha] || 0;
+      if (col.tipo === "INTER") return row.interPorFecha[col.fecha] || 0;
+      if (col.tipo === "VTA") return row.vtaPorFecha[col.fecha] || 0;
+      if (col.tipo === "DEV") return row.devPorFecha[col.fecha] || 0;
+      if (col.tipo === "MERMA") return row.mermaPorFecha[col.fecha] || 0;
+      return 0;
+    }
+
+    function valorColumnaTotal(pivot, col) {
+      if (col.tipo === "AJU") return pivot.totalAjuPorFecha[col.fecha] || 0;
+      if (col.tipo === "INV") return pivot.totalInvPorFecha[col.fecha] || 0;
+      if (col.tipo === "TRANS") return pivot.totalTransPorFecha[col.fecha] || 0;
+      if (col.tipo === "INTER") return pivot.totalInterPorFecha[col.fecha] || 0;
+      if (col.tipo === "VTA") return pivot.totalVtaPorFecha[col.fecha] || 0;
+      if (col.tipo === "DEV") return pivot.totalDevPorFecha[col.fecha] || 0;
+      if (col.tipo === "MERMA") return pivot.totalMermaPorFecha[col.fecha] || 0;
+      return 0;
     }
 
     function pintarTabla(pivot) {
       const {
         columnas,
         rows,
-        totalAjuPorFecha,
-        totalInvPorFecha,
-        totalTransPorFecha,
-        totalVtaPorFecha,
         totalInvGeneral,
         totalVtaGeneral,
         totalNetoGeneral
@@ -1785,18 +2044,20 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         <th class="total-col">ÚLTIMO AJU</th>
         <th class="total-col">TOTAL INV</th>
         <th class="total-col">TOTAL VTA</th>
+        <th class="total-col">TOTAL DEV</th>
+        <th class="total-col">TOTAL MERMA</th>
         <th class="neto-col">TEÓRICO / NETO</th>
       `;
       thead.appendChild(trHead);
 
       const frag = document.createDocumentFragment();
 
- for (const row of rows) {
-  const tr = document.createElement("tr");
+      for (const row of rows) {
+        const tr = document.createElement("tr");
 
-  if (row.ultimoAjusteCantidad !== null) {
-    tr.classList.add("fila-ajustada");
-  }
+        if (row.ultimoAjusteCantidad !== null) {
+          tr.classList.add("fila-ajustada");
+        }
 
         let html = `
           <td class="left sticky1">${escapeHtml(row.codigo)}</td>
@@ -1816,18 +2077,7 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         `;
 
         for (const col of columnas) {
-          let val = 0;
-
-          if (col.tipo === "AJU") {
-            val = row.ajuPorFecha[col.fecha];
-          } else if (col.tipo === "INV") {
-            val = row.invPorFecha[col.fecha] || 0;
-          } else if (col.tipo === "TRANS") {
-            val = row.transPorFecha[col.fecha] || 0;
-          } else {
-            val = row.vtaPorFecha[col.fecha] || 0;
-          }
-
+          const val = valorColumnaRow(row, col);
           const clase = claseColumna(col.tipo);
           const tieneValor = val !== undefined && val !== null && Number(val) !== 0;
 
@@ -1842,6 +2092,8 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
           <td class="total-col">${row.ultimoAjusteCantidad === null ? "" : fmtNum(row.ultimoAjusteCantidad)}</td>
           <td class="total-col">${fmtNum(row.totalInv)}</td>
           <td class="total-col">${fmtNum(row.totalVta)}</td>
+          <td class="total-col">${fmtNum(row.totalDev)}</td>
+          <td class="total-col">${fmtNum(row.totalMerma)}</td>
           <td class="neto-col ${row.neto < 0 ? "negativo" : ""}">${fmtNum(row.neto)}</td>
         `;
 
@@ -1856,24 +2108,15 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         <td class="left sticky1"><b>TOTAL</b></td>
         <td class="left sticky2"><b>Suma por fecha</b></td>
         ${columnas.map(col => {
-          let val = 0;
-
-          if (col.tipo === "AJU") {
-            val = totalAjuPorFecha[col.fecha] || 0;
-          } else if (col.tipo === "INV") {
-            val = totalInvPorFecha[col.fecha] || 0;
-          } else if (col.tipo === "TRANS") {
-            val = totalTransPorFecha[col.fecha] || 0;
-          } else {
-            val = totalVtaPorFecha[col.fecha] || 0;
-          }
-
+          const val = valorColumnaTotal(pivot, col);
           const clase = claseColumna(col.tipo);
           return `<td class="${clase}"><b>${fmtNum(val)}</b></td>`;
         }).join("")}
         <td class="total-col"><b>${fmtNum(pivot.totalAjuGeneral || 0)}</b></td>
         <td class="total-col"><b>${fmtNum(totalInvGeneral)}</b></td>
         <td class="total-col"><b>${fmtNum(totalVtaGeneral)}</b></td>
+        <td class="total-col"><b>${fmtNum(pivot.totalDevGeneral || 0)}</b></td>
+        <td class="total-col"><b>${fmtNum(pivot.totalMermaGeneral || 0)}</b></td>
         <td class="neto-col"><b>${fmtNum(totalNetoGeneral)}</b></td>
       `;
       tfoot.appendChild(trFoot);
@@ -1884,7 +2127,10 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         AJU: "EDE9FE",
         INV: "DBEAFE",
         TRANS: "FEF3C7",
+        INTER: "BBF7D0",
         VTA: "FEE2E2",
+        DEV: "FECACA",
+        MERMA: "FCA5A5",
         NETO: "ECFCCB",
         TOTAL: "F8FAFC",
         HEAD: "D9EAF7"
@@ -1917,13 +2163,11 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
       const {
         columnas,
         rows,
-        totalAjuPorFecha,
-        totalInvPorFecha,
-        totalTransPorFecha,
-        totalVtaPorFecha,
         totalAjuGeneral,
         totalInvGeneral,
         totalVtaGeneral,
+        totalDevGeneral,
+        totalMermaGeneral,
         totalNetoGeneral
       } = ultimaPivot;
 
@@ -1934,6 +2178,8 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         "ultimo_aju",
         "total_inv",
         "total_vta",
+        "total_dev",
+        "total_merma",
         "teorico_neto"
       ];
 
@@ -1943,33 +2189,27 @@ row.totalVta = sumarDesde(row.vtaPorFecha, fechasMsMap);
         data.push([
           row.codigo,
           row.descripcion || "",
-          ...columnas.map(col => {
-            if (col.tipo === "AJU") return row.ajuPorFecha[col.fecha] ?? "";
-            if (col.tipo === "INV") return Number(row.invPorFecha[col.fecha] || 0);
-            if (col.tipo === "TRANS") return row.transPorFecha[col.fecha] || "";
-            return row.vtaPorFecha[col.fecha] || "";
-          }),
+          ...columnas.map(col => valorColumnaRow(row, col) || ""),
           row.ultimoAjusteCantidad === null ? "" : row.ultimoAjusteCantidad,
           row.totalInv || 0,
           row.totalVta || 0,
+          row.totalDev || 0,
+          row.totalMerma || 0,
           row.neto || 0
         ]);
       }
 
-data.push([
-  "TOTAL",
-  "Suma por fecha",
-  ...columnas.map(col => {
-    if (col.tipo === "AJU") return Number(totalAjuPorFecha[col.fecha] || 0);
-    if (col.tipo === "INV") return Number(totalInvPorFecha[col.fecha] || 0);
-    if (col.tipo === "TRANS") return Number(totalTransPorFecha[col.fecha] || 0);
-    return Number(totalVtaPorFecha[col.fecha] || 0);
-  }),
-  totalAjuGeneral || 0,
-  totalInvGeneral || 0,
-  totalVtaGeneral || 0,
-  totalNetoGeneral || 0
-]);
+      data.push([
+        "TOTAL",
+        "Suma por fecha",
+        ...columnas.map(col => Number(valorColumnaTotal(ultimaPivot, col) || 0)),
+        totalAjuGeneral || 0,
+        totalInvGeneral || 0,
+        totalVtaGeneral || 0,
+        totalDevGeneral || 0,
+        totalMermaGeneral || 0,
+        totalNetoGeneral || 0
+      ]);
 
       const ws = XLSX.utils.aoa_to_sheet(data);
 
@@ -1980,6 +2220,8 @@ data.push([
         { wch: 14 },
         { wch: 14 },
         { wch: 14 },
+        { wch: 14 },
+        { wch: 16 },
         { wch: 16 }
       ];
 
@@ -1988,7 +2230,8 @@ data.push([
 
       for (let R = range.s.r; R <= range.e.r; R++) {
         const esFilaAjustada =
-  R > 0 && R < totalRowIndex && rows[R - 1]?.ultimoAjusteCantidad !== null;
+          R > 0 && R < totalRowIndex && rows[R - 1]?.ultimoAjusteCantidad !== null;
+
         for (let C = range.s.c; C <= range.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: R, c: C });
           if (!ws[addr]) continue;
@@ -2007,22 +2250,21 @@ data.push([
           } else if (C === header.length - 1) {
             tipo = "NETO";
             bold = true;
-          } else if (C >= header.length - 4) {
+          } else if (C >= header.length - 6) {
             tipo = "TOTAL";
           }
 
           let style = excelCellStyle(tipo, bold);
 
-// 👉 si la fila tiene ajuste → sobrescribir color
-if (esFilaAjustada) {
-  style.fill = {
-    patternType: "solid",
-    fgColor: { rgb: "C4B5FD" } // morado como tu UI
-  };
-  style.font = { bold: true };
-}
+          if (esFilaAjustada) {
+            style.fill = {
+              patternType: "solid",
+              fgColor: { rgb: "C4B5FD" }
+            };
+            style.font = { bold: true };
+          }
 
-ws[addr].s = style;
+          ws[addr].s = style;
           if (C >= 2) ws[addr].z = "#,##0.####";
         }
       }
@@ -2045,14 +2287,25 @@ ws[addr].s = style;
         try {
           setStatusConfig("Cargando opciones de códigos para selección...", "");
           const equivalentesCatalogoData = await cargarEquivalentesCatalogo();
-          const [inventariosData, ventasData, transferenciasData] = await Promise.all([
+          const [inventariosData, ventasData, transferenciasData, devolucionesData, intercambiosData, mermasData] = await Promise.all([
             cargarInventarios(),
             cargarVentas(),
-            cargarTransferencias()
+            cargarTransferencias(),
+            cargarDevoluciones(),
+            cargarIntercambios(),
+            cargarMermas()
           ]);
 
           const catalogo = new Map();
-          [equivalentesCatalogoData.catalogo, inventariosData.catalogo, ventasData.catalogo, transferenciasData.catalogo].forEach(mapita => {
+          [
+            equivalentesCatalogoData.catalogo,
+            inventariosData.catalogo,
+            ventasData.catalogo,
+            transferenciasData.catalogo,
+            devolucionesData.catalogo,
+            intercambiosData.catalogo,
+            mermasData.catalogo
+          ].forEach(mapita => {
             mapita.forEach((descripcion, codigo) => {
               if (codigo && !catalogo.has(codigo)) {
                 catalogo.set(codigo, descripcion || "");
