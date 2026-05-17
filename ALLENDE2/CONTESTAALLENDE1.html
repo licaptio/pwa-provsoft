@@ -3,244 +3,126 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Contestación Intercambio | ALLENDE 2</title>
 
 <style>
 :root{
   --rojo:#c40000;
   --rojoOscuro:#870000;
-  --blanco:#fff;
   --gris:#f4f4f4;
   --texto:#222;
 }
 
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-  font-family:Arial, Helvetica, sans-serif;
-}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,Helvetica,sans-serif}
 
-body{
-  background:var(--gris);
-  color:var(--texto);
-}
+body{background:var(--gris);color:var(--texto)}
 
 .loading{
-  position:fixed;
-  inset:0;
+  position:fixed;inset:0;
   background:linear-gradient(180deg,var(--rojo),var(--rojoOscuro));
-  color:white;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  z-index:9999;
+  color:white;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;z-index:9999
 }
 
-.loading img{
-  width:280px;
-  max-width:90%;
-  margin-bottom:25px;
-}
+.loading img{width:280px;max-width:90%;margin-bottom:25px}
 
 .barra-wrap{
-  width:320px;
-  max-width:90%;
-  height:10px;
+  width:320px;max-width:90%;height:10px;
   background:rgba(255,255,255,.25);
-  border-radius:20px;
-  overflow:hidden;
-  margin-top:20px;
+  border-radius:20px;overflow:hidden;margin-top:20px
 }
 
-.barra{
-  height:100%;
-  width:0%;
-  background:white;
-  transition:.3s;
-}
+.barra{height:100%;width:0%;background:white;transition:.3s}
 
-.app{
-  max-width:1200px;
-  margin:auto;
-  padding:15px;
-}
+.app{max-width:1200px;margin:auto;padding:15px}
 
 .header{
   background:linear-gradient(90deg,var(--rojo),var(--rojoOscuro));
-  color:white;
-  border-radius:22px;
-  padding:20px;
-  margin-bottom:15px;
-  display:flex;
-  align-items:center;
-  gap:20px;
+  color:white;border-radius:22px;padding:20px;margin-bottom:15px;
+  display:flex;align-items:center;gap:20px
 }
 
 .header img{
-  width:180px;
-  background:white;
-  border-radius:14px;
-  padding:8px;
+  width:180px;background:white;border-radius:14px;padding:8px
 }
 
-.header h2{
-  font-size:30px;
-}
-
-.header p{
-  margin-top:5px;
-  opacity:.9;
-}
+.header h2{font-size:30px}
+.header p{margin-top:5px;opacity:.9}
 
 .box{
-  background:white;
-  border-radius:22px;
-  padding:18px;
-  margin-bottom:15px;
-  box-shadow:0 5px 18px rgba(0,0,0,.08);
+  background:white;border-radius:22px;padding:18px;margin-bottom:15px;
+  box-shadow:0 5px 18px rgba(0,0,0,.08)
 }
 
-.box h3{
-  color:var(--rojo);
-  margin-bottom:15px;
-}
+.box h3{color:var(--rojo);margin-bottom:15px}
 
 .solicitud{
-  border:2px solid #eee;
-  border-radius:18px;
-  padding:15px;
-  margin-bottom:15px;
+  background:white;border:2px solid #eee;border-radius:18px;
+  padding:15px;margin-bottom:15px;cursor:pointer;
+  transition:.15s
+}
+
+.solicitud:hover{
+  border-color:var(--rojo);
+  transform:translateY(-1px)
 }
 
 .solicitud-head{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-bottom:12px;
+  display:flex;justify-content:space-between;gap:10px;
+  flex-wrap:wrap;margin-bottom:12px
 }
 
 .estado{
-  background:#fff0f0;
-  color:var(--rojo);
-  padding:8px 12px;
-  border-radius:20px;
-  font-weight:bold;
+  background:#fff0f0;color:var(--rojo);
+  padding:8px 12px;border-radius:20px;font-weight:bold
 }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  margin-top:10px;
-}
-
-th{
-  background:#fafafa;
-  text-align:left;
-}
-
-td,th{
-  padding:10px;
-  border-bottom:1px solid #eee;
-}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th{background:#fafafa;text-align:left}
+td,th{padding:10px;border-bottom:1px solid #eee}
 
 input{
-  width:100%;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid #ddd;
-  font-size:15px;
+  width:100%;padding:12px;border-radius:12px;
+  border:1px solid #ddd;font-size:15px
 }
 
 button{
-  border:none;
-  border-radius:14px;
-  padding:14px;
-  font-size:15px;
-  font-weight:bold;
-  cursor:pointer;
+  border:none;border-radius:14px;padding:14px;
+  font-size:15px;font-weight:bold;cursor:pointer
 }
 
-.btn-rojo{
-  background:var(--rojo);
-  color:white;
-}
+.btn-rojo{background:var(--rojo);color:white}
+.btn-sec{background:#efefef;color:#222}
+.btn-verde{background:#128a3c;color:white}
+.btn-negro{background:#222;color:white}
 
-.btn-sec{
-  background:#efefef;
-  color:#222;
-}
-
-.btn-verde{
-  background:#128a3c;
-  color:white;
-}
-
-.btn-negro{
-  background:#222;
-  color:white;
-}
-
-.actions{
-  display:flex;
-  gap:10px;
-  margin-top:15px;
-}
+.actions{display:flex;gap:10px;margin-top:15px}
 
 .modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.45);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  padding:15px;
-  z-index:9000;
+  position:fixed;inset:0;background:rgba(0,0,0,.45);
+  display:none;align-items:center;justify-content:center;
+  padding:15px;z-index:9000
 }
 
 .modal-box{
-  width:100%;
-  max-width:720px;
-  background:white;
-  border-radius:24px;
-  padding:20px;
-  max-height:90vh;
-  overflow:auto;
+  width:100%;max-width:760px;background:white;
+  border-radius:24px;padding:20px;max-height:90vh;overflow:auto
 }
 
 canvas{
-  width:100%;
-  height:170px;
-  border:2px dashed #ccc;
-  border-radius:18px;
-  margin-top:10px;
-  touch-action:none;
+  width:100%;height:170px;border:2px dashed #ccc;
+  border-radius:18px;margin-top:10px;touch-action:none
 }
 
 .firma-img{
-  width:220px;
-  max-width:100%;
-  border:1px solid #ddd;
-  border-radius:10px;
-  margin-top:8px;
+  width:240px;max-width:100%;
+  border:1px solid #ddd;border-radius:10px;margin-top:8px
 }
 
 @media(max-width:700px){
-  .header{
-    flex-direction:column;
-    text-align:center;
-  }
-
-  .actions{
-    flex-direction:column;
-  }
-
-  td,th{
-    font-size:13px;
-  }
+  .header{flex-direction:column;text-align:center}
+  .actions{flex-direction:column}
+  td,th{font-size:13px}
 }
 </style>
 </head>
@@ -248,20 +130,16 @@ canvas{
 <body>
 
 <div class="loading" id="loading">
-  <img src="logo.png">
+  <img src="logo.jfif">
   <h1>PROVEEDORA</h1>
   <p id="estadoCarga">Cargando solicitudes...</p>
-
-  <div class="barra-wrap">
-    <div class="barra" id="barra"></div>
-  </div>
+  <div class="barra-wrap"><div class="barra" id="barra"></div></div>
 </div>
 
 <div class="app">
 
   <div class="header">
-    <img src="logo.png">
-
+    <img src="logo.jfif">
     <div>
       <h2>Contestación de Intercambios</h2>
       <p>ALLENDE 2 contesta solicitudes de ALLENDE 1</p>
@@ -269,11 +147,11 @@ canvas{
   </div>
 
   <div class="box">
-    <h3>Solicitudes pendientes por contestar</h3>
+    <h3>Órdenes pendientes por autorizar</h3>
 
     <div class="actions">
       <button class="btn-rojo" onclick="cargarSolicitudes()">
-        Recargar solicitudes
+        Recargar órdenes
       </button>
     </div>
 
@@ -282,6 +160,43 @@ canvas{
 
 </div>
 
+<!-- MODAL: VER ORDEN -->
+<div class="modal" id="modalOrden">
+  <div class="modal-box">
+
+    <h2 id="ordenFolio"></h2>
+    <p id="ordenInfo"></p>
+
+    <br>
+
+    <h3>Productos solicitados</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Producto</th>
+          <th>Cantidad</th>
+        </tr>
+      </thead>
+      <tbody id="tbodyOrden"></tbody>
+    </table>
+
+    <br>
+
+    <h3>Firma de solicitud</h3>
+    <div id="firmaSolicitudPreview"></div>
+
+    <div class="actions">
+      <button class="btn-sec" onclick="cerrarOrden()">Cerrar</button>
+      <button class="btn-negro" onclick="imprimirOrden()">Imprimir</button>
+      <button class="btn-rojo" onclick="abrirContestacion()">Contestar</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: CONTESTAR -->
 <div class="modal" id="modalDetalle">
   <div class="modal-box">
 
@@ -290,7 +205,7 @@ canvas{
 
     <br>
 
-    <h3>Productos solicitados</h3>
+    <h3>Autorizar cantidades</h3>
 
     <table>
       <thead>
@@ -323,7 +238,6 @@ canvas{
 </div>
 
 <script type="module">
-
 import {
   collection,
   getDocs,
@@ -365,7 +279,7 @@ function formatoFecha(fecha){
 
 window.cargarSolicitudes = async function(){
 
-  lista.innerHTML = 'Cargando...';
+  lista.innerHTML = 'Cargando órdenes...';
 
   estado('Leyendo solicitudes de Allende 1...');
   barra(25);
@@ -395,10 +309,8 @@ window.cargarSolicitudes = async function(){
   });
 
   barra(70);
-
   renderSolicitudes();
-
-  estado('Solicitudes cargadas');
+  estado('Órdenes cargadas');
   barra(100);
 }
 
@@ -407,7 +319,7 @@ function renderSolicitudes(){
   if(!solicitudes.length){
     lista.innerHTML = `
       <div class="solicitud">
-        No hay solicitudes pendientes por contestar.
+        No hay órdenes pendientes por autorizar.
       </div>
     `;
     return;
@@ -420,6 +332,7 @@ function renderSolicitudes(){
     const div = document.createElement('div');
 
     div.className = 'solicitud';
+    div.onclick = ()=>abrirOrden(s.id);
 
     div.innerHTML = `
       <div class="solicitud-head">
@@ -430,22 +343,11 @@ function renderSolicitudes(){
           <p><b>Fecha:</b> ${formatoFecha(s.fecha_solicitud)}</p>
         </div>
 
-        <div class="estado">
-          ${s.estado}
-        </div>
+        <div class="estado">${s.estado}</div>
       </div>
 
       <p><b>Partidas:</b> ${(s.items || []).length}</p>
-
-      <div class="actions">
-        <button class="btn-rojo" onclick="abrirDetalle('${s.id}')">
-          Contestar solicitud
-        </button>
-
-        <button class="btn-sec" onclick="imprimirSolicitud('${s.id}')">
-          Ver / imprimir
-        </button>
-      </div>
+      <p style="margin-top:8px;color:#666;">Toca esta orden para visualizarla.</p>
     `;
 
     lista.appendChild(div);
@@ -454,13 +356,72 @@ function renderSolicitudes(){
 
 }
 
+window.abrirOrden = function(id){
+
+  solicitudActual = solicitudes.find(x=>x.id === id);
+
+  if(!solicitudActual) return;
+
+  document.getElementById('ordenFolio').textContent =
+    solicitudActual.folio;
+
+  document.getElementById('ordenInfo').innerHTML = `
+    <b>Solicita:</b> ${solicitudActual.tienda_solicita}<br>
+    <b>Contesta:</b> ${solicitudActual.tienda_contesta}<br>
+    <b>Solicitado por:</b> ${solicitudActual.solicitado_por || ''}<br>
+    <b>Estado:</b> ${solicitudActual.estado}<br>
+    <b>Fecha:</b> ${formatoFecha(solicitudActual.fecha_solicitud)}
+  `;
+
+  const tbody = document.getElementById('tbodyOrden');
+  tbody.innerHTML = '';
+
+  (solicitudActual.items || []).forEach(item=>{
+
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>${item.codigo || ''}</td>
+      <td>${item.descripcion || ''}</td>
+      <td>${item.cantidad_solicitada || 0}</td>
+    `;
+
+    tbody.appendChild(tr);
+
+  });
+
+  document.getElementById('firmaSolicitudPreview').innerHTML =
+    solicitudActual.firma_solicitud
+      ? `<img src="${solicitudActual.firma_solicitud}" class="firma-img">`
+      : '<p>Sin firma registrada.</p>';
+
+  document.getElementById('modalOrden').style.display = 'flex';
+
+}
+
+window.cerrarOrden = function(){
+  document.getElementById('modalOrden').style.display = 'none';
+}
+
+window.abrirContestacion = function(){
+  cerrarOrden();
+  if(!solicitudActual) return;
+  abrirDetalle(solicitudActual.id);
+}
+
+window.imprimirOrden = function(){
+  if(!solicitudActual) return;
+  imprimir(solicitudActual);
+}
+
 window.abrirDetalle = function(id){
 
   solicitudActual = solicitudes.find(x=>x.id === id);
 
   if(!solicitudActual) return;
 
-  document.getElementById('modalFolio').textContent = solicitudActual.folio;
+  document.getElementById('modalFolio').textContent =
+    solicitudActual.folio;
 
   document.getElementById('modalInfo').innerHTML = `
     <b>Solicita:</b> ${solicitudActual.tienda_solicita}<br>
@@ -469,7 +430,6 @@ window.abrirDetalle = function(id){
   `;
 
   const tbody = document.getElementById('tbodyDetalle');
-
   tbody.innerHTML = '';
 
   (solicitudActual.items || []).forEach((item,i)=>{
@@ -477,14 +437,14 @@ window.abrirDetalle = function(id){
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td>${item.codigo}</td>
-      <td>${item.descripcion}</td>
-      <td>${item.cantidad_solicitada}</td>
+      <td>${item.codigo || ''}</td>
+      <td>${item.descripcion || ''}</td>
+      <td>${item.cantidad_solicitada || 0}</td>
       <td>
         <input
           type="number"
           min="0"
-          value="${item.cantidad_solicitada}"
+          value="${item.cantidad_solicitada || 0}"
           data-index="${i}"
           class="cantidadAutorizada"
         >
@@ -514,7 +474,8 @@ window.autorizarSolicitud = async function(){
     return;
   }
 
-  const autorizadoPor = document.getElementById('autorizadoPor').value.trim();
+  const autorizadoPor =
+    document.getElementById('autorizadoPor').value.trim();
 
   if(!autorizadoPor){
     alert('Captura quién autoriza en Allende 2');
@@ -531,7 +492,6 @@ window.autorizarSolicitud = async function(){
   const itemsActualizados = (solicitudActual.items || []).map((item,i)=>{
 
     const input = [...inputs].find(x=>Number(x.dataset.index) === i);
-
     const autorizada = Number(input?.value || 0);
 
     return {
@@ -547,10 +507,13 @@ window.autorizarSolicitud = async function(){
 
   });
 
-  const todoCero = itemsActualizados.every(x=>Number(x.cantidad_autorizada || 0) <= 0);
+  const todoCero = itemsActualizados.every(
+    x=>Number(x.cantidad_autorizada || 0) <= 0
+  );
 
   const parcial = itemsActualizados.some(
-    x => x.estado_item === 'AUTORIZADO_PARCIAL' || x.estado_item === 'NO_AUTORIZADO'
+    x => x.estado_item === 'AUTORIZADO_PARCIAL' ||
+         x.estado_item === 'NO_AUTORIZADO'
   );
 
   let estadoFinal = 'AUTORIZADO';
@@ -578,16 +541,6 @@ window.autorizarSolicitud = async function(){
     updatedAt: serverTimestamp()
   });
 
-  const docParaImprimir = {
-    ...solicitudActual,
-    estado: estadoFinal,
-    autorizado_por: autorizadoPor,
-    firma_autorizacion: firmaBase64,
-    items: itemsActualizados
-  };
-
-  imprimir(docParaImprimir);
-
   alert('Solicitud contestada correctamente');
 
   cerrarModal();
@@ -603,7 +556,8 @@ window.rechazarSolicitud = async function(){
     return;
   }
 
-  const autorizadoPor = document.getElementById('autorizadoPor').value.trim();
+  const autorizadoPor =
+    document.getElementById('autorizadoPor').value.trim();
 
   if(!autorizadoPor){
     alert('Captura quién rechaza en Allende 2');
@@ -641,16 +595,6 @@ window.rechazarSolicitud = async function(){
 
 }
 
-window.imprimirSolicitud = function(id){
-
-  const s = solicitudes.find(x=>x.id === id);
-
-  if(!s) return;
-
-  imprimir(s);
-
-}
-
 function imprimir(docu){
 
   const win = window.open('');
@@ -669,56 +613,24 @@ function imprimir(docu){
     <html>
     <head>
       <title>${docu.folio}</title>
-
       <style>
-        body{
-          font-family:Arial;
-          padding:20px;
-        }
-
-        table{
-          width:100%;
-          border-collapse:collapse;
-        }
-
-        th,td{
-          border:1px solid #ccc;
-          padding:8px;
-          font-size:12px;
-        }
-
-        .firma{
-          width:220px;
-          max-height:120px;
-          border:1px solid #ddd;
-          margin-top:8px;
-        }
-
-        .head{
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          border-bottom:3px solid #c40000;
-          padding-bottom:10px;
-          margin-bottom:15px;
-        }
-
-        .logo{
-          width:220px;
-        }
+        body{font-family:Arial;padding:20px;}
+        table{width:100%;border-collapse:collapse;}
+        th,td{border:1px solid #ccc;padding:8px;font-size:12px;}
+        .firma{width:220px;max-height:120px;border:1px solid #ddd;margin-top:8px;}
+        .head{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #c40000;padding-bottom:10px;margin-bottom:15px;}
+        .logo{width:220px;}
       </style>
     </head>
-
     <body>
 
       <div class="head">
         <div>
-          <h2>Contestación de Intercambio</h2>
+          <h2>Orden de Intercambio</h2>
           <b>Folio:</b> ${docu.folio}<br>
           <b>Estado:</b> ${docu.estado}<br>
         </div>
-
-        <img src="logo.png" class="logo">
+        <img src="logo.jfif" class="logo">
       </div>
 
       <b>Solicita:</b> ${docu.tienda_solicita}<br>
@@ -736,10 +648,7 @@ function imprimir(docu){
             <th>Estado</th>
           </tr>
         </thead>
-
-        <tbody>
-          ${filas}
-        </tbody>
+        <tbody>${filas}</tbody>
       </table>
 
       <br><br>
@@ -760,9 +669,7 @@ function imprimir(docu){
         : ''
       }
 
-      <script>
-        window.print()
-      <\/script>
+      <script>window.print()<\/script>
 
     </body>
     </html>
@@ -773,7 +680,6 @@ function imprimir(docu){
 function iniciarFirma(){
 
   const canvas = document.getElementById('firma');
-
   const ctx = canvas.getContext('2d');
 
   let dibujando = false;
@@ -856,15 +762,12 @@ async function init(){
   barra(100);
 
   setTimeout(()=>{
-
     document.getElementById('loading').style.display = 'none';
-
   },500);
 
 }
 
 window.onload = init;
-
 </script>
 
 </body>
