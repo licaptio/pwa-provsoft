@@ -1484,8 +1484,15 @@ function construirMapaEquivalencias(items = []) {
       snap.forEach(doc => {
         const data = doc.data() || {};
 
-        // Salida real: solo cuando la merma ya fue aplicada al inventario.
-        if (data.aplicadoInventario !== true) return;
+        // Merma operativa: se pinta aunque siga pendiente de auditoría o aplicación.
+        // Si existe en MERMAS con productos, se considera salida teórica pendiente.
+        const esMermaValida =
+          data.tipoMovimientoPendiente === "SALIDA_MERMA" ||
+          data.tipoDocumento === "SOLICITUD_MERMA" ||
+          data.estado === "SOLICITADA" ||
+          data.aplicadoInventario === true;
+
+        if (!esMermaValida) return;
 
         const fechaBase = data.actualizadoEn || data.creadoEn || data.actualizadoEnLocal || data.creadoEnLocal || "";
         const fecha = normalizarFecha(fechaBase);
